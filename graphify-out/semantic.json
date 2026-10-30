@@ -4165,7 +4165,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "rationale": "uv.lock／Ruff／CI設定已完成不等於遠端CI已執行。",
+      "rationale": "成熟鎖定依賴／Ruff／CI已接入，主要實作11d7614經遠端3.10／3.12兩job實跑通過；不將測試通過等同部署。",
       "status": "accepted"
     },
     {
@@ -5991,7 +5991,7 @@
     },
     {
       "id": "docs_status_test_49",
-      "label": "最終本機Python3.12共188測試全通過含GRU三目標；3.10同188報告通過，選用GRU因無torch跳過1",
+      "label": "最終本機Python3.12共188測試全通過含GRU三目標；3.10同188報告通過，選用GRU因無torch跳過1；主要實作遠端3.10／3.12 CI亦success",
       "file_type": "concept",
       "source_file": "docs/STATUS.md",
       "source_location": "L48",
@@ -5999,7 +5999,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "status": "final_local_test_report",
+      "status": "local_and_remote_test_results_verified",
       "python312": {
         "test_count": 188,
         "result": "all passed",
@@ -6012,7 +6012,7 @@
         "skip_reason": "torch not installed"
       },
       "ruff": "passed in both environments",
-      "remote_ci_passed_claim": false
+      "remote_ci_passed_claim": true
     },
     {
       "id": "docs_status_review_findings_fixed",
@@ -6508,7 +6508,7 @@
     },
     {
       "id": "docs_research_automation_workflow_default_branch_gate",
-      "label": "workflow_dispatch與schedule須workflow存在default branch；main空樹、workflow僅dev尚未push",
+      "label": "workflow已推送dev且push CI通過；main空樹仍阻擋default-branch workflow_dispatch／schedule註冊",
       "file_type": "concept",
       "source_file": "docs/research/AUTOMATION.md",
       "source_location": "L79",
@@ -6520,9 +6520,10 @@
       "default_branch": "main",
       "main_tree": "empty",
       "working_branch": "dev",
-      "main_or_default_branch_change_authorized": false,
-      "repository_visibility_change_authorized": false,
-      "push_ci_event_is_distinct": true
+      "push_ci_event_is_distinct": true,
+      "main_or_default_branch_changed": false,
+      "repository_visibility_changed": false,
+      "pushed_to_dev": true
     },
     {
       "id": "docs_research_automation_hosted_runner_and_chat_constraints",
@@ -8815,6 +8816,21 @@
       "author": null,
       "contributor": null,
       "rationale": "圖呈現依賴與證據範圍；可用性、績效與部署必須各自驗收。"
+    },
+    {
+      "id": "docs_status_remote_ci_success",
+      "label": "實作11d7614已推送dev，Actions run41031916837的Python3.10／3.12安裝、Ruff與測試success",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "L48",
+      "source_url": "https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41031916837",
+      "captured_at": "2026-10-30T09:17:05.229883+00:00",
+      "author": null,
+      "contributor": null,
+      "status": "verified",
+      "code_commit": "11d7614af64b410e8fca94c0b64a1f028d47b2da",
+      "remote_ci_installs_torch": false,
+      "local_neural_tests_passed": true
     }
   ],
   "edges": [
@@ -20143,6 +20159,36 @@
       "source_file": "docs/PROJECT_GRAPH.md",
       "source_location": "L33-L35",
       "weight": 1.0
+    },
+    {
+      "source": "docs_status_test_49",
+      "target": "docs_status_remote_ci_success",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_decisions_d018_ml_architecture",
+      "target": "docs_status_remote_ci_success",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/DECISIONS.md",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_research_automation_workflow_default_branch_gate",
+      "target": "docs_status_remote_ci_success",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/research/AUTOMATION.md",
+      "source_location": "L79",
+      "weight": 1.0
     }
   ],
   "hyperedges": [
@@ -20414,10 +20460,10 @@
     "README.md": "8561dc4f741131d0e03957227185dd6b5d4050881b1ccf1631dfed284dfd8da5",
     "docs/FEATURE_SPEC.md": "2d7b731cec77d3688a42b0c3423ac3b1252585721606e901ee5ce197793def30",
     "docs/PROJECT_CONTEXT.md": "f9b63b2fb5259e234d8cef11a4a05e45631d06b67f7a02db6e3a5a2aa0c138e7",
-    "docs/STATUS.md": "a199e1c5964f20ca9a53f4f81f9bc2be32d17418808c1d7a31d27a1dccfd6321",
+    "docs/STATUS.md": "555c10de1c829d2c98a42226af4ac9543dfb3489bc153a73d3d82a12d47d9001",
     "docs/MARKET_FEATURES.md": "604dd523e025becde30ddd9e5f0bebe58ef3f48221836c37cbaed93bb8eaa5de",
     "docs/EXPERIMENTS.md": "ba08a534e48d1eec4721eb0567feca98241ab9653e9364c75c6a25968c705777",
-    "docs/DECISIONS.md": "eaa7cce1c91f56292be58be78f2ee12295edcb1dcf75a4a2bb4770b016e5166c",
+    "docs/DECISIONS.md": "b65bfb7a33aa2cf009393479c6daa27055dd5385f125a8b94f3eb0d785977684",
     "docs/OPERATIONS.md": "3ee3af3cb4d69618c27e72eea1242fa6cc3c9edc2b809f93485877975acf7911",
     "docs/DATASET_INVENTORY.md": "7187e3220c6918104af1e61814605ad6a1c91d398e30abe01f35659ce9cfc346",
     "docs/IMPLEMENTATION_PLAN.md": "dcea75d339b71459df2f14ee145dc8750b2dd97a5fe69fed240e15c15ccf7520",
@@ -20427,7 +20473,7 @@
     "docs/research/DATA_ALIGNMENT.md": "3f4468f888d0da5a0d5d39b63547c2f83c88b2b6cfe0f584419986ae38a57dcf",
     "docs/research/TOOLS.md": "2935546f60065735532d3ff725beeaa6aa896db6e8300b2fd8fb7d067c9bbd5f",
     "docs/RESEARCH_PLAN.md": "e1a843322d28e6abfecb249e040d56396dcbcb5a2e57ed0ea782c4305c818222",
-    "docs/research/AUTOMATION.md": "26905f0e32b23ae31e72a4891ed0ef6b9298392675b4bdb45374cabc1346a0ff",
+    "docs/research/AUTOMATION.md": "d4dd876eaf996e9dda1366cc8871855cfdf6e92041a8308ddf100c507e7d7050",
     "docs/research/RETURN_RATIO.md": "f80f6e0e9b748a189fc2f431897fb4d27be0319ef671ffb8c74ff38f87da9f01",
     "docs/research/README.md": "80a9dee4d7be9c001082445b0ea176eec6111a00d0ca5c7c8c95c4dc4d34621e"
   },
@@ -20588,5 +20634,16 @@
     "historical_claims": "explicitly scoped to archived or frozen research versions",
     "raw_data_excluded": true,
     "cost": "unavailable"
+  },
+  "remote_ci_refresh_provenance": {
+    "at": "2026-10-30T09:17:05.230165+00:00",
+    "sources": [
+      "docs/STATUS.md",
+      "docs/DECISIONS.md",
+      "docs/research/AUTOMATION.md"
+    ],
+    "method": "Root reread edited full documents, replaced stale pending/unpushed claims and added actual GitHub run/commit evidence; not hash-only stamping",
+    "run": 41031916837,
+    "result": "success"
   }
 }

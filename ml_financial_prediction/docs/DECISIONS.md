@@ -21,7 +21,7 @@
 | D015 | accepted | Live採助教新網域及正常TLS；curl -k僅作此次對照診斷 | 新網域POST /login及GET /data.zip成功；原IP加-k仍503、proxy上游TLS失敗，不保存insecure設定 |
 | D016 | accepted | Live的-1與真值歧義須保留取得狀態，未完成列不能當有效label／feature | 服務頁明示；3700股票列有200個y=-1，10/23及10/27未齊；group狀態不是逐欄mask |
 | D017 | accepted | 擴充市場序列、每日04:00～09:00更新教師與外部資料、候選重訓及指數報酬是整體開發目標 | 2026-10-27使用者重申；每日各階段分配為proposed，沒有啟用排程／自動提交 |
-| D018 | accepted | 依ML生命週期分離資料取得、特徵／labels、訓練／評估、推論與監控；成熟現成工具優先 | 使用者要求及ARCHITECTURE參考；pyproject／uv.lock、Ruff及CI設定已完成，遠端CI尚未執行 |
+| D018 | accepted | 依ML生命週期分離資料取得、特徵／labels、訓練／評估、推論與監控；成熟現成工具優先 | 使用者要求及ARCHITECTURE參考；pyproject／uv.lock、Ruff與CI已完成；主要實作11d7614的遠端Python3.10／3.12檢查通過，run41031916837 |
 | D019 | accepted | Live重抓需比較修訂，不能假設永遠只append | 新快照506233bytes、3600完整／100待完成，只10/23未齊；相對D016時點，10/27的100個股鍵及1個global鍵更新，沒有新增鍵；舊快照保留 |
 | D020 | accepted | 本輪使用者明確要求每日自動取得教師與額外資料、訓練、提交競賽預測CSV並核實回執 | 更新較早人工提交的範圍；沿用本授權，不重問相同行動。端點／格式／截止／版本／回執驗證仍須完成，尚未部署；不包含公開raw資料 |
 | D021 | accepted | 公開基石／技法32份講義抽取文字已完整讀至EOF，公式圖像僅關鍵頁另核對 | 基石495頁、技法503頁；報告與來源hash在docs/research，不冒稱本學期未提供教材或所有圖片已審閱 |

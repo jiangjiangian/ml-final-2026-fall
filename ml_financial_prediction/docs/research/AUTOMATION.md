@@ -76,7 +76,7 @@ timer採`Persistent=false`，不在重新開機後補跑錯過的過期提交；
 
 根目錄`.github/workflows/daily.yml`提供**manual workflow_dispatch設定檔**，沒有schedule；預設使用`self-hosted,linux,finpred`的持久runner及明確`FINPRED_RUNTIME_ROOT`。它沒有raw／模型／回執artifact公開上傳步驟。正式提交還須repository release旗標、人工選擇本次submit input以及pipeline證據全部通過；此旗標是工程啟用狀態，不是要求重新授權已同意的行動。
 
-GitHub官方文件規定`workflow_dispatch`與schedule的workflow都須存在default branch。當前main空樹、workflow僅在dev且尚未push，所以不能宣稱UI/API已可觸發或每日已上線。這輪不更改main、default branch或repository可見性。現有CI的dev push事件則與此不同。
+GitHub官方文件規定`workflow_dispatch`與schedule的workflow都須存在default branch。當前main空樹，workflow已隨11d7614推送dev，但不在default branch，所以不能宣稱UI/API已可觸發或每日已上線；dev push的CI已實跑通過。這輪不更改main、default branch或repository可見性。現有CI的dev push事件則與此不同。
 
 若改用GitHub-hosted runner，必須先實作受控持久資料／模型／ledger儲存、跨runner鎖及備援；不能把短命runner或cache當資料庫。排程可能延遲／丟棄，仍須09:00截止檢查；目前沒有Codex Tasks/排程MCP工具可將這次聊天直接變成常駐服務。
 

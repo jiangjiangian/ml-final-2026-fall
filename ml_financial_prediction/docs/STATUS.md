@@ -45,7 +45,7 @@ E00以凍結Training＋10/27 Live建立82674個完成Top50股票日期鍵，50�
 
 正式時鐘／官方session／04:00～09:00窗口、07:20～07:50候選預算、08:10特徵freeze、50股全集／順序／二元值、配額、舊job保護、未知POST結果先對帳及有效回執比對均有檢查。2026-10-30新runtime的真實prediction preparation已實跑：新資料16:58台北才取得，正確拒絕作當天08:10輸入。這是負向驗證，不是完成一個交易日演練。
 
-最終本機驗證：Python3.12的188項測試全部通過，含GRU三目標；Python3.10同188項通過、1項選用GRU因未裝torch跳過。兩環境Ruff通過。3.10曾抓到mock名稱解析差異，已以明確module物件修正後重跑。shell語法、systemd units／timers與兩份workflow YAML解析通過；技能31個原始檔及Graphify SKILL hash核對相符。遠端CI以實際Actions run為準，未執行前不宣稱通過。
+最終本機驗證：Python3.12的188項測試全部通過，含GRU三目標；Python3.10同188項通過、1項選用GRU因未裝torch跳過。兩環境Ruff通過。3.10曾抓到mock名稱解析差異，已以明確module物件修正後重跑。shell語法、systemd units／timers與兩份workflow YAML解析通過；技能31個原始檔及Graphify SKILL hash核對相符。已將主要實作提交`11d7614af64b410e8fca94c0b64a1f028d47b2da`推送dev；[GitHub Actions run 41031916837](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41031916837)的Python3.10／3.12安裝、Ruff及測試均success。此CI不安裝選用torch；本機3.12另已驗證GRU。
 
 ## 教材、技能、分支與排程
 

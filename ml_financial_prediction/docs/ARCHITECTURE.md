@@ -31,7 +31,7 @@
 以下是**完整設計目錄**。已有ingestion、data、features、labels、models、training、evaluation、inference、submission、pipelines、CLI與測試；monitoring獨立模組仍待按需建立。目前健康／失敗資訊由各stage manifest記錄，不把完整設計誤當服務已部署。
 
 ```text
-ml-final-2026-fall/                  # Git repository；在dev工作
+ml-final-2026-fall/                  # 核心dev；獨立研究在deep-research
 ├── .github/workflows/              # repository根目錄的CI；部署排程另管理
 ├── .agents/skills/graphify/         # 已安裝的架構圖技能
 ├── graphify-out/                   # 已有：可分享的架構圖與來源追溯
@@ -138,6 +138,8 @@ FINPRED_RUNTIME_ROOT/               # 例如/workspace/shared/finpred
 `configs/features.yaml`是欄位公式對照；已有`configs/sources.json`來源清單及`configs/daily.json`未部署的時間／資料政策，目前不是可執行的通用工作流設定。後續按實際模型介面加入切分、參數與正式版本設定；先用清楚的設定檔，暫不引入複雜的模型註冊平台。
 
 model-bundle-v1已保存權重、前處理器、feature schema／順序、feature version、train end date、fit cutoff、readiness／availability evidence、參數、套件版本、seed與資料／程式hash。推論若欄位、版本或時點不符便停止，不自動補出看似合理的欄位。joblib只載入本專案產生且明示可信的私有模型，雜湊不提供惡意序列化隔離。
+
+獨立研究分支另有`configs/research/model_families.json`與[四架構設計](deep-research/MODEL_ARCHITECTURES.md)：這是未被runner讀取的設計，不改現有四類基準。跨branch共用資料方案見[DATA_AUTOMATION](deep-research/DATA_AUTOMATION.md)：Git保存metadata，私有共享儲存保存raw；producer的絕對payload路徑不能直接當可攜契約。尚未建立共享服務或catalog分支。
 
 每次run manifest至少包括run_id、job_type、session_date、cutoff、started/finished_at、code_commit、來源快照、feature_version、model_version、輸出hash與狀態。manifest寫入持久儲存，不依賴聊天記憶。
 

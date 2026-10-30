@@ -4,6 +4,8 @@
 
 先讀 `README.md`、`docs/ARCHITECTURE.md`、`docs/PROJECT_CONTEXT.md`、`docs/STATUS.md`、`docs/DECISIONS.md`。修改特徵時另讀 `docs/FEATURE_SPEC.md`、`docs/DATA_CONTRACT.md`；修改排程時另讀 `docs/OPERATIONS.md`。本文要求讀取的文件是專案記憶，不假設不同聊天自動共享上下文。
 
+使用者另要求研究分支「deep research」；Git名稱不能含空白，已在`deep-research`隔離worktree工作，基底為`dev@675d662`。核心實作仍在dev；main維持空樹及原default branch。研究入口為`docs/deep-research/README.md`，其四架構與資料共享方案均不等於已訓練或已部署。
+
 使用繁體中文說明，公式和程式採清楚一致的符號。先說成果與證據；區分老師規範、資料觀察、研究提案、尚未驗證的推論。
 
 ## 溝通與回報
@@ -37,6 +39,8 @@
 使用者偏好多代理分工合作。對可獨立查核或實作的工作，優先以 subagent 並行負責資料取得／稽核、時間與來源證據、程式接入、獨立測試／review；事先指定各代理可修改的檔案，避免同時修改同一檔案。主代理負責依賴排序、整合、實際驗證與記憶一致性，外部連線阻礙不應停止其餘可驗證工作。
 
 使用者偏好業界常用、成熟且適合任務的現成好工具，避免重複造輪子。實作前先查既有標準函式庫、可信套件與官方工具能否滿足需求，再寫專案特有邏輯；依維護狀態、相容性、可重現性及實際成本取捨，不為工具數量或熱門名稱堆疊依賴。區分建議採用、已安裝、已整合並驗證三種狀態。
+
+駕馭agent採短任務契約「目標／驗收／限制」：由agent找上下文與自主執行，結束以可重跑證據驗收；不得為過關放寬metric、截止或資料限制。Lauren Tan pstack與官方工程文章的來源／移植限制見`docs/deep-research/AGENT_WORKFLOW.md`。金融研究需有有限試驗預算及真正未看過的後續資料，不能無界hillclimb至validation勝出。
 
 文件轉換已安裝Microsoft MarkItDown 0.1.9 PDF工具與K-Dense的markitdown技能，位於上層`.agents/skills/markitdown/SKILL.md`；獨立環境及重建命令見README。公開基石16份495頁、技法16份503頁抽取文字已完整讀至EOF，頁碼／來源hash及關鍵公式視覺核對見docs/research；這不代表998頁全部圖像已逐頁審閱或所有理論已獨立重證。原PDF保留為權威來源。工具不自動提供ChatGPT Project其他聊天／檔案的存取權。
 

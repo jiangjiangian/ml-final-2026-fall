@@ -33,3 +33,5 @@ UV_CACHE_DIR=/workspace/.cache/uv uv pip sync --python /workspace/.tools/graphif
 圖中的planned／proposed／blocked是文件狀態，不是已部署能力。真實研究特徵及四類模型已有結果，歷史date／shift／calendar／available_at與vintage證據仍限制正式接入，見SOURCE_ALIGNMENT.md及docs/research中的報告。
 
 研究記憶包含32份公開講義閱讀、實際市場消融負結果、每日快照轉表／模型／提交邊界及尚未部署的執行器條件。圖用來追蹤依賴與證據，不替代實驗分數、來源認證或真實回執；當日observed_fetch與歷史PIT驗證必須分開。
+
+deep-research分支新增金融競賽／期刊與企業研究、四架構藍圖、資料共享方案與Lauren Tan工作流；來源索引納入語意圖，保留閱讀範圍與狀態。63筆來源包含同一論文的不同取得證據，不表示63篇全文已讀。設計節點不代表新模型已訓練或共享排程已部署。

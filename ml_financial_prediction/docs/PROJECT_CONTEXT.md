@@ -24,6 +24,8 @@ Google Docs URL 與官方查核連結見 SOURCES.md。Google AI Mode 分享連�
 
 使用者希望不依靠學校主機，改以雲端排程完成。當前對話沒有Tasks／排程工具，不能宣稱聊天關閉後代理可自行執行；已有systemd及Actions設定可審查，正式執行器／持久儲存仍待落實。main空樹且未更改default branch；workflow_dispatch與schedule皆須workflow存在default branch。
 
+2026-10-30後續新增要求：每天抓資料後供其他branch成員取得同一版本；另開研究分支蒐集金融競賽、學界／企業方法與至少四種模型；查Lauren Tan如何駕馭agent。對應成果在`deep-research`（使用者名稱含空白，已合法化），由dev@675d662建立，研究索引在docs/deep-research。資料共享是集中採集＋私有快照／portable版本索引的提案，尚未部署；四架構藍圖不是新訓練成果。原始課程資料不進Git，沒有取得ChatGPT Project其他未提供的內容。
+
 ## 資料觀察
 
 固定資料包截至2026-08-31，最新2026-10-30重抓內容未變。Live最新40日期09-01～10-30、3900完成／100個10/23待完成；原10/27研究資料版本保持不變。固定global1506列，台積電1618列，後者有112個日期不在global；數值沒有NaN不代表完整日曆。完整快照hash與取得時間見DATASET_INVENTORY。

@@ -4,7 +4,9 @@
 
 已實作資料下載與快照、時間對齊、研究訓練表、四類模型、候選比較、推論、提交／回執檢查及每日分階段CLI。**正式排程尚未啟用，也沒有實際提交競賽預測。** 研究模型採明示歷史可用性假設，不能直接當正式模型。
 
-目前在dev工作，main依要求保留空檔案樹與歷史。專案依Chip Huyen《Designing Machine Learning Systems》與Cookiecutter Data Science分層，見[ARCHITECTURE](docs/ARCHITECTURE.md)。原始資料、模型與憑證不入Git。
+核心實作在dev；本checkout為依使用者要求建立的deep-research研究分支，main依要求保留空檔案樹與歷史。專案依Chip Huyen《Designing Machine Learning Systems》與Cookiecutter Data Science分層，見[ARCHITECTURE](docs/ARCHITECTURE.md)。原始資料、模型與憑證不入Git。
+
+新研究入口：[金融競賽、四種架構、跨branch共用資料與Lauren Tan工作流](docs/deep-research/README.md)。本輪新增63筆可追溯來源證據與11筆學術／工具書目；四架構為設計與設定，沒有新模型訓練或排程啟用。由repo根目錄執行`python tools/validate_research_bundle.py`可離線檢查研究交付；私有證據目錄存在時再加`--evidence-root /workspace/shared/research/deep-research-20261030`核對原始內容hash。
 
 ## 目標與正式規範
 

@@ -2,6 +2,22 @@
 
 更新：2026-10-30，Asia/Taipei。本輪已執行研究、模型實驗與系統實作，尚未啟用正式排程或提交競賽預測。各模組「已實作」不等於每日服務「已部署」。
 
+## deep-research分支新增交付
+
+使用者要求新增金融競賽／方法學／模型架構與Lauren Tan工作流研究，已從`dev@675d662`建立獨立`deep-research` worktree；Git分支名稱不能含空白。未移動dev／main、未更改default branch或Secrets。下述既有模型實驗與188測試屬核心基底成果，**本研究階段沒有執行新fit、正式POST或常駐排程**。
+
+新增[研究入口](deep-research/README.md)、七場Kaggle官方公開metric metadata比較、期刊／作者稿／AQR與Jane Street企業原文、四架構藍圖與可攜資料共享方案。63筆查核證據包含重複論文的不同來源，不是63篇論文；11筆去重書目記錄閱讀範圍／缺欄／出版日期差異。原始HTML／PDF只存Git外；Kaggle使用匿名公開只讀RPC，沒有登入或提交資料。
+
+四架構為正則化線性、提升樹、causal TCN、市場引導跨股attention；後兩者未實作，新特徵版本未訓練。初步設定JSON明標design-only、現有runner不載入。R1至多8個feature-family設定、R2至多12個模型設定，各4季度，合計最多80 fits；精確特徵尚須執行前凍結，不將已看過的2026年1～5月重稱全新test。MASTER原文的五日橫斷面target與本課不等價，作者repo的validation/test處理問題另記錄。
+
+資料共享建議先private Actions artifacts、需要長期版本時用私有object store／DVC與portable catalog；這是具體設計，未建立bucket、catalog分支或啟用workflow。原始資料不直接放repo，各branch固定catalog commit＋snapshot hash；來源取得與消費端接收時間分開。
+
+Lauren Tan原始來源為Cursor官方pstack，固定commit閱讀；採「目標／驗收／限制」、可跑檢查、分工與短回報。前段文獻子代理遇用量限制由主代理接手，後段已恢復子代理獨立查核；不將失敗分工算完成，也未安裝／啟動pstack外部操作。
+
+已執行：repo根目錄`python tools/validate_research_bundle.py --evidence-root /workspace/shared/research/deep-research-20261030`通過63個實際來源內容hash、來源ID／本地連結、11筆書目、四種架構及R1／R2總預算一致性；不含私有原檔的離線檢查亦在預設Python與3.10通過，新檢查器Ruff通過。本分支尚無新的遠端CI結果，沒有因文件／藍圖變更重訓或重跑核心全套。技能附帶引用驗證腳本無法讀取，實際以公開metadata與本專案離線檢查核對，沒有冒稱執行該腳本。這不是新模型效能或部署驗證。
+
+獨立子代理完整審閱主題文件、研究規則、模型設定及既有實驗紀錄，直接核對七份官方RPC、MASTER README／PDF第1–5頁、pstack README與驗證原則；發現的預算界線與任職頁面差異均已修正。這不表示全部63份外部全文均經獨立複審；語意圖另以兩個互不重疊文件片段萃取，由主代理核對後整合。
+
 ## 使用者預期與目前差距
 
 普通回報固定「結論／完成／下一步」、300中文字內、最多三個重點；完整證據放文件。優先成熟工具，獨立研究／實作／審查由subagent分工。
@@ -45,13 +61,13 @@ E00以凍結Training＋10/27 Live建立82674個完成Top50股票日期鍵，50�
 
 正式時鐘／官方session／04:00～09:00窗口、07:20～07:50候選預算、08:10特徵freeze、50股全集／順序／二元值、配額、舊job保護、未知POST結果先對帳及有效回執比對均有檢查。2026-10-30新runtime的真實prediction preparation已實跑：新資料16:58台北才取得，正確拒絕作當天08:10輸入。這是負向驗證，不是完成一個交易日演練。
 
-最終本機驗證：Python3.12的188項測試全部通過，含GRU三目標；Python3.10同188項通過、1項選用GRU因未裝torch跳過。兩環境Ruff通過。3.10曾抓到mock名稱解析差異，已以明確module物件修正後重跑。shell語法、systemd units／timers與兩份workflow YAML解析通過；技能31個原始檔及Graphify SKILL hash核對相符。已將主要實作提交`11d7614af64b410e8fca94c0b64a1f028d47b2da`推送dev；[GitHub Actions run 41031916837](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41031916837)的Python3.10／3.12安裝、Ruff及測試均success。此CI不安裝選用torch；本機3.12另已驗證GRU。
+最終本機驗證：Python3.12的188項測試全部通過，含GRU三目標；Python3.10共188項，187項通過、1項選用GRU因未裝torch跳過。兩環境Ruff通過。3.10曾抓到mock名稱解析差異，已以明確module物件修正後重跑。shell語法、systemd units／timers與兩份workflow YAML解析通過；技能31個原始檔及Graphify SKILL hash核對相符。已將主要實作提交`11d7614af64b410e8fca94c0b64a1f028d47b2da`推送dev；[GitHub Actions run 41031916837](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41031916837)的Python3.10／3.12安裝、Ruff及測試均success。此CI不安裝選用torch；本機3.12另已驗證GRU。
 
 ## 教材、技能、分支與排程
 
 公開基石16份495頁＋技法16份503頁，共32份998個實體PDF頁抽取文字已讀至EOF，關鍵公式／圖像另核對，不冒稱全部圖片逐頁審閱或已取得ChatGPT Project其他檔案。筆記、原文頁碼與hash見[FOUNDATIONS](research/FOUNDATIONS.md)、[TECHNIQUES](research/TECHNIQUES.md)。MarkItDown0.1.9、Graphify0.9.95與OpenAI官方gh-fix-ci／security-best-practices技能已安裝並固定來源／授權；沿用成熟sklearn／PyTorch／uv／Ruff，尚無需Ray／KubeRay／Kubeflow。Kaggle只比較，不登入或上傳課程資料。
 
-在dev工作；main維持空樹及原歷史。GitHub唯讀核對repository為private、default仍main。systemd／Actions手動入口已準備但未啟用；workflow_dispatch和cron都要workflow先在default branch，不能把dev檔案存在說成已可排程。此對話沒有Tasks工具，不能在關閉後自行常駐。使用者希望不靠學校主機，正式雲端執行器／私有持久儲存方案待選；不因缺SSH停止本地工作。程式／圖存Git，raw／模型／逐列預測／憑證在checkout外。
+核心工作在dev，本研究checkout在deep-research；main維持空樹及原歷史。GitHub唯讀核對repository為private、default仍main。systemd／Actions手動入口已準備但未啟用；workflow_dispatch和cron都要workflow先在default branch，不能把dev檔案存在說成已可排程。此對話沒有Tasks工具，不能在關閉後自行常駐。使用者希望不靠學校主機，正式雲端執行器／私有持久儲存方案待選；不因缺SSH停止本地工作。程式／圖存Git，raw／模型／逐列預測／憑證在checkout外。
 
 ## 下一個具體工作
 

@@ -1,26 +1,26 @@
 {
-  "node_count": 1400,
+  "node_count": 1604,
   "unverified_node_count": 0,
-  "raw_edge_count": 3198,
+  "raw_edge_count": 3597,
   "non_object_edges": 0,
   "missing_endpoint_edges": 0,
   "dangling_endpoint_edges": 0,
   "external_reference_edges": 0,
   "self_loop_edges": 0,
-  "valid_candidate_edges": 3198,
+  "valid_candidate_edges": 3597,
   "exact_duplicate_edges": 0,
-  "directed_unique_endpoint_pairs": 3174,
-  "directed_same_endpoint_collapsed_edges": 24,
-  "undirected_unique_endpoint_pairs": 3173,
-  "undirected_same_endpoint_collapsed_edges": 25,
-  "same_endpoint_group_count": 24,
+  "directed_unique_endpoint_pairs": 3530,
+  "directed_same_endpoint_collapsed_edges": 67,
+  "undirected_unique_endpoint_pairs": 3528,
+  "undirected_same_endpoint_collapsed_edges": 69,
+  "same_endpoint_group_count": 43,
   "relation_variant_groups": 22,
   "source_file_variant_groups": 0,
-  "source_location_variant_groups": 0,
+  "source_location_variant_groups": 19,
   "context_variant_groups": 2,
   "post_build_graph_type": "DiGraph",
-  "post_build_node_count": 1400,
-  "post_build_edge_count": 3174,
+  "post_build_node_count": 1604,
+  "post_build_edge_count": 3530,
   "post_build_error": "",
   "producer_suppression": {
     "path": "/workspace/.tools/graphify/lib/python3.12/site-packages/graphify/extract.py",
@@ -103,105 +103,120 @@
   },
   "examples": [
     {
-      "source": "src_finpred_data_course_schema_compare_course_archives",
-      "target": "src_finpred_data_course_schema_compare_course_archives_keyed_tables",
-      "edge_count": 2,
+      "source": "docs_deep_research_financial_methods_document",
+      "target": "docs_deep_research_sources_document",
+      "edge_count": 11,
       "relations": [
-        "calls",
-        "contains"
-      ],
-      "source_files": [
-        "src/finpred/data/course_schema.py"
-      ],
-      "source_locations": [
-        "L200",
-        "L232"
-      ],
-      "contexts": [
-        "",
-        "call"
-      ]
-    },
-    {
-      "source": "src_finpred_data_course_schema_compare_course_archives",
-      "target": "src_finpred_data_course_schema_compare_course_archives_difference",
-      "edge_count": 2,
-      "relations": [
-        "calls",
-        "contains"
-      ],
-      "source_files": [
-        "src/finpred/data/course_schema.py"
-      ],
-      "source_locations": [
-        "L213",
-        "L236"
-      ],
-      "contexts": [
-        "",
-        "call"
-      ]
-    },
-    {
-      "source": "src_finpred_evaluation_init",
-      "target": "src_finpred_evaluation_official_score",
-      "edge_count": 2,
-      "relations": [
-        "imports_from",
-        "re_exports"
-      ],
-      "source_files": [
-        "src/finpred/evaluation/__init__.py"
-      ],
-      "source_locations": [
-        "L3"
-      ],
-      "contexts": [
-        "export",
-        "import"
-      ]
-    },
-    {
-      "source": "src_finpred_evaluation_official_score_evaluate_predictions",
-      "target": "src_finpred_evaluation_official_score_scoreresult",
-      "edge_count": 2,
-      "relations": [
-        "calls",
         "references"
       ],
       "source_files": [
-        "src/finpred/evaluation/official_score.py"
+        "docs/deep-research/FINANCIAL_METHODS.md"
       ],
       "source_locations": [
-        "L28",
-        "L86"
+        "Markdown link at line 17",
+        "Markdown link at line 25",
+        "Markdown link at line 29",
+        "Markdown link at line 3",
+        "Markdown link at line 31",
+        "Markdown link at line 35",
+        "Markdown link at line 39",
+        "Markdown link at line 43",
+        "Markdown link at line 47",
+        "Markdown link at line 51",
+        "\u6587\u4ef6Markdown\u9023\u7d50"
       ],
       "contexts": [
-        "call",
-        "return_type"
+        ""
       ]
     },
     {
-      "source": "src_finpred_features_init",
-      "target": "src_finpred_features_market",
-      "edge_count": 2,
+      "source": "docs_deep_research_competitions_document",
+      "target": "docs_deep_research_sources_document",
+      "edge_count": 7,
       "relations": [
-        "imports_from",
-        "re_exports"
+        "references"
       ],
       "source_files": [
-        "src/finpred/features/__init__.py"
+        "docs/deep-research/COMPETITIONS.md"
       ],
       "source_locations": [
-        "L3"
+        "Markdown link at line 27",
+        "Markdown link at line 29",
+        "Markdown link at line 3",
+        "Markdown link at line 33",
+        "Markdown link at line 57",
+        "Markdown link at line 9",
+        "\u6587\u4ef6Markdown\u9023\u7d50"
       ],
       "contexts": [
-        "export",
-        "import"
+        ""
+      ]
+    },
+    {
+      "source": "docs_deep_research_agent_workflow_document",
+      "target": "docs_deep_research_sources_document",
+      "edge_count": 7,
+      "relations": [
+        "references"
+      ],
+      "source_files": [
+        "docs/deep-research/AGENT_WORKFLOW.md"
+      ],
+      "source_locations": [
+        "Markdown link at line 11",
+        "Markdown link at line 26",
+        "Markdown link at line 30",
+        "Markdown link at line 31",
+        "Markdown link at line 32",
+        "Markdown link at line 5",
+        "\u6587\u4ef6Markdown\u9023\u7d50"
+      ],
+      "contexts": [
+        ""
+      ]
+    },
+    {
+      "source": "docs_deep_research_data_automation_document",
+      "target": "docs_deep_research_sources_document",
+      "edge_count": 5,
+      "relations": [
+        "references"
+      ],
+      "source_files": [
+        "docs/deep-research/DATA_AUTOMATION.md"
+      ],
+      "source_locations": [
+        "Markdown link at line 19",
+        "Markdown link at line 45",
+        "Markdown link at line 80",
+        "Markdown link at line 82",
+        "\u6587\u4ef6Markdown\u9023\u7d50"
+      ],
+      "contexts": [
+        ""
+      ]
+    },
+    {
+      "source": "docs_deep_research_model_architectures_document",
+      "target": "docs_deep_research_sources_document",
+      "edge_count": 3,
+      "relations": [
+        "references"
+      ],
+      "source_files": [
+        "docs/deep-research/MODEL_ARCHITECTURES.md"
+      ],
+      "source_locations": [
+        "Markdown link at line 33",
+        "Markdown link at line 37",
+        "\u6587\u4ef6Markdown\u9023\u7d50"
+      ],
+      "contexts": [
+        ""
       ]
     }
   ],
-  "exported_evidence_edges": 3198,
+  "exported_evidence_edges": 3597,
   "exported_multigraph": true,
   "export_evidence_loss": 0
 }

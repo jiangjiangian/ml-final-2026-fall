@@ -33,6 +33,10 @@
 | D027 | accepted | 初始／換配置須嚴格提高score；既有同配置可依受控規則新增歷史重訓 | 同配置refresh須verified incumbent、schema／政策相容、新完成歷史及同fold不退步；不要求勝過自己相同refit；仍非部署完成 |
 | D028 | accepted | 每日stage未供表時自動從私有raw準備七個個股滯後特徵；當日與歷史證據分開 | observed_fetch的available_at=fetched_at，兩者皆須不晚於08:10；只能證明當日bytes已可得。strict歷史訓練仍blocked，研究opt-in只產研究表 |
 | D029 | accepted | 最新資料取得不改寫已凍結研究版本；晚到來源必須blocked | 2026-10-30 Live541298bytes／40日期／3900完成＋100個10/23待完成；16:58台北取得不能重建當日08:10預測 |
+| D030 | accepted | 使用者要求獨立deep research分支研究金融競賽、至少四種模型與Lauren Tan workflow | Git名稱不含空白，使用deep-research，基底dev@675d662；核心仍dev，main／default branch不變；研究見docs/deep-research |
+| D031 | proposed | 一個採集者發布私有immutable快照及portable catalog，其他branch鎖定同一版本 | private artifacts作短期共享；長期object store／DVC依服務／費用取捨。未啟用排程、建立儲存或data-catalog分支 |
+| D032 | proposed | 比較線性、提升樹、causal TCN、市場引導跨股attention，保留raw intraday目標 | 後兩者未實作；R1最多8設定、R2最多12設定、4季度合計80 fits上限；JSON僅藍圖，不被現有runner載入 |
+| D033 | accepted | agent用短任務契約與可重跑驗收；金融研究不能無上限追validation | 使用者偏好少盯梢且易懂；pstack及官方工程原文可借用，但外部自動merge／通知／指定模型不新增本會話權限；已看過的holdout不得重用 |
 | Q001 | partially verified | 固定美股三欄匹配前一教師global列日期；台韓欄同日close；Live美股兩欄前一native session | 逐欄匹配表及反例見DATA_ALIGNMENT；完整原生日曆已有第三方排程，但歷史發布／vintage仍未核實 |
 | Q002 | partially verified | 固定ZIP截至8/31，最新Live9/1～10/30、40日期；網站宣稱00:00新增後逐欄更新 | 實際取得時間有manifest；完整發布排程／來源延遲／逐欄有效mask仍未提供，不把16:58取得當08:10已取得 |
 | Q003 | pending | 04點更新的是session模板、行情、標籤還是排行榜？ | 使用者描述尚未驗證；不同任務排程不同 |

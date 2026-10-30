@@ -8,9 +8,10 @@
 | series_id | string | 穩定的語意代碼；provider ticker 另存 |
 | session_date | date | 原市場歸屬交易日，不能當可用時間 |
 | event_time | timezone-aware datetime | 收盤、fixing或事件發生時間 |
-| published_at | timezone-aware datetime / null | 可驗證的首次發布時間 |
+| published_at | timezone-aware datetime / null | 可驗證的此版本首次發布時間，修訂版需自己的時間 |
 | available_at | timezone-aware datetime | 此版本可進入模型的時間及保守延遲 |
 | availability_basis | string | observed / documented / conservative_assumption；附依據 |
+| availability_evidence | string | M0引擎要求非空；說明發布／保守延遲依據，不能只填unverified |
 | fetched_at | timezone-aware datetime | 這次下載時間，不可冒充歷史發布時間 |
 | value | numeric / null | 原始值 |
 | unit | string | index_point / contracts / percent / decimal等 |
@@ -21,6 +22,8 @@
 歷史版本鍵至少為 `(source, series_id, session_date, revision_id)`；同時保留發布時間。若同一session有多個版本，對每個預測時點選當時已可用的最後版本，再從可用session中取所需序列。不能用最新修訂值覆蓋全部歷史。
 
 未有實際發布時間的舊資料應標記假設，經核實日期語意與保守可用時點後才進入回測。只有一個 date 欄不足以證明盤前可用。若缺少原生session日期，不得假裝能重建完整單日報酬。
+
+已實作 CLI 的 JSON 與原生日曆格式見 `MARKET_FEATURES.md`。日曆需逐系列提供來源、完整的有序 session_dates 與 calendar_evidence；程式能驗證一致性，不能替呼叫者證明真實日曆完整。第一版每個 target_date 接受一個明示的 timezone-aware cutoff，必須不晚於該日 09:00 Asia/Taipei；08:10 不是硬性預設。
 
 ## 市場特徵表
 

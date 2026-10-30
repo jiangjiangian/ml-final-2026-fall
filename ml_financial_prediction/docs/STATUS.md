@@ -1,13 +1,62 @@
 # 當前狀態與交接
 
-更新：2026-10-25。範圍：建議、資料檢查與Codex接續文件。
+更新：2026-10-30，Asia/Taipei。本輪已執行研究、模型實驗與系統實作，尚未啟用正式排程或提交競賽預測。各模組「已實作」不等於每日服務「已部署」。
 
-已完成：讀取正式規範、早期簡報、手寫筆記圖像、Google Docs文字、Phase 1模板與先前資料包；確認目標／score／截止；建立特徵與資料契約、完整ML系統目錄與模組分工；核對免費來源；提供未啟用排程範本。
+## 使用者預期與目前差距
 
-未完成：來源逐欄時間對照、實際市場特徵引擎、模型訓練／回測、新增指數歷史下載、競賽登入與session更新觀察、GitHub部署、排程啟用與自動提交。沒有宣稱任何模型增益。
+普通回報固定「結論／完成／下一步」、300中文字內、最多三個重點；完整證據放文件。優先成熟工具，獨立研究／實作／審查由subagent分工。
 
-下一個任務：確認教師global_data.csv各欄位date和shift語意，使用正常日、台美不同休市日與長假各至少一例。建立可驗證available_at後，再實作M0。
+| 使用者目標 | 已完成 | 尚缺 |
+|---|---|---|
+| 每日更新教師＋額外經濟／市場資料 | 教師／Live、四個官方外部adapter、八個Yahoo日序列、三類TWSE產業水準；每日collect已串接 | 常駐執行器／持久儲存；部分來源的完整歷史及發布政策 |
+| 正確計算return／差分及時間對齊 | 真實1655目標日研究市場表，M0＋SOX／TSM ADR／NVDA；查明教師既有位移 | 歷史發布／vintage認證、OI逐欄有效性；FRED／產業尚未形成完整特徵消融 |
+| 自動產生模型輸入 | 每日快照自動轉七個個股lag；共享研究與推論公式、保留pending／缺值／age | 正式歷史訓練表來源證據；市場特徵尚未自動接入正式每日模型 |
+| 每天訓練驗證並更新模型 | 四家族×三目標研究、候選公平比較、同配置新歷史刷新、失敗／超時回退 | 初始合格正式模型；研究假設模型不升級 |
+| 50檔CSV自動提交與核實回執 | 官方session／模板唯讀驗證、提交契約、CSV／配額／截止／版本／回執／重複保護 | 真實POST接受與回執、常駐排程、五個真實交易日dry run |
 
-已可執行：README中的 `python scripts/audit_dataset.py --zip ... --template ... --out ...`。範本config與workflow不可當作已完成pipeline執行。
+## 真實資料與時間證據
 
-阻礙：未有來源發布時間或位移 metadata；沒有競賽session與提交端點；沒有指定repo或執行主機；AI Mode分享頁不可讀。這些不阻礙文件、離線稽核與基礎特徵轉換設計。
+2026-10-30T08:58:44Z重抓Training成功：18,278,354bytes，SHA256仍為`7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2`。Live於08:58:49Z取得541,298bytes，SHA256=`038d1a0fe29f4377fe9e2161962fde9bb3eda5afbb05d4ac7d9fc205af9517a3`；100股×40日期，2026-09-01～10-30，3900完整label、100個10/23 pending。新快照在`/workspace/shared/finpred-runtime/raw/`，原10/27研究資料與更早版本保留。帳密／cookie／公鑰不寫Git或log，不需重新提供既有key。
+
+固定教師IXIC／GSPC／VIX各1505/1505可比列匹配「前一教師global列日期」的來源close，僅1418/1506匹配前一美國native session；長假可落後多session。固定TWII／KS11各1506/1506匹配同日close，不能作同日盤前輸入。Live兩美股指數37/37匹配前一來源session；VIX不能直接沿用同規則。這些是對凍結快照的實測，不是歷史發布時間證明。完整證據見[DATA_ALIGNMENT](research/DATA_ALIGNMENT.md)。
+
+研究市場表`/workspace/shared/research/alignment/market_features.csv`有1655個目標日，先在完整原生序列計算再as-of對齊；使用第三方exchange_calendars4.13.2與close＋2小時的明示假設。OI兩欄全缺，沒有猜值。strict對未核實歷史vintage明確blocked；research必須顯式opt-in。來源清單、可用性與原始hash隨報告保存。
+
+## 模型研究實際結果
+
+E00以凍結Training＋10/27 Live建立82674個完成Top50股票日期鍵，50個pending另列；四類模型×三目標×四季度共48次fit，前處理只fit更早訓練資料。同一日期股票不跨fold。
+
+| 相同linear／abs(return)加權配置 | 2025共同12140鍵score |
+|---|---:|
+| E00個股七欄 | 0.000482249960 |
+| E01＋M0 | 0.000356441216 |
+| E02＋M0＋SOX | 0.000249487724 |
+| E03＋M0＋TSM ADR／NVDA | 0.000388784462 |
+
+目前市場擴充未勝相同個股配置或全0基準0.000447093446；保留負結果，不升級。E00驗證選到MLP普通分類0.000854985259，一次2026年1～5月保留檢查為0.001275711605，**低於同鍵全0的0.001549845039**。這些均為research_assumption，不能當正式PIT績效或交易淨利。MLP80iter未收斂警告保留。
+
+主代理另直接由已保存預測及label重新計分／核對共同鍵，與報告一致，沒有重新fit或再用holdout選參；證據`/workspace/shared/research/experiments/independent-score-audit.json`。E01起保存實際input buffer／canonical table、七份程式hash、環境、逐月／日分數與耗時。E00原追溯缺項如實保留，不回填假歷史；七份舊source object另經hash核對保存在source-snapshots。詳細結果與重跑方式見[EXPERIMENTS](EXPERIMENTS.md)、[RETURN_RATIO](research/RETURN_RATIO.md)。E04／E05未完成，不能填成正結果。
+
+## 每日流程與工程驗證
+
+`run_daily_pipeline.py`已有collect→train→predict→submit→verify五階段。未指定表路徑時，train／predict自動從runtime/raw中選cutoff前最新合法教師快照。今日預測的observed_fetch證據綁定真實manifest／payload／hash／fetched_at，available_at必須等於實際取得時間；只證明當次輸入已可取得，不回填歷史。七個個股lag與研究表共用實作；82674列重建後整份表及hash完全一致。額外市場序列已採集／研究，未因負結果自動加進正式模型。
+
+歷史訓練仍只能自動產research表，strict回報blocked；顯式verified表入口保留給有證據的歷史adapter。研究模型不正式升級或提交。候選與incumbent configuration在同一較早train／相同validation鍵重新fit公平比較；換配置須嚴格改善。相同已核實配置有新完成歷史、schema／政策一致且同fold不退步時可刷新，避免永遠與自己同分而停止更新。快取綁定incumbent、資料、程式與套件版本；推論不fit、hash以同一buffer計算。GRU缺中間日期的正式推論context，目前daily明確阻擋。
+
+正式時鐘／官方session／04:00～09:00窗口、07:20～07:50候選預算、08:10特徵freeze、50股全集／順序／二元值、配額、舊job保護、未知POST結果先對帳及有效回執比對均有檢查。2026-10-30新runtime的真實prediction preparation已實跑：新資料16:58台北才取得，正確拒絕作當天08:10輸入。這是負向驗證，不是完成一個交易日演練。
+
+最終本機驗證：Python3.12的188項測試全部通過，含GRU三目標；Python3.10同188項通過、1項選用GRU因未裝torch跳過。兩環境Ruff通過。3.10曾抓到mock名稱解析差異，已以明確module物件修正後重跑。shell語法、systemd units／timers與兩份workflow YAML解析通過；技能31個原始檔及Graphify SKILL hash核對相符。遠端CI以實際Actions run為準，未執行前不宣稱通過。
+
+## 教材、技能、分支與排程
+
+公開基石16份495頁＋技法16份503頁，共32份998個實體PDF頁抽取文字已讀至EOF，關鍵公式／圖像另核對，不冒稱全部圖片逐頁審閱或已取得ChatGPT Project其他檔案。筆記、原文頁碼與hash見[FOUNDATIONS](research/FOUNDATIONS.md)、[TECHNIQUES](research/TECHNIQUES.md)。MarkItDown0.1.9、Graphify0.9.95與OpenAI官方gh-fix-ci／security-best-practices技能已安裝並固定來源／授權；沿用成熟sklearn／PyTorch／uv／Ruff，尚無需Ray／KubeRay／Kubeflow。Kaggle只比較，不登入或上傳課程資料。
+
+在dev工作；main維持空樹及原歷史。GitHub唯讀核對repository為private、default仍main。systemd／Actions手動入口已準備但未啟用；workflow_dispatch和cron都要workflow先在default branch，不能把dev檔案存在說成已可排程。此對話沒有Tasks工具，不能在關閉後自行常駐。使用者希望不靠學校主機，正式雲端執行器／私有持久儲存方案待選；不因缺SSH停止本地工作。程式／圖存Git，raw／模型／逐列預測／憑證在checkout外。
+
+## 下一個具體工作
+
+1. 決定無學校主機的正式執行器與私有持久儲存，確認default branch入口、跨runner有效鎖與deadline備援後部署。不能用Actions cache冒充模型／ledger資料庫。
+2. 補齊歷史特徵的可用性／修訂證據或建立從現在起的實際版本資料，驗證初始模型；預測表能形成不等於正式訓練證據已足夠。
+3. 預註冊E04匯率／利率及E05產業／age／交互作用比較；2026年1～5月已看過，不再當全新保留集。完成五個真實官方交易日dry run與第一筆有效提交回執，才標記每日服務驗收完成。
+
+從業務目錄重跑：`uv run --locked --no-sync python -m unittest discover -s tests -q`；3.10加`UV_PROJECT_ENVIRONMENT=/workspace/.tools/finpred-py310`。安裝及其他CLI見README；研究資料不隨checkout搬移。交接前保存本檔、決策、實驗、來源與Graphify，再壓縮context。

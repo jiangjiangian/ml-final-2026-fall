@@ -1,13 +1,13 @@
 # 課程與來源原始資料保存在受控儲存空間，不進Git。
-data/
-raw/
-private/
-downloads/
-snapshots/
-artifacts/
-models/
-submissions/
-logs/
+/data/
+/raw/
+/private/
+/downloads/
+/snapshots/
+/artifacts/
+/models/
+/submissions/
+/logs/
 *.zip
 *.pdf
 *.parquet

@@ -1,56 +1,85 @@
-# 每日執行與排程提案
+# 每日資料更新、候選訓練與提交
 
-## 現況
+更新：2026-10-30，Asia/Taipei。使用者工作窗口為每日04:00～09:00；下列時程已有程式門檻／部署設定，尚未常駐啟用，耗時仍需實測。
 
-本套件沒有啟用任何定時任務。競賽網站約凌晨四點更新來自使用者描述，final規範只明定09:00截止，並未承諾04點更新。尚未觀察當日session API、登入流程、更新頻率與提交端點，不憑空編造URL或cookie。
+## 現況與驗收範圍
 
-## 執行工具比較
+已實作教師／Live及外部下載、不可變快照、原生日曆對齊、研究表、模型fit／候選比較、固定模型推論、提交與目前有效CSV回執核對。collect包含原四個外部來源、八個原生Yahoo序列及三類TWSE產業當日水準；取得成功仍不等於正式特徵可用。每日CLI有collect、train、predict、submit、verify五個stage，預設dry run；沒有實際POST、正式模型、常駐排程或五個交易日演練。
 
-| 方案 | 是否需個人電腦一直開著 | 適用與取捨 |
+raw→daily表橋接已實作：train／predict未供表路徑時自動從私有課程快照準備七個個股滯後特徵。今日預測可用08:10前實際取得的bytes作observed_fetch證據，available_at必須等於fetched_at；這不證明歷史發布／調整vintage。strict歷史訓練仍blocked，顯式研究opt-in才準備research_assumption表，研究模型永不進approved或提交；也支援顯式verified表。市場額外來源有採集及消融，但未自動提升為正式daily特徵。
+
+configs/daily.json是可審查的政策計畫，不是scheduler讀取的執行設定。實際stage程式及systemd timers各自帶有時段；修改計畫不會改變程式、啟動服務或觸發提交，需一併對照。
+
+## 真實時鐘與時程
+
+| 台北時間 | stage／動作 | 已實作門檻及未完成驗收 |
 |---|---|---|
-| ChatGPT排程 | 雲端任務不依賴個人電腦持續開機 | 可作檢查或提醒；當前網站登入／下載是否可被排程重用尚未驗證，不作唯一提交管線 |
-| GitHub-hosted Actions | 不需要 | 團隊程式與執行紀錄易同步，適合每日抓資料、推論；排程可能延遲甚至丟棄，私有repo用量也要查帳號額度 |
-| 學校伺服器 / VPS + systemd timer | 需要該伺服器持續運作 | 有持續磁碟、固定環境與更直接的時間控制；需處理主機維護與失敗通知；是否可用／收費待團隊選擇 |
-| 個人電腦 / self-hosted runner | 需要 | 可用既有本機環境，受睡眠、斷網與重開機影響；睡眠中無法可靠執行 |
+| 04:17／05:17／06:17／07:17 | collect，補抓來源並保存版本 | 正常TLS、來源schema／hash；先讀官方session，不靠星期推定 |
+| 07:20～07:50 | train，候選訓練與驗證 | 僅完成且截止前可用歷史label；子程序限時終止，超時保留先前approved |
+| 07:50前 | 模型比較與原子升級 | 候選、現有配置於相同更早train重訓並比相同validation鍵；只verified可升級 |
+| 08:10起 | predict，凍結特徵與推論 | 08:10前已可用且已取得的私有快照證據；恰50股、欄位版本相容；禁止fit |
+| 08:20 | submit | 官方開放／截止／配額、最新模型及CSV版本、持久鎖、先寫ledger；未實際提交 |
+| 08:35 | verify | 從目前state取得記錄ID，下載有效CSV逐股比對；HTTP成功或ack不足以當回執 |
+| 09:00 | 停止 | stage與提交在截止後拒絕執行，不將過期重跑算準時 |
 
-建議：有常開學校伺服器就作主要執行器，GitHub保存程式與CI；否則先用GitHub-hosted Actions，加手動執行與人員備援。需要登入的下載，應優先使用網站支援的介面，實測後才選擇自動化方式。
+07:55決策原為時間分配提案；目前train在07:50之前完成比較與升級，沒有另設promote stage。service層總上限不取代訓練子程序07:50停止門檻。
 
-## 建議時程（Asia/Taipei，尚未啟用）
+美股一般16:00 ET收盤，冬令對應台灣05:00、夏令04:00；提早收盤與VIX時點另核。因此04:17並非所有來源完整的保證。08:10是本版本操作cutoff，不是老師規定；晚發布／08:30後MIS不可塞入此版本。
 
-| 時間 | 動作 | 成功判準 |
-|---|---|---|
-| 前一交易日盤後 | 更新台股、籌碼、已知全球資料；必要時依預先定義的頻率訓練 | 快照與模型版本完成 |
-| 04:17 | 檢查競賽session與資料更新，取得已可用外部資料 | 目標日期與樣本清單已確認；尚未齊全可等待重試 |
-| 05:17 / 06:17 / 07:17 | 補抓及重試，核對來源session與最新可用資料 | 來源日期、發布時間與完整性通過 |
-| 08:10 | 固定特徵cutoff、推論、驗證CSV、保存雜湊 | 50檔、正確header、0/1、無未來資訊 |
-| 08:20前 | 人工初次提交；日後自動化亦沿用此緩衝 | Submission Status顯示accepted/pending |
-| 08:35 | 核對已接受版本；若未成功，依備援流程重試 | 目標日有效提交有回執 |
-| 09:00 | 官方截止 | 截止後不得將重跑結果算成準時提交 |
+07:20的訓練cutoff與08:10當日特徵cutoff不同。當日未知的OHLC／y不能因每日重訓而成為輸入；Live y=-1不能訓練；signed OI的-1另需逐格有效性證據，不能全表替換。
 
-美國一般股市16:00 ET收盤，冬令對應台灣05:00，夏令04:00；VIX等序列時點要按自己的規則確認。因此不能把04:17當成所有美股當日完整收盤資料都可用的保證。06:17是例行補抓時點，也不取代實際發布時間檢查。
+## CLI與私有runtime
 
-MIS若要使用接近開盤的資訊，需另設更晚cutoff並蒐集可回測的快照。不可把08:30之後才有的資料塞入08:10版本。先維持單一固定cutoff以確保回測與上線一致。
+以下均從業務目錄執行；CLI使用真實時鐘、預設當日台北日期。--target-date不能跳過04:00～09:00、官方session或資料檢查。runtime必須為Git外、目前使用者擁有的0700持久目錄，檔案0600。
 
-## GitHub Actions 範本
+~~~bash
+uv run --locked --no-sync python scripts/run_daily_pipeline.py --runtime-dir /private/finpred-runtime --stage collect --dry-run
+uv run --locked --no-sync python scripts/run_daily_pipeline.py --runtime-dir /private/finpred-runtime --stage train --dry-run
+uv run --locked --no-sync python scripts/run_daily_pipeline.py --runtime-dir /private/finpred-runtime --stage predict --dry-run
+uv run --locked --no-sync python scripts/run_daily_pipeline.py --runtime-dir /private/finpred-runtime --stage submit --dry-run
+uv run --locked --no-sync python scripts/run_daily_pipeline.py --runtime-dir /private/finpred-runtime --stage verify --dry-run
+~~~
 
-檔案為 `.github/workflows/daily_pipeline.yml.example`，GitHub不會將它當作啟用的workflow。它的UTC排程對應台灣04:17到07:17、08:10、08:35；每日執行後再由台灣市場session判斷是否工作，避免UTC星期與台灣星期混淆。
+這是依序在各合法時段執行的入口範例，不是已有正式模型或可一口氣執行的宣告。未供表即自動準備，但strict train會因歷史證據不足blocked；顯式--training-table／--prediction-table仍可覆寫來源選擇，須通過相同門檻。dry run禁止POST，仍允許已授權讀取、訓練與私有寫入。研究train加--allow-research-training才自動建研究表，結果永不升級；不能用於predict／submit。
 
-若未來啟用，workflow必須在default branch。GitHub文件說明schedule可能在高負載時延遲或丟棄，所以避開整點，保留 `workflow_dispatch` 與另一個備援。UTC cron的換算寫在註解；目前也有timezone-aware排程語法，但範本刻意使用明確UTC方便審查。
+獨立表準備可用scripts/build_daily_tables.py，接受--runtime-dir、--target-date、--kind training或prediction；training另可--allow-research。本次2026-10-30新快照在台北16:58取得，重建該日prediction正確blocked，因為晚於08:10。這是實際來源負向檢查，不是準時執行或五日演練；不改寫fetched_at繞過。
 
-啟用前必須補完：公開來源adapter、競賽session與登入adapter、歷史時間語意核實、模型與版本化特徵引擎、私有持久儲存、CSV驗證、期限與回執處理。不要只刪除範本guard就當作完成部署。
+真正提交只由submit stage加--submit，在既有使用者授權及工程門檻滿足後執行，不重複詢問同一行動。目前尚未具備正式可提交資料／模型；不要手填true或改readiness略過證據。
 
-## 可靠性與備援
+runtime保存raw快照、candidates、approved.json、predictions、runs及提交ledger。各次run有唯一ID／來源版本與輸出hash，持久POSIX鎖避免並行覆蓋。不要把這些內容放Git或公開Actions artifacts。
 
-每次執行有 `(session_date, feature_cutoff, model_version, data_version)` 冪等鍵。重試不應重複建立不同含意的提交。Phase 2採最後有效版本，不能讓晚到的舊job覆蓋新版本；外部提交鎖與版本檢查需跨runner持久保存。
+## 模型與資料門檻
 
-若來源失敗，只有在訓練與回測中已有相同缺值機制時，才使用凍結的fallback模型；不能把缺值直接當零並繼續。模型每次重訓頻率先固定，收盤後標籤可得才更新，不以當日未實現標籤訓練。
+候選使用最近60個完整日期validation，更早至少252日期訓練。現有配置也在同一早期train重訓，不能拿已見validation的最近權重作假樣本外比較。初始模型須嚴格勝過train-majority基準，換配置須嚴格勝過同fold現有配置；既有同配置在有新增完成歷史、verified incumbent metadata、schema／政策相容且同fold不退步時，可作例行refresh，不要求它勝過自己的相同refit。全部要求verified；選定後才對截止前完整歷史重fit。這是程式接受規則，仍待持續運行驗收。
 
-先產生CSV並人工確認。未來若指示自動提交，區分dry_run與submit，檢查當前時間早於09:00、session仍開放、檔案版本最新，再上傳並核實Submission Status。保存不含密碼的回執。來源過期、日期不符、50檔不齊、截止已過時停止該次提交，使用事先演練的人員備援。
+08:10推論表須恰50個唯一股票、正確目標日／cutoff與欄位版本，來源證據覆蓋模型特徵，綁定真實私有snapshot／payload雜湊及取得／可用時間。單純填available_at或readiness=verified不足以提供來源證據。daily builder的verified僅指當日已觀測bytes可用，不含歷史vintage核實；最新歷史close＋2小時仍屬研究假設。載入approved另檢查執行套件版本相容；GRU還需完整、已核實的中間序列歷史，不能把兩次預測之間的缺期跳過，目前缺此交付時生產推論blocked。
 
-GitHub的暫存runner與cache不是長期資料庫。下載快照、模型、預測與回執應存於受控持久空間。Actions artifact是否可用與保存多久要另外設定，不可把每日快照只留在臨時磁碟。重要結果與程式至少保存到老師規定的2027-01-31。
+候選失敗／超時或不通過時保留相容且已驗證的approved；無此版本就blocked。預測後approved版本變更必須重新生成CSV，不能上傳舊模型結果。格式錯誤、過時來源、截止已過、缺股或無回執都保留明確失敗狀態。
 
-## 電腦與GitHub如何接續
+## 提交與回執
 
-從私人repo clone專案到電腦，或在Codex Cloud設定可存取的repo與環境。個人電腦不是使用Cloud的先決條件。Cloud不會自動繼承本機瀏覽器登入、VPN、token或未提交檔案；需要的權限與資料要在選定環境明確設定。
+競賽state、當日template已唯讀實測；POST JSON與回執下載路由由官方前端核實，詳細證據見[研究AUTOMATION](research/AUTOMATION.md)。尚未實際驗收server接受與真實回執。
 
-可先把本套件解壓進repo，用一個PR讓組員審查規格。當前尚未建立或推送任何GitHub repo，也未要求連接電腦。
+CSV須exact日期、50個唯一ID與模板順序，值只能文字0／1。POST前查官方openAt／deadline／enabled／配額並在持久鎖內重查時間；正常TLS、禁止redirect及自動POST重試。先保存post_in_flight；未知網路結果先對帳，不盲目重送耗配額。已存在相同目前預測則不重複POST。
+
+Phase2採最後有效版本，生成時間較舊的job不得覆蓋較新版本。只有state目前記錄對應下載CSV逐股匹配才標verified；score未算出可另標pending，不把HTTP200或檔案生成當成功。
+
+## 執行器與部署狀態
+
+| 方案 | 現況／條件 |
+|---|---|
+| 本對話／Codex | 無Tasks／排程工具，聊天結束後不能承諾代理自行常駐；互動workspace不是已驗證長期服務 |
+| systemd timer | service及五個timers已建，未安裝／啟用；可在有持久磁碟的Linux執行器運行，不限學校主機 |
+| 現有Actions手動設定 | 根目錄daily.yml，使用self-hosted／linux／finpred持久runner；無schedule，尚未啟用 |
+| GitHub-hosted Actions替代 | 不需個人電腦，但需受控持久資料／模型／ledger、跨runner鎖、default branch入口與期限備援；尚未接入 |
+| Kaggle | 只作比較，未登入或上傳課程資料；MCP不提供每日09:00前完成保證 |
+
+使用者希望不依靠學校主機；SSH資訊不再是唯一部署路徑的前提。雲端替代仍需真正執行器和持久狀態，不是把聊天設提醒就等同完整管線。
+
+GitHub workflow_dispatch和schedule都要求workflow存在default branch。main目前空檔案樹、程式在dev；不擅自改main或default branch，只在dev新增workflow也不會使其自動註冊。push CI的分支事件另論。schedule可能延遲或丟棄，應避開整點、有備援並保留09:00硬停止。GitHub cache或短命runner不是長期資料庫。
+
+若選持久Linux主機，deployment/run-stage.sh接收FINPRED_PROJECT_ROOT、FINPRED_RUNTIME_ROOT，verified table路徑可選，不供即自動準備；歷史證據門檻仍不可繞過。憑證由主機secret提供，runtime.env.example只含示意值。以systemd-analyze檢查設定、確認時鐘／TLS／磁碟／登出後運行，再先演練。timers的Persistent=false防止重開機補跑過期提交。
+
+正式啟用前仍需歷史發布／vintage證據、相容正式模型／fallback、持久執行器與恢復測試、五個官方交易日dry run，以及真實可提交時段回執驗收。當日表橋接已完成，不將當日取得證據冒充歷史核實。這些是未完成工程，並非再次索取已授權上傳或既有帳密；程式、快照及結果依規範保存至2027-01-31。
+
+參考：[GitHub workflow events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)、[systemd.timer](https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html)。完整部署解析檢查與API證據以AUTOMATION、最終整合測試以STATUS為準。

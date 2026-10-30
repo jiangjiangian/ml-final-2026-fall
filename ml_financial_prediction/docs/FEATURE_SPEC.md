@@ -48,7 +48,7 @@ s_j(t)=\max\{s: available\_at_j(s)\le cutoff(t)\},\quad g_{j,t}=r_j(s_j(t)).
 | M4 產業 | 台灣電子、半導體、金融等類股指數 | 前一可用來源 session 報酬 | 依產業映射或交互作用區分股票反應 |
 | M5 其他 | 台灣50、櫃買、Nikkei、Hang Seng、歐股、油金等 | 視驗證而定 | 先確認是否增加獨立資訊，避免高度重複與維護負擔 |
 
-M0 建議共有8個主要數值欄，另加每個來源的 missing / age / fresh 等品質欄。這只是規格，尚未由歷史資料產生可用訓練表。
+M0 共有8個主要數值欄，另加每個來源的 missing / age / fresh 等品質欄。2026-10-25 已由 `src/finpred/features/market.py` 實作八欄轉換、point-in-time 修訂與明示原生日曆；合成資料與時間邊界測試已通過。教師資料仍缺時間證據，尚未產生可用的真實訓練表；操作及具體缺值政策見 `MARKET_FEATURES.md`。舊 session 的晚修訂不得取代最新 session，分母也只使用同一 cutoff 前的版本。
 
 延伸可比較 lag1 + lag2、2/5-session 累積報酬、20-session realized volatility、過去均值偏離，但逐組消融，避免一次增加大量高度相關欄位。滾動窗口必須全部落在當時已知資料內。
 

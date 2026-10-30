@@ -1,0 +1,133 @@
+{
+  "schema_version": "vendored-skill-v1",
+  "skill": {
+    "name": "markitdown",
+    "author": "K-Dense Inc.",
+    "upstream_repository": "https://github.com/K-Dense-AI/claude-scientific-skills",
+    "commit": "5f2bc0341354fd5590aef76a533ada1e1e5b4e62",
+    "upstream_path": "skills/markitdown",
+    "license": "MIT",
+    "license_file": "LICENSE.md",
+    "upstream_files_modified": false,
+    "example_target_version": "0.1.8"
+  },
+  "tool": {
+    "name": "Microsoft MarkItDown",
+    "author": "Microsoft",
+    "official_repository": "https://github.com/microsoft/markitdown",
+    "inspected_reference_commit": "7482c092d9c0074a89803c9fdb63a969e7fe17fc",
+    "installation_source": "PyPI release wheel; not a checkout of inspected reference commit",
+    "selected_requirement": "markitdown[pdf]==0.1.9",
+    "isolated_environment": "/workspace/.tools/markitdown",
+    "python_minor": "3.12",
+    "requirements_file": "tools/markitdown-requirements.txt",
+    "setup_script": "tools/setup_markitdown.sh",
+    "tool_validation_owner": "root integration; see project documentation for actual smoke-test results",
+    "requirements_sha256": "c4663bc27ff3924133ccd7793b2ecf2bdc76c6904b138fa98f956a92f27d27f6"
+  },
+  "local_usage": {
+    "default": "trusted local PDF conversion with plugins disabled",
+    "cloud_ocr_installed": false,
+    "mcp_server_installed": false,
+    "external_ocr_or_content_upload_configured": false,
+    "project_environment_modified": false,
+    "version_difference": "Vendored examples target 0.1.8; installed tool is selected 0.1.9. Root validates actual API and PDF output. Use scripts/inspect_installation.py --allow-version-mismatch to inspect without its old-version exit failure.",
+    "quality_limit": "Markdown conversion is not proof of faithful formulas, page numbers, diagrams, tables, or OCR; keep original PDF."
+  },
+  "review": {
+    "scripts": [
+      "scripts/batch_convert.py",
+      "scripts/convert_literature.py",
+      "scripts/inspect_installation.py"
+    ],
+    "method": "full static source review and Python AST parse before execution",
+    "scope": "trusted local files, PDF-only tool dependencies; no bundled scripts executed by skill installer"
+  },
+  "files": {
+    "SKILL.md": {
+      "upstream_path": "skills/markitdown/SKILL.md",
+      "sha256": "8c165c18ceaddc9367dd74f65fd60e42c1c3de9d180828ae1ff09a001af42339",
+      "bytes": 12202,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/SKILL.md"
+    },
+    "references/api_reference.md": {
+      "upstream_path": "skills/markitdown/references/api_reference.md",
+      "sha256": "79936dc3cc52c3954a1326e995edd43d97d1b03d3bb4d867ca861fe1a31a3f4f",
+      "bytes": 11907,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/references/api_reference.md"
+    },
+    "references/cloud_and_ocr.md": {
+      "upstream_path": "skills/markitdown/references/cloud_and_ocr.md",
+      "sha256": "b6699e835f96e3a6e97d12a1a66871a68c38cbcadf9bf0e28f694d4edfadc319",
+      "bytes": 14148,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/references/cloud_and_ocr.md"
+    },
+    "references/file_formats.md": {
+      "upstream_path": "skills/markitdown/references/file_formats.md",
+      "sha256": "58cc49fa63cff5ea8fd73fc7915a43d2ab822c3b338976758a933919cf0acf7e",
+      "bytes": 11736,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/references/file_formats.md"
+    },
+    "references/mcp_and_plugins.md": {
+      "upstream_path": "skills/markitdown/references/mcp_and_plugins.md",
+      "sha256": "98a97fd541b1abe8edb694d8c6af73797664251d9a89c731a54ef7d216ca8e39",
+      "bytes": 7267,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/references/mcp_and_plugins.md"
+    },
+    "references/migration.md": {
+      "upstream_path": "skills/markitdown/references/migration.md",
+      "sha256": "b2966652252d265165809f37d14db136f03ae8469dd604760a08d02f85d11de8",
+      "bytes": 9252,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/references/migration.md"
+    },
+    "references/security.md": {
+      "upstream_path": "skills/markitdown/references/security.md",
+      "sha256": "42d01ddb6fdf601647b605b485353c8080c2d22fc45429ceb6cc302636a9fd0b",
+      "bytes": 10459,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/references/security.md"
+    },
+    "references/workflows.md": {
+      "upstream_path": "skills/markitdown/references/workflows.md",
+      "sha256": "06f81ea6888626acd667af314f7faa2ee45fd29c7d371049bd3ca9a876e934b6",
+      "bytes": 8230,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/references/workflows.md"
+    },
+    "scripts/batch_convert.py": {
+      "upstream_path": "skills/markitdown/scripts/batch_convert.py",
+      "sha256": "13e64df33ae0c66ebf1ca71e1650de98a4bc4491d429be9067991f1fb7aa9f4f",
+      "bytes": 10522,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/scripts/batch_convert.py"
+    },
+    "scripts/convert_literature.py": {
+      "upstream_path": "skills/markitdown/scripts/convert_literature.py",
+      "sha256": "6c28a9b005a252bcfbab4e1a637129f7be30f9f154bb7bb5adb67cf5361b0aed",
+      "bytes": 12069,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/scripts/convert_literature.py"
+    },
+    "scripts/inspect_installation.py": {
+      "upstream_path": "skills/markitdown/scripts/inspect_installation.py",
+      "sha256": "4b5443c518a7d4f73bc23f0394fe3232581bcfd467f230b6c866212e20e199ce",
+      "bytes": 4889,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/skills/markitdown/scripts/inspect_installation.py"
+    },
+    "LICENSE.md": {
+      "upstream_path": "LICENSE.md",
+      "sha256": "09b02a3c9df3053c55531d503357a9c7cde275970e6c3ceaa1ddf5f0e90b40c1",
+      "bytes": 1068,
+      "source_url": "https://raw.githubusercontent.com/K-Dense-AI/claude-scientific-skills/5f2bc0341354fd5590aef76a533ada1e1e5b4e62/LICENSE.md"
+    }
+  },
+  "tool_validation": {
+    "status": "passed",
+    "installed_version": "0.1.9",
+    "setup_script_executed": true,
+    "sample_source_url": "https://www.csie.ntu.edu.tw/~htlin/mooc/doc/01_handout.pdf",
+    "sample_pages": 32,
+    "sample_markdown_chars": 55768,
+    "api_cli_match": true,
+    "socket_connect_blocked_conversion": "passed",
+    "visual_check": "first page title/instructor/lecture number",
+    "private_validation_report": "/workspace/shared/research/markitdown-smoke/validation.json",
+    "scope": "single public PDF smoke test; not a full lecture reading; no claim of faithful formulas"
+  }
+}

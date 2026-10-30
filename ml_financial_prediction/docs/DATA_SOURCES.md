@@ -12,6 +12,8 @@
 | TWSE MIS | 未來盤前快照研究 | 本次頁面僅返回動態頁，未核實可用的歷史快照介面；不可聲稱已取得2020起盤前訓練資料 |
 | Nasdaq / Cboe 官方 | SOX / VIX定義與來源校驗 | 官方定義已查，不能把公開說明頁等同免費完整歷史API |
 
+本輪已將首批官方資料介面整理為`configs/sources.json`及`ingestion/external.py`：Cboe VIX歷史、TWSE加權當月、美國10年期殖利率DGS10、美元兌台幣DEXTAUS。後兩者是新增序列；殖利率單位為百分比、變化用基點，匯率報價為一美元兌新台幣，且FRED註記紐約中午買入匯率，不能當台北收盤。實際下載覆蓋、API紀錄與尚缺的歷史發布／修訂／日曆證據見[API_INVENTORY.md](API_INVENTORY.md)；原始取得成功與歷史可回測分開驗收。
+
 ## 對「TWSE只有當日、沒有歷史」的修正
 
 本次實讀 `https://openapi.twse.com.tw/v1/indicesReport/MI_5MINS_HIST`，JSON包含 `Date`、`OpeningIndex`、`HighestIndex`、`LowestIndex`、`ClosingIndex`，並包含多個2026年10月日期。`Date`為民國年格式，如1151001。這足以否定所有端點都只有當日快照，但不足以證明該端點能指定任意歷史年月；完整回補要另核查官方歷史查詢介面。

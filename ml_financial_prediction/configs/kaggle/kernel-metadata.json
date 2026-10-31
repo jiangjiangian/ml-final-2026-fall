@@ -1,0 +1,14 @@
+{
+  "id": "replace-me/financial-model-comparison",
+  "title": "Financial Model Comparison",
+  "code_file": "financial_model_comparison.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

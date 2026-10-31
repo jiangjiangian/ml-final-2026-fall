@@ -19,7 +19,9 @@ live-data/
 │   ├── market.csv                # 市場return、VIX／OI及missing／age追溯欄
 │   ├── market_report.json        # 原生交易日、時間假設與排除原因
 │   ├── schema.json               # 精確欄位／公式／單位／lag定義
-│   └── lineage.json              # 產物hash、原始版本與實際取得時間
+│   ├── lineage.json              # 產物hash、原始版本與實際取得時間
+│   ├── build_status.json         # 這個catalog的匯出成功／失敗狀態
+│   └── research-frozen-v1/       # 固定10/27研究版本；不是每日latest
 ├── labels/
 │   └── stock_outcomes.csv.gz      # 獨立當日y／盤中return；pending不當真值
 └── runtime/                      # 部署啟用後的私有持久狀態；不含登入資訊
@@ -35,7 +37,7 @@ live-data/
 # 必須有這個私人repo的讀取權限。第一次可解析live-data，之後記下回傳的40碼commit。
 uv run --locked --no-sync python scripts/fetch_live_data.py \
   --repo jiangjiangian/ml-final-2026-fall \
-  --revision live-data --runtime-dir /private/finpred-runtime
+  --revision live-data --runtime-dir /private/finpred-runtime --with-features
 
 # 可重現實驗：把live-data替換成已記錄的40碼commit，避免默默換成明天的資料。
 ```

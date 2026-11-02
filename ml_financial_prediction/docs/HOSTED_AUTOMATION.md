@@ -29,7 +29,9 @@ live-data的固定Git revision
     -> 保存結果與釋放lease；未知提交狀態保留以供下次對帳
 ```
 
-使用者本輪授權把資料保存在同一個**私人**repository的`live-data`分支；沒有授權公開資料或憑證。啟動時同時驗證GitHub repository為private、Git origin對應同一repo、checkout分支是`live-data`，且工作樹乾淨。不能用一個私人repo名稱，卻將資料推到另一個public origin。
+資料可放在同一個私人repository的`live-data`分支，或另一個私人資料repository的`live-data`；使用者也希望程式可公開並詢問僅讓組員讀資料，最後儲存方式尚待確認。啟動時驗證**資料repository**為private、Git origin對應它、checkout分支是`live-data`，且工作樹乾淨。公開程式repo與私人資料repo可以不同；不能用私人repo名稱掩蓋公開data origin，也不能把憑證寫入任一repo。
+
+分離方案的程式已在本機實作：在程式repo設定變數`FINPRED_DATA_REPOSITORY=owner/private-data-repo`，並以GitHub Actions Secret `FINPRED_DATA_TOKEN`提供對該私人repo有必要讀寫權限的受限token；跨repo時不會默默降級用僅能存取程式repo的`GITHUB_TOKEN`。課程帳密另使用`COURSE_EMAIL`及`COURSE_PASSWORD` secrets。這些是設定名稱，不是已建立的repo、token或完成的部署；絕不將實際值貼入聊天。
 
 兩份workflow共用`finpred-private-runtime` concurrency group。Git lease／遠端父commit檢查再處理本機CLI或其他runner：只接受fast-forward，沒有force push，也不在衝突後盲目重試POST。lease有效45分鐘，job最多35／40分鐘；逾期／失去所有權時拒絕POST。
 
@@ -50,7 +52,7 @@ live-data的固定Git revision
 
 **本輪真實遠端阻擋：** 程式提交`b39d516`的[資料同步run 41180208527](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41180208527)與[流程演練run 41180208487](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41180208487)均於private檢查停止。2026-10-31重新核對REST、GraphQL與未登入公開metadata，repository當時為`public`；這不是應繞過的程式錯誤，也不是成功採集。較早曾核對到private的狀態不能代替現在的檢查。兩份workflow另在checkout資料、安裝套件之前加入相同privacy preflight，runtime仍保留獨立檢查。
 
-恢復部署前，使用者需在GitHub repository的Settings確認並改為**Private**；本輪代理嘗試恢復private被API拒絕403，沒有冒稱修改成功。Actions Secrets設定也受目前integration權限限制，需在GitHub安全介面配置；不要將帳密貼在聊天、提交到Git或以public資料發布替代。私人狀態未重新核實前，停止資料發布與遠端採集／訓練演練；不刪除分支或擅自改寫歷史。Private、Secrets與default-branch cron入口是不同條件，全部落實後仍須查實際成功run。
+當時嘗試恢復private被API拒絕403；2026-11-02重新核對已為Private，手動rehearsal成功、手動collect部分成功。Actions Secrets設定仍受目前integration權限限制，需在GitHub安全介面配置；不要將帳密貼在聊天或提交到Git。資料repo的私人狀態、Secrets與default-branch cron入口是不同條件，全部落實後仍須查實際成功run。
 
 1. 先推送私人`live-data`種子，核對來源與README；程式留`system-completion`，main保留空樹。
 2. 推送含workflow的`system-completion`，以push事件取得真實rehearsal／collect run。這不需要先把workflow加入main。沒有course Secrets的push採集會明列partial。

@@ -1,17 +1,17 @@
 {
-  "node_count": 2086,
+  "node_count": 2089,
   "unverified_node_count": 0,
-  "raw_edge_count": 4906,
+  "raw_edge_count": 4909,
   "non_object_edges": 0,
   "missing_endpoint_edges": 0,
   "dangling_endpoint_edges": 0,
   "external_reference_edges": 0,
   "self_loop_edges": 2,
-  "valid_candidate_edges": 4906,
+  "valid_candidate_edges": 4909,
   "exact_duplicate_edges": 0,
-  "directed_unique_endpoint_pairs": 4796,
+  "directed_unique_endpoint_pairs": 4799,
   "directed_same_endpoint_collapsed_edges": 110,
-  "undirected_unique_endpoint_pairs": 4791,
+  "undirected_unique_endpoint_pairs": 4794,
   "undirected_same_endpoint_collapsed_edges": 115,
   "same_endpoint_group_count": 78,
   "relation_variant_groups": 33,
@@ -19,8 +19,8 @@
   "source_location_variant_groups": 43,
   "context_variant_groups": 2,
   "post_build_graph_type": "DiGraph",
-  "post_build_node_count": 2086,
-  "post_build_edge_count": 4796,
+  "post_build_node_count": 2089,
+  "post_build_edge_count": 4799,
   "post_build_error": "",
   "producer_suppression": {
     "path": "/workspace/.tools/graphify/lib/python3.12/site-packages/graphify/extract.py",
@@ -217,7 +217,7 @@
       ]
     }
   ],
-  "exported_evidence_edges": 4906,
+  "exported_evidence_edges": 4909,
   "exported_multigraph": true,
   "export_evidence_loss": 0
 }

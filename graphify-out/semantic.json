@@ -12088,7 +12088,7 @@
     },
     {
       "id": "docs_hosted_automation_cross_repository_local_support",
-      "label": "本地新增公開程式／獨立私人data repo與專用token支援；尚未建立資料repo或部署",
+      "label": "分離私人資料repo與專用token支援已在本機實作；私人資料repo、token與部署尚未建立",
       "file_type": "concept",
       "source_file": "docs/HOSTED_AUTOMATION.md",
       "source_location": "line 5",
@@ -12187,7 +12187,7 @@
     },
     {
       "id": "docs_hosted_automation_historical_public_gate",
-      "label": "2026-10-31兩個hosted runs因當時repo公開而被privacy gate拒絕",
+      "label": "2026-10-31兩個run因當時repo公開被擋；2026-11-02 repo已恢復Private並有手動rehearsal成功",
       "file_type": "concept",
       "source_file": "docs/HOSTED_AUTOMATION.md",
       "source_location": "line 51",
@@ -12840,6 +12840,39 @@
       "file_type": "concept",
       "source_file": "docs/STATUS.md",
       "source_location": "2026-11-02最新更新",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_hosted_automation_data_repository_variable",
+      "label": "跨repo時以FINPRED_DATA_REPOSITORY指定私人資料repository；啟動仍檢查其privacy與origin",
+      "file_type": "concept",
+      "source_file": "docs/HOSTED_AUTOMATION.md",
+      "source_location": "已實作的資料流",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_hosted_automation_separate_data_token",
+      "label": "FINPRED_DATA_TOKEN為Actions Secret名稱，須授予私人資料repo必要讀寫權；不靜默降級為程式repo的GITHUB_TOKEN",
+      "file_type": "concept",
+      "source_file": "docs/HOSTED_AUTOMATION.md",
+      "source_location": "已實作的資料流",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_hosted_automation_course_credentials_separate",
+      "label": "課程登入使用COURSE_EMAIL與COURSE_PASSWORD secrets，與跨repo data token分開；以上為名稱非已設定憑證",
+      "file_type": "concept",
+      "source_file": "docs/HOSTED_AUTOMATION.md",
+      "source_location": "已實作的資料流",
       "source_url": null,
       "captured_at": null,
       "author": null,
@@ -30302,6 +30335,36 @@
       "source_file": "docs/STATUS.md",
       "source_location": "2026-11-02最新更新",
       "weight": 1.0
+    },
+    {
+      "source": "docs_hosted_automation_document",
+      "target": "docs_hosted_automation_data_repository_variable",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/HOSTED_AUTOMATION.md",
+      "source_location": "已實作的資料流",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_hosted_automation_document",
+      "target": "docs_hosted_automation_separate_data_token",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/HOSTED_AUTOMATION.md",
+      "source_location": "已實作的資料流",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_hosted_automation_document",
+      "target": "docs_hosted_automation_course_credentials_separate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/HOSTED_AUTOMATION.md",
+      "source_location": "已實作的資料流",
+      "weight": 1.0
     }
   ],
   "hyperedges": [
@@ -30642,7 +30705,7 @@
     "docs/deep-research/AGENT_WORKFLOW.md": 83,
     "docs/deep-research/SOURCES.md": 704,
     "docs/COMPLETION_CHECKLIST.md": 66,
-    "docs/HOSTED_AUTOMATION.md": 94,
+    "docs/HOSTED_AUTOMATION.md": 96,
     "docs/KAGGLE_TRAINING.md": 115,
     "docs/LIVE_DATA_FEATURES.md": 60,
     "docs/REPORT_OUTLINE.md": 58,
@@ -30684,7 +30747,7 @@
     "docs/deep-research/AGENT_WORKFLOW.md": "776c8fd759aec6850e7cf4c7e69d9fb339bda91c1ec67054ff8c15a9e486cff0",
     "docs/deep-research/SOURCES.md": "eeaa7f770ae11807acf3277271f26b42e50382e15a713b3fa1697aadb7d56412",
     "docs/COMPLETION_CHECKLIST.md": "d006557180b22e8ae7ba38bbb098fd9d6fd6b019cb85d6a8f9c907a178d2219a",
-    "docs/HOSTED_AUTOMATION.md": "311e2dc1fa721e8ddc79f81575404e9ab721248352fc212ea7ea98b975c74401",
+    "docs/HOSTED_AUTOMATION.md": "544dfd43259629d45cb52e45fa744888aca2cf858e91738c4e94743aef186e1e",
     "docs/KAGGLE_TRAINING.md": "8ed16b92397b5294073e115bbcb4dfff62c7d7632ddaa473356193bea78699e1",
     "docs/LIVE_DATA_FEATURES.md": "f6cd039008dadad634f29544beed214915a9dd758dddf1f5fada920985e39ce2",
     "docs/REPORT_OUTLINE.md": "0c86c94ac873a56ee2f030202e812ba81c1fb1cb8d169c619f0f8b0e1526985e",
@@ -30920,5 +30983,10 @@
       "docs/STATUS.md"
     ],
     "scope": "Both complete documents reread; distinguish implemented same-day acquisition/hash/TLS guard from unproven provider observation freshness and supplied-table numerical recalculation."
+  },
+  "separate_data_repo_refresh_provenance": {
+    "at": "2026-11-02T16:07:15.591221+00:00",
+    "source": "docs/HOSTED_AUTOMATION.md",
+    "scope": "Complete reread: dual-repo configuration names and explicit no-token-fallback, historical privacy event vs restored private state; new repo/token/deployment not claimed created."
   }
 }

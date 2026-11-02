@@ -1,0 +1,16 @@
+{
+  "schema_version": "hosted-runtime-v1",
+  "runtime_root": "/tmp/finpred-hosted-runtime",
+  "files": [],
+  "total_bytes": 0,
+  "created_at": "2026-11-02T15:59:17.953118+00:00",
+  "trust_scope": "internally_created_finpred_state_in_same_private_repository",
+  "excluded": [
+    "raw",
+    "market-history",
+    "environment",
+    "HTTP sessions",
+    "credentials",
+    "lock files"
+  ]
+}

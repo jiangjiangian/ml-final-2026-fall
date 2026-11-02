@@ -1,6 +1,66 @@
 # 實驗紀錄
 
-更新：2026-10-30。以下為已執行的真實資料研究；全數`readiness=research_assumption`，不代表歷史發布／修訂版本已認證，也不作投資淨利或正式模型升級證據。細節見[RETURN_RATIO](research/RETURN_RATIO.md)及[DATA_ALIGNMENT](research/DATA_ALIGNMENT.md)。
+更新：2026-10-31。以下為已執行的真實資料研究；全數`readiness=research_assumption`，不代表歷史發布／修訂版本已認證，也不作投資淨利或正式模型升級證據。細節見[RETURN_RATIO](research/RETURN_RATIO.md)及[DATA_ALIGNMENT](research/DATA_ALIGNMENT.md)。
+
+## 本輪R1／E04：有限預算下的真實特徵比較
+
+新研究產物在`/workspace/shared/research/completion-20261030/R1-frozen-expansion-v1/`及`R1-E04-comparison-v1/`。保留原Training／2026-10-27 Live凍結資料，不使用新Live回填舊實驗。所有比較使用相同12140個2025驗證鍵，前處理只fit該fold較早train，同日股票不跨fold，原始價格／標籤與features隔離。
+
+R1先固定F0七個個股lag、F1七價格序列×1／5／20 native-session return、F2波動／VIX／age／missing／fresh；分別7／28／40個模型欄位。固定Ridge alpha=1及HistGBDT max_leaf_nodes=15、max_iter=100、min_samples_leaf=100、L2=1、early_stopping=false、seed42。F0／F1／F2×兩模型×四季完成24 fits；完整F3產業歷史不足，保留8個blocked slots，不填0分或用別組取代。
+
+E04另於新分數出現前註冊為**F0＋九個可得FX／yield／age／missing欄**、兩模型×四季8 fits。這是比早期「E01＋匯率利率」更明確的固定診斷子集，不冒稱完整F3／產業已完成。FX使用TWD per USD觀測列return，殖利率用百分比水準及bp差，保留缺觀測；觀測日＋7日23:59台北是明示研究quarantine，不是已證明的歷史發布排程。
+
+| 2025同鍵score | Ridge alpha=1 | HistGBDT固定15葉 |
+|---|---:|---:|
+| F0個股七欄 | 0.000526636554 | 0.000531184462 |
+| F0＋F1原生return | 0.000442502529 | 0.000713281846 |
+| F0＋F2波動／age／missing | 0.000816754184 | 0.000084810345 |
+| E04：F0＋FX／yield子集 | 0.000310985284 | -0.000012346337 |
+| 同鍵全0／train-majority | 0.000447093446 | 0.000447093446 |
+
+F2 Ridge與F1樹在這段已看過的validation較高；這不是新unseen test，也不是保證泛化或正式approved。E04兩模型均未勝同配置F0／全0；完整產業／另列交互作用E05仍未完成。原E00–E03的配置與負結果繼續保留，不將不同loss／參數的新分數直接歸因於「市場特徵一定有效」。
+
+`registration.json`保存事前設定、資料／程式hash、套件、預算與spent-holdout政策；`report.json`記所有32 fits及baseline；`independent_score_audit.json`使用已保存的32份二元預測和原始調整open／close，以stdlib `math.fsum`直接重算，最大分數差0、各fold鍵一致、沒有重fit或新holdout。初次執行的私有腳本與hash保留，不以後來portable CLI的hash回填原run。
+
+可攜重跑入口如下；只有實際要做新run時執行，輸出目錄必須全新。`--include-e04`是另列有限8-fit階段，不是替補blocked F3。
+
+```bash
+uv run --locked --no-sync python scripts/run_feature_ablation.py \
+  --expansion-dir /private/research/R1-frozen-expansion-v1 \
+  --out-dir /private/research/R1-E04-new-run --include-e04
+```
+
+## 本輪R2：新四架構與恢復界線
+
+`models/temporal.py`與`training/architecture_comparison.py`已接入M1 Ridge、M2 HistGBDT、M3 causal TCN及M4市場引導跨股attention。R2固定F0＋M0、十二設定、四個2025季度共48個預定fits；不是依每季挑不同超參數。原藍圖`configs/research/model_families.json`的design-only標記保留其80ac804階段歷史，現在比較runner已能讀取／凍結其參數；不將當時狀態改寫成當時已執行。
+
+本輪training table canonical SHA256仍為`874590ab49bb06f4344c498a28e7fb09dc9c323f2ba4b8e9a1d48204af04e71c`、82674完成labels，另建82750個feature格＝1655觀測日期×50股，pending／缺label不刪可見feature。1655日期是教師觀測聯集，不冒稱已認證TWSE native calendar；與第三方XTAI有四個calendar-only日期，可能含特殊休市，未逐一取得官方證明，不自動插值。
+
+R2原進程在30/48 checkpoint後因環境中斷，恢復流程驗hash後只接續固定剩餘18 fits；全部48次已完成，沒有重算已完成者或新增搜尋。當時新程式尚未提交，source_snapshots保存實際bytes／hash，不冒填後來Git commit。獨立逐鍵重算48份預測及載入可信模型／前處理器重播均通過。
+
+| 四架構固定配置最佳分數，2025探索期 | 官方score |
+|---|---:|
+| M1 Ridge | 0.000484424438 |
+| M2 HistGradientBoosting | 0.000569937363 |
+| M3 causal TCN，dropout 0.1 | 0.000868847322 |
+| M4 市場引導跨股attention | 0.000867211997 |
+| 全0／train-majority基準 | 0.000447093446 |
+
+以上是相同股票日期鍵、已看過的2025季度探索結果；資料歷史vintage與發布時間未核實，不能當新的樣本外、正式PIT模型或真實交易績效。已看過的2026年1～5月沒有重用。
+
+```bash
+uv run --locked --no-sync python scripts/compare_architectures.py \
+  --table /private/research/R2-frozen-inputs-v1/training_table.json \
+  --feature-rows /private/research/R2-frozen-inputs-v1/feature_rows.json \
+  --config configs/research/model_families.json \
+  --out-dir /private/research/R2-new-run --research-if-unverified
+```
+
+檔名以實際frozen-input manifest為準；完整report在`/workspace/shared/research/completion-20261030/R2-f0-m0-four-architectures-v1/report.json`，恢復紀錄、獨立score及模型重播audit亦在該research目錄。Notebook report模式已從頭執行，只讀完成報告，不額外fit；尚未在Kaggle遠端訓練。
+
+## 既有E00–E03歷史紀錄（較早核心基底）
+
+以下原始配置、負結果與追溯缺項保留；表中早期E04／E05的「未計分」只描述當時提案，新E04子集以上段為準。
 
 ## 固定設定與資料
 
@@ -28,7 +88,7 @@ E00在2025選定MLP普通分類後，**只評估一次**2026年1–5月4750鍵�
 
 ## 版本與產物
 
-私有產物根目錄`/workspace/shared/research/experiments/`；研究資料與逐列預測不入Git。
+較早私有產物根目錄`/workspace/shared/research/experiments/`；當時研究資料與逐列預測不入Git。後續使用者只授權私人live-data保存共享raw／derived，程式分支與公開平台仍不放raw／逐列結果。
 
 | 產物 | 目錄／檔名 | canonical training table SHA256 |
 |---|---|---|

@@ -1,6 +1,6 @@
 # 決策與待確認事項
 
-更新：2026-10-30，Asia/Taipei。accepted代表有明確規範、授權或已驗證事實；proposed代表建議，不代表已部署。資料／程式實測不等於歷史可用性認證。
+更新：2026-10-31，Asia/Taipei。accepted代表有明確規範、授權或已驗證事實；proposed代表建議，不代表已部署。資料／程式實測不等於歷史可用性認證。
 
 | ID | 狀態 | 內容 | 證據 / 影響 |
 |---|---|---|---|
@@ -11,7 +11,7 @@
 | D005 | accepted | 舊global表少於2330表112個日期 | 離線資料稽核；不是NaN就能發現的缺漏 |
 | D006 | accepted | 第一版M0採4股價報酬+VIX水準/變化+OI水準/變化 | 八欄引擎已實作；研究真實表已產出，OI兩欄因證據不足全缺，消融結果見EXPERIMENTS |
 | D007 | proposed | 特徵固定08:10、08:20初次提交、08:35核對 | 保留到09:00的操作時間 |
-| D008 | proposed | 使用私人團隊repo，raw資料不入Git | 老師分享限制、來源授權、版本控制需求 |
+| D008 | superseded in part by D034 | 較早建議私人repo且raw不入Git；最新允許私人live-data保存資料 | 僅私人資料分支例外；帳密與公開raw仍禁止 |
 | D009 | proposed | 有常開主機則systemd，否則Actions+人員備援 | 排程精準度、維護成本與可用資源 |
 | D010 | accepted | 正式M0僅接受有證據的版本化觀測＋明示原生日曆；研究假設需另標readiness | strict拒絕未核實歷史vintage；研究入口不改寫為verified，來源匹配不能取代發布證據 |
 | D011 | accepted | 第一版一目標日一cutoff，cutoff不晚於該日09:00 Asia/Taipei | 遵官方截止；不硬碼08:10提案；跨時區實刻比較 |
@@ -34,15 +34,21 @@
 | D028 | accepted | 每日stage未供表時自動從私有raw準備七個個股滯後特徵；當日與歷史證據分開 | observed_fetch的available_at=fetched_at，兩者皆須不晚於08:10；只能證明當日bytes已可得。strict歷史訓練仍blocked，研究opt-in只產研究表 |
 | D029 | accepted | 最新資料取得不改寫已凍結研究版本；晚到來源必須blocked | 2026-10-30 Live541298bytes／40日期／3900完成＋100個10/23待完成；16:58台北取得不能重建當日08:10預測 |
 | D030 | accepted | 使用者要求獨立deep research分支研究金融競賽、至少四種模型與Lauren Tan workflow | Git名稱不含空白，使用deep-research，基底dev@675d662；核心仍dev，main／default branch不變；研究見docs/deep-research |
-| D031 | proposed | 一個採集者發布私有immutable快照及portable catalog，其他branch鎖定同一版本 | private artifacts作短期共享；長期object store／DVC依服務／費用取捨。未啟用排程、建立儲存或data-catalog分支 |
-| D032 | proposed | 比較線性、提升樹、causal TCN、市場引導跨股attention，保留raw intraday目標 | 後兩者未實作；R1最多8設定、R2最多12設定、4季度合計80 fits上限；JSON僅藍圖，不被現有runner載入 |
+| D031 | proposed alternative; implementation in D035 | 一採集者、多讀取者與portable catalog | 早期artifacts／object store／DVC為方案；本輪改依使用者要求在私人live-data實作Git版本共享，不冒稱已啟用cron |
+| D032 | accepted research contract; progress D036 | 比較線性、提升樹、causal TCN、市場引導跨股attention，保留raw intraday目標 | 80ac804時為未實作藍圖；後續已接入。R1最多8設定、R2最多12設定、各四季度；來源與實際fit依新run，不回填舊完成狀態 |
 | D033 | accepted | agent用短任務契約與可重跑驗收；金融研究不能無上限追validation | 使用者偏好少盯梢且易懂；pstack及官方工程原文可借用，但外部自動merge／通知／指定模型不新增本會話權限；已看過的holdout不得重用 |
+| D034 | accepted | 使用者明確要求建立私人live-data存每天同步raw／衍生資料，README含file tree、每欄return／lag | supersedes D008的全Git禁raw偏好，僅限同一private repo的live-data；不公開或保存憑證 |
+| D035 | accepted implementation; runtime pending | 共享採內容hash物件＋portable catalog、每次真實取得manifest、固定Git revision與消費端hash驗證 | 已推首版16來源；去重／修訂／pending／路徑與credentials反例通過；實際遠端消費／排程依STATUS驗收 |
+| D036 | accepted research execution | 新M1 Ridge／M2 HistGBDT／M3 causal TCN／M4市場引導跨股attention已實作；R1／E04已有32真實fits | R1的24fits＋8blocked產業slots；E04另註冊8fits。R2完整48fits仍需final report；不重用2026年1～5月保留期，不正式升級研究包 |
+| D037 | accepted capability boundary | Codex介面可有排程，但本會話沒有建立工具；Kaggle無MCP／本人帳戶憑證，採官方CLI私人bundle | 桌面／web持久性限制與官方來源見HOSTED_AUTOMATION；本地Notebook／bundle成功不等於遠端kernel或每天服務成功 |
+| D038 | verified blocker | GitHub Secrets API讀取回403 Resource not accessible by integration | 不提取Git代理憑證、不把課程帳密寫Git或log；需可用的安全Secrets設定及實際runner讀取才能驗收完整來源採集 |
+| D039 | verified blocking state | 最新REST／GraphQL確認repo變為Public；停止發布／消費，先前private檢查不能延用 | 2026-10-31T02:20:19Z更新；hosted runs41180208527／41180208487與consumer正確拒絕。恢復Private API亦403，已請使用者操作；不弱化privacy guard |
 | Q001 | partially verified | 固定美股三欄匹配前一教師global列日期；台韓欄同日close；Live美股兩欄前一native session | 逐欄匹配表及反例見DATA_ALIGNMENT；完整原生日曆已有第三方排程，但歷史發布／vintage仍未核實 |
 | Q002 | partially verified | 固定ZIP截至8/31，最新Live9/1～10/30、40日期；網站宣稱00:00新增後逐欄更新 | 實際取得時間有manifest；完整發布排程／來源延遲／逐欄有效mask仍未提供，不把16:58取得當08:10已取得 |
 | Q003 | pending | 04點更新的是session模板、行情、標籤還是排行榜？ | 使用者描述尚未驗證；不同任務排程不同 |
 | Q004 | partially verified | 登入／下載、每日state／template及前端提交JSON契約已核實 | AUTOMATION記錄來源；未對真實server POST或驗收實際回執，不能以mock成功冒稱正式提交 |
-| Q005 | partially verified | 已選jiangjiangian/ml-final-2026-fall與目前Codex Cloud；常開排程／長期儲存政策待定 | dev為工作分支，課程資料在checkout外；未啟用排程 |
-| Q006 | partially verified | SOX／TSM／NVDA公開歷史已取，FRED raw已取，三類台灣產業有當日水準 | Yahoo並非已簽SLA／商用授權介面；歷史發布／vintage與產業歷史尚缺，不能宣稱全來源已正式接入 |
+| Q005 | partially verified | 已選jiangjiangian/ml-final-2026-fall與目前Codex Cloud；常開排程／長期儲存政策待定 | system-completion整合、私人live-data保存共享資料；main空樹；真正排程以遠端run驗收 |
+| Q006 | partially verified | SOX／TSM／NVDA歷史已取，FRED形成E04研究子集並實跑，三類台灣產業僅當日水準 | Yahoo並非已簽SLA／商用授權介面；歷史發布／vintage與產業歷史尚缺，不能宣稱全來源已正式接入 |
 | Q007 | blocked | Google AI Mode分享頁內容 | 本次無法取得；待可讀文字或截圖，不推測清單 |
 
 後續決策格式：日期、狀態、決策、理由、來源、被替代決策與版本影響。不要把待確認事項寫進穩定背景當成既定事實。

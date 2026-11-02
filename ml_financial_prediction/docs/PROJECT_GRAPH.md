@@ -35,3 +35,6 @@ UV_CACHE_DIR=/workspace/.cache/uv uv pip sync --python /workspace/.tools/graphif
 研究記憶包含32份公開講義閱讀、實際市場消融負結果、每日快照轉表／模型／提交邊界及尚未部署的執行器條件。圖用來追蹤依賴與證據，不替代實驗分數、來源認證或真實回執；當日observed_fetch與歷史PIT驗證必須分開。
 
 deep-research分支新增金融競賽／期刊與企業研究、四架構藍圖、資料共享方案與Lauren Tan工作流；來源索引納入語意圖，保留閱讀範圍與狀態。63筆來源包含同一論文的不同取得證據，不表示63篇全文已讀。設計節點不代表新模型已訓練或共享排程已部署。
+
+
+system-completion另加入私人live-data共享／derived lineage、原生return／FX研究、已實作的新TCN／跨股attention、Notebook與hosted pre-POST持久狀態。80ac804的設計節點保留為歷史，不能拿舊「未實作」覆蓋後續有證據的程式；新能力亦不能因有節點就稱正式模型或排程已通過。語意萃取需完整重讀變動文件，保留原ID並修正狀態／scope，再由官方cache／AST builder整合；最新圖健康以graphify-out的實際報告為準。

@@ -3,9 +3,10 @@ set -euo pipefail
 umask 077
 
 : "${FINPRED_DATA_ROOT:?live-data checkout is required}"
-: "${GITHUB_REPOSITORY:?private owner/repository is required}"
+data_repository="${FINPRED_DATA_REPOSITORY:-${GITHUB_REPOSITORY:-}}"
+: "${data_repository:?private data owner/repository is required}"
 
-arguments=(--data-dir "$FINPRED_DATA_ROOT" --repository "$GITHUB_REPOSITORY")
+arguments=(--data-dir "$FINPRED_DATA_ROOT" --repository "$data_repository")
 if [[ "${FINPRED_MODE:-rehearsal}" == "financial" ]]; then
   selected_stage="${FINPRED_STAGE:-auto}"
   if [[ "$selected_stage" == "auto" ]]; then

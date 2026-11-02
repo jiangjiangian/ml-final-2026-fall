@@ -2,11 +2,14 @@
 
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
+import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from unittest.mock import patch
 
 from finpred.data import sharing
@@ -16,6 +19,11 @@ SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/sync_live_data.py'
 SPEC = importlib.util.spec_from_file_location('sync_live_data_guard_tests', SCRIPT)
 publisher = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(publisher)
+CONSUMER_SCRIPT = SCRIPT.with_name('fetch_live_data.py')
+CONSUMER_SPEC = importlib.util.spec_from_file_location('fetch_live_data_guard_tests', CONSUMER_SCRIPT)
+consumer_script = importlib.util.module_from_spec(CONSUMER_SPEC)
+with patch.dict(sys.modules, {'sync_live_data': publisher}):
+    CONSUMER_SPEC.loader.exec_module(consumer_script)
 
 
 class DataSharingTests(unittest.TestCase):
@@ -199,6 +207,26 @@ class DataSharingTests(unittest.TestCase):
         with patch.object(publisher, 'command', return_value='false'):
             with self.assertRaises(sharing.SharingError):
                 publisher.require_private_repository('owner/project')
+
+    def test_consumer_privacy_failure_precedes_transport_or_runtime_mutation(self):
+        errors = io.StringIO()
+        arguments = ['fetch_live_data.py', '--repo', 'owner/project', '--revision', 'live-data',
+                     '--runtime-dir', str(self.consumer), '--with-features']
+        with (patch.object(sys, 'argv', arguments),
+              patch.object(consumer_script, 'require_private_repository',
+                           side_effect=sharing.SharingError('private repository required')),
+              patch.object(consumer_script, 'command') as git_command,
+              patch.object(consumer_script, 'import_snapshot_bundle') as importer,
+              patch.object(consumer_script.tempfile, 'TemporaryDirectory') as temporary,
+              redirect_stderr(errors)):
+            self.assertEqual(1, consumer_script.main())
+        git_command.assert_not_called()
+        importer.assert_not_called()
+        temporary.assert_not_called()
+        self.assertFalse(self.consumer.exists())
+        report = json.loads(errors.getvalue())
+        self.assertEqual('private_repository_verification', report['failure_stage'])
+        self.assertNotIn('owner/project', errors.getvalue())
 
     def test_private_identity_cannot_publish_to_different_origin(self):
         responses = [str(self.root), 'live-data', '', 'https://github.com/public/another.git']

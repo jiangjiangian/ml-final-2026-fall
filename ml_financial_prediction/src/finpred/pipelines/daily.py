@@ -159,7 +159,9 @@ def _prediction_table(table, day, now):
     evidence = table.get('feature_evidence')
     if not isinstance(evidence, list) or not evidence:
         raise PipelineBlocked('actual source fetch and availability evidence required')
-    covered = set()
+    from finpred.data.daily_tables import SOURCE_URLS, live_fetch_in_prediction_window
+
+    covered, live_checked = set(), False
     columns = table.get('feature_columns')
     if not isinstance(columns, list) or not columns or len(set(columns)) != len(columns):
         raise PipelineBlocked('unique feature_columns required')
@@ -194,7 +196,16 @@ def _prediction_table(table, day, now):
             raise PipelineBlocked('observed snapshot cannot backdate availability before actual fetch')
         if available > cutoff or fetched > cutoff:
             raise PipelineBlocked('feature was unavailable or fetched after freeze')
+        if item['source'] == 'course-live':
+            if (manifest.get('source_url') != SOURCE_URLS['course-live']
+                    or not isinstance(manifest.get('metadata'), dict)
+                    or manifest['metadata'].get('tls_verified') is not True
+                    or not live_fetch_in_prediction_window(manifest['fetched_at'], day)):
+                raise PipelineBlocked('course-live requires a target-day 04:00–08:10 Taipei acquisition with verified TLS')
+            live_checked = True
         covered.update(features)
+    if not live_checked:
+        raise PipelineBlocked('hash-bound course-live source evidence is required')
     if covered != set(columns):
         raise PipelineBlocked('source evidence must cover every model feature')
     rows = table.get('rows', [])

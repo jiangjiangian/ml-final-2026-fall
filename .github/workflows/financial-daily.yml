@@ -38,9 +38,18 @@ jobs:
         with:
           path: source
           persist-credentials: false
+      - name: Verify private data repository before checkout
+        env:
+          FINPRED_DATA_REPOSITORY: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
+          FINPRED_DATA_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN }}
+          GH_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN || github.token }}
+        shell: bash
+        run: bash source/ml_financial_prediction/deployment/hosted/preflight.sh
       - name: Check out private durable data and state
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          repository: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
+          token: ${{ secrets.FINPRED_DATA_TOKEN || github.token }}
           ref: live-data
           path: live-data
           fetch-depth: 1
@@ -56,7 +65,8 @@ jobs:
       - name: Rehearse restore or run the clock-gated stage
         working-directory: source/ml_financial_prediction
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN || github.token }}
+          FINPRED_DATA_REPOSITORY: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
           FINPRED_DATA_ROOT: ${{ github.workspace }}/live-data
           FINPRED_MODE: ${{ github.event_name == 'push' && 'rehearsal' || 'financial' }}
           FINPRED_STAGE: ${{ inputs.stage || 'auto' }}

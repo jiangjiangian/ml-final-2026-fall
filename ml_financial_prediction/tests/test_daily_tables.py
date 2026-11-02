@@ -163,6 +163,37 @@ class DailyTablesTests(unittest.TestCase):
             path.write_text(json.dumps(record))
             self.assertEqual(prepare_prediction_table(root, DAY)['status'], 'blocked')
 
+    def test_prediction_requires_live_fetch_on_target_day_not_stale_weekend_snapshot(self):
+        with tempfile.TemporaryDirectory() as root:
+            training = acquire(root, 'training', '2026-10-30T20:00:00+08:00')
+            stale = acquire(root, 'live', '2026-10-30T23:47:00+08:00')
+            index(root, [training, stale])
+            blocked = prepare_prediction_table(root, DAY)
+            self.assertEqual(blocked['status'], 'blocked')
+            self.assertIn('target-day', blocked['report']['reason'])
+            fresh = acquire(root, 'live', '2026-11-01T20:00:00+00:00')
+            index(root, [training, fresh])
+            result = prepare_prediction_table(root, DAY)
+            self.assertEqual(result['status'], 'prepared')
+            self.assertEqual(set(result['report']['latest_observation_dates'].values()), {'2026-10-30'})
+            self.assertFalse(result['report']['historical_vintage_verified'])
+
+    def test_previous_day_and_just_before_collection_window_block(self):
+        for fetched in ('2026-11-01T23:59:59+08:00', '2026-11-02T03:59:59+08:00'):
+            with self.subTest(fetched=fetched), tempfile.TemporaryDirectory() as root:
+                training = acquire(root, 'training', DAY + 'T03:00:00+08:00')
+                live = acquire(root, 'live', fetched)
+                index(root, [training, live])
+                self.assertEqual(prepare_prediction_table(root, DAY)['status'], 'blocked')
+
+    def test_late_fetch_does_not_make_old_live_fresh(self):
+        with tempfile.TemporaryDirectory() as root:
+            training = acquire(root, 'training', DAY + 'T03:00:00+08:00')
+            acquire(root, 'live', '2026-10-30T23:00:00+08:00')
+            late = acquire(root, 'live', DAY + 'T08:10:01+08:00')
+            index(root, [training, late])
+            self.assertEqual(prepare_prediction_table(root, DAY)['status'], 'blocked')
+
     def test_training_inclusive_cutoff_and_same_time_conflicting_revisions(self):
         with tempfile.TemporaryDirectory() as root:
             training = acquire(root, 'training', DAY + 'T06:00:00+08:00')

@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -18,6 +19,44 @@ from runtime_store import (  # noqa: E402
 
 TAIPEI = ZoneInfo('Asia/Taipei')
 HOSTED_RUNTIME = Path('/tmp/finpred-hosted-runtime')
+
+
+def collection_failure(source, error):
+    """Classify only known adapter errors; never publish arbitrary exception text."""
+    from finpred.ingestion.course import CourseDownloadError
+    from finpred.ingestion.external import ExternalDataError
+
+    message = str(error)
+    category = 'unknown'
+    status = None
+    if isinstance(error, CourseDownloadError):
+        if message == 'COURSE_EMAIL and COURSE_PASSWORD are required':
+            category = 'missing_course_credentials'
+        elif message == 'course login rejected; response omitted':
+            category = 'authentication_rejected'
+        elif message == 'published live key not found; set COURSE_LIVE_KEY via secret environment':
+            category = 'live_key_unavailable'
+        elif message in {'HTTPS request failed; response and credentials omitted',
+                         'HTTPS response interrupted; credentials omitted'}:
+            category = 'network_or_tls'
+        else:
+            match = re.fullmatch(r'endpoint returned HTTP ([1-5][0-9]{2}); body omitted', message)
+            if match:
+                category, status = 'http_error', int(match.group(1))
+    elif isinstance(error, ExternalDataError):
+        if message == 'External source network or TLS request failed':
+            category = 'network_or_tls'
+        elif message == 'External source returned HTML instead of data':
+            category = 'unexpected_markup'
+        else:
+            match = re.fullmatch(r'External source returned HTTP ([1-5][0-9]{2})', message)
+            if match:
+                category, status = 'http_error', int(match.group(1))
+    result = {'source': source, 'error_type': type(error).__name__, 'category': category,
+              'detail': 'source response and credentials omitted'}
+    if status is not None:
+        result['http_status'] = status
+    return result
 
 
 def select_stage(now):
@@ -58,8 +97,7 @@ def collect_raw(runtime_root, *, clock=None):
                             'fetched_at': item['fetched_at']} for item in acquired)
             manifests.extend(item['manifest_path'] for item in acquired)
         except Exception as error:
-            failures.append({'source': source, 'error_type': type(error).__name__,
-                             'detail': 'source response and credentials omitted'})
+            failures.append(collection_failure(source, error))
     result = {'status': 'partial' if failures else 'collected', 'acquired': records, 'failures': failures,
               'started_at': now.isoformat(),
               'finished_at': (clock or (lambda: datetime.now(timezone.utc)))().isoformat(),
@@ -161,7 +199,9 @@ def run_hosted(data_root, repository, *, mode='rehearsal', stage=None, runtime_r
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--data-dir', type=Path, required=True)
-    parser.add_argument('--repository', default=os.environ.get('GITHUB_REPOSITORY'), required=not os.environ.get('GITHUB_REPOSITORY'))
+    data_repository = os.environ.get('FINPRED_DATA_REPOSITORY') or os.environ.get('GITHUB_REPOSITORY')
+    parser.add_argument('--repository', default=data_repository, required=not data_repository,
+                        help='Private data repository; may differ from the public code repository')
     parser.add_argument('--mode', choices=('rehearsal', 'collect', 'stage', 'auto'), default='rehearsal')
     parser.add_argument('--stage', choices=('train', 'predict', 'submit', 'verify'))
     parser.add_argument('--target-date')

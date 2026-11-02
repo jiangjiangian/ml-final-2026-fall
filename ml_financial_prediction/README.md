@@ -1,12 +1,35 @@
 # 台股盤中方向預測：ML系統與工作指南
 
-更新：2026-10-30，Asia/Taipei。實際驗證紀錄見[STATUS](docs/STATUS.md)。
+更新：2026-10-31，Asia/Taipei。實際驗證紀錄見[STATUS](docs/STATUS.md)。
 
 已實作資料下載與快照、時間對齊、研究訓練表、四類模型、候選比較、推論、提交／回執檢查及每日分階段CLI。**正式排程尚未啟用，也沒有實際提交競賽預測。** 研究模型採明示歷史可用性假設，不能直接當正式模型。
 
-核心實作在dev；本checkout為依使用者要求建立的deep-research研究分支，main依要求保留空檔案樹與歷史。專案依Chip Huyen《Designing Machine Learning Systems》與Cookiecutter Data Science分層，見[ARCHITECTURE](docs/ARCHITECTURE.md)。原始資料、模型與憑證不入Git。
+核心實作在dev，本輪整合於system-completion；deep-research保留來源研究，live-data保存使用者新授權的私人資料。main依要求保留空檔案樹與歷史。專案依Chip Huyen《Designing Machine Learning Systems》與Cookiecutter Data Science分層，見[ARCHITECTURE](docs/ARCHITECTURE.md)。程式分支不放原始資料；教師／市場快照與衍生資料只發布到同一私人repo的live-data。任何分支均不放憑證。
 
-新研究入口：[金融競賽、四種架構、跨branch共用資料與Lauren Tan工作流](docs/deep-research/README.md)。本輪新增63筆可追溯來源證據與11筆學術／工具書目；四架構為設計與設定，沒有新模型訓練或排程啟用。由repo根目錄執行`python tools/validate_research_bundle.py`可離線檢查研究交付；私有證據目錄存在時再加`--evidence-root /workspace/shared/research/deep-research-20261030`核對原始內容hash。
+早期來源研究（80ac804階段）入口：[金融競賽、四種架構、跨branch共用資料與Lauren Tan工作流](docs/deep-research/README.md)。該階段整理63筆來源證據與11筆書目，當時四架構只是設計；後續實作／實跑狀態以下節及STATUS為準。由repo根目錄執行`python tools/validate_research_bundle.py`可離線檢查研究交付；私有證據目錄存在時再加`--evidence-root /workspace/shared/research/deep-research-20261030`核對原始內容hash。
+
+## 每日共享、四模型與Notebook的新入口
+
+**2026-11-02更新：** repository目前實查已恢復Private，指定資料版本的遠端消費與一次GitHub手動rehearsal均成功。使用者希望公開程式並考慮僅讓組員讀資料；GitHub branch無獨立可見性，存放方式仍待確認，不能直接公開含課程資料的branch。定時採集與正式模型／提交尚未完成驗收，詳見STATUS及[Phase 2流程](docs/PHASE2_GUIDE.md)。
+
+| 要做什麼 | 實際入口與狀態 |
+|---|---|
+| 組員取得同一資料版本 | 私人`live-data`的README含file tree、每欄公式／lag／單位；以固定40碼commit取用，來源取得時間與接收時間分開 |
+| 每天更新raw與研究特徵 | `data/sharing.py`＋`data/shared_features.py`；本機16來源匯出50股×1658日＝82900列，labels獨立；[欄位與驗證](docs/LIVE_DATA_FEATURES.md) |
+| 比較新四架構 | `scripts/compare_architectures.py`讀固定藍圖；Ridge／HistGBDT／causal TCN／市場引導跨股attention已實作，48-fit R2的完成／恢復狀態見STATUS |
+| 擴充特徵消融 | `scripts/build_research_expansion.py`及`run_feature_ablation.py`；R1／E04共32個真實fits與負結果，完整產業F3仍blocked |
+| 多模型Notebook／Kaggle | [KAGGLE_TRAINING](docs/KAGGLE_TRAINING.md)；Notebook與官方私人bundle已本地驗證，缺本人Kaggle帳戶憑證，未遠端訓練 |
+| 不靠學校主機的排程 | [HOSTED_AUTOMATION](docs/HOSTED_AUTOMATION.md)；hosted流程／持久鎖與pre-POST ledger已有程式，遠端run及cron以STATUS實際證據為準 |
+
+從業務目錄取用遠端資料；第一次可用`live-data`解析成明確commit，實驗後續固定該40碼版本：
+
+~~~bash
+uv run --locked --no-sync python scripts/fetch_live_data.py \
+  --repo jiangjiangian/ml-final-2026-fall --revision live-data \
+  --runtime-dir /private/finpred-runtime --with-features
+~~~
+
+完整raw核對後還原至本機runtime；已驗證的衍生features／labels放`shared-data/`。缺失或stale衍生資料會另報blocked，不將原始取得時間回填成接收時間。共享研究表不會自動變成正式verified訓練表。所有工作對照[COMPLETION_CHECKLIST](docs/COMPLETION_CHECKLIST.md)，歷史規範與下面較早基準繼續保留。
 
 ## 目標與正式規範
 
@@ -53,7 +76,7 @@ uv run --locked --no-sync python -m unittest discover -s tests -q
 
 ## 資料取得與時間對齊
 
-Training與Live皆已下載。固定包提供歷史，Live提供後續日期、未完成值及修訂，兩者分開保存。最新Live於2026-10-30取得541,298bytes，涵蓋09-01～10-30共40日期、3900個完成標籤及100個10/23待完成標籤；固定包內容未變。最新raw在/workspace/shared/finpred-runtime/raw，較早研究快照保留不動；y=-1不能訓練，有號部位的-1另需有效性證據。
+Training與Live皆已下載。固定包提供歷史，Live提供後續日期、未完成值及修訂，兩者分開保存。最新本輪Live於2026-10-30T15:47:34Z取得542,872bytes，涵蓋09-01～10-30共40日期、3900個完成標籤及100個10/23待完成標籤；固定包內容未變。本輪raw在/workspace/shared/completion-runtime/raw，較早研究快照保留不動；y=-1不能訓練，有號部位的-1另需有效性證據。
 
 沿用COURSE_EMAIL／COURSE_PASSWORD環境憑證；Live公開金鑰可由已核實前端在記憶體取得，不把值填入命令或Git：
 
@@ -64,7 +87,7 @@ uv run --locked --no-sync python scripts/download_external_data.py --source cboe
 
 正常TLS、ZIP／股票全集／欄位及標籤檢查通過才保存不可變快照。課程與助教Live新網域已實測，不需重新提供既有帳密或key。差異、快照及既有API見[DATASET_INVENTORY](docs/DATASET_INVENTORY.md)與[API_INVENTORY](docs/API_INVENTORY.md)。
 
-另已取得IXIC、GSPC、TWII、KS11、VIX、SOX、TSM ADR、NVDA原生日序列，以及台灣三類產業當日水準。SOX是指數，TSM／NVDA是海外個股；產業序列尚無完整歷史，FRED匯率／利率目前是raw，不冒稱都已成模型特徵。
+另已取得IXIC、GSPC、TWII、KS11、VIX、SOX、TSM ADR、NVDA原生日序列，以及台灣三類產業當日水準。SOX是指數，TSM／NVDA是海外個股；產業序列尚無完整歷史，FRED匯率／利率已形成另註冊的E04研究子集並完成8 fits，未勝F0／全0；產業完整歷史仍不足。正式每日特徵不因研究完成而自動升級。
 
 重要發現：固定教師美股欄位匹配前一個教師global列日期，未必是前一美國交易日；固定TWII／KS11含同日收盤。不可盲目shift(2)或將其直接當盤前資料。研究市場表先在完整原生序列算報酬，再按08:10 cutoff對齊，保留缺值與版本。1655個目標日及SOX／TSM／NVDA特徵已產出，OI兩欄因證據不足留缺值。
 
@@ -110,7 +133,7 @@ uv run --locked --no-sync python scripts/build_daily_tables.py --runtime-dir /wo
 
 候選訓練07:20～07:50，08:10凍結特徵，08:20提交、08:35核對，09:00停止。失敗／超時保留相容且已驗證模型，無此版本則blocked。提交JSON介面已由前端核實、session／模板已唯讀實測；尚無真實POST或成功回執。詳見[OPERATIONS](docs/OPERATIONS.md)及[AUTOMATION](docs/research/AUTOMATION.md)。
 
-目前沒有可將本對話設定為每天自動執行的Tasks工具；聊天結束後不能承諾本代理自行常駐。systemd服務／timers及Actions手動設定已準備，皆未啟用。workflow_dispatch與schedule都要求workflow存在default branch；main空樹時，只放dev不會自動取得入口。GitHub-hosted runner另需持久私有快照／模型／提交ledger、跨runner鎖及截止延遲備援；不以cache當資料庫，不擅自改main或default branch。
+目前沒有可將本對話設定為每天自動執行的Tasks工具；聊天結束後不能承諾本代理自行常駐。systemd服務／timers保留；另已實作hosted同步與stage、私人Git持久狀態、跨runner lease及POST前checkpoint。Cron仍需要default branch入口；push／手動dispatch、憑證與實際run的最新驗收見HOSTED_AUTOMATION及STATUS，不以設定存在宣稱每天已跑。
 
 ## 教材、技能與專案記憶
 

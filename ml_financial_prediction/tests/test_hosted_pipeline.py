@@ -22,6 +22,53 @@ spec.loader.exec_module(hosted)
 
 
 class RuntimeStateTests(unittest.TestCase):
+    def test_data_repository_preflight_supports_public_code_and_private_data(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            command = base / 'gh'
+            captured = base / 'gh_arguments.txt'
+            command.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$CAPTURE_ARGUMENTS"\nprintf "%s\\n" "$FAKE_PRIVATE"\n')
+            command.chmod(0o700)
+            env = dict(os.environ, PATH=str(base) + os.pathsep + os.environ.get('PATH', ''),
+                       GITHUB_REPOSITORY='team/public-code', FINPRED_DATA_REPOSITORY='team/private-data',
+                       CAPTURE_ARGUMENTS=str(captured), FAKE_PRIVATE='true')
+            env.pop('FINPRED_DATA_TOKEN', None)
+            preflight = ['bash', str(PROJECT / 'deployment/hosted/preflight.sh')]
+            missing = subprocess.run(preflight, env=env, capture_output=True, text=True)
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertFalse(captured.exists(), 'missing cross-repo token must stop before API access')
+            secret = 'test-private-data-token'
+            env['FINPRED_DATA_TOKEN'] = secret
+            success = subprocess.run(preflight, env=env, capture_output=True, text=True)
+            self.assertEqual(success.returncode, 0)
+            self.assertIn('repos/team/private-data', captured.read_text())
+            self.assertNotIn(secret, success.stdout + success.stderr)
+            env['FAKE_PRIVATE'] = 'false'
+            denied = subprocess.run(preflight, env=env, capture_output=True, text=True)
+            self.assertNotEqual(denied.returncode, 0)
+            self.assertNotIn(secret, denied.stdout + denied.stderr)
+            env.pop('FINPRED_DATA_REPOSITORY')
+            env.pop('FINPRED_DATA_TOKEN')
+            env['FAKE_PRIVATE'] = 'true'
+            same_repo = subprocess.run(preflight, env=env, capture_output=True, text=True)
+            self.assertEqual(same_repo.returncode, 0)
+            self.assertIn('repos/team/public-code', captured.read_text())
+
+    def test_hosted_wrapper_passes_separate_private_data_repository(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            binary = base / 'python'
+            captured = base / 'arguments.txt'
+            binary.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$CAPTURE_ARGUMENTS"\n')
+            binary.chmod(0o700)
+            env = dict(os.environ, PATH=str(base) + os.pathsep + os.environ.get('PATH', ''),
+                       FINPRED_DATA_ROOT=str(base / 'data'), FINPRED_MODE='rehearsal',
+                       GITHUB_REPOSITORY='team/public-code', FINPRED_DATA_REPOSITORY='team/private-data',
+                       CAPTURE_ARGUMENTS=str(captured))
+            subprocess.run(['bash', str(PROJECT / 'deployment/hosted/run.sh')], env=env, check=True)
+            args = captured.read_text().splitlines()
+            self.assertEqual(args[args.index('--repository') + 1], 'team/private-data')
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -175,6 +222,59 @@ class GitStoreTests(unittest.TestCase):
 
 
 class HostedFlowTests(unittest.TestCase):
+    def test_collection_records_safe_actionable_categories_without_exception_text(self):
+        from finpred.ingestion.course import CourseDownloadError
+        from finpred.ingestion.external import ExternalDataError
+
+        secret = 'private-test-secret-123'
+        course_error = CourseDownloadError('COURSE_EMAIL and COURSE_PASSWORD are required')
+
+        def fail_external(source, root):
+            if source == 'fred_us10y':
+                raise ExternalDataError('External source network or TLS request failed')
+            if source == 'fred_usd_twd':
+                raise ExternalDataError('External source returned HTTP 429')
+            raise RuntimeError(secret)
+
+        with tempfile.TemporaryDirectory() as directory:
+            with patch('finpred.ingestion.course.download_course_sources', side_effect=course_error):
+                with patch('finpred.ingestion.external.download_external', side_effect=fail_external):
+                    with patch('finpred.ingestion.market_history.download_market_history', side_effect=RuntimeError(secret)):
+                        with patch('finpred.ingestion.market_history.download_twse_sector_snapshot', side_effect=RuntimeError(secret)):
+                            result = hosted.collect_raw(directory)
+        failures = {item['source']: item for item in result['failures']}
+        self.assertEqual(result['status'], 'partial')
+        self.assertEqual(failures['course-training']['category'], 'missing_course_credentials')
+        self.assertEqual(failures['course-live']['category'], 'missing_course_credentials')
+        self.assertEqual(failures['fred_us10y']['category'], 'network_or_tls')
+        self.assertEqual(failures['fred_usd_twd']['category'], 'http_error')
+        self.assertEqual(failures['fred_usd_twd']['http_status'], 429)
+        self.assertEqual(failures['yahoo-ixic']['category'], 'unknown')
+        self.assertNotIn(secret, json.dumps(result))
+
+    def test_public_repository_stops_before_data_import_git_writes_or_post(self):
+        for mode, stage in [('rehearsal', None), ('collect', None), ('stage', 'submit')]:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                data, runtime = Path(directory) / 'data', Path(directory) / 'runtime'
+                data.mkdir()
+                original = data / 'README.md'
+                original.write_bytes(b'unchanged fixture')
+                with patch.object(store_module.PrivateGitStore, 'command', return_value='false') as command:
+                    with patch('finpred.data.sharing.import_snapshot_bundle') as importer:
+                        with patch.object(hosted, 'collect_raw') as collect:
+                            with patch.object(hosted, 'durable_submission_client') as client:
+                                with patch.object(hosted, 'pack_runtime') as checkpoint:
+                                    with self.assertRaisesRegex(store_module.HostedBlocked, 'private repository'):
+                                        hosted.run_hosted(data, 'owner/repo', mode=mode, stage=stage,
+                                                          runtime_root=runtime, submit=stage == 'submit')
+                command.assert_called_once_with(['gh', 'api', 'repos/owner/repo', '--jq', '.private'])
+                importer.assert_not_called()
+                collect.assert_not_called()
+                client.assert_not_called()
+                checkpoint.assert_not_called()
+                self.assertEqual(list(data.iterdir()), [original])
+                self.assertEqual(original.read_bytes(), b'unchanged fixture')
+
     def test_stage_windows_are_exact_and_delays_do_not_catch_up(self):
         for instant, expected in [('2026-11-01T23:20:00+00:00', 'train'),
                                   ('2026-11-02T00:10:00+00:00', 'predict'),

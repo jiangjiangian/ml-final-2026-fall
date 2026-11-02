@@ -1,6 +1,6 @@
 # 專案背景
 
-更新日期：2026-10-30，Asia/Taipei。
+更新日期：2026-10-31，Asia/Taipei。
 
 這是 NTU 2026 Fall Machine Learning 的 final project。團隊建立可重現的台股盤中方向預測系統，結合個股、全球市場、籌碼與新聞資訊。使用者蘇的主要分工是資料爬取與文字分析，現在先建立市場環境特徵。
 
@@ -24,7 +24,15 @@ Google Docs URL 與官方查核連結見 SOURCES.md。Google AI Mode 分享連�
 
 使用者希望不依靠學校主機，改以雲端排程完成。當前對話沒有Tasks／排程工具，不能宣稱聊天關閉後代理可自行執行；已有systemd及Actions設定可審查，正式執行器／持久儲存仍待落實。main空樹且未更改default branch；workflow_dispatch與schedule皆須workflow存在default branch。
 
-2026-10-30後續新增要求：每天抓資料後供其他branch成員取得同一版本；另開研究分支蒐集金融競賽、學界／企業方法與至少四種模型；查Lauren Tan如何駕馭agent。對應成果在`deep-research`（使用者名稱含空白，已合法化），由dev@675d662建立，研究索引在docs/deep-research。資料共享是集中採集＋私有快照／portable版本索引的提案，尚未部署；四架構藍圖不是新訓練成果。原始課程資料不進Git，沒有取得ChatGPT Project其他未提供的內容。
+80ac804研究階段的新增要求：每天抓資料後供其他branch成員取得同一版本；另開研究分支蒐集金融競賽、學界／企業方法與至少四種模型；查Lauren Tan如何駕馭agent。對應成果在`deep-research`（使用者名稱含空白，已合法化），由dev@675d662建立，研究索引在docs/deep-research。資料共享是集中採集＋私有快照／portable版本索引的提案，尚未部署；四架構藍圖不是新訓練成果。此階段原始課程資料不進Git，沒有取得ChatGPT Project其他未提供的內容。後續使用者新授權只在私人live-data分享資料，見下段。
+
+## 本輪資料共享與完整系統要求
+
+使用者另明確要求依Lauren Tan工作流完成未完成任務：建立`live-data`保存每天真實同步data，README有file tree及每個return／lag的意義；完成多模型Notebook與每日無學校主機的流程。新授權只允許同一私人repo的資料分支保存raw／衍生資料，不公開課程資料或帳密。核心整合在`system-completion`，main保留空樹；早期raw全Git禁令不能拿來阻止新授權。
+
+共享已實作不可變物件／可攜catalog、固定revision取用、時間／hash／修訂保留，以及features與labels分開的每日研究匯出。本輪實際82900個50股日期格、50pending／26缺觀測label；source fetched_at與consumer receive分開。R1／E04有32個受控真實fits；新的Ridge／提升樹／causal TCN／跨股attention已實作，R2全48fit驗收依STATUS，不能以中途checkpoint當完整比較。
+
+hosted流程已有持久Git lease／CAS、pre-POST ledger、fresh官方state／deadline重查與失敗保存。本會話無建立Codex排程工具，Kaggle無MCP／本人帳戶憑證；官方CLI私人bundle與本地Notebook是已做的備援，真實cron／遠端kernel／合格正式模型／有效回執及五個官方交易日各自驗收。最新狀態、實際命令與外部阻礙見STATUS與COMPLETION_CHECKLIST，歷史PIT證據不足不改標verified。
 
 ## 資料觀察
 

@@ -1,6 +1,43 @@
 # 當前狀態與交接
 
-更新：2026-10-30，Asia/Taipei。本輪已執行研究、模型實驗與系統實作，尚未啟用正式排程或提交競賽預測。各模組「已實作」不等於每日服務「已部署」。
+## 2026-11-02最新更新
+
+獨立稽核實際發現舊builder可將10/30 Live作11/03輸入；已在prediction builder及顯式預測表入口加入目標日04:00～08:10真實取得的course-live manifest／hash／TLS檢查，舊快照反例現在blocked。該檢查不證明供應商資料已涵蓋前一官方交易日，也不證明外部表內數值由來源bytes正確轉換；這兩項仍須正式驗證，不能據此宣稱freshness完整或模型可上線。
+
+目前GitHub實查已恢復Private；使用者希望公開程式，但資料只給組員，正在選擇「整個repo私人」或「公開程式＋獨立私人資料repo」。GitHub branch無獨立可見性。教師ZIP的公開再散布授權尚未核實，沒有證據可宣稱老師明文禁止；FinMind條款不是本次16來源的授權依據。下方2026-10-31 Public／等待恢復Private為歷史紀錄，不代表目前狀態。
+
+R2已完成48 fits：原30次中斷後只續跑18次；逐鍵重算與可信模型／前處理器重載重播皆通過。2025探索fold固定配置的TCN M3-2為0.000868847322；同鍵全0為0.000447093446。這些是已使用過的validation與歷史可用性研究假設，不是全新樣本外績效、已批准正式模型或實盤收益。時間窗口採教師觀測日期聯集，不是已認證完整台股日曆；2026年1～5月保留期未重新使用。Notebook已以真實R2報告模式完整執行；未在Kaggle遠端執行。
+
+固定live-data commit `31650da87d5e37d856050425707cd75e73736d75`已由另一個乾淨遠端checkout下載驗證：16來源、32份manifest及7份特徵／標籤輸出均成功還原，保留真實取得時間。GitHub Actions手動rehearsal [41475878023](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41475878023)成功；手動collect [41476226337](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41476226337)工作結束但資料狀態為partial，11個來源成功、教師Training／Live與兩個FRED來源失敗；前版快照保留，實際錯誤原因尚待診斷。新資料commit `5b226c409fda84d9e28fdf68fe91c575c9f38a8d`。這不是全部來源更新成功，也不是定時排程已啟用。
+
+更新：2026-10-31，Asia/Taipei。最新整合工作在`system-completion`；私人資料分支為`live-data`。正式PIT模型、競賽真實POST／有效回執及五個未來官方交易日演練仍未完成，不能將整體標為全部完成。最新外部阻礙：repository已變為PUBLIC；已停止發布與消費，等待恢復Private後再查核。
+
+## 本輪系統交付：已完成、執行中與外部阻礙
+
+| 使用者預期 | 現有證據 | 尚未完成／不能推定 |
+|---|---|---|
+| 每天抓資料、各branch取得相同版本 | 已推送私人`live-data`首版，16種真實來源；content-addressed raw、可攜manifest／catalog、固定revision取用與反例測試已實作 | 第二個乾淨遠端消費因repo已變Public而被正確拒絕；真正定時run未通過，不能把cron檔當排程已運作 |
+| README file tree與每個return／lag含義 | `live-data/README.md`逐欄列七股lag、M0／SOX／ADR、單位、觀測列與原生session差別；每日匯出有schema／lineage | 研究歷史日期／vintage未認證；有raw不代表可正式回測 |
+| 每次更新產生可用資料 | 本機真實16來源匯出82900列＝50股×1658觀測日期；features／labels分開，保留50 pending與26缺觀測label | 1658日期是教師觀測聯集，不稱已認證台股日曆；正式daily市場／歷史表仍守verified gate |
+| 增加經濟資料與受控特徵比較 | R1有F0／F1／F2、兩模型、四季度24 fits；另預註冊E04 FX／yield子集8 fits；全部32份預測獨立重算一致 | 原F3產業歷史不足，8個slots仍blocked；完整產業／另列交互作用E05未完成 |
+| 四種架構實作與比較 | Ridge／HistGBDT／causal TCN／市場引導跨股attention已實作；完整50股feature panel與獨立label mask、因果／批次逐日等價測試存在 | R2在30/48 checkpoint後環境中斷，由detached恢復流程接續固定剩餘18 fits（已核對至31/48）；最終report／分數稽核前不選winner |
+| Notebook與Kaggle訓練 | Notebook本地6個code cells完整執行，demo僅4個合成fits；官方Kaggle2.2.5私人bundle與12反例測試完成 | 真實R2 report模式尚待；無Kaggle MCP／本人username／token，沒有遠端訓練或上傳 |
+| 不依賴學校主機的每日流程 | GitHub-hosted collectors／模型stage入口、跨workflow lease＋Git父commit、POST前耐久ledger及失敗保存已實作；19項hosted測試在3.10／3.12通過 | Secrets API讀取回403；兩次真實hosted run因repo Public而正確blocked。嘗試恢復Private亦403，需使用者操作；真正cron／完整憑證尚未驗收 |
+| 用Codex排程 | 現行官方文件有介面排程，桌面local project需電腦／app運行；web tasks不繼承本容器目錄／Python環境 | 本對話沒有建立／更新排程工具，不能冒稱聊天關閉後本代理自行常駐 |
+
+本輪latest raw根目錄為`/workspace/shared/completion-runtime/raw/`。Training在2026-10-30T15:47:29Z取得18,278,354bytes，SHA256仍為`7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2`；Live在15:47:34Z取得542,872bytes，SHA256=`13ed3d7bf61fe39287098f79ed11776122d9fa56725c3195c2b8937eb43bc404`，100股×40日期、3900完成／100 pending。新快照與原10/27研究版、較早541298bytes快照分開保存，不用最新版本改寫舊實驗。
+
+`live-data`本機catalog目前保存16來源、32次取得紀錄；derived lineage綁定實際catalog及來源hash／fetched_at。Git外原始版本與研究報告不因這次共享而刪除。此筆數是本次整合觀察，往後由catalog與Git revision為準，不把README當永久計數來源。
+
+新入口：[全量驗收清單](COMPLETION_CHECKLIST.md)、[每日共享特徵](LIVE_DATA_FEATURES.md)、[hosted部署／Codex排程](HOSTED_AUTOMATION.md)、[Kaggle／Notebook](KAGGLE_TRAINING.md)、[課程報告骨架](REPORT_OUTLINE.md)。R1／E04實際分數與可重跑入口見[EXPERIMENTS](EXPERIMENTS.md)。新增的TCN／跨股模型只產研究包，不會繞過正式模型升級／相容性／deadline／回執檢查。
+
+主代理已推送程式提交`b39d516`，遠端[CI run 41180208434](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41180208434)的Python3.10／3.12檢查success。新增hosted push runs [41180208527](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41180208527)及[41180208487](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41180208487)實際執行後被privacy gate阻擋；不是正式資料同步成功，也不是workflow語法錯誤。本機中途log為3.12的278項通過、3.10的274項／3 skips；其後增加public guard測試，最後一致套件數待凍結後重跑，不冒稱兩次中途收集數相同。
+
+主代理以REST與GraphQL確認repo為Public（updated_at 2026-10-31T02:20:19Z）；先前`live-data@31650da`是在private檢查通過後發布，不能因舊授權就向Public繼續送資料。恢復Private的API PATCH回403，結果證據`visibility-restoration.json`保存在Git外，已請使用者在GitHub介面恢復。直到新一次private／origin驗證通過，不發布資料或完成遠端消費，亦不放寬guard。
+
+## 既有核心與deep-research歷史交接（截至80ac804）
+
+以下保留較早提交的實測與限制，說明當時狀態；其中「後兩架構未實作／runner不讀藍圖／E04未完成／raw不入Git」不代表本輪最新狀態。新資料分支授權、程式與結果以上方及驗收清單為準。原始記錄亦可查[80ac804版本](https://github.com/jiangjiangian/ml-final-2026-fall/blob/80ac804/ml_financial_prediction/docs/STATUS.md)，不以現在的程式hash回填舊run。
 
 ## deep-research分支新增交付
 

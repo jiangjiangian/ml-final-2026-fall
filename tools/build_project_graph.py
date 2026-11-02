@@ -60,6 +60,26 @@ def main():
         "output_tokens": 0,
     }
     raw_health = diagnose_extraction(extraction, directed=True, root=ROOT)
+    # Graphify 0.9.95 resolves super().post_predictions to the overriding method
+    # itself. Correct only this audited call site, after checking its source text
+    # and the concrete parent method node; retain the raw diagnostic separately.
+    corrected_super_calls = []
+    node_ids = {n['id'] for n in extraction['nodes']}
+    override = 'scripts_run_hosted_pipeline_durable_submission_client_post_predictions'
+    parent = 'src_finpred_submission_course_coursesubmissionclient_post_predictions'
+    for edge in extraction['edges']:
+        if (edge.get('source') == override and edge.get('target') == override
+                and edge.get('relation') == 'calls'
+                and edge.get('source_file') == 'scripts/run_hosted_pipeline.py'):
+            location = edge.get('source_location', '')
+            if re.fullmatch(r'L\d+', location):
+                lines = (ROOT / edge['source_file']).read_text().splitlines()
+                index = int(location[1:]) - 1
+                if (0 <= index < len(lines) and parent in node_ids
+                        and lines[index].strip() == 'return super().post_predictions(target_date, file_name, payload)'):
+                    corrected_super_calls.append({'source': override, 'previous_target': override,
+                                                  'corrected_target': parent, 'source_location': location})
+                    edge['target'] = parent
     # The AST parser emits identical list-field edges and references to stdlib imports.
     # Preserve every distinct evidence record; mint only Graphify-verified import stubs.
     occurrences = {}
@@ -98,6 +118,7 @@ def main():
         "exact_duplicates_removed": sum(n - 1 for n in occurrences.values()),
         "external_import_stubs_added": import_stub_count,
         "declared_external_dependency_nodes_added": dependency_stub_count,
+        "audited_super_call_corrections": corrected_super_calls,
         "duplicate_groups": [{"edge": json.loads(key), "occurrences": n}
                              for key, n in occurrences.items() if n > 1],
     }

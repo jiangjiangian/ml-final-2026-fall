@@ -1,6 +1,6 @@
 # ML 系統建置與專案目錄
 
-更新：2026-10-30，Asia/Taipei。這是專案的目錄與模組責任依據；實際完成狀態及可執行命令以 STATUS、README 為準。
+更新：2026-10-31，Asia/Taipei。這是專案的目錄與模組責任依據；實際完成狀態及可執行命令以 STATUS、README 為準。
 
 這份文件把市場特徵工作放回完整系統。已有教師／外部來源adapter、不可變快照、標準化／時間對齊、研究訓練表、四類模型、候選比較、推論、提交／回執、每日五階段CLI及raw→daily表橋接。每日stage在未供表時會自動準備七個個股滯後特徵；今日取得證據不證明歷史可用性，因此strict訓練仍blocked，正式模型與持久排程未部署。不需先上微服務、Kubernetes或即時串流。
 
@@ -42,10 +42,10 @@ ml-final-2026-fall/                  # 核心dev；獨立研究在deep-research
     ├── configs/                   # 來源、欄位、時間窗口、模型與切分設定
     ├── src/finpred/
     │   ├── ingestion/             # 教師／外部來源adapter與原始下載
-    │   ├── data/                  # 快照、schema、時間與版本標準化
-    │   ├── features/              # 已有M0；後續個股、外部指數等特徵
+    │   ├── data/                  # 快照／schema／時間；sharing／shared_features可攜共享
+    │   ├── features/              # M0、個股lags與research_expansion凍結群組
     │   ├── labels/                # y與真實報酬；與輸入特徵隔離
-    │   ├── models/                # 已有：線性、GBDT、MLP、小型CPU GRU
+    │   ├── models/                # 線性／GBDT／MLP／GRU；另有TCN／市場引導跨股attention
     │   ├── training/              # 日期切分、fit、候選模型與升級
     │   ├── evaluation/            # 官方score、消融與比較
     │   ├── inference/             # 已有：載入固定模型、schema與時間檢查，不fit
@@ -54,8 +54,8 @@ ml-final-2026-fall/                  # 核心dev；獨立研究在deep-research
     │   └── pipelines/             # 串接研究訓練／每日工作流
     ├── scripts/                   # 已有CLI；入口薄、邏輯留在src
     ├── tests/                     # 已有合成測試；依模組逐步增加
-    ├── notebooks/                 # 按需建立：EDA與可匯出的圖表
-    ├── deployment/                # 已有：systemd service／timers；尚未啟用
+    ├── notebooks/                 # financial_model_comparison：demo／compare／report
+    ├── deployment/                # systemd與hosted持久Git lease／pre-POST checkpoint
     └── docs/                      # 規格、來源、決策、實驗與進度
 
 受控執行時儲存（不進Git；下列是邏輯分層，按使用時建立）：
@@ -139,9 +139,17 @@ FINPRED_RUNTIME_ROOT/               # 例如/workspace/shared/finpred
 
 model-bundle-v1已保存權重、前處理器、feature schema／順序、feature version、train end date、fit cutoff、readiness／availability evidence、參數、套件版本、seed與資料／程式hash。推論若欄位、版本或時點不符便停止，不自動補出看似合理的欄位。joblib只載入本專案產生且明示可信的私有模型，雜湊不提供惡意序列化隔離。
 
-獨立研究分支另有`configs/research/model_families.json`與[四架構設計](deep-research/MODEL_ARCHITECTURES.md)：這是未被runner讀取的設計，不改現有四類基準。跨branch共用資料方案見[DATA_AUTOMATION](deep-research/DATA_AUTOMATION.md)：Git保存metadata，私有共享儲存保存raw；producer的絕對payload路徑不能直接當可攜契約。尚未建立共享服務或catalog分支。
+`configs/research/model_families.json`與[四架構設計](deep-research/MODEL_ARCHITECTURES.md)保留80ac804時的design-only藍圖；本輪`architecture_comparison.py`已能凍結並執行新四架構，不覆寫舊linear／GBDT／MLP／GRU基準。使用者另授權私人live-data存raw／derived，實際共享契約以[HOSTED_AUTOMATION](HOSTED_AUTOMATION.md)及[LIVE_DATA_FEATURES](LIVE_DATA_FEATURES.md)為準；早期[DVC／object-store方案](deep-research/DATA_AUTOMATION.md)保留為替代。producer絕對payload路徑不可直接跨機器，必須轉portable object key，消費端另記接收時間。
 
 每次run manifest至少包括run_id、job_type、session_date、cutoff、started/finished_at、code_commit、來源快照、feature_version、model_version、輸出hash與狀態。manifest寫入持久儲存，不依賴聊天記憶。
+
+## 私人live-data的實際交接層
+
+`export_snapshot_bundle`以物件hash去重，保存每次真正取得的portable manifest及catalog history；`import_snapshot_bundle`先核對所有hash／路徑，再還原消費端raw。新資料分支屬使用者明確授權的私人Git例外；程式分支、公開artifact與Kaggle公開資料集仍不放raw，憑證在任何Git都禁止。
+
+`build_shared_features`使用同一stock_lags與market核心輸出deterministic gzip個股features、獨立labels、市場CSV及schema／lineage。全部目標股票格保留，pending／缺觀測與數值缺失分開；研究publication假設不改成verified。`validate_shared_feature_exports`將產物綁定同一raw catalog，失敗／stale明示blocked。`fetch_live_data.py --with-features`可把驗過的派生資料放本機`shared-data/`，不改source_fetched_at。
+
+hosted runner使用固定私有runtime路徑，兩workflow共用concurrency group；Git lease／CAS再防其他writer競態。正式POST前保存in-flight ledger並確認push，再驗lease與fresh官方state／真實deadline／配額。失敗／未知結果先對帳，raw採集與模型被blocked是獨立結果。這些是已實作契約；實際排程、完整來源憑證、模型認證與回執由STATUS逐項驗收。
 
 ## 04:00～09:00每日工作的依賴
 
@@ -169,6 +177,6 @@ model-bundle-v1已保存權重、前處理器、feature schema／順序、featur
 
 ## 7. Git與執行主機
 
-私人GitHub保存程式與docs，原始資料留在授權儲存空間。Actions每次runner通常為短命環境，必須明確下載快照與模型並把新結果寫回持久位置。已有伺服器時可以用systemd timer跑相同CLI，不需改寫pipeline；GPU訓練也可以在另一主機執行同一版本程式。
+私人GitHub程式分支保存程式與docs；依新授權，原始與衍生資料可保存同repo的私人live-data分支或其他授權儲存空間。Actions每次runner通常為短命環境，必須明確下載快照與模型並把新結果寫回持久位置。已有伺服器時可以用systemd timer跑相同CLI，不需改寫pipeline；GPU訓練也可以在另一主機執行同一版本程式。
 
-使用者後續希望不依靠學校主機，可評估雲端執行器；本對話沒有Tasks排程工具，不能承諾代理離線自行常駐。Actions手動與schedule都要workflow存在default branch，main目前空樹；GitHub-hosted方案仍缺受控持久儲存／跨runner鎖與deadline備援。此處不改repo設定，不將SSH資訊當本地工作的前提。登入中的瀏覽器不會自動讓Actions或Cloud取得網站存取權。
+使用者後續希望不依靠學校主機，可評估雲端執行器；本對話沒有建立Tasks的工具，不能承諾代理離線自行常駐。Cron需default branch入口，main目前空樹；hosted持久Git狀態／跨runner lease／deadline前檢查已有實作，實際push／dispatch／定時run與Secrets權限依STATUS。此處不將SSH資訊當本地工作的前提。登入中的瀏覽器不會自動讓Actions或Cloud取得網站存取權。

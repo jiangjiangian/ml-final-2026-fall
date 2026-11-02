@@ -1,26 +1,26 @@
 {
-  "node_count": 1604,
+  "node_count": 2086,
   "unverified_node_count": 0,
-  "raw_edge_count": 3597,
+  "raw_edge_count": 4906,
   "non_object_edges": 0,
   "missing_endpoint_edges": 0,
   "dangling_endpoint_edges": 0,
   "external_reference_edges": 0,
-  "self_loop_edges": 0,
-  "valid_candidate_edges": 3597,
+  "self_loop_edges": 2,
+  "valid_candidate_edges": 4906,
   "exact_duplicate_edges": 0,
-  "directed_unique_endpoint_pairs": 3530,
-  "directed_same_endpoint_collapsed_edges": 67,
-  "undirected_unique_endpoint_pairs": 3528,
-  "undirected_same_endpoint_collapsed_edges": 69,
-  "same_endpoint_group_count": 43,
-  "relation_variant_groups": 22,
+  "directed_unique_endpoint_pairs": 4796,
+  "directed_same_endpoint_collapsed_edges": 110,
+  "undirected_unique_endpoint_pairs": 4791,
+  "undirected_same_endpoint_collapsed_edges": 115,
+  "same_endpoint_group_count": 78,
+  "relation_variant_groups": 33,
   "source_file_variant_groups": 0,
-  "source_location_variant_groups": 19,
+  "source_location_variant_groups": 43,
   "context_variant_groups": 2,
   "post_build_graph_type": "DiGraph",
-  "post_build_node_count": 1604,
-  "post_build_edge_count": 3530,
+  "post_build_node_count": 2086,
+  "post_build_edge_count": 4796,
   "post_build_error": "",
   "producer_suppression": {
     "path": "/workspace/.tools/graphify/lib/python3.12/site-packages/graphify/extract.py",
@@ -197,26 +197,27 @@
       ]
     },
     {
-      "source": "docs_deep_research_model_architectures_document",
-      "target": "docs_deep_research_sources_document",
-      "edge_count": 3,
+      "source": "readme_document",
+      "target": "docs_architecture_document",
+      "edge_count": 4,
       "relations": [
         "references"
       ],
       "source_files": [
-        "docs/deep-research/MODEL_ARCHITECTURES.md"
+        "README.md"
       ],
       "source_locations": [
-        "Markdown link at line 33",
-        "Markdown link at line 37",
-        "\u6587\u4ef6Markdown\u9023\u7d50"
+        "L7,L133",
+        "Markdown link at line 133",
+        "Markdown link at line 156",
+        "Markdown link at line 7"
       ],
       "contexts": [
         ""
       ]
     }
   ],
-  "exported_evidence_edges": 3597,
+  "exported_evidence_edges": 4906,
   "exported_multigraph": true,
   "export_evidence_loss": 0
 }

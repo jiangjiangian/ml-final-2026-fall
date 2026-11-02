@@ -63,6 +63,15 @@ def _cutoff(target_date, hour, minute):
     return datetime.combine(day, time(hour, minute), TAIPEI)
 
 
+def live_fetch_in_prediction_window(fetched_at, target_date):
+    """Actual Live retrieval must be within the target day's collection window.
+
+    This proves retrieval freshness only, not that the provider updated prices.
+    """
+    fetched = aware_datetime(fetched_at, name='live fetched_at')
+    return _cutoff(target_date, 4, 0) <= fetched <= _cutoff(target_date, 8, 10)
+
+
 def _sources(root, cutoff):
     """Select the newest eligible acquisition per course source, never a late revision.
 
@@ -191,6 +200,9 @@ def prepare_prediction_table(runtime_root, target_date):
     cutoff = _cutoff(target_date, 8, 10)
     try:
         stocks, provenance, selected = _sources(root, cutoff)
+        live = next(item['record'] for item in selected if item['record']['source'] == 'course-live')
+        if not live_fetch_in_prediction_window(live['fetched_at'], target_date):
+            raise DailyTableError('course-live requires a target-day 04:00–08:10 Taipei acquisition')
         rows, latest_dates = [], {}
         for sid, history in sorted(stocks.items()):
             before = [row for row in history if row['date'] < target_date]

@@ -1,10 +1,18 @@
 # Codex 專案工作指引
 
+## 最新任務範圍（優先於下方較早狀態）
+
+使用者要求依Lauren Tan工作流完成系統、建立`live-data`分支放每天更新的資料與lag／return說明。此新授權允許在**同一私人repo的live-data分支**保存教師／市場原始快照與衍生資料；程式分支及公開平台仍不放raw，任何分支均不放帳密／cookie。先前發布時private檢查通過；最新REST／GraphQL已顯示repo變為Public。已停止發布／消費，恢復Private須重新驗證；不能沿用舊private結果。原先「raw不入Git」是較早偏好，不能拿它阻止本次明確授權。
+
+目前整合分支為`system-completion`，由deep-research建立；核心合併目標為dev，main仍留空。新增sharing／shared_features、四架構比較、Notebook／Kaggle私有bundle、hosted流程與驗收清單；實際測試／訓練／部署結果以STATUS及COMPLETION_CHECKLIST為準。早期研究文件的「尚未實作／runner不讀藍圖」描述的是80ac804階段，不能覆蓋後續有證據的實作。
+
+每日採集與正式訓練／提交分開。正式PIT、模型升級、deadline與回執門檻不得為完成任務而放寬。Codex／ChatGPT介面可有排程功能，但本對話沒有可建立排程的工具；不可冒稱已設定。Kaggle目前無MCP／帳戶憑證，官方CLI與Notebook可本地驗證，不能稱遠端訓練成功。
+
 ## 開始工作
 
 先讀 `README.md`、`docs/ARCHITECTURE.md`、`docs/PROJECT_CONTEXT.md`、`docs/STATUS.md`、`docs/DECISIONS.md`。修改特徵時另讀 `docs/FEATURE_SPEC.md`、`docs/DATA_CONTRACT.md`；修改排程時另讀 `docs/OPERATIONS.md`。本文要求讀取的文件是專案記憶，不假設不同聊天自動共享上下文。
 
-使用者另要求研究分支「deep research」；Git名稱不能含空白，已在`deep-research`隔離worktree工作，基底為`dev@675d662`。核心實作仍在dev；main維持空樹及原default branch。研究入口為`docs/deep-research/README.md`，其四架構與資料共享方案均不等於已訓練或已部署。
+歷史來源研究分支「deep research」合法化為`deep-research`，由`dev@675d662`建立。80ac804階段的四架構當時只是設計；本輪已在system-completion接入實作與受控比較，結果／恢復／部署以STATUS為準。來源閱讀證據仍見`docs/deep-research/README.md`，不將研究設計自動當成正式服務。
 
 使用繁體中文說明，公式和程式採清楚一致的符號。先說成果與證據；區分老師規範、資料觀察、研究提案、尚未驗證的推論。
 
@@ -52,11 +60,11 @@
 
 ## 儲存與外部操作
 
-程式與文件適合私人團隊 Git repository；課程原始資料、帳密、cookie、token 不加入 Git 或 log。沿用來源授權與老師資料分享規則。不自動發布資料、不變更 repository 可見性。
+程式與文件留程式分支；依最新明確授權，課程／市場raw與衍生資料可進同一私人repo的live-data，發布前驗private與origin身份及來源hash。帳密、cookie、token在所有分支與log都禁止。沿用來源分享規則，不公開資料或變更repo可見性。
 
-使用者已明確要求完整每日自動流程：抓教師與額外來源、計算特徵、訓練驗證模型、產生並自動提交50檔預測CSV到競賽網站，最後核實回執；此授權應持續沿用，不重複詢問相同行動。這裡的上傳指競賽預測結果，沒有授權公開原始資料、上傳帳密或改repository可見性。先完成dry run、格式／截止／版本與實際回執驗證，再在此範圍執行。提交程式及部署設定已實作，但未啟用；不能把前端API契約核實、唯讀session／模板取得或合成測試稱為真實提交成功。
+使用者已明確要求完整每日自動流程：抓教師與額外來源、計算特徵、訓練驗證模型、產生並自動提交50檔預測CSV到競賽網站，最後核實回執；此授權應持續沿用，不重複詢問相同行動。這裡的競賽上傳指預測結果；另依最新授權共享私人live-data，仍沒有授權公開raw、上傳帳密或改repository可見性。先完成dry run、格式／截止／版本與實際回執驗證，再在此範圍執行。提交程式及部署設定已實作，但未啟用；不能把前端API契約核實、唯讀session／模板取得或合成測試稱為真實提交成功。
 
-使用者後續希望不依靠學校主機；目前沒有本對話Tasks／排程工具，聊天結束後不能承諾代理自行執行。systemd與Actions是可審查入口；Actions手動workflow_dispatch與schedule皆須workflow存在default branch，目前main空樹。不得擅自改main／default branch；雲端hosted runner需先具備私有持久資料／模型／提交ledger、有效鎖及deadline備援。不要因缺SSH資訊停下本地研究，也不把未部署當已常駐。
+使用者後續希望不依靠學校主機；目前沒有本對話Tasks／排程工具，聊天結束後不能承諾代理自行執行。systemd與Actions是可審查入口；cron需default branch的workflow，main仍空樹。push可先註冊／演練，API／CLI dispatch依實際入口與run驗收，勿沿用舊說法一律等同UI按鈕。私有Git持久資料／狀態、跨workflow lease及POST前ledger已有實作；真正遠端排程／憑證／回執需另核對，不擅自宣稱部署。不要因缺SSH資訊停下本地研究，也不把未部署當已常駐。
 
 ## 收工
 

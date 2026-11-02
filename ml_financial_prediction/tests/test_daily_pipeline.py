@@ -27,16 +27,19 @@ class Client:
 
 def feature_evidence(root, *, columns=None, fetched_at='2026-11-02T08:00:00+08:00'):
     """Private synthetic source bytes and matching snapshot, never a real source claim."""
+    from finpred.data.daily_tables import SOURCE_URLS
+
     source = Path(root) / 'source.json'
     payload = b'{"fixture_lag": 1}\n'
     source.write_bytes(payload)
     source.chmod(0o600)
     manifest = Path(root) / 'source-manifest.json'
-    manifest.write_text(json.dumps({'schema_version': 'snapshot-v1', 'source': 'fixture',
+    manifest.write_text(json.dumps({'schema_version': 'snapshot-v1', 'source': 'course-live',
+        'source_url': SOURCE_URLS['course-live'], 'metadata': {'tls_verified': True},
         'sha256': hashlib.sha256(payload).hexdigest(), 'payload_path': str(source),
         'size_bytes': len(payload), 'fetched_at': fetched_at}))
     manifest.chmod(0o600)
-    return {'source': 'fixture', 'payload_sha256': hashlib.sha256(payload).hexdigest(),
+    return {'source': 'course-live', 'payload_sha256': hashlib.sha256(payload).hexdigest(),
             'snapshot_manifest': str(manifest),
             'snapshot_manifest_sha256': hashlib.sha256(manifest.read_bytes()).hexdigest(),
             'feature_columns': columns or ['lag'],
@@ -115,6 +118,46 @@ class DailyTests(unittest.TestCase):
             evidence['available_at'] = '2026-11-01T08:00:00+08:00'
             with self.assertRaisesRegex(PipelineBlocked, 'cannot backdate'):
                 _prediction_table(table, '2026-11-02', clock('08:20:00')())
+
+    def test_explicit_prediction_table_cannot_bypass_live_fetch_window(self):
+        with tempfile.TemporaryDirectory() as root:
+            table = {'readiness': 'verified', 'availability_evidence': 'current observed bytes',
+                     'feature_columns': ['lag'],
+                     'rows': [{'stock_id': str(n), 'target_date': '2026-11-02',
+                               'feature_cutoff': '2026-11-02T08:10:00+08:00'} for n in range(50)]}
+            for fetched in ('2026-10-30T23:47:00+08:00', '2026-11-02T03:59:59+08:00'):
+                with self.subTest(fetched=fetched):
+                    table['feature_evidence'] = [feature_evidence(root, fetched_at=fetched)]
+                    with self.assertRaisesRegex(PipelineBlocked, 'target-day'):
+                        _prediction_table(table, '2026-11-02', clock('08:20:00')())
+            # Sunday 20:00 UTC is Monday 04:00 Taipei, and the Friday source
+            # observation remains legitimate over the weekend. This only proves
+            # fetch freshness; the test does not certify provider updates.
+            table['feature_evidence'] = [feature_evidence(root, fetched_at='2026-11-01T20:00:00+00:00')]
+            _prediction_table(table, '2026-11-02', clock('08:20:00')())
+
+    def test_explicit_prediction_table_requires_matching_live_manifest_and_tls(self):
+        with tempfile.TemporaryDirectory() as root:
+            table = {'readiness': 'verified', 'availability_evidence': 'observed bytes',
+                     'feature_columns': ['lag'],
+                     'rows': [{'stock_id': str(n), 'target_date': '2026-11-02',
+                               'feature_cutoff': '2026-11-02T08:10:00+08:00'} for n in range(50)]}
+            for mutation in ('missing_live', 'missing_tls', 'wrong_url'):
+                with self.subTest(mutation=mutation):
+                    item = feature_evidence(root)
+                    path = Path(item['snapshot_manifest'])
+                    manifest = json.loads(path.read_bytes())
+                    if mutation == 'missing_live':
+                        item['source'] = manifest['source'] = 'fixture'
+                    elif mutation == 'missing_tls':
+                        manifest['metadata']['tls_verified'] = False
+                    else:
+                        manifest['source_url'] = 'https://wrong.invalid/data.zip'
+                    path.write_text(json.dumps(manifest))
+                    item['snapshot_manifest_sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+                    table['feature_evidence'] = [item]
+                    with self.assertRaises(PipelineBlocked):
+                        _prediction_table(table, '2026-11-02', clock('08:20:00')())
 
     def test_automatic_training_preparation_keeps_historical_blocker(self):
         with tempfile.TemporaryDirectory() as directory:

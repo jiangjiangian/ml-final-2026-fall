@@ -4,83 +4,87 @@
     {
       "source": "cboe_vix",
       "sha256": "a5409500cdb8fdd86ba926dcfc7de5b1a54d365d4b7850a1a50c803ae57fddd1",
-      "fetched_at": "2026-11-02T15:55:00.754302+00:00"
+      "fetched_at": "2026-11-02T16:06:18.878275+00:00"
     },
     {
       "source": "twse_twii",
       "sha256": "07c5f272c4efbc6770f4d99a5fe039bf77b2cb24bf7db1b56b49474cd54400db",
-      "fetched_at": "2026-11-02T15:55:01.988236+00:00"
+      "fetched_at": "2026-11-02T16:06:20.128372+00:00"
     },
     {
       "source": "yahoo-ixic",
-      "sha256": "e30da196ad953847f9e5baf17192e7f423676a3de79baf10c4de869263007ae8",
-      "fetched_at": "2026-11-02T15:59:04.929969+00:00"
+      "sha256": "704a05137688f3b42c8115b678e67144e237830b3481eb31b8c8938e2febd68d",
+      "fetched_at": "2026-11-02T16:10:22.817452+00:00"
     },
     {
       "source": "yahoo-gspc",
-      "sha256": "7150ae20b04815b95301dd5c23113347da4b0aa3f2748181f50a733fac5ff0ed",
-      "fetched_at": "2026-11-02T15:59:05.156099+00:00"
+      "sha256": "bf958b0105abde10e07b212ef21092aad5ea9c15fd48fa0ae2968ef76c1838d9",
+      "fetched_at": "2026-11-02T16:10:22.952093+00:00"
     },
     {
       "source": "yahoo-twii",
-      "sha256": "1c6b9af450edbad6a4c18dae176c1af16ab789391dd3c624e663828c04c36ce1",
-      "fetched_at": "2026-11-02T15:59:05.303458+00:00"
+      "sha256": "a95d457c07406677f2680905424193324f708c0b81c6f3d3bbe3e7db37e64a46",
+      "fetched_at": "2026-11-02T16:10:23.082167+00:00"
     },
     {
       "source": "yahoo-ks11",
-      "sha256": "d46844ebf0043b92fe9bc97ea6f19fd5637e19741a1d8cea82a9acf036beca16",
-      "fetched_at": "2026-11-02T15:59:05.446494+00:00"
+      "sha256": "8141200800c467aa20e2042a62ec26d18a63a7261343c0332828855fbef202ad",
+      "fetched_at": "2026-11-02T16:10:23.226562+00:00"
     },
     {
       "source": "yahoo-vix",
-      "sha256": "1285dad6c63a444093c8be502c24ba6130828c476ef55ae71e9e21b38845bfe6",
-      "fetched_at": "2026-11-02T15:59:05.624537+00:00"
+      "sha256": "07c53a6ce0cf9e111cf21a269164bd846d70876f914cc8abbbb7dc9ff45b49e3",
+      "fetched_at": "2026-11-02T16:10:23.343384+00:00"
     },
     {
       "source": "yahoo-sox",
-      "sha256": "78935f295de8228b5d178a65e8392e576fabf0ed933a4414239e15d769ec6cac",
-      "fetched_at": "2026-11-02T15:59:05.795963+00:00"
+      "sha256": "5477967a4ba166059b539da67351215e33eb46472591e03edcb3b891756f863a",
+      "fetched_at": "2026-11-02T16:10:23.454681+00:00"
     },
     {
       "source": "yahoo-tsm_adr",
-      "sha256": "d58eb02460329ffcab831cddccd7e7947e0a39960b014365a7aa87973371ecb4",
-      "fetched_at": "2026-11-02T15:59:06.151253+00:00"
+      "sha256": "077639ac98117093d0cf46d89c8978a3cfc3ad0e294236c630fdd7e4c7c897f7",
+      "fetched_at": "2026-11-02T16:10:23.610226+00:00"
     },
     {
       "source": "yahoo-nvda",
-      "sha256": "ab89efa38fe6b5c676bd1000ceb34ad80796d055960fd03f2c9c05477d29a571",
-      "fetched_at": "2026-11-02T15:59:06.355826+00:00"
+      "sha256": "9b356d346fbe2d0b5de30eb9b2b1039faa42d1ae907684e8b9c0b43a7fe8b2d8",
+      "fetched_at": "2026-11-02T16:10:23.813522+00:00"
     },
     {
       "source": "twse-sectors",
       "sha256": "ad63f8cc33622c0c4c32a5945d6f2cfffc389d147392b7b07263b060876619e5",
-      "fetched_at": "2026-11-02T15:59:07.589382+00:00"
+      "fetched_at": "2026-11-02T16:10:25.102132+00:00"
     }
   ],
   "failures": [
     {
       "source": "course-training",
       "error_type": "CourseDownloadError",
+      "category": "missing_course_credentials",
       "detail": "source response and credentials omitted"
     },
     {
       "source": "course-live",
       "error_type": "CourseDownloadError",
+      "category": "missing_course_credentials",
       "detail": "source response and credentials omitted"
     },
     {
       "source": "fred_us10y",
       "error_type": "ExternalDataError",
+      "category": "network_or_tls",
       "detail": "source response and credentials omitted"
     },
     {
       "source": "fred_usd_twd",
       "error_type": "ExternalDataError",
+      "category": "network_or_tls",
       "detail": "source response and credentials omitted"
     }
   ],
-  "started_at": "2026-11-02T15:55:00.550253+00:00",
-  "finished_at": "2026-11-02T15:59:07.592349+00:00",
+  "started_at": "2026-11-02T16:06:18.665129+00:00",
+  "finished_at": "2026-11-02T16:10:25.104256+00:00",
   "required_sources": [
     "cboe_vix",
     "course-live",
@@ -106,7 +110,7 @@
     "readiness": "research_assumption",
     "production_eligible": false,
     "historical_vintage_verified": false,
-    "raw_catalog_sha256": "7a4413241010b62a5a28a6b80a06767449e4b14769c67289e293e4ceda56e5b5",
+    "raw_catalog_sha256": "c6b3a4d0583dacf2c4448feb0aafde56426a332cda859bd154e655616628bfeb",
     "target_date_count": 1658,
     "stock_count": 50,
     "stock_feature_rows": 82900,
@@ -129,7 +133,7 @@
         "size_bytes": 1321077
       },
       "features/market_report.json": {
-        "sha256": "c50b4b719197008a6a5aa5ae96ee64d2035db44e66403d4f153c71af7ad3bda7",
+        "sha256": "247790225b7706f273c152e776af86ebed7482e87c0c07c7e78c967a33f68a5c",
         "size_bytes": 5219
       },
       "features/schema.json": {

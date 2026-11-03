@@ -1,6 +1,5 @@
 {
   "owner": "92b81e018dfd4c4fbfa812f300f4cab4",
-  "active": true,
-  "acquired_at": "2026-11-03T06:58:39.974535+00:00",
-  "expires_at": "2026-11-03T07:43:39.974535+00:00"
+  "active": false,
+  "released_at": "2026-11-03T06:59:13.373016+00:00"
 }

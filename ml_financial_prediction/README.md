@@ -1,34 +1,34 @@
 # 台股盤中方向預測：ML系統與工作指南
 
-2026-11-03：使用者改選程式與資料全部公開，程式支援明確公開opt-in，並保留憑證、hash、來源與提交檢查。下面private／分離資料方案屬較早階段；實際GitHub可見性、排程與採集結果請看STATUS。匿名公開資料讀取可加`--allow-public-data`，不需要把網站帳密交給隊友。
+更新：2026-11-03，Asia/Taipei。程式與`live-data`依使用者決定公開，預設分支已為`system-completion`。Actions課程帳密由41584330745完整採集驗證生效；[後續採集41593199735](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41593199735)亦取得全部16類來源並匯出研究特徵，沒有來源失敗，資料revision為`c3f36239c699a1ab2ecafb17eb68eaff13c8fb9f`。公開讀取須明確加`--allow-public-data`，組員不需要網站帳密。
 
-更新：2026-10-31，Asia/Taipei。實際驗證紀錄見[STATUS](docs/STATUS.md)。
+資料cron的入口條件已滿足，下一個名義時點為台北2026-11-04 04:17；**第一個真實schedule事件、正式模型與競賽提交仍待驗收**。研究模型採明示歷史可用性假設，不能直接當正式模型。最新證據見[STATUS](docs/STATUS.md)。
 
-已實作資料下載與快照、時間對齊、研究訓練表、四類模型、候選比較、推論、提交／回執檢查及每日分階段CLI。**正式排程尚未啟用，也沒有實際提交競賽預測。** 研究模型採明示歷史可用性假設，不能直接當正式模型。
-
-核心實作在dev，本輪整合於system-completion；deep-research保留來源研究，live-data保存使用者新授權的私人資料。main依要求保留空檔案樹與歷史。專案依Chip Huyen《Designing Machine Learning Systems》與Cookiecutter Data Science分層，見[ARCHITECTURE](docs/ARCHITECTURE.md)。程式分支不放原始資料；教師／市場快照與衍生資料只發布到同一私人repo的live-data。任何分支均不放憑證。
+核心實作源自dev，目前整合與預設分支為`system-completion`；`deep-research`保留來源研究，`live-data`保存公開快照與衍生資料，main依要求保留空檔案樹與歷史。專案依Chip Huyen《Designing Machine Learning Systems》與Cookiecutter Data Science分層，見[ARCHITECTURE](docs/ARCHITECTURE.md)。程式分支不混入raw，所有分支及log均不放憑證。
 
 早期來源研究（80ac804階段）入口：[金融競賽、四種架構、跨branch共用資料與Lauren Tan工作流](docs/deep-research/README.md)。該階段整理63筆來源證據與11筆書目，當時四架構只是設計；後續實作／實跑狀態以下節及STATUS為準。由repo根目錄執行`python tools/validate_research_bundle.py`可離線檢查研究交付；私有證據目錄存在時再加`--evidence-root /workspace/shared/research/deep-research-20261030`核對原始內容hash。
 
 ## 每日共享、四模型與Notebook的新入口
 
-**2026-11-02更新：** repository目前實查已恢復Private，指定資料版本的遠端消費與一次GitHub手動rehearsal均成功。使用者希望公開程式並考慮僅讓組員讀資料；GitHub branch無獨立可見性，存放方式仍待確認，不能直接公開含課程資料的branch。定時採集與正式模型／提交尚未完成驗收，詳見STATUS及[Phase 2流程](docs/PHASE2_GUIDE.md)。
+GitHub各branch共用repository可見性；本專案目前採全部公開。可攜catalog、來源hash及原始取得時間已驗證，匿名讀取最新catalog亦通過hash核對。私人資料repo仍是可選替代，無須為目前部署另建repo。正式模型／提交的剩餘條件見[Phase 2流程](docs/PHASE2_GUIDE.md)。
 
 | 要做什麼 | 實際入口與狀態 |
 |---|---|
-| 組員取得同一資料版本 | 私人`live-data`的README含file tree、每欄公式／lag／單位；以固定40碼commit取用，來源取得時間與接收時間分開 |
-| 每天更新raw與研究特徵 | `data/sharing.py`＋`data/shared_features.py`；本機16來源匯出50股×1658日＝82900列，labels獨立；[欄位與驗證](docs/LIVE_DATA_FEATURES.md) |
-| 比較新四架構 | `scripts/compare_architectures.py`讀固定藍圖；Ridge／HistGBDT／causal TCN／市場引導跨股attention已實作，48-fit R2的完成／恢復狀態見STATUS |
+| 組員取得同一資料版本 | 公開`live-data`的README含file tree、每欄公式／lag／單位；以固定40碼commit取用，來源取得時間與接收時間分開 |
+| 每天更新raw與研究特徵 | `data/sharing.py`＋`data/shared_features.py`；最新50股×1660觀測日＝83000格，labels獨立；[欄位與驗證](docs/LIVE_DATA_FEATURES.md) |
+| 比較新四架構 | Ridge／HistGBDT／causal TCN／市場引導跨股attention已完成48-fit R2研究及獨立重播，未升級正式模型 |
 | 擴充特徵消融 | `scripts/build_research_expansion.py`及`run_feature_ablation.py`；R1／E04共32個真實fits與負結果，完整產業F3仍blocked |
 | 多模型Notebook／Kaggle | [KAGGLE_TRAINING](docs/KAGGLE_TRAINING.md)；Notebook與官方私人bundle已本地驗證，缺本人Kaggle帳戶憑證，未遠端訓練 |
 | 不靠學校主機的排程 | [HOSTED_AUTOMATION](docs/HOSTED_AUTOMATION.md)；hosted流程／持久鎖與pre-POST ledger已有程式，遠端run及cron以STATUS實際證據為準 |
+
+隔離research shadow與固定cron-stage修正已隨`05eb17e`推送並通過CI；shadow還原演練41593711368、正式入口還原演練41593199708 attempt2成功，沒有預測POST。shadow固定研究recipe、不寫approved、不提交；實際盤前前瞻日、正式模型與五日服務仍待驗收，詳見STATUS。
 
 從業務目錄取用遠端資料；第一次可用`live-data`解析成明確commit，實驗後續固定該40碼版本：
 
 ~~~bash
 uv run --locked --no-sync python scripts/fetch_live_data.py \
   --repo jiangjiangian/ml-final-2026-fall --revision live-data \
-  --runtime-dir /private/finpred-runtime --with-features
+  --runtime-dir /private/finpred-runtime --with-features --allow-public-data
 ~~~
 
 完整raw核對後還原至本機runtime；已驗證的衍生features／labels放`shared-data/`。缺失或stale衍生資料會另報blocked，不將原始取得時間回填成接收時間。共享研究表不會自動變成正式verified訓練表。所有工作對照[COMPLETION_CHECKLIST](docs/COMPLETION_CHECKLIST.md)，歷史規範與下面較早基準繼續保留。
@@ -78,7 +78,7 @@ uv run --locked --no-sync python -m unittest discover -s tests -q
 
 ## 資料取得與時間對齊
 
-Training與Live皆已下載。固定包提供歷史，Live提供後續日期、未完成值及修訂，兩者分開保存。最新本輪Live於2026-10-30T15:47:34Z取得542,872bytes，涵蓋09-01～10-30共40日期、3900個完成標籤及100個10/23待完成標籤；固定包內容未變。本輪raw在/workspace/shared/completion-runtime/raw，較早研究快照保留不動；y=-1不能訓練，有號部位的-1另需有效性證據。
+Training與Live皆已由GitHub runner重新下載。固定包提供截至2026-08-31的歷史，Live提供後續日期、未完成值及修訂，兩者分開保存。2026-11-03T05:31:16Z取得的Live涵蓋09-01～11-03共42日期、100股共4000個完成／200個pending標籤，Training內容未變。此時為台北13:31，不能回填當日08:10輸入證據。共享Top50表保留83000個feature格、100個pending及26個缺觀測label；較早研究快照保留不動。`y=-1`不能訓練，有號部位的`-1`另需有效性證據。
 
 沿用COURSE_EMAIL／COURSE_PASSWORD環境憑證；Live公開金鑰可由已核實前端在記憶體取得，不把值填入命令或Git：
 
@@ -101,7 +101,7 @@ uv run --locked --no-sync python scripts/build_course_market_features.py --histo
 
 ## 模型研究與推論
 
-研究訓練表將上一筆個股觀測與當日label隔離，以目標日期left join市場資料，不靜默刪除目標。現有Top50表82674個完成樣本，50個pending樣本另列。原始發布／歷史調整價尚不足以核實point-in-time，builder只輸出研究狀態。
+研究訓練表將上一筆個股觀測與當日label隔離，以目標日期left join市場資料，不靜默刪除目標。已凍結E00／R1／R2使用82674個完成Top50樣本；新共享資料不回寫舊實驗。原始發布／歷史調整價尚不足以核實point-in-time，builder只輸出研究狀態。
 
 四類模型為正則化線性、梯度提升樹、MLP與小型GRU；各比較普通分類、abs(return)加權分類及報酬回歸取正負。E00已完成2025四季48次fit；固定winner後只作一次2026年1～5月保留檢查。市場消融比較相同validation，不反覆挑保留期。含負結果的數值見[RETURN_RATIO](docs/research/RETURN_RATIO.md)及[EXPERIMENTS](docs/EXPERIMENTS.md)。
 
@@ -131,11 +131,11 @@ uv run --locked --no-sync python scripts/run_daily_pipeline.py --runtime-dir /wo
 uv run --locked --no-sync python scripts/build_daily_tables.py --runtime-dir /workspace/shared/finpred-runtime --target-date 2026-10-30 --kind prediction
 ~~~
 
-本次真實新快照在台北16:58取得，晚於當日08:10，上述檢查正確回報blocked；這是負向驗證，不是五日演練。額外市場來源已採集與消融，但未自動納入正式daily表；E01～E03未顯示增益，見EXPERIMENTS。五階段CLI及橋接已實作，不代表每日服務已部署；研究模型不能升級或提交。
+2026-10-30曾以台北16:58取得的真實快照驗證此入口，正確回報blocked；這是歷史負向檢查，不是五日演練。11/03新資料同樣晚於當日freeze。額外市場來源已採集與消融，但未自動納入正式daily表；E01～E03未顯示增益，見EXPERIMENTS。五階段CLI及橋接已實作，正式模型尚未合格；研究模型不能升級或提交。
 
 候選訓練07:20～07:50，08:10凍結特徵，08:20提交、08:35核對，09:00停止。失敗／超時保留相容且已驗證模型，無此版本則blocked。提交JSON介面已由前端核實、session／模板已唯讀實測；尚無真實POST或成功回執。詳見[OPERATIONS](docs/OPERATIONS.md)及[AUTOMATION](docs/research/AUTOMATION.md)。
 
-目前沒有可將本對話設定為每天自動執行的Tasks工具；聊天結束後不能承諾本代理自行常駐。systemd服務／timers保留；另已實作hosted同步與stage、私人Git持久狀態、跨runner lease及POST前checkpoint。Cron仍需要default branch入口；push／手動dispatch、憑證與實際run的最新驗收見HOSTED_AUTOMATION及STATUS，不以設定存在宣稱每天已跑。
+本對話沒有Tasks工具，日常執行器採GitHub-hosted Actions，不依賴聊天或學校主機。`system-completion`已是含workflow的default branch，課程Secrets已實際驗證；不需再次設定。持久Git狀態、跨runner lease及POST前checkpoint已實作，資料cron仍須首個真實schedule run證明觸發；完整每日服務還需正式模型與回執驗收。詳見HOSTED_AUTOMATION及STATUS。
 
 ## 教材、技能與專案記憶
 

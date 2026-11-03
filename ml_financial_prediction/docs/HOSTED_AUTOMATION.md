@@ -1,65 +1,68 @@
 # 不靠學校主機的每日同步與模型流程
 
-2026-11-03最新選擇：使用者明確改為全部公開。兩份workflow已顯式設定`FINPRED_ALLOW_PUBLIC_DATA=true`，CLI另有`--allow-public-data`；未opt-in仍拒絕公開資料發布。以下同repo私人／分離私人repo方案為仍支援的替代與歷史決策，不再是使用者目前偏好。可見性、default branch及正式排程以實際API結果為準，任何模式都不發布憑證。
+更新：2026-11-03，Asia/Taipei。實際執行器採GitHub-hosted Actions，repo為Public、default branch為`system-completion`，main空樹保留。Actions課程Secrets由41584330745驗證有效，[後續完整採集41593199735](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41593199735)亦取得16來源並匯出研究特徵，資料revision為`c3f36239c699a1ab2ecafb17eb68eaff13c8fb9f`。最新CI、研究與正式入口還原演練均成功；第一個event=`schedule`、真實盤前前瞻日與正式模型／競賽提交仍待驗收，不以手動成功冒稱每天準時運作。
 
-更新：2026-10-31，Asia/Taipei。這份文件說明已實作的hosted入口及啟用條件，**不以workflow檔存在宣稱排程已運行**。實際遠端run、分支與部署結果由[STATUS](STATUS.md)記錄。
-
-2026-11-02更新：repo已恢復Private，手動rehearsal run41475878023成功；定時任務與正式提交尚未驗收。若使用者選擇公開程式／私人資料，本地已新增跨repo資料來源與獨立token支援，尚未建立資料repo或部署。下方2026-10-31 Public及恢復步驟為歷史紀錄。
+兩份workflow依使用者「暫時全部公開」決定設定`FINPRED_ALLOW_PUBLIC_DATA=true`；CLI須`--allow-public-data`，未opt-in仍拒絕公開資料發布。來源identity、hash、credential排除、Git鎖與模型／截止門檻不變。教師ZIP／Yahoo再散布授權尚未核實，不冒稱來源方已授權或禁止。
 
 ## 可以用Codex排程嗎？
 
-可以在具備該功能的ChatGPT／Codex介面建立scheduled task，但這個會話目前沒有建立或更新排程的工具。2026-10-30實讀[官方Automations文件](https://developers.openai.com/codex/app/automations)，原網址轉至`learn.chatgpt.com/docs/automations?surface=app`。現行文件區分：
+具備該功能的ChatGPT／Codex介面可以建立scheduled task，但本會話沒有建立或更新排程的工具。2026-10-30實讀[官方Automations文件](https://developers.openai.com/codex/app/automations)，原網址轉至`learn.chatgpt.com/docs/automations?surface=app`。當時文件的能力邊界如下：
 
 | 執行方式 | 官方文件的條件 | 對本題的影響 |
 |---|---|---|
-| 桌面local project／worktree | 電腦開機、app運行，原目錄仍存在 | 不能當成不依賴個人電腦的部署 |
-| Web scheduled task | 依可用方案／workspace啟用，可使用上傳內容及已連接工具 | 不直接繼承本雲端容器的私有目錄、環境變數或Python環境 |
-| Team Tasks | 使用團隊service account及其已設定app connections在雲端執行 | 需要實際團隊功能及連線；本會話未設定 |
-| CLI／IDE | 不提供Scheduled管理介面 | 可以開發／驗證程式，不能據此宣稱已建立每天排程 |
+| 桌面local project／worktree | 電腦開機、app運行，原目錄仍存在 | 不能當不依賴個人電腦的部署 |
+| Web scheduled task | 依方案／workspace啟用，可使用上傳內容及已連接工具 | 不直接繼承本容器私有目錄、環境變數或Python環境 |
+| Team Tasks | 團隊service account及其已設定app connections | 需要實際團隊功能與連線，本會話未設定 |
+| CLI／IDE | 不提供Scheduled管理介面 | 可開發／驗證程式，不能據此宣稱已建每天排程 |
 
-因此，本專案以可重跑Python CLI搭配GitHub-hosted runner實作確定的資料步驟；Codex排程若後續可用，適合巡檢、摘要或呼叫這份已驗證的工作流。無論哪個介面，都不能承諾排隊／延遲不會影響09:00硬截止。
+本專案以確定的Python步驟搭配GitHub-hosted runner；聊天關閉不影響已部署的GitHub cron。Codex排程日後若可用，可巡檢或呼叫既有workflow，不應取代真實排程／截止與回執證據。GitHub可能排隊或延遲，不能保證09:00前一定完成。
 
-## 已實作的資料流
+## 已實作的資料流與儲存
 
 ```text
 live-data的固定Git revision
-    -> 驗證來源hash並還原私有raw
+    -> 驗證來源hash，還原runner內0700私有runtime
     -> 還原同一固定絕對路徑的模型／ledger狀態
-    -> 取得跨workflow lease並以Git父commit驗證遠端未變
-    -> collect：各來源獨立下載，產研究特徵，發布成功部分及缺口
-       或 train / predict / submit / verify：沿用正式時鐘與資料／模型門檻
-    -> 保存結果與釋放lease；未知提交狀態保留以供下次對帳
+    -> 取得跨workflow lease，以Git父commit驗證遠端未變
+    -> collect：各來源獨立下載、研究特徵、成功部分與缺口
+       或 train / predict / submit / verify：正式時鐘與資料／模型門檻
+    -> 保存允許的狀態並釋放lease；未知提交結果留待對帳
 ```
 
-資料可放在同一個私人repository的`live-data`分支，或另一個私人資料repository的`live-data`；使用者也希望程式可公開並詢問僅讓組員讀資料，最後儲存方式尚待確認。啟動時驗證**資料repository**為private、Git origin對應它、checkout分支是`live-data`，且工作樹乾淨。公開程式repo與私人資料repo可以不同；不能用私人repo名稱掩蓋公開data origin，也不能把憑證寫入任一repo。
+目前同一公開repository的`live-data`保存portable raw、catalog、derived及允許的持久狀態；程式分支不混入raw。啟動時核對實際可見性與公開opt-in、repository identity、Git origin、`live-data`分支及乾淨工作樹。任何分支／log都不放帳密、token或cookie。匿名catalog已核對內容hash成功，組員取用資料無須網站帳密。
 
-分離方案的程式已在本機實作：在程式repo設定變數`FINPRED_DATA_REPOSITORY=owner/private-data-repo`，並以GitHub Actions Secret `FINPRED_DATA_TOKEN`提供對該私人repo有必要讀寫權限的受限token；跨repo時不會默默降級用僅能存取程式repo的`GITHUB_TOKEN`。課程帳密另使用`COURSE_EMAIL`及`COURSE_PASSWORD` secrets。這些是設定名稱，不是已建立的repo、token或完成的部署；絕不將實際值貼入聊天。
+正式與collect共用GitHub concurrency group `finpred-private-runtime`，名稱沿用早期實作，不代表repo仍私人。研究shadow採獨立queue `finpred-research-shadow`，避免取代正式pending job；三者寫回仍共用durable Git lease／CAS，獨立queue不繞過資料鎖。只接受fast-forward、不force push、不在衝突後盲目重試POST。lease有效45分鐘，job最多35／40分鐘，逾期或失去所有權時拒絕POST。
 
-兩份workflow共用`finpred-private-runtime` concurrency group。Git lease／遠端父commit檢查再處理本機CLI或其他runner：只接受fast-forward，沒有force push，也不在衝突後盲目重試POST。lease有效45分鐘，job最多35／40分鐘；逾期／失去所有權時拒絕POST。
+若日後改選公開程式／私人資料，可設定`FINPRED_DATA_REPOSITORY=owner/private-data-repo`及受限的Actions Secret `FINPRED_DATA_TOKEN`。這是仍支援的替代方案，目前無需另建repo／token。同repo自動化使用runner內建短期`GITHUB_TOKEN`，workflow只授予必要的contents寫權。
 
 ## 入口與時程
 
-| 檔案 | 行為 | 執行窗口 |
+| 檔案 | 行為 | 台北時程 |
 |---|---|---|
-| `.github/workflows/live-data.yml` | 真實raw採集、內容去重、可攜catalog與研究特徵發布；一來源失敗保留舊版 | 提案台北04:17／05:17／06:17／07:17；UTC `17 20-23 * * *` |
-| `.github/workflows/financial-daily.yml` | 還原狀態後執行當前合法stage；push只唯讀rehearsal | 提案07:20 train、08:10 predict、08:20 submit、08:35 verify |
-| `deployment/hosted/run.sh` | 有界環境變數轉CLI參數，不把憑證放命令列 | 沿用真實時鐘，延誤不補跑過期submit |
-| `scripts/run_hosted_pipeline.py` | `rehearsal`／`collect`／指定`stage`／`auto` | 純raw採集與官方session／模型是否合格分開 |
+| `.github/workflows/live-data.yml` | 真實raw採集、去重、catalog／研究特徵發布，一來源失敗保留舊版 | 04:17／05:17／06:17／07:17；UTC `17 20-23 * * *` |
+| `.github/workflows/financial-daily.yml` | 還原狀態，執行目前合法stage；push只唯讀rehearsal | 07:20 train、08:10 predict、08:20 submit、08:35 verify |
+| `.github/workflows/research-shadow.yml` | 固定recipe研究fit與隔離shadow；push只還原rehearsal，永不POST預測 | 07:25研究fit、08:13 shadow，實際前瞻日尚待驗收 |
+| `deployment/hosted/run.sh` | 有界環境變數轉CLI，不把憑證放命令列 | 沿用真時鐘，延遲不補送過期submit |
+| `scripts/run_hosted_pipeline.py` | rehearsal／collect／stage／auto | raw採集獨立於官方session與模型；正式stage另驗session |
 
-04:00～09:00是使用者要求的工作窗口，不是所有供應商都在04點完成更新。額外來源可能有尚未收盤bar；raw保留原值與取得時間，不能直接當已完成盤前特徵。
+08:10／08:20等是本專案操作時程，老師硬截止為09:00。04:00～09:00是工作窗口，不保證供應商04點已更新；當日未收盤bar不得直接當盤前特徵。
 
-`collect`使用既有正常TLS下載器。教師憑證缺少時仍可取得公開來源，但結果會標`partial`，不冒稱教師也已更新；既有教師版本保留。研究特徵建置失敗也不阻止新raw發布。所有歷史vintage／發布時間假設仍標research，**不會為了每日更新而改成verified**。
+下一個資料cron名義時點為台北2026-11-04 04:17（UTC11/03 20:17）。default branch入口與憑證已落實，但仍須核對真正的event=`schedule`、來源狀態及取得時間，不能以手動dispatch代替。資料採集每日可運行；競賽訓練／預測／提交另外依官方session與真時鐘決定，不能只用星期推定開放。
 
-## 啟用與可審查演練
+collect有15個下載job但產16來源：training同時產course-template。單一來源失敗會保留舊版並標partial，研究特徵失敗亦不阻止raw發布。兩個FRED來源目前指定`curl_ipv4`正常TLS傳輸，CSV／單位／大小檢查不變；其他來源維持原adapter。所有歷史發布／vintage假設仍標research，不因每天重抓而改為verified。
 
-**本輪真實遠端阻擋：** 程式提交`b39d516`的[資料同步run 41180208527](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41180208527)與[流程演練run 41180208487](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41180208487)均於private檢查停止。2026-10-31重新核對REST、GraphQL與未登入公開metadata，repository當時為`public`；這不是應繞過的程式錯誤，也不是成功採集。較早曾核對到private的狀態不能代替現在的檢查。兩份workflow另在checkout資料、安裝套件之前加入相同privacy preflight，runtime仍保留獨立檢查。
+## 已完成設定與重跑入口
 
-當時嘗試恢復private被API拒絕403；2026-11-02重新核對已為Private，手動rehearsal成功、手動collect部分成功。Actions Secrets設定仍受目前integration權限限制，需在GitHub安全介面配置；不要將帳密貼在聊天或提交到Git。資料repo的私人狀態、Secrets與default-branch cron入口是不同條件，全部落實後仍須查實際成功run。
+| 設定／驗證 | 現況 |
+|---|---|
+| Repository可見性 | Public，使用者已決定並設定 |
+| Default branch | `system-completion`，含兩份workflow；main空樹仍保留 |
+| Actions課程Secrets | `COURSE_EMAIL`、`COURSE_PASSWORD`已設定，Training／Live實際下載成功；不需再次提供 |
+| Live key | `COURSE_LIVE_KEY`可選，下載器能由官方前端取得公開key；不需另貼聊天 |
+| 同repo寫回 | 使用內建短期token，手動採集已成功發布`live-data` |
+| 正式提交開關 | `FINPRED_SUBMISSION_RELEASED`仍預設false；合格模型／dry run／提交驗收未齊，不手動略過 |
 
-1. 先推送私人`live-data`種子，核對來源與README；程式留`system-completion`，main保留空樹。
-2. 推送含workflow的`system-completion`，以push事件取得真實rehearsal／collect run。這不需要先把workflow加入main。沒有course Secrets的push採集會明列partial。
-3. 在repository Actions Secrets安全設定`COURSE_EMAIL`與`COURSE_PASSWORD`；`COURSE_LIVE_KEY`可選，既有下載器能由官方前端取得公開key。不要貼聊天、寫README或放命令列。自動化token是runner內建短期`GITHUB_TOKEN`，僅授予同repo內容寫權。
-4. workflow曾執行／註冊後，依GitHub當前API／CLI文件嘗試手動dispatch指定branch，並以實際run確認。例如下列是入口，**不是已成功執行的紀錄**：
+下列入口已可執行；最新實際結果以STATUS與Actions run為準：
 
 ```bash
 gh workflow run live-data.yml --repo jiangjiangian/ml-final-2026-fall \
@@ -68,31 +71,44 @@ gh workflow run live-data.yml --repo jiangjiangian/ml-final-2026-fall \
   --ref system-completion --field mode=collect
 ```
 
-5. **Cron仍只在default branch執行。** 目前既有main空樹與default-branch設定不能因新增這兩份檔案就算已啟用；需要明確落實default-branch入口或另一個實際scheduler，再查定時run。UI手動按鈕與API／CLI dispatch條件也不相同，不能只看YAML宣稱入口可用。
-6. 接著驗收五個真實官方交易日、初始合格模型及第一筆有效回執。研究模型不能直接approved；`FINPRED_SUBMISSION_RELEASED`預設false，只有完整資料／模型及提交驗收達標後才開啟。這是部署門檻，不是重問已授權的競賽CSV上傳。
+本機rehearsal須有已checkout的`live-data`、正確origin與遠端父commit；公開模式加`--allow-public-data`。hosted runtime固定`/tmp/finpred-hosted-runtime`，跨runner保持相同絕對路徑，避免任意改寫模型／snapshot中的路徑。
 
-純本地驗證可以用`--mode rehearsal`讀取已checkout的私人`live-data`，前提是Git origin、private檢查及遠端父commit都通過。預設runtime固定`/tmp/finpred-hosted-runtime`；兩個runner必須相同絕對路徑，避免任意改寫模型／snapshot中的絕對路徑。
+組員從業務目錄取用：
 
-組員跨branch取用入口為`python scripts/fetch_live_data.py --repo jiangjiangian/ml-final-2026-fall --revision <固定40位commit> --runtime-dir /private/runtime --with-features`。這會核對raw與七個派生檔，將派生資料放自己的`shared-data/`；派生資料blocked時仍保留已核實raw並回報不同狀態，不把原始取得時間改為下載到組員電腦的時間。
+```bash
+python scripts/fetch_live_data.py --repo jiangjiangian/ml-final-2026-fall \
+  --revision <固定40位commit> --runtime-dir /private/runtime \
+  --with-features --allow-public-data
+```
+
+會核對raw及七個派生檔，將派生資料放自己的`shared-data/`；派生blocked仍保留已核實raw並分別回報，不把原取得時間改為隊友下載時間。
 
 ## POST前的耐久狀態
 
-現有提交器會先寫`post_in_flight`。hosted client在真正呼叫POST之前，再把該ledger及相容模型／預測狀態保存到私人Git、確認push成功，**之後重新讀官方state並查截止／配額與lease**，才送出請求。Git發布消耗的時間不會被忽略。
+提交器先寫`post_in_flight`，hosted client在真正POST之前，把ledger及相容模型／預測狀態保存到持久Git並確認push，**再讀fresh官方state與截止／配額、驗lease**，才送請求。Git發布消耗的時間不會被忽略。
 
-若checkpoint、CAS、Git push、fresh state或deadline失敗，不POST。若POST網路結果未知，保留in-flight／unverified，下次先比對目前有效CSV回執，不自動重送。job結束才上傳artifact或Actions cache無法提供這個POST前耐久性，所以本流程不用它們冒充ledger。
+checkpoint、CAS、push、fresh state或deadline失敗均不POST。網路結果未知則保留in-flight／unverified，下次先比對目前有效CSV回執，不自動重送。job結束才上傳artifact或Actions cache無法提供POST前耐久性，本流程不用它們冒充ledger。
 
-runtime只打包`approved.json`、`candidates`、`predictions`、`submission`、`verified`、`runs`及`tables`。raw另由portable catalog處理；環境、HTTP session、cookie、credential檔與鎖不打包。每個物件／索引驗hash、大小、允許路徑；拒絕symlink、FIFO、路徑穿越、重複成員、不同runtime根目錄及衝突的本地未解決狀態。每物件上限90MiB、邏輯runtime512MiB，超過時明確blocked；長期大模型／資料應遷移私有object store，不承諾Git無限容量。
+runtime只打包`approved.json`、`candidates`、`predictions`、`submission`、`verified`、`runs`、`tables`及獨立研究用`shadow`；raw另走portable catalog。環境、HTTP session、cookie、credential檔與鎖不打包。每個物件／索引驗hash、大小及允許路徑，拒絕symlink、FIFO、路徑穿越、重複成員、runtime根路徑不符與未解決狀態衝突。runner內runtime各層目錄0700、檔案0600，不能只保護leaf。物件上限90MiB、邏輯runtime512MiB；超過明確blocked，長期大資料可再遷object store，不承諾Git無限容量。
 
-## 本輪驗證與限制
+## 已推送且通過還原演練的隔離研究入口
 
-新增測試涵蓋真正本機bare Git的lease／父commit競態、private與origin檢查、狀態hash／路徑／secret排除、deadline後不POST、checkpoint失敗不POST、raw與feature失敗分離，以及blocked模型仍保存結果。命令如下，完整結果由STATUS記錄：
+`research-shadow.yml`、`run_hosted_shadow.py`與離線`run_shadow_forecast.py`已隨`05eb17e`推送，[研究還原41593711368](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41593711368)為`shadow_rehearsal_passed`、`submitted=false`。研究workflow設定於台北07:25固定linear／weighted_classification／seed42 fit，08:13 shadow推論；採獨立GitHub queue但共用durable Git lease／CAS。`shadow`只保存獨立研究模型、來源／template證據、不可變預測與真實完成／Git發布截止證據，不寫approved或正式prediction指標、不POST預測。還原演練沒有執行真實盤前fit或前瞻日。
 
-```bash
-PYTHONPATH=src python -m unittest discover -s tests -p 'test_hosted_pipeline.py' -v
-ruff check scripts/run_hosted_pipeline.py deployment/hosted/runtime_store.py tests/test_hosted_pipeline.py
-bash -n deployment/hosted/run.sh
-```
+hosted預測會以正常TLS登入並讀官方state／template，最小session證據排除帳號與cookie；離線核心不建網路client，重用來源hash／值重建、當日04:00～08:10取得、08:10凍結與09:00前持久化檢查。最新官方state有10/12～11/03共15 sessions、尚無11/04，不能用星期補造日期或把shadow當五個正式交易日驗收。正式workflow已推送每個cron固定到原stage的修正，避免排隊延遲後auto改跑其他stage；[正式還原41593199708 attempt2](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41593199708/attempts/2)為`rehearsal_passed`、`prediction_posted=false`，原attempt1曾被concurrency取消，不當作成功。
 
-這些本地合成／bare Git測試沒有更改遠端repo設定、填入Secrets或向競賽POST。歷史時間證據、模型勝出、真實定時run與真實回執仍各自驗收。
+本地`completion.json`只綁定先前已fsync的預測與manifest，不能單獨證明完成標記或雲端準時寫入；SIGKILL可能留下候選標記。hosted前瞻證據還須核對`hosted-publication.json`中的Git commit、CSV hash及`hosted_persistence_before_deadline=true`。可捕捉的中斷會清除標記；固定recipe另綁定套件與模型程式hash。最後修正`617a09d`的研究還原演練[41594631484](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41594631484)亦成功，並非真實盤前預測。
 
-官方來源：[Codex Automations](https://developers.openai.com/codex/app/automations)、[Codex Cloud](https://developers.openai.com/codex/cloud/)、[GitHub workflow事件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)、[GITHUB_TOKEN](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token)。2026-10-30取得的HTML／文字與SHA256證據在Git外`/workspace/shared/research/completion-20261030/automation-sources/`；文件閱讀不等於服務已啟用。
+## 驗收與歷史紀錄
+
+帳密驗證採集41584330745的證據在Git外`/workspace/shared/research/completion-20261030/credential-enabled-collection-41584330745.json`；後續41593199735亦為16來源`collected`／`failures=[]`／特徵`exported`。程式`617a09df597e7e03ee7d121ca2d1ff03ab5765a8`的[CI41594631696](https://github.com/jiangjiangian/ml-final-2026-fall/actions/runs/41594631696)成功；本機Python3.12共326項全部通過、3.10共322項含3skip其餘通過，Ruff（src／scripts／tests）、兩個hosted wrapper的bash語法與diff檢查通過。初次CI發現umask022下中間目錄755，已修逐層0700並強制022測試。這些測試與還原演練不等於真實盤前預測、正式提交或回執。
+
+| 歷史時點 | 當時結果 | 現在的解讀 |
+|---|---|---|
+| 10/31 runs41180208527／41180208487 | 當時僅授權私人模式，Public被private gate拒絕；代改private回403 | 歷史安全檢查，不是目前公開模式故障 |
+| 11/02 rehearsal41475878023／collect41476226337 | 當時恢復Private；rehearsal成功、collect部分成功 | 之後已另獲全部公開授權 |
+| 11/03 collect41571756896 | FRED修復，13來源成功，教師帳密缺少 | 已由使用者設定Secrets及41584330745完整採集取代 |
+
+目前仍須首個定時run、歷史PIT／供應商更新證據、初始合格正式模型、五個真實官方交易日dry run與有效競賽回執。研究模型不得直接approved，也不為完成任務放寬門檻。
+
+官方來源：[Codex Automations](https://developers.openai.com/codex/app/automations)、[Codex Cloud](https://developers.openai.com/codex/cloud/)、[GitHub workflow事件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)、[GITHUB_TOKEN](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token)。2026-10-30取得的HTML／文字及SHA256證據在Git外`/workspace/shared/research/completion-20261030/automation-sources/`；文件閱讀不等於服務已驗收。

@@ -190,5 +190,293 @@
       },
       "occurrences": 2
     }
-  ]
+  ],
+  "reviewed_semantic_retirements": [
+    {
+      "id": "docs_status_late_snapshot_negative_check",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "10/30新runtime prediction preparation實跑：16:58台北新資料被當日08:10 cutoff正確拒絕",
+      "reason": "精確10/30 16:58負向實跑已從現文刪除，現文保留舊Live跨日反例修正及當日取得gate。"
+    },
+    {
+      "id": "docs_operations_cloud_executor_pending",
+      "source_file": "docs/OPERATIONS.md",
+      "previous_label": "使用者希望不靠學校主機，正式執行器與持久儲存仍待落實",
+      "reason": "現行L3/L76/L81已確認GitHub-hosted、default及Secrets接入成功，正式執行器待落實的舊斷言已被實查完成取代。"
+    },
+    {
+      "id": "docs_status_candidate_refresh_and_cache",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "候選公平重fit；換配置strict改善，同verified配置新歷史可同fold不退步refresh；cache綁incumbent／資料／程式／套件",
+      "reason": "現文未重述同配置公平refit、cache與升級比較細則；只保留正式stage／研究不升級概述，不能把舊細則當現文抽取。"
+    },
+    {
+      "id": "docs_status_gru_production_context_missing",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "GRU缺中間日期正式context，daily推論明確阻擋",
+      "reason": "重寫後STATUS未再列GRU中間context細節；正式模型整體缺口仍保留。"
+    },
+    {
+      "id": "docs_status_training_snapshot_20261030",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "Training於2026-10-30T08:58:44Z重抓18,278,354bytes，內容hash未變",
+      "reason": "精確10/30 Training取得時間與18,278,354bytes已從現文刪除；現文僅列未變Training hash與目前Live清單。"
+    },
+    {
+      "id": "docs_status_bundle_hashes_not_performance",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "離線核對63來源hash／引用連結／11書目／4架構及R1+R2預算；預設Python與3.10離線檢查及Ruff通過，非模型／部署驗證",
+      "reason": "63來源hash／11書目／預設Python與3.10離線validator的細節已移出現文；歷史表僅保留研究交付範圍與63不是篇數。"
+    },
+    {
+      "id": "docs_status_citation_skill_script_fallback",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "技能附帶引用腳本無法讀取，實際以公開metadata與專案檢查核對，未宣稱執行原腳本",
+      "reason": "citation技能腳本不可讀與fallback檢查的舊敘述已從現文刪除，僅保留研究交付歷史。"
+    },
+    {
+      "id": "docs_status_delegation_actual_scope",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "文獻子代理前段用量限制由主代理接手，後段恢復獨立查核；失敗分工不算完成",
+      "reason": "文獻子代理quota中斷與恢復的歷史分工細節未在現文重述，不能再抽成現文獨立查核證據。"
+    },
+    {
+      "id": "docs_status_external_supplied_table_recalculation_unverified",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "外部傳入表內數值是否由來源bytes正確轉換，尚未經重算驗證",
+      "reason": "外部值重算未驗證的舊缺口已修，現文明示原始ZIP重建並核對數值／None mask，不能保留未修斷言。"
+    },
+    {
+      "id": "docs_status_hosted_collect_partial_commit",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "手動collect保留前版快照並產生live-data commit 5b226c409fda84d9e28fdf68fe91c575c9f38a8d；非全部來源更新成功或定時排程啟用",
+      "reason": "5b226c4精確partial資料commit已從現文刪除；現文歷史表保留當時11來源部分成功及後續修復。"
+    },
+    {
+      "id": "docs_status_independent_audit_scope",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "獨立子代理核對7份RPC、MASTER README／PDF1–5、pstack原則；修正預算／任職頁差異，非63份全文獨立複審",
+      "reason": "7份RPC、MASTER頁1-5、pstack與任職頁差異的文獻複審範圍已從STATUS刪除；目前獨立核對為R2模型／分數證據，兩者不能混稱。"
+    },
+    {
+      "id": "docs_status_kaggle_anonymous_metadata",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "Kaggle匿名公開RPC只讀metric metadata，沒有登入或提交資料",
+      "reason": "匿名Kaggle RPC metric metadata的歷史閱讀細節未在現文重述；僅保留目前Kaggle本地／遠端能力界線。"
+    },
+    {
+      "id": "docs_status_lauren_tan_workflow_source",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "Cursor官方pstack固定commit閱讀；採目標／驗收／限制與可跑檢查",
+      "reason": "Cursor pstack固定commit與原文閱讀細節已移出STATUS，現文僅保留使用者短回報／成熟工具／子代理偏好。"
+    },
+    {
+      "id": "docs_status_master_transfer_boundary",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "MASTER五日橫斷面target非本課盤中方向；作者repo的validation/test處理問題另記錄",
+      "reason": "MASTER五日target與作者repo validation/test處理細節已移出STATUS，現文只列已實作四架構及研究結果。"
+    },
+    {
+      "id": "docs_status_nov02_public_preference",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "2026-11-02使用者希望公開程式，資料只給組員；整repo私人或公開程式＋獨立私人資料repo尚待決定",
+      "reason": "11/02限定組員／儲存選擇待決的偏好已被目前全部公開決定取代，現文不再把儲存選擇當待辦。"
+    },
+    {
+      "id": "agents_private_live_data_authorization",
+      "source_file": "AGENTS.md",
+      "previous_label": "新授權允許私人live-data分享教師與市場快照；憑證及cookie禁止進Git",
+      "reason": "現行L5/L9/L67已由全部公開的新授權取代private-only資料分支範圍；不再將舊private限定作當前規則。"
+    },
+    {
+      "id": "docs_status_research_budget_r1_r2",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "R1最多8設定、R2最多12設定，各4季度，最多80 fits；執行前凍結精確特徵",
+      "reason": "現文保留R1的24fits、另E04的8fits及R2的48fits，未重述原R1≤8設定／R2≤12設定／80-fit預算；實際完成數不等同舊預算契約，跨文件舊預算引用需另審。 合併者已核對MODEL_ARCHITECTURES.md第65行，舊預算關係僅移至原本仍有來源支持的frozen_research_budget節點，絕不移至實際fit數。"
+    },
+    {
+      "id": "docs_completion_checklist_private_restored_20261102",
+      "source_file": "docs/COMPLETION_CHECKLIST.md",
+      "previous_label": "2026-11-02 repo已恢復Private；此狀態以當時查核為準",
+      "reason": "清單現文不再以11/02恢復Private作當前狀態，僅保留舊私人資料消費及早期private-only停止為歷史。"
+    },
+    {
+      "id": "docs_completion_checklist_storage_choice_pending_20261102",
+      "source_file": "docs/COMPLETION_CHECKLIST.md",
+      "previous_label": "使用者希望公開程式並限定資料給組員時需另設私人資料儲存；選擇尚待落實",
+      "reason": "公開程式／組員限定資料的選擇待決已由使用者全部公開決定取代，清單不再要求另選儲存。"
+    },
+    {
+      "id": "docs_project_context_shared_private_snapshots",
+      "source_file": "docs/PROJECT_CONTEXT.md",
+      "previous_label": "私人live-data已實作內容hash／portable catalog並有版本共享；排程運行另依STATUS驗收",
+      "reason": "現行L27只將私人快照提案列為80ac804歷史，L31/L33當前共享是同一公開repo；以新的公開共享節點表達當前狀態。"
+    },
+    {
+      "id": "docs_status_known_collection_failure_categories",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "教師Training／Live缺Actions憑證；兩FRED來源network_or_tls；11來源更新、舊版保留",
+      "reason": "教師缺Secrets與FRED失敗只屬歷史，現文最新16來源全部成功；舊分類不再是目前採集結果。"
+    },
+    {
+      "id": "docs_status_continuation_fresh_fred",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "正常TLS本機更新DGS10／DEXTAUS成功，並分享5來源人工刷新；不代表GitHub runner已修復",
+      "reason": "人工5來源FRED刷新不代表runner修好的舊階段已由真實runner TLS採集成功取代；歷史人工刷新另見表。"
+    },
+    {
+      "id": "docs_status_continuation_network_diagnostics",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "新workflow以正常TLS比較requests和curl IPv4；無未核實鏡像、不關TLS",
+      "reason": "新診斷workflow比較傳輸的開發階段敘述已移出現文，現文保留實際FRED修復與正常TLS證據。"
+    },
+    {
+      "id": "docs_status_continuation_validation",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "3.12共299項通過，3.10共295含3skip；來源程式9a0370e，遠端結果另查",
+      "reason": "299／295測試及9a0370e的中途驗證不再由現文列示，最新326／322檢查才是現行記錄。"
+    },
+    {
+      "id": "docs_status_fred_resolution_cloud13_verified",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "雲端41571756896已13來源成功，僅教師Training／Live缺Actions憑證，data commit346f87d",
+      "reason": "13來源成功／教師缺憑證僅在現文作歷史中間階段，現文未重述346f87d，不再用舊節點冒充目前採集。"
+    },
+    {
+      "id": "docs_status_fred_resolution_tests301",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "3.12共301項通過、3.10共297含3skip，官方freshness／正式模型仍未驗收",
+      "reason": "301／297測試的中途版本已由最新326／322凍結驗證取代，現文不再列舊測試數。"
+    },
+    {
+      "id": "docs_status_public_mode_validation",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "公開模式3.12共294測試通過、3.10共290含3skip；cf89ddb遠端CI41558603125成功",
+      "reason": "294／290測試及cf89ddb CI的舊驗證細節未在現文重述，最新凍結驗證為326／322及617a09df CI。"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_fresh_fred",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "previous_label": "正常TLS本機更新DGS10／DEXTAUS成功，並分享5來源人工刷新；不代表GitHub runner已修復",
+      "reason": "PROGRESS刪除人工FRED更新不代表runner成功的中間階段，改列真實runner正常TLS修復。"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_network_diagnostics",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "previous_label": "新workflow以正常TLS比較requests和curl IPv4；無未核實鏡像、不關TLS",
+      "reason": "PROGRESS未重述新診斷workflow開發狀態，只保留相同官方CSV與正常TLS成功及IPv6根因限制。"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_validation",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "previous_label": "3.12共299項通過，3.10共295含3skip；來源程式9a0370e，遠端結果另查",
+      "reason": "299／295中途測試數已移除，最新凍結驗證為326／322及617a09df CI。"
+    },
+    {
+      "id": "docs_progress_2026_11_03_fred_resolution_cloud13_verified",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "previous_label": "雲端41571756896已13來源成功，僅教師Training／Live缺Actions憑證，data commit346f87d",
+      "reason": "13來源成功、教師缺憑證的舊狀態已被完整16來源成功取代；PROGRESS不再重述346f87d。"
+    },
+    {
+      "id": "docs_progress_2026_11_03_fred_resolution_tests301",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "previous_label": "3.12共301項通過、3.10共297含3skip，官方freshness／正式模型仍未驗收",
+      "reason": "301／297中途測試數已從PROGRESS移除，現文採最新326／322實際驗證。"
+    },
+    {
+      "id": "docs_progress_2026_11_03_partial_cloud_collection",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "previous_label": "雲端採集部分成功：11來源成功，教師缺憑證與FRED網路／TLS失敗，保留舊版",
+      "reason": "PROGRESS現文已不列11來源失敗為當前結果，而明示兩次16來源全部成功。"
+    },
+    {
+      "id": "docs_progress_2026_11_03_public_and_schedule_blocked",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "previous_label": "使用者已選全公開，但GitHub設定403；實際仍Private、main為default且cron未啟用",
+      "reason": "Public／default／Secrets設定403與仍Private/main的斷言已被目前已驗證設定取代；首個schedule另有待驗節點。"
+    },
+    {
+      "id": "docs_status_public_settings_and_secrets_403",
+      "source_file": "docs/STATUS.md",
+      "previous_label": "GitHub公開、default branch修改與COURSE_EMAIL secret寫入均403；repo仍Private、default仍main",
+      "reason": "Public／default／Secrets已落實且完整採集成功；舊403不再是當前阻礙。"
+    }
+  ],
+  "semantic_refresh_audit": {
+    "changed_document_coverage": {
+      "AGENTS.md": 75,
+      "README.md": 164,
+      "docs/PROJECT_CONTEXT.md": 45,
+      "docs/OPERATIONS.md": 87,
+      "docs/STATUS.md": 83,
+      "docs/PROGRESS_2026-11-03.md": 47,
+      "docs/HOSTED_AUTOMATION.md": 114,
+      "docs/COMPLETION_CHECKLIST.md": 64
+    },
+    "retained_cached_document_count": 33,
+    "retained_cached_nodes": 754,
+    "newly_extracted_nodes": 320,
+    "semantic_nodes": 1074,
+    "semantic_edges": 1877,
+    "retired_semantic_node_count": 35,
+    "cached_relation_adjustments": [
+      {
+        "kind": "edge",
+        "before": {
+          "source": "docs_decisions_d032_four_blueprints_budget",
+          "target": "docs_status_research_budget_r1_r2",
+          "relation": "conceptually_related_to",
+          "confidence": "EXTRACTED",
+          "confidence_score": 1.0,
+          "source_file": "docs/DECISIONS.md",
+          "source_location": "L38",
+          "weight": 1.0
+        },
+        "after": {
+          "source": "docs_decisions_d032_four_blueprints_budget",
+          "target": "docs_deep_research_model_architectures_frozen_research_budget",
+          "relation": "conceptually_related_to",
+          "confidence": "EXTRACTED",
+          "confidence_score": 1.0,
+          "source_file": "docs/DECISIONS.md",
+          "source_location": "L38",
+          "weight": 1.0
+        },
+        "review_required": true
+      },
+      {
+        "kind": "new_fragment_edge",
+        "before": {
+          "source": "agents_bounded_financial_research",
+          "target": "docs_status_research_budget_r1_r2",
+          "relation": "conceptually_related_to",
+          "confidence": "INFERRED",
+          "confidence_score": 0.85,
+          "source_file": "AGENTS.md",
+          "source_location": "L55",
+          "weight": 1.0
+        },
+        "after": {
+          "source": "agents_bounded_financial_research",
+          "target": "docs_deep_research_model_architectures_frozen_research_budget",
+          "relation": "conceptually_related_to",
+          "confidence": "INFERRED",
+          "confidence_score": 0.85,
+          "source_file": "AGENTS.md",
+          "source_location": "L55",
+          "weight": 1.0
+        },
+        "review_required": true
+      }
+    ],
+    "cached_relation_adjustment_review": "Both budget edges now refer to the unchanged 80-fit frozen-budget contract in docs/deep-research/MODEL_ARCHITECTURES.md line65, rather than the different actual-fit completion concept.",
+    "token_usage": "unavailable"
+  },
+  "report_postprocessing": {
+    "reason": "Corrected historical hard-coded five/refused wording to the actual reviewed 35-node rebuild; core builder unchanged.",
+    "previous_text": "The normal export guard first refused five retired documentation nodes. After complete source rereading and a private backup, this explicit full rebuild retired only the reviewed stale/superseded statements listed in normalization.json. Current content, source coverage and every distinct current evidence edge are preserved.",
+    "replacement_text": "Graphify’s semantic-retirement guard requires an explicit reviewed rebuild. After complete source rereading and a private backup, this audited rebuild retired exactly 35 stale or superseded semantic nodes listed with individual reasons in normalization.json. Current content, complete source coverage and every distinct current evidence edge are preserved.",
+    "core_builder_unchanged": true
+  }
 }

@@ -2,13 +2,13 @@
 
 ## 2026-11-03最新使用者決定
 
-使用者明確選擇「目前暫時決定全部公開」：程式與live-data均採公開目標，取代下面較早的private-only／另設私人資料repo偏好。發布公開資料仍須程式顯式opt-in（CLI `--allow-public-data`、hosted `FINPRED_ALLOW_PUBLIC_DATA=true`），保留來源、hash、檔案安全、CAS／lease、deadline及正式模型門檻；任何地方不放帳密、cookie或token。教師ZIP／Yahoo原始資料再散布授權尚未核實，不冒稱老師已禁止或已授權。以STATUS的實際GitHub設定為準，不能把使用者決定說成設定已修改成功。
+使用者明確選擇「目前暫時決定全部公開」：程式與live-data均公開，取代較早的private-only／另設私人資料repo偏好。2026-11-03已實查repository為Public、default branch為`system-completion`，使用者設定的Actions課程帳密已由完整採集驗證生效。發布公開資料仍須程式顯式opt-in（CLI `--allow-public-data`、hosted `FINPRED_ALLOW_PUBLIC_DATA=true`），保留來源、hash、檔案安全、CAS／lease、deadline及正式模型門檻；任何地方不放帳密、cookie或token。教師ZIP／Yahoo原始資料再散布授權尚未核實，不冒稱老師已禁止或已授權。
 
 ## 最新任務範圍（優先於下方較早狀態）
 
-使用者要求依Lauren Tan工作流完成系統、建立`live-data`分支放每天更新的資料與lag／return說明。此新授權允許在**同一私人repo的live-data分支**保存教師／市場原始快照與衍生資料；程式分支及公開平台仍不放raw，任何分支均不放帳密／cookie。先前發布時private檢查通過；最新REST／GraphQL已顯示repo變為Public。已停止發布／消費，恢復Private須重新驗證；不能沿用舊private結果。原先「raw不入Git」是較早偏好，不能拿它阻止本次明確授權。
+使用者要求依Lauren Tan工作流完成系統、建立`live-data`分支放每天更新的資料與lag／return說明。依最新授權，在同一公開repo的`live-data`保存教師／市場raw與衍生資料，程式分支不混入raw，任何分支均不放憑證。較早私人模式停止發布的紀錄保留為歷史，不能拿它阻止已授權且明確opt-in的公開同步。
 
-目前整合分支為`system-completion`，由deep-research建立；核心合併目標為dev，main仍留空。新增sharing／shared_features、四架構比較、Notebook／Kaggle私有bundle、hosted流程與驗收清單；實際測試／訓練／部署結果以STATUS及COMPLETION_CHECKLIST為準。早期研究文件的「尚未實作／runner不讀藍圖」描述的是80ac804階段，不能覆蓋後續有證據的實作。
+目前整合與預設分支為`system-completion`，由deep-research建立；main仍留空並保留歷史。新增sharing／shared_features、四架構比較、Notebook／Kaggle私有bundle、hosted流程與驗收清單；實際測試／訓練／部署結果以STATUS及COMPLETION_CHECKLIST為準。早期研究文件的「尚未實作／runner不讀藍圖」描述的是80ac804階段，不能覆蓋後續有證據的實作。
 
 每日採集與正式訓練／提交分開。正式PIT、模型升級、deadline與回執門檻不得為完成任務而放寬。Codex／ChatGPT介面可有排程功能，但本對話沒有可建立排程的工具；不可冒稱已設定。Kaggle目前無MCP／帳戶憑證，官方CLI與Notebook可本地驗證，不能稱遠端訓練成功。
 
@@ -56,7 +56,7 @@
 
 文件轉換已安裝Microsoft MarkItDown 0.1.9 PDF工具與K-Dense的markitdown技能，位於上層`.agents/skills/markitdown/SKILL.md`；獨立環境及重建命令見README。公開基石16份495頁、技法16份503頁抽取文字已完整讀至EOF，頁碼／來源hash及關鍵公式視覺核對見docs/research；這不代表998頁全部圖像已逐頁審閱或所有理論已獨立重證。原PDF保留為權威來源。工具不自動提供ChatGPT Project其他聊天／檔案的存取權。
 
-目前已有資料稽核／下載／不可變快照、標籤隔離、原生日曆對齊、M0與SOX／TSM／NVDA研究特徵、四類模型×三目標實驗、模型包、每日五階段CLI、raw→daily表橋接及提交／回執程式。未供表時自動準備七個個股滯後特徵：今日實際08:10前取得可證明今日available_at，不能回填歷史；strict訓練仍因歷史vintage／發布未核實blocked，研究opt-in只產研究表。E00研究模型不得升級或提交；額外來源消融未顯示增益，未自動加入正式表。尚無正式模型、常駐部署、真實POST或五日演練。M0不能把教師date-only表視為已核實輸入，只按證據更新README及STATUS。
+目前已有資料稽核／下載／不可變快照、標籤隔離、原生日曆對齊、M0與SOX／TSM／NVDA研究特徵、四類模型×三目標實驗、模型包、每日五階段CLI、raw→daily表橋接及提交／回執程式。2026-11-03手動雲端採集41584330745及後續41593199735均取得全部16來源並匯出研究特徵；程式05eb17e的CI41593711392與research shadow還原演練41593711368成功，正式入口41593199708 attempt2還原成功，均無預測POST。定時入口條件已滿足，尚待第一個真實schedule事件與盤前前瞻日。未供表時自動準備七個個股滯後特徵：今日實際08:10前取得可證明今日available_at，不能回填歷史；strict訓練仍因歷史vintage／發布未核實blocked，研究opt-in只產研究表。研究模型不得升級或提交；額外來源未自動加入正式表。尚無正式模型、真實POST或五日演練。M0不能把教師date-only表視為已核實輸入，只按證據更新README及STATUS。
 
 先用 `rg` 搜尋。每次只完成可審查的一段工作。對特徵計算加入必要測試：未來與晚發布資料不能進入、不同休市日、缺原生日期、零分母、負 TX_OI、重複鍵、版本修訂與跨時區。以預測日期分組做時間切分，同一天的不同股票不得分到 train / validation 兩邊。標準化、缺值填補、特徵選擇只用訓練資料 fit；堆疊使用時間有效的 OOF 預測。
 
@@ -64,11 +64,11 @@
 
 ## 儲存與外部操作
 
-程式與文件留程式分支；依最新明確授權，課程／市場raw與衍生資料可進同一私人repo的live-data，發布前驗private與origin身份及來源hash。帳密、cookie、token在所有分支與log都禁止。沿用來源分享規則，不公開資料或變更repo可見性。
+程式與文件留程式分支；依最新明確授權，課程／市場raw與衍生資料可進同一公開repo的`live-data`，發布前驗實際可見性、明確公開opt-in、origin身份及來源hash。帳密、cookie、token在所有分支與log都禁止。替代私人模式仍受相同來源與憑證檢查，不擅自反轉使用者已決定的可見性。
 
-使用者已明確要求完整每日自動流程：抓教師與額外來源、計算特徵、訓練驗證模型、產生並自動提交50檔預測CSV到競賽網站，最後核實回執；此授權應持續沿用，不重複詢問相同行動。這裡的競賽上傳指預測結果；另依最新授權共享私人live-data，仍沒有授權公開raw、上傳帳密或改repository可見性。先完成dry run、格式／截止／版本與實際回執驗證，再在此範圍執行。提交程式及部署設定已實作，但未啟用；不能把前端API契約核實、唯讀session／模板取得或合成測試稱為真實提交成功。
+使用者已明確要求完整每日自動流程：抓教師與額外來源、計算特徵、訓練驗證模型、產生並自動提交50檔預測CSV到競賽網站，最後核實回執；此授權應持續沿用，不重複詢問相同行動。競賽上傳指預測結果，資料另依最新授權公開共享於`live-data`；憑證始終不得公開。先完成dry run、格式／截止／版本與實際回執驗證，再在此範圍執行。正式提交尚未啟用；不能把完整採集、前端API契約核實、唯讀session／模板取得或合成測試稱為真實提交成功。
 
-使用者後續希望不依靠學校主機；目前沒有本對話Tasks／排程工具，聊天結束後不能承諾代理自行執行。systemd與Actions是可審查入口；cron需default branch的workflow，main仍空樹。push可先註冊／演練，API／CLI dispatch依實際入口與run驗收，勿沿用舊說法一律等同UI按鈕。私有Git持久資料／狀態、跨workflow lease及POST前ledger已有實作；真正遠端排程／憑證／回執需另核對，不擅自宣稱部署。不要因缺SSH資訊停下本地研究，也不把未部署當已常駐。
+使用者後續希望不依靠學校主機；目前沒有本對話Tasks／排程工具，聊天結束後不能承諾代理自行執行。實際執行器採GitHub-hosted Actions；含workflow的`system-completion`已是default branch，main仍空樹。下一個資料cron名義時點為台北2026-11-04 04:17，尚須核對event=`schedule`的實際run，不能把手動成功當每日準時運作。持久Git狀態、跨workflow lease及POST前ledger已有實作；正式模型與回執各自驗收，不再要求使用者重設已驗證的Public／default／課程Secrets。不要因缺SSH資訊停下本地工作。
 
 ## 收工
 

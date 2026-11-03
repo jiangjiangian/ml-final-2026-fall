@@ -1,0 +1,19 @@
+{
+  "schema_version": "installed-tool-v1",
+  "tool": "RTK",
+  "upstream": "https://github.com/rtk-ai/rtk",
+  "release": "v1.1.0",
+  "source_commit": "753a3b0e939f2e4490fc24e3a1984010f40a103c",
+  "installer_sha256": "7ca3997314f631b8ad267e5add9af4b7a2f0351bdab0b1c5a9b7ed4008d0434a",
+  "verified_platform": "x86_64-unknown-linux-musl",
+  "verified_release_archive_sha256": "9454ad1b9489daa57ab0a9f4ebe2faaf4dc82b8a0f26c9e5135151abd7c9378d",
+  "verified_binary_sha256": "f4d2f533d4e82e797cad3fbcd8d4a4f85351c4871d49a6202f5bc7a3e8c5c568",
+  "project_integration": "rtk init --codex",
+  "cloud_usage": "Explicit rtk command prefixes; native Bash hook is not verified in Codex Cloud",
+  "skill_origin": "Project-authored wrapper of official CLI integration",
+  "savings_scope": "Command output bytes and estimated tokens, not total conversation or billing",
+  "upstream_licenses": [
+    "Apache-2.0",
+    "BUSL-1.1 (bundled engine)"
+  ]
+}

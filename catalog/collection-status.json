@@ -4,57 +4,57 @@
     {
       "source": "cboe_vix",
       "sha256": "a5409500cdb8fdd86ba926dcfc7de5b1a54d365d4b7850a1a50c803ae57fddd1",
-      "fetched_at": "2026-11-03T01:16:50.105990+00:00"
+      "fetched_at": "2026-11-03T01:25:05.566402+00:00"
     },
     {
       "source": "twse_twii",
       "sha256": "cfc1e8b5928cf8681483598aa68f23113c4f849f1d3924b6181dd3c6a0babc54",
-      "fetched_at": "2026-11-03T01:16:51.384316+00:00"
+      "fetched_at": "2026-11-03T01:25:07.008728+00:00"
     },
     {
       "source": "yahoo-ixic",
       "sha256": "0d55c7351297291c695c95281b517747bd537d6554c861734e520eef4c3b75fd",
-      "fetched_at": "2026-11-03T01:20:54.198978+00:00"
+      "fetched_at": "2026-11-03T01:29:09.650416+00:00"
     },
     {
       "source": "yahoo-gspc",
-      "sha256": "3955ada1c80039ade1bb115b540329c2006ca6b4ec57be1abb7ab1bb6d69fac3",
-      "fetched_at": "2026-11-03T01:20:54.390497+00:00"
+      "sha256": "91868a6446de098488cbd2040715added89acf382f6017508e2e64d879cd0470",
+      "fetched_at": "2026-11-03T01:29:09.827085+00:00"
     },
     {
       "source": "yahoo-twii",
-      "sha256": "ec7e3fc9817284b91fbf6c175c95785d46ab58ad09ff2f45fec5e834f63c6be5",
-      "fetched_at": "2026-11-03T01:20:54.618857+00:00"
+      "sha256": "bd49e6ec39dc47780deabaa30878ee339879a9914e240685d4afe95bf5bb7de0",
+      "fetched_at": "2026-11-03T01:29:10.031048+00:00"
     },
     {
       "source": "yahoo-ks11",
-      "sha256": "1aa9e333040ff69fcbe4b4cea45cb572ac095c6873cbe615452150c86ca9e012",
-      "fetched_at": "2026-11-03T01:20:54.820519+00:00"
+      "sha256": "a32077d6df11b47733965ebafa783b8d79a886901495990528833023f20a45f2",
+      "fetched_at": "2026-11-03T01:29:10.205956+00:00"
     },
     {
       "source": "yahoo-vix",
-      "sha256": "6055babd12f6e314b1cb9e16bb19e61d4deb56e6225b48a2ea9e3768fb420000",
-      "fetched_at": "2026-11-03T01:20:55.074825+00:00"
+      "sha256": "c240c16d2b173b4c1af2fcbb6230ce3024c78a4130ef63b00c4f0bc9ecd31bdd",
+      "fetched_at": "2026-11-03T01:29:10.401632+00:00"
     },
     {
       "source": "yahoo-sox",
-      "sha256": "58ba0508320bc1de675f8ca530b274b3343b905f9cdd9a48b7ad61214d7dc374",
-      "fetched_at": "2026-11-03T01:20:55.264533+00:00"
+      "sha256": "ea49bbd4955efc1a760a8f28101459a8f2695e44aa3e6f1ec279bcc03c7103d4",
+      "fetched_at": "2026-11-03T01:29:10.583869+00:00"
     },
     {
       "source": "yahoo-tsm_adr",
-      "sha256": "d826bbe5a526113cd479899803da0708b73a3c8153f220b82f912f025c03422a",
-      "fetched_at": "2026-11-03T01:20:55.492645+00:00"
+      "sha256": "da64a99954ccfb3fdfe70e44f6ad1be55ec0d19c567a06418ed394a76d920479",
+      "fetched_at": "2026-11-03T01:29:10.896810+00:00"
     },
     {
       "source": "yahoo-nvda",
-      "sha256": "e82f093f07d15b585f8d9a845645fc13b3e7369cbbbd7d0bcadef72c7358fd83",
-      "fetched_at": "2026-11-03T01:20:55.692523+00:00"
+      "sha256": "670ae906f8704cb647a8a3fbf97444f6fcbfc0a1b9344734f93070e05229430e",
+      "fetched_at": "2026-11-03T01:29:11.095731+00:00"
     },
     {
       "source": "twse-sectors",
       "sha256": "0034b193b4b6241cbe6821af37ff34d1e0b3e69cceb894dcd5533aef5aa49672",
-      "fetched_at": "2026-11-03T01:20:56.598687+00:00"
+      "fetched_at": "2026-11-03T01:29:12.139017+00:00"
     }
   ],
   "failures": [
@@ -83,8 +83,8 @@
       "detail": "source response and credentials omitted"
     }
   ],
-  "started_at": "2026-11-03T01:16:49.864353+00:00",
-  "finished_at": "2026-11-03T01:20:56.600683+00:00",
+  "started_at": "2026-11-03T01:25:05.366119+00:00",
+  "finished_at": "2026-11-03T01:29:12.140867+00:00",
   "required_sources": [
     "cboe_vix",
     "course-live",
@@ -110,7 +110,7 @@
     "readiness": "research_assumption",
     "production_eligible": false,
     "historical_vintage_verified": false,
-    "raw_catalog_sha256": "a660bb80f4f3b215e9a2f58dd98bf30db4a34314db66b9053200cf528590b42a",
+    "raw_catalog_sha256": "1e31512a47ac40e0d55b52624b2483070452fcabb350e7fa618ecf575d2151f6",
     "target_date_count": 1658,
     "stock_count": 50,
     "stock_feature_rows": 82900,
@@ -133,7 +133,7 @@
         "size_bytes": 1321077
       },
       "features/market_report.json": {
-        "sha256": "5de8d7fc5b2bba7478848d4c092b8ddf16461d3aa09c0d591f7c82df74663afd",
+        "sha256": "ad5f066959ce1866020a6dca3c56aa334ce194a5a9028dda00c2554816bcd413",
         "size_bytes": 5219
       },
       "features/schema.json": {

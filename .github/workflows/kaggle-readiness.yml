@@ -1,0 +1,50 @@
+name: Kaggle connection readiness
+
+on:
+  push:
+    branches: [system-completion]
+    paths:
+      - .github/workflows/kaggle-readiness.yml
+      - ml_financial_prediction/scripts/check_training_backend.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kaggle-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - name: Inspect configured credential presence without importing Kaggle
+        id: presence
+        working-directory: ml_financial_prediction
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME || vars.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: python scripts/check_training_backend.py --presence-only
+      - name: Set up isolated optional tooling
+        if: steps.presence.outputs.credentials_ready == 'true'
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+        with:
+          version: '0.12.23'
+          python-version: '3.12'
+      - name: Install pinned optional Kaggle tools only when credentials exist
+        if: steps.presence.outputs.credentials_ready == 'true'
+        run: |
+          uv venv "$RUNNER_TEMP/kaggle-readiness" --python 3.12
+          uv pip sync --python "$RUNNER_TEMP/kaggle-readiness/bin/python" tools/kaggle-requirements.txt
+      - name: Verify one bounded read-only official account RPC
+        if: steps.presence.outputs.credentials_ready == 'true'
+        working-directory: ml_financial_prediction
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME || vars.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: >-
+          "$RUNNER_TEMP/kaggle-readiness/bin/python" scripts/check_training_backend.py
+          --timeout-seconds 30

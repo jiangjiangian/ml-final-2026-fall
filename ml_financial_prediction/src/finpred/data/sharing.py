@@ -177,6 +177,8 @@ def _metadata(value):
     # Free-text notes, nested arbitrary dictionaries, request fields, local paths
     # and authentication material are deliberately not part of the share contract.
     result = {k: v for k, v in value.items() if k in BOOLEAN_METADATA_FIELDS and isinstance(v, bool)}
+    if value.get('transport') in {'requests_https', 'curl_ipv4_verified_tls'}:
+        result['transport'] = value['transport']
     if 'audit' in value:
         result['audit'] = _summary(value['audit'])
     if 'readiness' in value:

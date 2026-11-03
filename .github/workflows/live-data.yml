@@ -70,6 +70,8 @@ jobs:
         env:
           FINPRED_ALLOW_PUBLIC_DATA: 'true'
           GH_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN || github.token }}
+          # Actual hosted diagnostics: requests read-timeout, curl IPv4 verified TLS succeeds.
+          FINPRED_FRED_TRANSPORT: curl_ipv4
           FINPRED_DATA_REPOSITORY: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
           FINPRED_DATA_ROOT: ${{ github.workspace }}/live-data
           # Push runs exercise public adapters too. Missing course secrets produce

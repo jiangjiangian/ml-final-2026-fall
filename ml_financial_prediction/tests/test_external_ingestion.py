@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import requests
 
@@ -11,6 +13,7 @@ from finpred.ingestion.external import (
     MAX_PAYLOAD_BYTES,
     ExternalDataError,
     download_external,
+    download_fred_ipv4,
     parse_external_payload,
     summarize_external,
 )
@@ -53,6 +56,47 @@ class Session:
 
 
 class ParseTests(unittest.TestCase):
+    def test_verified_curl_ipv4_uses_official_url_and_same_parser(self):
+        calls = []
+
+        def run(arguments, **kwargs):
+            calls.append((arguments, kwargs))
+            Path(arguments[arguments.index('--output') + 1]).write_bytes(FRED)
+            return SimpleNamespace(returncode=0, stdout='200 0', stderr='omitted')
+
+        with tempfile.TemporaryDirectory() as directory:
+            with patch('shutil.which', return_value='/usr/bin/curl'), patch('subprocess.run', side_effect=run):
+                manifest = download_fred_ipv4('fred_us10y', directory)
+            self.assertEqual(manifest['metadata']['audit']['row_count'], 3)
+            self.assertTrue(manifest['metadata']['tls_verification'])
+            self.assertFalse(manifest['metadata']['audit']['historical_features_ready'])
+            self.assertEqual(manifest['metadata']['transport'], 'curl_ipv4_verified_tls')
+        args, kwargs = calls[0]
+        self.assertIn('--ipv4', args)
+        self.assertNotIn('--insecure', args)
+        self.assertNotIn('-k', args)
+        self.assertTrue(args[-1].startswith('https://fred.stlouisfed.org/'))
+        self.assertEqual(kwargs['timeout'], 50)
+
+    def test_curl_ipv4_rejects_redirect_bad_tls_html_and_other_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for status in ('301 0', '200 60', '000 0'):
+                with patch('shutil.which', return_value='/usr/bin/curl'), patch('subprocess.run',
+                     return_value=SimpleNamespace(returncode=0, stdout=status, stderr='secret')):
+                    with self.assertRaises(ExternalDataError) as error:
+                        download_fred_ipv4('fred_us10y', directory)
+                    self.assertNotIn('secret', str(error.exception))
+
+            def html(arguments, **kwargs):
+                Path(arguments[arguments.index('--output') + 1]).write_bytes(b'<html>error</html>')
+                return SimpleNamespace(returncode=0, stdout='200 0', stderr='')
+
+            with patch('shutil.which', return_value='/usr/bin/curl'), patch('subprocess.run', side_effect=html):
+                with self.assertRaises(ExternalDataError):
+                    download_fred_ipv4('fred_us10y', directory)
+            with self.assertRaises(ExternalDataError):
+                download_fred_ipv4('cboe_vix', directory)
+
     def test_vix_keeps_provider_dates_and_points(self):
         rows = parse_external_payload("cboe_vix", VIX)
         self.assertEqual(rows[1]["provider_observation_date"], "2026-01-05")

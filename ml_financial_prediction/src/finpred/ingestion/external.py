@@ -217,6 +217,46 @@ def summarize_external(source_id: str, rows: list[dict]) -> dict:
     }
 
 
+def download_fred_ipv4(source_id: str, root: str | Path) -> dict:
+    """Read the same official FRED CSV through bounded, verified-TLS curl IPv4.
+
+    Selected explicitly on hosted runners after a real diagnostic showed requests
+    read timeouts and curl IPv4 HTTP200/verified TLS. Parsing/provenance/readiness
+    are identical to the requests adapter; no data mirror or insecure TLS is used.
+    """
+    import shutil
+    import subprocess
+    import tempfile
+
+    from finpred.data.snapshots import snapshot_bytes
+
+    if source_id not in {'fred_us10y', 'fred_usd_twd'}:
+        raise ExternalDataError('curl IPv4 transport is restricted to registered FRED sources')
+    binary = shutil.which('curl')
+    if binary is None:
+        raise ExternalDataError('Verified curl IPv4 transport is unavailable')
+    spec = SOURCE_SPECS[source_id]
+    with tempfile.TemporaryDirectory(prefix='finpred-fred-') as temporary:
+        destination = Path(temporary) / 'data.csv'
+        args = [binary, '--silent', '--show-error', '--fail', '--ipv4', '--proto', '=https',
+                '--connect-timeout', '10', '--max-time', '45', '--max-filesize', str(MAX_PAYLOAD_BYTES),
+                '--output', str(destination), '--write-out', '%{http_code} %{ssl_verify_result}', spec['url']]
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, timeout=50, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            raise ExternalDataError('Verified curl IPv4 transport failed', network_category='request_timeout') from None
+        if result.returncode or result.stdout.strip() != '200 0':
+            raise ExternalDataError('Verified curl IPv4 transport failed', network_category='request_failure')
+        if not destination.is_file() or not 0 < destination.stat().st_size <= MAX_PAYLOAD_BYTES:
+            raise ExternalDataError('Empty or oversized source response')
+        payload = destination.read_bytes()
+    rows = parse_external_payload(source_id, payload)
+    return snapshot_bytes(payload, root, source=source_id, source_url=spec['url'], suffix=spec['suffix'],
+                          metadata={'audit': summarize_external(source_id, rows),
+                                    'transform_policy': spec['transform'], 'tls_verification': True,
+                                    'transport': 'curl_ipv4_verified_tls'})
+
+
 def download_external(source_id: str, root: str | Path, *, session=None) -> dict:
     """Download, validate and retain an immutable raw snapshot via verified TLS."""
     if source_id not in SOURCE_SPECS:

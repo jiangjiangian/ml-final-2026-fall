@@ -80,7 +80,7 @@ def select_stage(now):
 def collect_raw(runtime_root, *, clock=None):
     """Collection is independent of labels, model quality and prediction windows."""
     from finpred.ingestion.course import download_course_sources
-    from finpred.ingestion.external import SOURCE_SPECS, download_external
+    from finpred.ingestion.external import SOURCE_SPECS, download_external, download_fred_ipv4
     from finpred.ingestion.market_history import (
         HISTORY_SERIES, download_market_history, download_twse_sector_snapshot,
     )
@@ -89,8 +89,16 @@ def collect_raw(runtime_root, *, clock=None):
     root, records, failures, manifests = Path(runtime_root), [], [], []
     jobs = [('course-' + name, lambda name=name: download_course_sources(root / 'raw', name))
             for name in ('training', 'live')]
-    jobs += [(source, lambda source=source: [download_external(source, root / 'raw')])
-             for source in SOURCE_SPECS]
+    fred_transport = os.environ.get('FINPRED_FRED_TRANSPORT', 'requests')
+    if fred_transport not in {'requests', 'curl_ipv4'}:
+        raise HostedBlocked('unknown FRED transport configuration')
+
+    def external_job(source):
+        adapter = (download_fred_ipv4 if source.startswith('fred_') and fred_transport == 'curl_ipv4'
+                   else download_external)
+        return [adapter(source, root / 'raw')]
+
+    jobs += [(source, lambda source=source: external_job(source)) for source in SOURCE_SPECS]
     jobs += [('yahoo-' + series, lambda series=series: [download_market_history(
         series, '2019-12-01', end, root / 'raw')]) for series in HISTORY_SERIES]
     jobs += [('twse-sectors', lambda: [download_twse_sector_snapshot(root / 'raw')])]

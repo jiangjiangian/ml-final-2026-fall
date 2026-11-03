@@ -19,7 +19,9 @@ on:
         type: string
   schedule:
     - cron: '20 23 * * *'
-    - cron: '10,20,35 0 * * *'
+    - cron: '10 0 * * *'
+    - cron: '20 0 * * *'
+    - cron: '35 0 * * *'
 
 permissions:
   contents: write
@@ -72,6 +74,8 @@ jobs:
           FINPRED_DATA_REPOSITORY: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
           FINPRED_DATA_ROOT: ${{ github.workspace }}/live-data
           FINPRED_MODE: ${{ github.event_name == 'push' && 'rehearsal' || 'financial' }}
+          FINPRED_EVENT_NAME: ${{ github.event_name }}
+          FINPRED_SCHEDULE: ${{ github.event.schedule }}
           FINPRED_STAGE: ${{ inputs.stage || 'auto' }}
           FINPRED_TARGET_DATE: ${{ inputs.target_date }}
           FINPRED_SUBMISSION_RELEASED: ${{ vars.FINPRED_SUBMISSION_RELEASED || 'false' }}

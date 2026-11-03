@@ -1,0 +1,81 @@
+name: Research shadow pipeline
+
+on:
+  push:
+    branches: [system-completion]
+    paths:
+      - .github/workflows/research-shadow.yml
+      - ml_financial_prediction/scripts/run_hosted_shadow.py
+      - ml_financial_prediction/src/finpred/pipelines/shadow.py
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Research only; never promotes a model or submits predictions
+        required: true
+        type: choice
+        default: rehearsal
+        options: [rehearsal, train, predict]
+      target_date:
+        description: Optional YYYY-MM-DD; real-time and official-session gates still apply
+        required: false
+        type: string
+  schedule:
+    # Stagger research behind the formal jobs sharing this durable-store lease.
+    - cron: '25 23 * * *'
+    - cron: '13 0 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finpred-private-runtime
+  cancel-in-progress: false
+
+jobs:
+  shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out versioned source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          path: source
+          persist-credentials: false
+      - name: Verify data repository before checkout
+        env:
+          FINPRED_ALLOW_PUBLIC_DATA: 'true'
+          FINPRED_DATA_REPOSITORY: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
+          FINPRED_DATA_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN }}
+          GH_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN || github.token }}
+        run: bash source/ml_financial_prediction/deployment/hosted/preflight.sh
+      - name: Check out durable data and isolated research state
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
+          token: ${{ secrets.FINPRED_DATA_TOKEN || github.token }}
+          ref: live-data
+          path: live-data
+          fetch-depth: 1
+          persist-credentials: true
+      - name: Set up locked Python
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+        with:
+          version: '0.12.23'
+          python-version: '3.12'
+      - name: Install locked dependencies
+        working-directory: source/ml_financial_prediction
+        run: uv sync --locked --group dev --extra models --extra data
+      - name: Restore or execute isolated fixed-recipe research stage
+        working-directory: source/ml_financial_prediction
+        env:
+          FINPRED_ALLOW_PUBLIC_DATA: 'true'
+          FINPRED_DATA_REPOSITORY: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
+          GH_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN || github.token }}
+          FINPRED_DATA_ROOT: ${{ github.workspace }}/live-data
+          FINPRED_SHADOW_MODE: ${{ inputs.mode || 'rehearsal' }}
+          FINPRED_EVENT_NAME: ${{ github.event_name }}
+          FINPRED_SCHEDULE: ${{ github.event.schedule }}
+          FINPRED_TARGET_DATE: ${{ inputs.target_date }}
+          COURSE_EMAIL: ${{ secrets.COURSE_EMAIL }}
+          COURSE_PASSWORD: ${{ secrets.COURSE_PASSWORD }}
+        run: uv run --locked --no-sync bash deployment/hosted/run-shadow.sh

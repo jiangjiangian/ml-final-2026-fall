@@ -43,12 +43,19 @@ def archive(kind, *, prior_close=11, pending=False, current_close=12):
                                        row(DAY, close=current_close)])
     output = io.BytesIO()
     with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zipped:
+        def write_member(name, payload):
+            # Synthetic acquisitions reuse a fixed fetched_at. ZIP's wall-clock
+            # default would create ambiguous source versions across a 2s tick.
+            info = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            zipped.writestr(info, payload)
+
         for sid in IDS:
-            zipped.writestr(f'data/market/{sid}.csv', csv_payload(STOCK_COLUMNS, rows))
+            write_member(f'data/market/{sid}.csv', csv_payload(STOCK_COLUMNS, rows))
         global_rows = [dict.fromkeys(GLOBAL_COLUMNS, '1') | {'date': rows[-1]['date']}]
-        zipped.writestr('data/global/global_data.csv', csv_payload(GLOBAL_COLUMNS, global_rows))
+        write_member('data/global/global_data.csv', csv_payload(GLOBAL_COLUMNS, global_rows))
         if kind == 'training':
-            zipped.writestr('data/info.json', json.dumps({'Top50@Y': IDS[:50], 'Top100@Y': IDS}))
+            write_member('data/info.json', json.dumps({'Top50@Y': IDS[:50], 'Top100@Y': IDS}))
     return output.getvalue()
 
 

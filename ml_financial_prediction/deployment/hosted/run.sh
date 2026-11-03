@@ -12,7 +12,17 @@ if [[ "${FINPRED_ALLOW_PUBLIC_DATA:-}" == "true" ]]; then
 fi
 if [[ "${FINPRED_MODE:-rehearsal}" == "financial" ]]; then
   selected_stage="${FINPRED_STAGE:-auto}"
-  if [[ "$selected_stage" == "auto" ]]; then
+  if [[ "${FINPRED_EVENT_NAME:-}" == "schedule" ]]; then
+    # Preserve the scheduled operation when a hosted runner starts late. The
+    # selected stage still enforces its own real-clock window and hard deadline.
+    case "${FINPRED_SCHEDULE:-}" in
+      '20 23 * * *') selected_stage=train ;;
+      '10 0 * * *') selected_stage=predict ;;
+      '20 0 * * *') selected_stage=submit ;;
+      '35 0 * * *') selected_stage=verify ;;
+      *) printf '%s\n' 'Unknown financial schedule; stage execution blocked' >&2; exit 1 ;;
+    esac
+  elif [[ "$selected_stage" == "auto" ]]; then
     selected_stage="$(python - <<'PY'
 import importlib.util
 from datetime import datetime, timezone

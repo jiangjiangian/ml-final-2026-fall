@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
-ALLOWED_ROOTS = {'approved.json', 'candidates', 'predictions', 'submission', 'verified', 'runs', 'tables'}
+ALLOWED_ROOTS = {'approved.json', 'candidates', 'predictions', 'submission', 'verified', 'runs', 'tables', 'shadow'}
 MAX_OBJECT_BYTES = 90 * 1024 * 1024
 MAX_STATE_BYTES = 512 * 1024 * 1024
 MAX_INDEX_BYTES = 8 * 1024 * 1024

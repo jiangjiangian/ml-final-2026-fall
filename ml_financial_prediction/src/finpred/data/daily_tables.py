@@ -161,6 +161,61 @@ def _transform_hashes():
             for name in ('data/daily_tables.py', 'data/training_table.py', 'features/stock.py')}
 
 
+def prediction_rows_from_history(stocks, target_date):
+    """Deterministic current input transform, shared by producer and verifier.
+
+    Only earlier stock observations are passed to stock_lags. A freshly fetched
+    archive is not evidence that the provider populated the latest session.
+    """
+    if len(stocks) != 50:
+        raise DailyTableError('daily stock universe must contain exactly 50 stocks')
+    cutoff = _cutoff(target_date, 8, 10)
+    rows, latest_dates = [], {}
+    for sid, history in sorted(stocks.items()):
+        before = [row for row in history if row['date'] < target_date]
+        if not before:
+            raise DailyTableError('each target stock needs an earlier observed row')
+        latest_dates[sid] = before[-1]['date']
+        rows.append({'stock_id': sid, 'target_date': target_date,
+                     'feature_cutoff': cutoff.isoformat(), **stock_lags(before[-2:], target_date)})
+    return rows, latest_dates
+
+
+def verify_prediction_values(table, target_date, payloads):
+    """Bind supported daily inputs to the exact verified course ZIP bytes.
+
+    Caller authenticates payloads against private, cutoff-eligible manifests.
+    This never promotes historical data, model readiness or provider freshness.
+    """
+    if (table.get('schema_version') != 'prediction-table-v1'
+            or table.get('feature_version') != FEATURE_VERSION
+            or table.get('feature_columns') != list(STOCK_FEATURES)):
+        raise DailyTableError('unsupported prediction input schema, feature version or ordered features')
+    if set(payloads) != set(SOURCE_URLS):
+        raise DailyTableError('prediction values require exactly Training and Live source bytes')
+    if table.get('transform_code_sha256') != _transform_hashes():
+        raise DailyTableError('prediction transform hashes differ from the current trusted builder')
+    stocks, provenance = read_course_archives(payloads['course-training'], [payloads['course-live']])
+    expected, _ = prediction_rows_from_history(stocks, target_date)
+    if table.get('provenance') != provenance:
+        raise DailyTableError('prediction provenance differs from the bound course bytes')
+    actual = table.get('rows')
+    if not isinstance(actual, list) or len(actual) != len(expected):
+        raise DailyTableError('prediction rows differ from the trusted source reconstruction')
+    for row, rebuilt in zip(actual, expected):
+        if not isinstance(row, dict) or set(row) != set(rebuilt):
+            raise DailyTableError('prediction rows contain unsupported or missing fields')
+        for key in ('stock_id', 'target_date', 'feature_cutoff'):
+            if row[key] != rebuilt[key]:
+                raise DailyTableError('prediction row order, identity or cutoff differs from source reconstruction')
+        for key in STOCK_FEATURES:
+            value, expected_value = row[key], rebuilt[key]
+            if (value is None) != (expected_value is None) or isinstance(value, bool):
+                raise DailyTableError('prediction input values differ from source reconstruction')
+            if value is not None and (not isinstance(value, (int, float)) or value != expected_value):
+                raise DailyTableError('prediction input values differ from source reconstruction')
+
+
 def prepare_training_table(runtime_root, target_date, allow_research=False):
     """Build stock-only history only with research opt-in; never certify history."""
     root = _root(runtime_root)
@@ -203,14 +258,7 @@ def prepare_prediction_table(runtime_root, target_date):
         live = next(item['record'] for item in selected if item['record']['source'] == 'course-live')
         if not live_fetch_in_prediction_window(live['fetched_at'], target_date):
             raise DailyTableError('course-live requires a target-day 04:00–08:10 Taipei acquisition')
-        rows, latest_dates = [], {}
-        for sid, history in sorted(stocks.items()):
-            before = [row for row in history if row['date'] < target_date]
-            if not before:
-                raise DailyTableError('each target stock needs an earlier observed row')
-            latest_dates[sid] = before[-1]['date']
-            rows.append({'stock_id': sid, 'target_date': target_date,
-                         'feature_cutoff': cutoff.isoformat(), **stock_lags(before[-2:], target_date)})
+        rows, latest_dates = prediction_rows_from_history(stocks, target_date)
         evidence = []
         for item in selected:
             record = item['record']

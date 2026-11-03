@@ -57,6 +57,41 @@ SOURCE_SPECS = {
 class ExternalDataError(ValueError):
     """A public source did not produce a valid bounded raw dataset."""
 
+    def __init__(self, message, *, network_category=None):
+        super().__init__(message)
+        self.network_category = network_category
+
+
+def network_failure_category(error):
+    """Classify exception types, including retry wrappers, without reading text.
+
+    requests can wrap a read timeout or TLS error in ConnectionError after its
+    retry budget expires. Inspect only exception objects and urllib3's ``reason``;
+    URLs, headers, arbitrary messages and response bytes never become diagnostics.
+    """
+    pending, seen, names = [error], set(), set()
+    while pending and len(seen) < 32:
+        current = pending.pop()
+        if not isinstance(current, BaseException) or id(current) in seen:
+            continue
+        seen.add(id(current))
+        module = type(current).__module__
+        if module.startswith(('requests.', 'urllib3.')):
+            names.add(type(current).__name__)
+        pending.extend([current.__cause__, current.__context__, getattr(current, 'reason', None)])
+        pending.extend(arg for arg in current.args if isinstance(arg, BaseException))
+    for possible, category in [
+        ({'ProxyError'}, 'proxy_failure'),
+        ({'SSLError'}, 'tls_failure'),
+        ({'ConnectTimeout', 'ConnectTimeoutError'}, 'connect_timeout'),
+        ({'ReadTimeout', 'ReadTimeoutError'}, 'read_timeout'),
+        ({'Timeout', 'TimeoutError'}, 'request_timeout'),
+        ({'ConnectionError', 'NewConnectionError', 'NameResolutionError'}, 'connection_failure'),
+    ]:
+        if names & possible:
+            return category
+    return 'request_failure'
+
 
 def _number(raw, *, nullable=False, positive=False):
     if nullable and raw in ("", "."):
@@ -245,8 +280,9 @@ def download_external(source_id: str, root: str | Path, *, session=None) -> dict
                 "tls_verification": True,
             },
         )
-    except requests.RequestException:
-        raise ExternalDataError("External source network or TLS request failed") from None
+    except requests.RequestException as error:
+        raise ExternalDataError("External source network or TLS request failed",
+                                network_category=network_failure_category(error)) from None
     finally:
         if response is not None:
             response.close()

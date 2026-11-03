@@ -54,6 +54,10 @@ def collection_failure(source, error):
                 category, status = 'http_error', int(match.group(1))
     result = {'source': source, 'error_type': type(error).__name__, 'category': category,
               'detail': 'source response and credentials omitted'}
+    network_category = getattr(error, 'network_category', None)
+    if network_category in {'proxy_failure', 'tls_failure', 'connect_timeout', 'read_timeout',
+                            'request_timeout', 'connection_failure', 'request_failure'}:
+        result['network_category'] = network_category
     if status is not None:
         result['http_status'] = status
     return result

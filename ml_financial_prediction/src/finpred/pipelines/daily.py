@@ -159,9 +159,11 @@ def _prediction_table(table, day, now):
     evidence = table.get('feature_evidence')
     if not isinstance(evidence, list) or not evidence:
         raise PipelineBlocked('actual source fetch and availability evidence required')
-    from finpred.data.daily_tables import SOURCE_URLS, live_fetch_in_prediction_window
+    from finpred.data.daily_tables import (
+        DailyTableError, SOURCE_URLS, live_fetch_in_prediction_window, verify_prediction_values,
+    )
 
-    covered, live_checked = set(), False
+    covered, live_checked, bound_payloads = set(), False, {}
     columns = table.get('feature_columns')
     if not isinstance(columns, list) or not columns or len(set(columns)) != len(columns):
         raise PipelineBlocked('unique feature_columns required')
@@ -188,6 +190,12 @@ def _prediction_table(table, day, now):
         if (hashlib.sha256(payload).hexdigest() != item['payload_sha256']
                 or len(payload) != manifest.get('size_bytes')):
             raise PipelineBlocked('source payload integrity failed')
+        if (item['source'] not in SOURCE_URLS or item['source'] in bound_payloads
+                or manifest.get('source_url') != SOURCE_URLS[item['source']]
+                or not isinstance(manifest.get('metadata'), dict)
+                or manifest['metadata'].get('tls_verified') is not True):
+            raise PipelineBlocked('prediction requires unique, trusted course source snapshots with verified TLS')
+        bound_payloads[item['source']] = payload
         fetched = aware_datetime(item.get('fetched_at'), name='fetched_at')
         if fetched != aware_datetime(manifest.get('fetched_at'), name='manifest fetched_at'):
             raise PipelineBlocked('source fetched time differs from snapshot')
@@ -214,6 +222,10 @@ def _prediction_table(table, day, now):
     for row in rows:
         if row['target_date'] != day or aware_datetime(row['feature_cutoff'], name='cutoff') != cutoff:
             raise PipelineBlocked('prediction rows must use target-day 08:10 cutoff')
+    try:
+        verify_prediction_values(table, day, bound_payloads)
+    except (DailyTableError, ValueError, KeyError, TypeError):
+        raise PipelineBlocked('prediction inputs do not match the trusted course-source reconstruction') from None
     return cutoff
 
 

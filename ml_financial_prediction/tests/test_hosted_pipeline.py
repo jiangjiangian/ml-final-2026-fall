@@ -271,7 +271,7 @@ class HostedFlowTests(unittest.TestCase):
 
         def fail_external(source, root):
             if source == 'fred_us10y':
-                raise ExternalDataError('External source network or TLS request failed')
+                raise ExternalDataError('External source network or TLS request failed', network_category='read_timeout')
             if source == 'fred_usd_twd':
                 raise ExternalDataError('External source returned HTTP 429')
             raise RuntimeError(secret)
@@ -287,6 +287,7 @@ class HostedFlowTests(unittest.TestCase):
         self.assertEqual(failures['course-training']['category'], 'missing_course_credentials')
         self.assertEqual(failures['course-live']['category'], 'missing_course_credentials')
         self.assertEqual(failures['fred_us10y']['category'], 'network_or_tls')
+        self.assertEqual(failures['fred_us10y']['network_category'], 'read_timeout')
         self.assertEqual(failures['fred_usd_twd']['category'], 'http_error')
         self.assertEqual(failures['fred_usd_twd']['http_status'], 429)
         self.assertEqual(failures['yahoo-ixic']['category'], 'unknown')

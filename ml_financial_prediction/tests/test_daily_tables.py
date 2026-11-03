@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from finpred.data.course_schema import GLOBAL_COLUMNS, STOCK_COLUMNS
 from finpred.data.daily_tables import (
-    SOURCE_URLS, prepare_prediction_table, prepare_training_table,
+    SOURCE_URLS, prediction_rows_from_history, prepare_prediction_table, prepare_training_table,
 )
 from finpred.data.snapshots import snapshot_bytes
 from finpred.features.stock import STOCK_FEATURES
@@ -218,6 +218,19 @@ class DailyTablesTests(unittest.TestCase):
         research = build_research_table({'0001': history}, provenance=[])
         expected = {name: research['rows'][-1][name] for name in STOCK_FEATURES}
         self.assertEqual(stock_lags(history[:-1], '2026-10-30'), expected)
+
+    def test_shared_prediction_transform_is_ordered_and_ignores_current_outcomes(self):
+        prior = [row('2026-10-29'), row('2026-10-30', pending=True)]
+        stocks = {sid: prior + [row(DAY, close=99)] for sid in reversed(IDS[:50])}
+        first, latest = prediction_rows_from_history(stocks, DAY)
+        changed = {sid: prior + [row(DAY, close=1)] for sid in IDS[:50]}
+        second, _ = prediction_rows_from_history(changed, DAY)
+        self.assertEqual(first, second)
+        self.assertEqual([r['stock_id'] for r in first], IDS[:50])
+        self.assertEqual(set(latest.values()), {'2026-10-30'})
+        self.assertIsNone(first[0]['stock_prev_intraday_return'])
+        self.assertEqual(first[0]['stock_previous_observation_gap_days'], 3)
+        self.assertEqual(set(first[0]), {'stock_id', 'target_date', 'feature_cutoff', *STOCK_FEATURES})
 
 
 if __name__ == '__main__':

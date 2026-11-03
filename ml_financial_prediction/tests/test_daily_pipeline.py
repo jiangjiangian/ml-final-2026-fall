@@ -5,6 +5,7 @@ import json
 import tempfile
 import time
 import unittest
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -47,6 +48,20 @@ def feature_evidence(root, *, columns=None, fetched_at='2026-11-02T08:00:00+08:0
             'available_at': '2026-11-02T07:00:00+08:00', 'fetched_at': fetched_at}
 
 
+def canonical_prediction_table(root, *, fetched_at='2026-11-02T07:00:00+08:00', **live_options):
+    """Exercise the trusted builder using audited synthetic 100-stock ZIPs."""
+    from finpred.data.daily_tables import prepare_prediction_table
+    from test_daily_tables import DAY, acquire, index
+
+    training = acquire(root, 'training', DAY + 'T06:00:00+08:00')
+    live = acquire(root, 'live', fetched_at, **live_options)
+    index(root, [training, live])
+    result = prepare_prediction_table(root, DAY)
+    if result['status'] != 'prepared':
+        raise AssertionError('canonical synthetic fixture should prepare')
+    return json.loads(Path(result['table_path']).read_bytes())
+
+
 class DailyTests(unittest.TestCase):
     def test_exact_window_and_timezone_required(self):
         for value in ('03:59:59', '09:00:00'):
@@ -70,33 +85,28 @@ class DailyTests(unittest.TestCase):
 
     def test_freeze_requires_fetch_before_cutoff(self):
         with tempfile.TemporaryDirectory() as root:
-            table = {'readiness': 'verified', 'availability_evidence': 'source snapshots',
-                     'feature_columns': ['lag'], 'feature_evidence': [feature_evidence(root)],
-                     'rows': [{'stock_id': str(n), 'target_date': '2026-11-02',
-                               'feature_cutoff': '2026-11-02T08:10:00+08:00'} for n in range(50)]}
+            table = canonical_prediction_table(root)
             _prediction_table(table, '2026-11-02', clock('08:10:00')())
             with self.assertRaises(PipelineBlocked):
                 _prediction_table(table, '2026-11-02', clock('08:09:59')())
-            table['feature_evidence'] = [feature_evidence(root, fetched_at='2026-11-02T08:10:01+08:00')]
+            table['feature_evidence'] = [feature_evidence(root, columns=table['feature_columns'],
+                                                       fetched_at='2026-11-02T08:10:01+08:00')]
             with self.assertRaisesRegex(PipelineBlocked, 'after freeze'):
                 _prediction_table(table, '2026-11-02', clock('08:20:00')())
 
     def test_evidence_binds_private_actual_payload_and_covers_all_features(self):
         with tempfile.TemporaryDirectory() as root:
-            table = {'readiness': 'verified', 'availability_evidence': 'mock contract',
-                     'feature_columns': ['lag'], 'feature_evidence': [feature_evidence(root)],
-                     'rows': [{'stock_id': str(n), 'target_date': '2026-11-02',
-                               'feature_cutoff': '2026-11-02T08:10:00+08:00'} for n in range(50)]}
             for mutation in ('missing_column', 'payload_changed', 'public_file', 'no_release_basis', 'bare_times'):
-                with self.subTest(mutation=mutation):
-                    table['feature_columns'] = ['lag']
-                    table['feature_evidence'] = [feature_evidence(root)]
+                with self.subTest(mutation=mutation), tempfile.TemporaryDirectory(dir=root) as case_root:
+                    table = canonical_prediction_table(case_root)
+                    manifest = json.loads(Path(table['feature_evidence'][-1]['snapshot_manifest']).read_bytes())
+                    payload = Path(manifest['payload_path'])
                     if mutation == 'missing_column':
                         table['feature_columns'].append('another_lag')
                     elif mutation == 'payload_changed':
-                        (Path(root) / 'source.json').write_bytes(b'changed')
+                        payload.write_bytes(b'changed')
                     elif mutation == 'public_file':
-                        (Path(root) / 'source.json').chmod(0o644)
+                        payload.chmod(0o644)
                     elif mutation == 'no_release_basis':
                         table['feature_evidence'][0]['availability_basis'] = {}
                     else:
@@ -107,16 +117,62 @@ class DailyTests(unittest.TestCase):
 
     def test_observed_fetch_proves_current_availability_without_backdating(self):
         with tempfile.TemporaryDirectory() as root:
-            evidence = feature_evidence(root)
-            evidence['availability_basis']['kind'] = 'observed_fetch'
-            evidence['available_at'] = evidence['fetched_at']
-            table = {'readiness': 'verified', 'availability_evidence': 'current observed bytes',
-                     'feature_columns': ['lag'], 'feature_evidence': [evidence],
-                     'rows': [{'stock_id': str(n), 'target_date': '2026-11-02',
-                               'feature_cutoff': '2026-11-02T08:10:00+08:00'} for n in range(50)]}
+            table = canonical_prediction_table(root)
+            evidence = table['feature_evidence'][-1]
             _prediction_table(table, '2026-11-02', clock('08:20:00')())
             evidence['available_at'] = '2026-11-01T08:00:00+08:00'
             with self.assertRaisesRegex(PipelineBlocked, 'cannot backdate'):
+                _prediction_table(table, '2026-11-02', clock('08:20:00')())
+
+    def test_explicit_prediction_values_must_rebuild_from_bound_zip_bytes(self):
+        with tempfile.TemporaryDirectory() as root:
+            trusted = canonical_prediction_table(root, pending=True)
+            _prediction_table(trusted, '2026-11-02', clock('08:20:00')())
+            feature = 'stock_prev_intraday_return'
+            self.assertIsNone(trusted['rows'][0][feature])
+            for mutation in ('feature_value', 'missing_mask', 'stock_order', 'feature_order',
+                             'feature_version', 'schema', 'cutoff', 'current_label',
+                             'provenance', 'transform'):
+                with self.subTest(mutation=mutation):
+                    table = deepcopy(trusted)
+                    if mutation == 'feature_value':
+                        table['rows'][0]['stock_previous_observation_gap_days'] = 1
+                    elif mutation == 'missing_mask':
+                        table['rows'][0][feature] = 0.0
+                    elif mutation == 'stock_order':
+                        table['rows'][:2] = reversed(table['rows'][:2])
+                    elif mutation == 'feature_order':
+                        table['feature_columns'].reverse()
+                    elif mutation == 'feature_version':
+                        table['feature_version'] = 'external-v1'
+                    elif mutation == 'schema':
+                        table['schema_version'] = 'training-table-v1'
+                    elif mutation == 'cutoff':
+                        # The same instant with a different representation is
+                        # not the output of the canonical trusted transform.
+                        table['rows'][0]['feature_cutoff'] = '2026-11-02T00:10:00+00:00'
+                    elif mutation == 'current_label':
+                        table['rows'][0]['y'] = 1
+                    elif mutation == 'provenance':
+                        table['provenance'][0]['sha256'] = '0' * 64
+                    else:
+                        table['transform_code_sha256'] = {}
+                    with self.assertRaisesRegex(PipelineBlocked, 'trusted course-source reconstruction'):
+                        _prediction_table(table, '2026-11-02', clock('08:20:00')())
+
+    def test_valid_source_hash_cannot_certify_arbitrary_or_external_input_values(self):
+        with tempfile.TemporaryDirectory() as root:
+            table = canonical_prediction_table(root)
+            table['rows'][0]['stock_prev_intraday_return'] = 500.0
+            with self.assertRaisesRegex(PipelineBlocked, 'trusted course-source reconstruction'):
+                _prediction_table(table, '2026-11-02', clock('08:20:00')())
+            table = canonical_prediction_table(root)
+            table['feature_columns'].append('external_index_return')
+            for row in table['rows']:
+                row['external_index_return'] = 0.25
+            for item in table['feature_evidence']:
+                item['feature_columns'].append('external_index_return')
+            with self.assertRaisesRegex(PipelineBlocked, 'trusted course-source reconstruction'):
                 _prediction_table(table, '2026-11-02', clock('08:20:00')())
 
     def test_explicit_prediction_table_cannot_bypass_live_fetch_window(self):
@@ -133,7 +189,7 @@ class DailyTests(unittest.TestCase):
             # Sunday 20:00 UTC is Monday 04:00 Taipei, and the Friday source
             # observation remains legitimate over the weekend. This only proves
             # fetch freshness; the test does not certify provider updates.
-            table['feature_evidence'] = [feature_evidence(root, fetched_at='2026-11-01T20:00:00+00:00')]
+            table = canonical_prediction_table(root, fetched_at='2026-11-01T20:00:00+00:00')
             _prediction_table(table, '2026-11-02', clock('08:20:00')())
 
     def test_explicit_prediction_table_requires_matching_live_manifest_and_tls(self):
@@ -218,27 +274,28 @@ class DailyTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            table = canonical_prediction_table(root)
+            stock_ids = [row['stock_id'] for row in table['rows']]
             history = {'schema_version': 'training-table-v1', 'readiness': 'verified',
                        'availability_evidence': 'mock source contract',
-                       'feature_columns': ['lag'], 'feature_version': 'test-v1', 'rows': []}
-            for n in range(4):
+                       'feature_columns': table['feature_columns'],
+                       'feature_version': table['feature_version'], 'rows': []}
+            for n, sid in enumerate(stock_ids):
                 y = n % 2
-                history['rows'].append({'stock_id': str(n), 'target_date': '2026-10-30',
+                history['rows'].append({'stock_id': sid, 'target_date': '2026-10-30',
                     'feature_cutoff': '2026-10-30T08:10:00+08:00',
                     'label_available_at': '2026-10-30T14:00:00+08:00',
                     'y': y, 'adj_open': 100, 'adj_close': 100 + (1 if y else -1),
-                    'target_intraday_return': 0.01 if y else -0.01, 'lag': n})
+                    'target_intraday_return': 0.01 if y else -0.01,
+                    **{name: n for name in table['feature_columns']}})
             bundle = fit_model(history, fit_cutoff='2026-11-02T07:20:00+08:00')
             model = root / 'candidates/model'
             save_model_bundle(bundle, model)
             (root / 'approved.json').write_text(json.dumps({'model_path': str(model),
                 'manifest_sha256': hashlib.sha256((model / 'manifest.json').read_bytes()).hexdigest()}))
-            table = dict(history, feature_evidence=[feature_evidence(root)],
-                rows=[{'stock_id': str(n), 'target_date': '2026-11-02',
-                       'feature_cutoff': '2026-11-02T08:10:00+08:00', 'lag': n % 4} for n in range(50)])
             source = root / 'prediction-table.json'
             source.write_text(json.dumps(table))
-            template = ('id,2026-11-02\n' + ''.join(f'{n},0\n' for n in reversed(range(50)))).encode()
+            template = ('id,2026-11-02\n' + ''.join(f'{sid},0\n' for sid in reversed(stock_ids))).encode()
             class TemplateClient(Client):
                 def daily_template(self, day):
                     return template
@@ -262,7 +319,7 @@ class DailyTests(unittest.TestCase):
             self.assertEqual(result['feature_table_sha256'], hashlib.sha256(original_table).hexdigest())
             self.assertEqual(result['status'], 'predicted')
             lines = Path(result['csv_path']).read_text().splitlines()
-            self.assertEqual([line.split(',')[0] for line in lines[1:]], list(map(str, reversed(range(50)))))
+            self.assertEqual([line.split(',')[0] for line in lines[1:]], list(reversed(stock_ids)))
             self.assertEqual((model / 'model.joblib').read_bytes(), before)
             self.assertEqual(Path(result['csv_path']).stat().st_mode & 0o077, 0)
 

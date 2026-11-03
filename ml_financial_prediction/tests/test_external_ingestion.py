@@ -145,6 +145,33 @@ class DownloadTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, self.assertRaises(ExternalDataError) as result:
             download_external("cboe_vix", tmp, session=session)
         self.assertNotIn("fixture-secret", str(result.exception))
+        self.assertEqual(result.exception.network_category, 'connection_failure')
+
+    def test_precise_network_categories_do_not_include_exception_messages(self):
+        cases = [
+            (requests.exceptions.SSLError('fixture-secret'), 'tls_failure'),
+            (requests.exceptions.ProxyError('fixture-secret'), 'proxy_failure'),
+            (requests.exceptions.ConnectTimeout('fixture-secret'), 'connect_timeout'),
+            (requests.exceptions.ReadTimeout('fixture-secret'), 'read_timeout'),
+            (requests.exceptions.Timeout('fixture-secret'), 'request_timeout'),
+        ]
+        for error, category in cases:
+            with self.subTest(category=category), tempfile.TemporaryDirectory() as tmp:
+                with self.assertRaises(ExternalDataError) as result:
+                    download_external('fred_us10y', tmp, session=Session(error))
+                self.assertEqual(category, result.exception.network_category)
+                self.assertNotIn('fixture-secret', str(result.exception))
+                self.assertEqual(list(Path(tmp).iterdir()), [])
+
+    def test_retry_wrapped_read_timeout_keeps_safe_underlying_category(self):
+        from urllib3.exceptions import ReadTimeoutError
+
+        underlying = ReadTimeoutError(None, '/fixture-secret', 'fixture-secret')
+        wrapped = requests.ConnectionError(underlying)
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(ExternalDataError) as result:
+            download_external('fred_usd_twd', tmp, session=Session(wrapped))
+        self.assertEqual('read_timeout', result.exception.network_category)
+        self.assertNotIn('fixture-secret', str(result.exception))
 
 
 if __name__ == "__main__":

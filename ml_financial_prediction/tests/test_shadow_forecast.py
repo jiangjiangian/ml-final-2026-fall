@@ -7,7 +7,7 @@ import unittest
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from finpred.inference.predict import predict_rows
 from finpred.pipelines.daily import PipelineBlocked
@@ -206,6 +206,14 @@ class ShadowForecastTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         run_shadow_forecast(directory, **kwargs, clock=lambda: moment('08:11:00'))
             self.assertFalse((Path(directory) / 'shadow').exists())
+
+    def test_interrupted_final_check_does_not_leave_a_completion_marker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            kwargs, _, _ = inputs(directory)
+            clock = Mock(side_effect=[moment('08:11:00')] * 3 + [KeyboardInterrupt])
+            with self.assertRaises(KeyboardInterrupt):
+                run_shadow_forecast(directory, **kwargs, clock=clock)
+            self.assertFalse(list((Path(directory) / 'shadow').rglob('completion.json')))
 
     def test_recipe_is_frozen_and_does_not_promote_research_bundle(self):
         with tempfile.TemporaryDirectory() as directory:

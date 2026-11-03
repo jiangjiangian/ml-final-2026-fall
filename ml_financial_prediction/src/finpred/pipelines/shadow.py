@@ -2,8 +2,9 @@
 
 This records engineering evidence only. It neither certifies historical vintages
 nor promotes a model. The CLI has no clock override or network/submission path.
-A completed run has completion.json; incomplete/late runs retain diagnostic bytes
-without that marker and must never be counted as prospective evidence.
+A completion marker binds earlier fsynced artifacts, rather than proving its own
+write time. Process termination can leave a candidate marker; hosted prospective
+evidence also requires successful remote publication before the real deadline.
 """
 
 import csv
@@ -227,13 +228,15 @@ def run_shadow_forecast(runtime_dir, *, trusted_model_dir, prediction_table,
         _persist(completion_path, _json_bytes({
             'schema_version': 'shadow-completion-v1', 'manifest_sha256': _digest(manifest_bytes),
             'recorded_at': recorded.isoformat(), 'deadline': deadline.isoformat(),
+            'time_scope': 'artifacts_verified_before_marker_write; marker_not_independent_deadline_proof',
+            'requires_timely_hosted_publication': True,
         }))
         _sync_directory(destination)
         _sync_directory(date_store)
         finished = aware_datetime(clock(), name='shadow final deadline check')
         if not recorded <= finished < deadline:
             raise PipelineBlocked('shadow completion was not persisted before its real deadline')
-    except Exception:
+    except BaseException:
         completion_path.unlink(missing_ok=True)
         _sync_directory(destination)
         raise

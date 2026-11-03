@@ -27,6 +27,26 @@ with patch.dict(sys.modules, {'sync_live_data': publisher}):
 
 
 class DataSharingTests(unittest.TestCase):
+    def test_explicit_public_read_can_verify_anonymously_without_gh_login(self):
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value = response
+        response.status_code = 200
+        response.content = b'{}'
+        response.json.return_value = {'private': False, 'full_name': 'owner/project'}
+        with (patch.object(publisher, 'command', side_effect=sharing.SharingError('gh unavailable')),
+              patch.object(publisher.requests, 'get', return_value=response) as get):
+            self.assertEqual('public', publisher.require_private_repository('owner/project', allow_public=True))
+            self.assertTrue(get.call_args.kwargs['verify'])
+            self.assertFalse(get.call_args.kwargs['allow_redirects'])
+            response.json.return_value['full_name'] = 'other/repo'
+            with self.assertRaises(sharing.SharingError):
+                publisher.require_private_repository('owner/project', allow_public=True)
+        with (patch.object(publisher, 'command', side_effect=sharing.SharingError('gh unavailable')),
+              patch.object(publisher.requests, 'get') as get):
+            with self.assertRaises(sharing.SharingError):
+                publisher.require_private_repository('owner/project')
+            get.assert_not_called()
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -207,6 +227,34 @@ class DataSharingTests(unittest.TestCase):
         with patch.object(publisher, 'command', return_value='false'):
             with self.assertRaises(sharing.SharingError):
                 publisher.require_private_repository('owner/project')
+
+    def test_repository_visibility_requires_known_result_and_explicit_public_flag(self):
+        with patch.object(publisher, 'command', return_value='true'):
+            self.assertEqual('private', publisher.require_private_repository('owner/project'))
+        with patch.object(publisher, 'command', return_value='false'):
+            self.assertEqual('public', publisher.require_private_repository('owner/project', allow_public=True))
+            # A hosted workflow flag is not a substitute for explicit CLI consent.
+            with patch.dict(os.environ, {'FINPRED_ALLOW_PUBLIC_DATA': 'true'}):
+                with self.assertRaises(sharing.SharingError):
+                    publisher.require_private_repository('owner/project')
+        for response in ('', 'unknown', 'null', 'TRUE'):
+            with patch.object(publisher, 'command', return_value=response):
+                with self.assertRaises(sharing.SharingError):
+                    publisher.require_private_repository('owner/project', allow_public=True)
+
+    def test_consumer_explicit_public_flag_reaches_visibility_guard(self):
+        errors = io.StringIO()
+        arguments = ['fetch_live_data.py', '--repo', 'owner/project', '--revision', 'live-data',
+                     '--runtime-dir', str(self.consumer), '--allow-public-data']
+        with (patch.object(sys, 'argv', arguments),
+              patch.object(consumer_script, 'require_private_repository',
+                           side_effect=sharing.SharingError('stop before transport')) as guard,
+              patch.object(consumer_script, 'command') as transport,
+              redirect_stderr(errors)):
+            self.assertEqual(1, consumer_script.main())
+        guard.assert_called_once_with('owner/project', allow_public=True)
+        transport.assert_not_called()
+        self.assertFalse(self.consumer.exists())
 
     def test_consumer_privacy_failure_precedes_transport_or_runtime_mutation(self):
         errors = io.StringIO()

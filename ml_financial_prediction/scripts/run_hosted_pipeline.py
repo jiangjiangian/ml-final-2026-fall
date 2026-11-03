@@ -137,7 +137,7 @@ def durable_submission_client(runtime_root, store):
 
 
 def run_hosted(data_root, repository, *, mode='rehearsal', stage=None, runtime_root=HOSTED_RUNTIME,
-               target_date=None, submit=False, store_factory=PrivateGitStore):
+               target_date=None, submit=False, store_factory=PrivateGitStore, allow_public_data=False):
     from finpred.data.sharing import export_snapshot_bundle, import_snapshot_bundle
     from finpred.pipelines.daily import run_stage
 
@@ -148,7 +148,9 @@ def run_hosted(data_root, repository, *, mode='rehearsal', stage=None, runtime_r
         raise HostedBlocked('hosted runtime must be outside Git')
     runtime_root.mkdir(parents=True, exist_ok=True, mode=0o700)
     runtime_root.chmod(0o700)
-    store = store_factory(data_root, repository)
+    # Only the explicit CLI flag permits a public data repository.
+    store = (store_factory(data_root, repository, allow_public_data=True) if allow_public_data
+             else store_factory(data_root, repository))
     imported = import_snapshot_bundle(data_root, runtime_root, revision=store.parent)
     restored = restore_runtime(data_root, runtime_root)
     if mode == 'rehearsal':
@@ -206,10 +208,13 @@ def main():
     parser.add_argument('--stage', choices=('train', 'predict', 'submit', 'verify'))
     parser.add_argument('--target-date')
     parser.add_argument('--submit', action='store_true')
+    parser.add_argument('--allow-public-data', action='store_true',
+                        help='Explicitly allow a verified public data repository')
     args = parser.parse_args()
     try:
         result = run_hosted(args.data_dir, args.repository, mode=args.mode, stage=args.stage,
-                            target_date=args.target_date, submit=args.submit)
+                            target_date=args.target_date, submit=args.submit,
+                            allow_public_data=args.allow_public_data)
     except Exception as error:
         from finpred.data.sharing import SharingError
         from finpred.pipelines.daily import PipelineBlocked

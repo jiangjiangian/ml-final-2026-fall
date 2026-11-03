@@ -1,4 +1,4 @@
-"""Fetch one private live-data Git revision and restore verified local snapshots."""
+"""Fetch a live-data Git revision and restore verified local snapshots."""
 
 import argparse
 import json
@@ -17,7 +17,9 @@ from sync_live_data import command, require_private_repository
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--repo', required=True, help='Private GitHub owner/repository')
+    parser.add_argument('--repo', required=True, help='GitHub owner/repository')
+    parser.add_argument('--allow-public-data', action='store_true',
+                        help='Explicitly allow a verified public data repository')
     parser.add_argument('--revision', required=True, help='40-character commit SHA, or live-data to resolve current version')
     parser.add_argument('--runtime-dir', type=Path, required=True)
     parser.add_argument('--with-features', action='store_true',
@@ -25,7 +27,7 @@ def main():
     args = parser.parse_args()
     stage = 'private_repository_verification'
     try:
-        require_private_repository(args.repo)
+        visibility = require_private_repository(args.repo, allow_public=args.allow_public_data)
         stage = 'revision_validation'
         if not re.fullmatch(r'[a-f0-9]{40}|live-data', args.revision):
             raise SharingError('revision must be a pinned commit SHA or live-data')
@@ -41,13 +43,14 @@ def main():
             stage = 'raw_snapshot_validation_and_import'
             result = import_snapshot_bundle(root, args.runtime_dir, revision=revision)
             result['requested_revision'] = args.revision
+            result['repository_visibility'] = visibility
             if args.with_features:
                 stage = 'derived_feature_validation_and_import'
                 result['features'] = import_shared_feature_exports(root, args.runtime_dir, revision=revision)
     except Exception as error:
         print(json.dumps({'status': 'failed', 'error_type': type(error).__name__,
                           'failure_stage': stage,
-                          'detail': 'Private data fetch or integrity validation failed; responses omitted.'}),
+                          'detail': 'Data fetch or integrity validation failed; responses omitted.'}),
               file=sys.stderr)
         return 1
     print(json.dumps(result, ensure_ascii=False))

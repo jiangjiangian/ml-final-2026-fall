@@ -15,7 +15,12 @@ if ! private="$(gh api "repos/$data_repository" --jq '.private')"; then
   echo '::error::Cannot verify the private data repository or token access.'
   exit 1
 fi
-if [[ "$private" != 'true' ]]; then
-  echo '::error::The data repository is public; private data publication is blocked.'
-  exit 1
-fi
+case "$private" in
+  true) ;;
+  false)
+    if [[ "${FINPRED_ALLOW_PUBLIC_DATA:-}" != 'true' ]]; then
+      echo '::error::Public data publication requires explicit FINPRED_ALLOW_PUBLIC_DATA=true.'
+      exit 1
+    fi ;;
+  *) echo '::error::Repository visibility is unknown; publication is blocked.'; exit 1 ;;
+esac

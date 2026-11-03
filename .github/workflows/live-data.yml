@@ -39,14 +39,16 @@ jobs:
         with:
           path: source
           persist-credentials: false
-      - name: Verify private data repository before checkout
+      - name: Verify data repository visibility before checkout
         env:
+          # User explicitly requested all data and code public; set false to restore private-only operation.
+          FINPRED_ALLOW_PUBLIC_DATA: 'true'
           FINPRED_DATA_REPOSITORY: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
           FINPRED_DATA_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN }}
           GH_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN || github.token }}
         shell: bash
         run: bash source/ml_financial_prediction/deployment/hosted/preflight.sh
-      - name: Check out private live-data
+      - name: Check out live-data
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
@@ -63,9 +65,10 @@ jobs:
       - name: Install locked dependencies
         working-directory: source/ml_financial_prediction
         run: uv sync --locked --group dev --extra models --extra data
-      - name: Verify and synchronize private snapshots
+      - name: Verify and synchronize snapshots
         working-directory: source/ml_financial_prediction
         env:
+          FINPRED_ALLOW_PUBLIC_DATA: 'true'
           GH_TOKEN: ${{ secrets.FINPRED_DATA_TOKEN || github.token }}
           FINPRED_DATA_REPOSITORY: ${{ vars.FINPRED_DATA_REPOSITORY || github.repository }}
           FINPRED_DATA_ROOT: ${{ github.workspace }}/live-data

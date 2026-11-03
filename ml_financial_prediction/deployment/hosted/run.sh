@@ -7,6 +7,9 @@ data_repository="${FINPRED_DATA_REPOSITORY:-${GITHUB_REPOSITORY:-}}"
 : "${data_repository:?private data owner/repository is required}"
 
 arguments=(--data-dir "$FINPRED_DATA_ROOT" --repository "$data_repository")
+if [[ "${FINPRED_ALLOW_PUBLIC_DATA:-}" == "true" ]]; then
+  arguments+=(--allow-public-data)
+fi
 if [[ "${FINPRED_MODE:-rehearsal}" == "financial" ]]; then
   selected_stage="${FINPRED_STAGE:-auto}"
   if [[ "$selected_stage" == "auto" ]]; then

@@ -33,6 +33,7 @@ class RuntimeStateTests(unittest.TestCase):
                        GITHUB_REPOSITORY='team/public-code', FINPRED_DATA_REPOSITORY='team/private-data',
                        CAPTURE_ARGUMENTS=str(captured), FAKE_PRIVATE='true')
             env.pop('FINPRED_DATA_TOKEN', None)
+            env.pop('FINPRED_ALLOW_PUBLIC_DATA', None)
             preflight = ['bash', str(PROJECT / 'deployment/hosted/preflight.sh')]
             missing = subprocess.run(preflight, env=env, capture_output=True, text=True)
             self.assertNotEqual(missing.returncode, 0)
@@ -47,6 +48,13 @@ class RuntimeStateTests(unittest.TestCase):
             denied = subprocess.run(preflight, env=env, capture_output=True, text=True)
             self.assertNotEqual(denied.returncode, 0)
             self.assertNotIn(secret, denied.stdout + denied.stderr)
+            env['FINPRED_ALLOW_PUBLIC_DATA'] = 'true'
+            allowed = subprocess.run(preflight, env=env, capture_output=True, text=True)
+            self.assertEqual(allowed.returncode, 0)
+            self.assertNotIn(secret, allowed.stdout + allowed.stderr)
+            env['FAKE_PRIVATE'] = 'unknown'
+            unknown = subprocess.run(preflight, env=env, capture_output=True, text=True)
+            self.assertNotEqual(unknown.returncode, 0)
             env.pop('FINPRED_DATA_REPOSITORY')
             env.pop('FINPRED_DATA_TOKEN')
             env['FAKE_PRIVATE'] = 'true'
@@ -68,6 +76,9 @@ class RuntimeStateTests(unittest.TestCase):
             subprocess.run(['bash', str(PROJECT / 'deployment/hosted/run.sh')], env=env, check=True)
             args = captured.read_text().splitlines()
             self.assertEqual(args[args.index('--repository') + 1], 'team/private-data')
+            env['FINPRED_ALLOW_PUBLIC_DATA'] = 'true'
+            subprocess.run(['bash', str(PROJECT / 'deployment/hosted/run.sh')], env=env, check=True)
+            self.assertIn('--allow-public-data', captured.read_text().splitlines())
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -78,6 +89,8 @@ class RuntimeStateTests(unittest.TestCase):
         self.data.mkdir()
 
     def put(self, name, payload=b'bounded output'):
+        if name.endswith('.json') and payload == b'bounded output':
+            payload = b'{"status":"bounded output"}'
         path = self.runtime / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(payload)
@@ -97,7 +110,7 @@ class RuntimeStateTests(unittest.TestCase):
         self.assertEqual(kept.stat().st_mode & 0o777, 0o600)
 
     def test_validate_all_hashes_before_restoring_any_member(self):
-        a, b = self.put('runs/a.json', b'aaa'), self.put('runs/b.json', b'bbb')
+        a, b = self.put('runs/a.json', b'{"id":"a"}'), self.put('runs/b.json', b'{"id":"b"}')
         record = store_module.pack_runtime(self.runtime, self.data)
         (self.data / record['files'][1]['object_key']).write_bytes(b'corrupt')
         a.unlink()
@@ -145,6 +158,19 @@ class RuntimeStateTests(unittest.TestCase):
         with self.assertRaises(store_module.HostedBlocked):
             store_module.pack_runtime(self.runtime, self.data)
 
+    def test_credentials_are_rejected_even_without_matching_environment_secret(self):
+        for key in ('password', 'Cookie', 'authorization', 'refresh_token', 'private_key'):
+            with self.subTest(key=key):
+                path = self.put('runs/account.json', json.dumps({'nested': [{key: 'old-secret'}]}).encode())
+                with self.assertRaises(store_module.HostedBlocked):
+                    store_module.pack_runtime(self.runtime, self.data)
+                path.unlink()
+
+    def test_invalid_json_cannot_be_published_as_runtime_state(self):
+        self.put('runs/account.json', b'not-json')
+        with self.assertRaises(store_module.HostedBlocked):
+            store_module.pack_runtime(self.runtime, self.data)
+
     def test_conflicting_local_state_is_not_overwritten(self):
         target = self.put('submission/day/latest.json', b'{"status":"post_in_flight"}')
         store_module.pack_runtime(self.runtime, self.data)
@@ -189,6 +215,20 @@ class GitStoreTests(unittest.TestCase):
             store_module.PrivateGitStore(self.local, 'owner/private-repo', privacy_check=lambda: False)
         with self.assertRaises(store_module.HostedBlocked):
             store_module.PrivateGitStore(self.local, 'owner/private-repo', privacy_check=lambda: True)
+
+    def test_public_opt_in_preserves_lease_origin_and_unknown_visibility_checks(self):
+        public = store_module.PrivateGitStore(self.local, 'owner/public-repo',
+                 privacy_check=lambda: False, origin_check=lambda: True,
+                 clock=lambda: self.clock, allow_public_data=True)
+        public.acquire()
+        public.assert_lease()
+        public.release()
+        with self.assertRaises(store_module.HostedBlocked):
+            store_module.PrivateGitStore(self.local, 'owner/public-repo',
+                 privacy_check=lambda: False, origin_check=lambda: False, allow_public_data=True)
+        with self.assertRaises(store_module.HostedBlocked):
+            store_module.PrivateGitStore(self.local, 'owner/public-repo',
+                 privacy_check=lambda: 'false', origin_check=lambda: True, allow_public_data=True)
 
     def test_lease_is_published_and_blocks_a_second_writer(self):
         first = self.store(owner='first')

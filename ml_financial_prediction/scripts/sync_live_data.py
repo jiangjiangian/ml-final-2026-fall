@@ -1,4 +1,4 @@
-"""Export portable raw snapshots; Git publishing requires an explicit flag."""
+"""Export portable snapshots; Git and public-data publication require explicit flags."""
 
 import argparse
 import json
@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
+
+import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 
@@ -20,11 +22,38 @@ def command(arguments, *, cwd=None):
     return result.stdout.strip()
 
 
-def require_private_repository(repository):
+def require_private_repository(repository, *, allow_public=False):
+    """Verify visibility; public sharing is allowed only with explicit opt-in."""
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
         raise SharingError('repository must be an owner/name identifier')
-    if command(['gh', 'repo', 'view', repository, '--json', 'isPrivate', '--jq', '.isPrivate']) != 'true':
-        raise SharingError('live-data publication requires a verified private repository')
+    try:
+        visibility = command(['gh', 'repo', 'view', repository, '--json', 'isPrivate', '--jq', '.isPrivate'])
+    except SharingError:
+        if not allow_public:
+            raise
+        # Anonymous reads of an explicitly public dataset need no gh account.
+        # A failed/redirected/private/unknown response never counts as consent.
+        try:
+            with requests.get('https://api.github.com/repos/' + repository,
+                              headers={'Accept': 'application/vnd.github+json',
+                                       'User-Agent': 'finpred-data-consumer'},
+                              timeout=(10, 30), verify=True, allow_redirects=False) as response:
+                if response.status_code != 200 or len(response.content) > 1024 * 1024:
+                    raise SharingError('repository visibility could not be verified')
+                metadata = response.json()
+                if (metadata.get('private') is not False
+                        or metadata.get('full_name', '').lower() != repository.lower()):
+                    raise SharingError('anonymous access did not verify the requested public repository')
+                return 'public'
+        except (requests.RequestException, ValueError, AttributeError):
+            raise SharingError('repository visibility could not be verified') from None
+    if visibility == 'true':
+        return 'private'
+    if visibility == 'false' and allow_public is True:
+        return 'public'
+    if visibility == 'false':
+        raise SharingError('public data requires explicit --allow-public-data')
+    raise SharingError('repository visibility could not be verified')
 
 
 def publication_preflight(directory, repository, *, require_clean=True, require_remote_current=True):
@@ -55,21 +84,24 @@ def main():
     parser.add_argument('--bundle-dir', type=Path, required=True)
     parser.add_argument('--raw-root', type=Path, action='append', default=[])
     parser.add_argument('--required-source', action='append', default=[])
-    parser.add_argument('--repo', required=True, help='Private GitHub owner/repository, never a token')
+    parser.add_argument('--repo', required=True, help='GitHub owner/repository, never a token')
+    parser.add_argument('--allow-public-data', action='store_true',
+                        help='Explicitly permit publishing data in a verified public repository')
     parser.add_argument('--publish', action='store_true', help='Commit and push only managed live-data paths')
     parser.add_argument('--build-features', action='store_true',
                         help='Also refresh the explicit research feature/label exports')
     args = parser.parse_args()
     try:
-        # Even a filesystem export intended for Git is checked against the named
-        # private repository; no course payload is exported to a known public repo.
-        require_private_repository(args.repo)
+        # Publication remains private by default even if the environment contains
+        # FINPRED_ALLOW_PUBLIC_DATA; the human must supply this CLI flag.
+        visibility = require_private_repository(args.repo, allow_public=args.allow_public_data)
         root = publication_preflight(args.bundle_dir, args.repo) if args.publish else None
         if not args.publish and any((p / '.git').exists() for p in (args.bundle_dir, *args.bundle_dir.parents)):
             publication_preflight(args.bundle_dir, args.repo, require_clean=False, require_remote_current=False)
         result = export_snapshot_bundle(args.runtime_dir, args.bundle_dir,
                                         raw_roots=args.raw_root, required_sources=args.required_source)
         result = {key: value for key, value in result.items() if key != 'latest'}
+        result['repository_visibility'] = visibility
         if args.build_features:
             # Missing historical evidence or feature construction must never
             # prevent publication of newly acquired, valid raw snapshots.

@@ -1,4 +1,4 @@
-"""Private, content-addressed state with fast-forward Git publication before POST.
+"""Content-addressed state with fast-forward Git publication before POST.
 
 The runtime uses a fixed absolute path across hosted runners. This intentionally
 does not rewrite timestamps, snapshot evidence, model manifests or pickle bytes.
@@ -85,6 +85,27 @@ def credential_values():
             and any(t in k.upper() for t in ('PASSWORD', 'TOKEN', 'SECRET', 'COOKIE', 'COURSE_EMAIL'))}
 
 
+def reject_json_credentials(payload):
+    """Reject credential-bearing keys independently of currently loaded secrets."""
+    try:
+        value = json.loads(payload)
+        stack = [value]
+        while stack:
+            item = stack.pop()
+            if isinstance(item, dict):
+                for key, child in item.items():
+                    normalized = re.sub(r'[^a-z0-9]', '', str(key).lower())
+                    if any(word in normalized for word in
+                           ('password', 'cookie', 'authorization', 'credential', 'secret',
+                            'apikey', 'privatekey', 'accesstoken', 'refreshtoken', 'courseemail')):
+                        raise HostedBlocked('runtime JSON contains a credential-bearing key')
+                    stack.append(child)
+            elif isinstance(item, list):
+                stack.extend(item)
+    except (UnicodeDecodeError, ValueError, RecursionError):
+        raise HostedBlocked('runtime JSON must parse safely before publication') from None
+
+
 def github_origin_identity(value):
     """Strip authentication locally; never print an origin that may contain it."""
     if value.startswith('git@github.com:'):
@@ -118,6 +139,8 @@ def pack_runtime(runtime_root, data_root):
             payload = bounded_bytes(source, MAX_OBJECT_BYTES)
             if any(value in payload for value in credential_values()):
                 raise HostedBlocked('runtime state contains an active credential literal')
+            if source.suffix.lower() == '.json':
+                reject_json_credentials(payload)
             total += len(payload)
             if len(payload) > MAX_OBJECT_BYTES or total > MAX_STATE_BYTES:
                 raise HostedBlocked('private runtime exceeded bounded Git object/state capacity')
@@ -134,7 +157,7 @@ def pack_runtime(runtime_root, data_root):
                           'sha256': digest, 'size_bytes': len(payload)})
     record = {'schema_version': 'hosted-runtime-v1', 'runtime_root': str(runtime_root), 'files': files,
               'total_bytes': total, 'created_at': datetime.now(timezone.utc).isoformat(),
-              'trust_scope': 'internally_created_finpred_state_in_same_private_repository',
+              'trust_scope': 'internally_created_finpred_state_in_verified_repository',
               'excluded': ['raw', 'market-history', 'environment', 'HTTP sessions', 'credentials', 'lock files']}
     write_json(data_root / 'runtime/state.json', record)
     return record
@@ -190,7 +213,8 @@ def restore_runtime(data_root, runtime_root):
 class PrivateGitStore:
     """A fixed live-data branch, shared lease and parent-SHA guarded writes."""
 
-    def __init__(self, data_root, repository, *, privacy_check=None, origin_check=None, clock=None, owner=None):
+    def __init__(self, data_root, repository, *, privacy_check=None, origin_check=None, clock=None, owner=None,
+                 allow_public_data=False):
         no_symlink(Path(data_root).absolute())
         self.root = Path(data_root).resolve()
         self.clock = clock or (lambda: datetime.now(timezone.utc))
@@ -199,8 +223,14 @@ class PrivateGitStore:
             raise HostedBlocked('repository must be an owner/name identifier')
         if privacy_check is None:
             def privacy_check():
-                return self.command(['gh', 'api', 'repos/' + repository, '--jq', '.private']) == 'true'
-        if not privacy_check():
+                value = self.command(['gh', 'api', 'repos/' + repository, '--jq', '.private'])
+                if value not in {'true', 'false'}:
+                    raise HostedBlocked('repository visibility is unknown; publication is blocked')
+                return value == 'true'
+        visibility = privacy_check()
+        if not isinstance(visibility, bool):
+            raise HostedBlocked('repository visibility is unknown; publication is blocked')
+        if not visibility and not allow_public_data:
             raise HostedBlocked('live data and runtime publishing require the same private repository')
         if origin_check is None:
             def origin_check():

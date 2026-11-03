@@ -1,13 +1,13 @@
 {
   "exact_duplicates_removed": 32,
-  "external_import_stubs_added": 57,
+  "external_import_stubs_added": 58,
   "declared_external_dependency_nodes_added": 1,
   "audited_super_call_corrections": [
     {
       "source": "scripts_run_hosted_pipeline_durable_submission_client_post_predictions",
       "previous_target": "scripts_run_hosted_pipeline_durable_submission_client_post_predictions",
       "corrected_target": "src_finpred_submission_course_coursesubmissionclient_post_predictions",
-      "source_location": "L134"
+      "source_location": "L138"
     }
   ],
   "duplicate_groups": [

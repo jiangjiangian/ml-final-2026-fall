@@ -13013,6 +13013,104 @@
       "file_type": "concept",
       "source_file": "docs/PROGRESS_2026-11-03.md",
       "source_location": "排程與GCP建議"
+    },
+    {
+      "id": "docs_status_continuation_fresh_live",
+      "label": "手動取得42日期Live：4000完成／200pending，11:04台北才取得，不能回填今日盤前證據",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付"
+    },
+    {
+      "id": "docs_status_continuation_fresh_fred",
+      "label": "正常TLS本機更新DGS10／DEXTAUS成功，並分享5來源人工刷新；不代表GitHub runner已修復",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付"
+    },
+    {
+      "id": "docs_status_continuation_source_bound_values",
+      "label": "從已核hash的Training／Live原始bytes重建並核對feature值、None mask、schema與cutoff",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付"
+    },
+    {
+      "id": "docs_status_continuation_provider_freshness_pending",
+      "label": "來源內容是否涵蓋前一官方交易日、停牌例外仍未認證，不冒稱正式模型可上線",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付"
+    },
+    {
+      "id": "docs_status_continuation_updated_shared_rows",
+      "label": "共享研究表83000格，100pending labels與26缺觀測label；features／labels分離",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付"
+    },
+    {
+      "id": "docs_status_continuation_network_diagnostics",
+      "label": "新workflow以正常TLS比較requests和curl IPv4；無未核實鏡像、不關TLS",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付"
+    },
+    {
+      "id": "docs_status_continuation_validation",
+      "label": "3.12共299項通過，3.10共295含3skip；來源程式9a0370e，遠端結果另查",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_fresh_live",
+      "label": "手動取得42日期Live：4000完成／200pending，11:04台北才取得，不能回填今日盤前證據",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "本次續作新增成果"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_fresh_fred",
+      "label": "正常TLS本機更新DGS10／DEXTAUS成功，並分享5來源人工刷新；不代表GitHub runner已修復",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "本次續作新增成果"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_source_bound_values",
+      "label": "從已核hash的Training／Live原始bytes重建並核對feature值、None mask、schema與cutoff",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "本次續作新增成果"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_provider_freshness_pending",
+      "label": "來源內容是否涵蓋前一官方交易日、停牌例外仍未認證，不冒稱正式模型可上線",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "本次續作新增成果"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_updated_shared_rows",
+      "label": "共享研究表83000格，100pending labels與26缺觀測label；features／labels分離",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "本次續作新增成果"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_network_diagnostics",
+      "label": "新workflow以正常TLS比較requests和curl IPv4；無未核實鏡像、不關TLS",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "本次續作新增成果"
+    },
+    {
+      "id": "docs_progress_2026_11_03_continuation_validation",
+      "label": "3.12共299項通過，3.10共295含3skip；來源程式9a0370e，遠端結果另查",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "本次續作新增成果"
     }
   ],
   "edges": [
@@ -30701,6 +30799,146 @@
       "source_file": "docs/PROGRESS_2026-11-03.md",
       "source_location": "需要使用者在GitHub完成的設定",
       "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_continuation_fresh_live",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_continuation_fresh_fred",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_continuation_source_bound_values",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_continuation_provider_freshness_pending",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_continuation_updated_shared_rows",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_continuation_network_diagnostics",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_continuation_validation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_continuation_fresh_live",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_continuation_fresh_fred",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_continuation_source_bound_values",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_continuation_provider_freshness_pending",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_continuation_updated_shared_rows",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_continuation_network_diagnostics",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_continuation_validation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作",
+      "weight": 1.0
     }
   ],
   "hyperedges": [
@@ -31020,7 +31258,7 @@
     "docs/PROJECT_GRAPH.md": 40,
     "docs/SOURCES.md": 58,
     "docs/SOURCE_ALIGNMENT.md": 48,
-    "docs/STATUS.md": 123,
+    "docs/STATUS.md": 125,
     "docs/DATASET_INVENTORY.md": 88,
     "docs/IMPLEMENTATION_PLAN.md": 93,
     "docs/API_INVENTORY.md": 56,
@@ -31046,7 +31284,7 @@
     "docs/LIVE_DATA_FEATURES.md": 60,
     "docs/REPORT_OUTLINE.md": 58,
     "docs/PHASE2_GUIDE.md": 39,
-    "docs/PROGRESS_2026-11-03.md": 47
+    "docs/PROGRESS_2026-11-03.md": 58
   },
   "source_hashes": {
     "docs/SOURCE_ALIGNMENT.md": "bf23cc1c2bf05ff3743bccf45464ed42ef1d182754d31343449eb3d8e58c0d53",
@@ -31059,7 +31297,7 @@
     "README.md": "328b257f03203d6601e70030f597c76f1bace3989b63d19c2d04afc0193c271b",
     "docs/FEATURE_SPEC.md": "2d7b731cec77d3688a42b0c3423ac3b1252585721606e901ee5ce197793def30",
     "docs/PROJECT_CONTEXT.md": "26787093295b48d2117ca21c6ea2666184bf3aef41e55ab51df8d4928b01cadc",
-    "docs/STATUS.md": "b551809bc14c227d88c9eb004b9e1c9efda8097600565af3c2659a2f9459452d",
+    "docs/STATUS.md": "2017627404358a05a1caa4fea5685f7f40f8710913640fb5f2e1e8094066cc62",
     "docs/MARKET_FEATURES.md": "604dd523e025becde30ddd9e5f0bebe58ef3f48221836c37cbaed93bb8eaa5de",
     "docs/EXPERIMENTS.md": "c70f67a7b966ba5275e72c3efdd61ce99285aaa62c54ab9d348ae28948e4d7e3",
     "docs/DECISIONS.md": "850c9a0c59d6424f7f208f591277788ca71552ef27b427a284ba153e513a5fca",
@@ -31089,7 +31327,7 @@
     "docs/LIVE_DATA_FEATURES.md": "f6cd039008dadad634f29544beed214915a9dd758dddf1f5fada920985e39ce2",
     "docs/REPORT_OUTLINE.md": "0c86c94ac873a56ee2f030202e812ba81c1fb1cb8d169c619f0f8b0e1526985e",
     "docs/PHASE2_GUIDE.md": "4cfe28a1e0e93f24fe7930034a05c74be9b0e0ae1773779320db7bc47efda2e4",
-    "docs/PROGRESS_2026-11-03.md": "4922e22734fde36fde962cbdcff51df91645bb6e5c3399b61857d462dd4d24c2"
+    "docs/PROGRESS_2026-11-03.md": "2a0d504d2683f9169cb0a64aa2b959947490a548b313939b3fdf9db0efc2c789"
   },
   "token_usage_status": "unavailable: host agent API does not expose measured usage; zeros are placeholders",
   "refresh_provenance": {
@@ -31340,6 +31578,16 @@
     ],
     "existing_ids_preserved": 1006,
     "external_settings_changed": false,
+    "token_usage": "unavailable"
+  },
+  "continuation_refresh_provenance": {
+    "at": "2026-11-03T03:17:10.365714+00:00",
+    "method": "Root semantic extraction of authored insertions; exact fully-read prior base preserved and hash checked",
+    "sources": [
+      "docs/STATUS.md",
+      "docs/PROGRESS_2026-11-03.md"
+    ],
+    "existing_ids_preserved": 1025,
     "token_usage": "unavailable"
   }
 }

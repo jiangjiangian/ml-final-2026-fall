@@ -3,58 +3,58 @@
   "acquired": [
     {
       "source": "cboe_vix",
-      "sha256": "a5409500cdb8fdd86ba926dcfc7de5b1a54d365d4b7850a1a50c803ae57fddd1",
-      "fetched_at": "2026-11-03T01:25:05.566402+00:00"
+      "sha256": "2b76ef381fbff39fa7a500d4973d01952ccb47368a27b603b88e6bc78e990b42",
+      "fetched_at": "2026-11-03T03:14:08.521182+00:00"
     },
     {
       "source": "twse_twii",
       "sha256": "cfc1e8b5928cf8681483598aa68f23113c4f849f1d3924b6181dd3c6a0babc54",
-      "fetched_at": "2026-11-03T01:25:07.008728+00:00"
+      "fetched_at": "2026-11-03T03:14:09.930787+00:00"
     },
     {
       "source": "yahoo-ixic",
-      "sha256": "0d55c7351297291c695c95281b517747bd537d6554c861734e520eef4c3b75fd",
-      "fetched_at": "2026-11-03T01:29:09.650416+00:00"
+      "sha256": "0ca96cc54cc16a0d8993f010be4b53ef6c3efea589b7f3f2ed7026bbb32ef21e",
+      "fetched_at": "2026-11-03T03:18:13.233991+00:00"
     },
     {
       "source": "yahoo-gspc",
-      "sha256": "91868a6446de098488cbd2040715added89acf382f6017508e2e64d879cd0470",
-      "fetched_at": "2026-11-03T01:29:09.827085+00:00"
+      "sha256": "4a438e834a39544a92c6e03e52976831f75f6dd5bbacbdd025ab5bf085f1d550",
+      "fetched_at": "2026-11-03T03:18:13.579274+00:00"
     },
     {
       "source": "yahoo-twii",
-      "sha256": "bd49e6ec39dc47780deabaa30878ee339879a9914e240685d4afe95bf5bb7de0",
-      "fetched_at": "2026-11-03T01:29:10.031048+00:00"
+      "sha256": "939ffbd2be5e321bc821532dc97b093e42e7cac812918685c5ce9d8b6aae120a",
+      "fetched_at": "2026-11-03T03:18:13.872026+00:00"
     },
     {
       "source": "yahoo-ks11",
-      "sha256": "a32077d6df11b47733965ebafa783b8d79a886901495990528833023f20a45f2",
-      "fetched_at": "2026-11-03T01:29:10.205956+00:00"
+      "sha256": "fba31a88f76875de5ef7d709236b7f92a55c64c79376a38e316b0450a2ed33aa",
+      "fetched_at": "2026-11-03T03:18:14.151858+00:00"
     },
     {
       "source": "yahoo-vix",
-      "sha256": "c240c16d2b173b4c1af2fcbb6230ce3024c78a4130ef63b00c4f0bc9ecd31bdd",
-      "fetched_at": "2026-11-03T01:29:10.401632+00:00"
+      "sha256": "ad767e0eb11f5b7ab8e1ba43d93eb1be1c01049a14e08e0fd58b891fcd01e945",
+      "fetched_at": "2026-11-03T03:18:14.417191+00:00"
     },
     {
       "source": "yahoo-sox",
-      "sha256": "ea49bbd4955efc1a760a8f28101459a8f2695e44aa3e6f1ec279bcc03c7103d4",
-      "fetched_at": "2026-11-03T01:29:10.583869+00:00"
+      "sha256": "471278808a888bd7dd84f5ce332e2d54ef4a7490873eced0dfc8384d77c3243e",
+      "fetched_at": "2026-11-03T03:18:14.698158+00:00"
     },
     {
       "source": "yahoo-tsm_adr",
-      "sha256": "da64a99954ccfb3fdfe70e44f6ad1be55ec0d19c567a06418ed394a76d920479",
-      "fetched_at": "2026-11-03T01:29:10.896810+00:00"
+      "sha256": "b07ee631859de3302ed446ca33e13e64186298966d34b097f402ab91db039afb",
+      "fetched_at": "2026-11-03T03:18:14.994418+00:00"
     },
     {
       "source": "yahoo-nvda",
-      "sha256": "670ae906f8704cb647a8a3fbf97444f6fcbfc0a1b9344734f93070e05229430e",
-      "fetched_at": "2026-11-03T01:29:11.095731+00:00"
+      "sha256": "1c20b0db70d6e0845a539650d40a5bdcf4e59f8c7831157870a0da7f922b5f3f",
+      "fetched_at": "2026-11-03T03:18:15.293496+00:00"
     },
     {
       "source": "twse-sectors",
       "sha256": "0034b193b4b6241cbe6821af37ff34d1e0b3e69cceb894dcd5533aef5aa49672",
-      "fetched_at": "2026-11-03T01:29:12.139017+00:00"
+      "fetched_at": "2026-11-03T03:18:16.342816+00:00"
     }
   ],
   "failures": [
@@ -74,17 +74,19 @@
       "source": "fred_us10y",
       "error_type": "ExternalDataError",
       "category": "network_or_tls",
-      "detail": "source response and credentials omitted"
+      "detail": "source response and credentials omitted",
+      "network_category": "read_timeout"
     },
     {
       "source": "fred_usd_twd",
       "error_type": "ExternalDataError",
       "category": "network_or_tls",
-      "detail": "source response and credentials omitted"
+      "detail": "source response and credentials omitted",
+      "network_category": "read_timeout"
     }
   ],
-  "started_at": "2026-11-03T01:25:05.366119+00:00",
-  "finished_at": "2026-11-03T01:29:12.140867+00:00",
+  "started_at": "2026-11-03T03:14:08.286271+00:00",
+  "finished_at": "2026-11-03T03:18:16.344551+00:00",
   "required_sources": [
     "cboe_vix",
     "course-live",
@@ -110,30 +112,30 @@
     "readiness": "research_assumption",
     "production_eligible": false,
     "historical_vintage_verified": false,
-    "raw_catalog_sha256": "1e31512a47ac40e0d55b52624b2483070452fcabb350e7fa618ecf575d2151f6",
-    "target_date_count": 1658,
+    "raw_catalog_sha256": "8596981c6c7f9908978c2af6aef4756e3406d853c03a610231ef666d3b191460",
+    "target_date_count": 1660,
     "stock_count": 50,
-    "stock_feature_rows": 82900,
-    "pending_label_rows": 50,
+    "stock_feature_rows": 83000,
+    "pending_label_rows": 100,
     "missing_label_rows": 26,
     "market_readiness": "research_assumption",
     "source_fetched_at_policy": "actual source acquisition times preserved; never inferred historical releases",
     "calendar_basis": "union_of_course_observation_dates_not_certified_TWSE_session_calendar",
     "files": {
       "features/stock_lags.csv.gz": {
-        "sha256": "54877d04498471b4014360894e5ada9bfafbb2c048a4e9d4492993b04fff6ffc",
-        "size_bytes": 4732566
+        "sha256": "58ae2422ed58ab653701d9f4fc77efedc49f7eb9d207e739a80d35d4fda57b21",
+        "size_bytes": 4738437
       },
       "labels/stock_outcomes.csv.gz": {
-        "sha256": "dcb117ceffa38523071249d8ce82e33d1fc7c613d8b1167add61474a233e269a",
-        "size_bytes": 881265
+        "sha256": "85c8b9b514c3414707a4017f4c7dbda64680cfc8adec686c47e11f5e52d09837",
+        "size_bytes": 882008
       },
       "features/market.csv": {
-        "sha256": "d07b8003a9e1aa213e21968dae890cee9a2dfd1c43ea079dd23476088de3d070",
-        "size_bytes": 1321077
+        "sha256": "b31c21b2f8e0fd25319a4eac2ea13fdaba6e43953e9d9204e3a67024add8b10c",
+        "size_bytes": 1322669
       },
       "features/market_report.json": {
-        "sha256": "ad5f066959ce1866020a6dca3c56aa334ce194a5a9028dda00c2554816bcd413",
+        "sha256": "52e986006cc8cee7eedd9f02e5514196da37b1e8498ba15ccc6770d1deb90490",
         "size_bytes": 5219
       },
       "features/schema.json": {

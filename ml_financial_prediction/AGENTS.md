@@ -1,5 +1,9 @@
 # Codex 專案工作指引
 
+## 2026-11-03最新使用者決定
+
+使用者明確選擇「目前暫時決定全部公開」：程式與live-data均採公開目標，取代下面較早的private-only／另設私人資料repo偏好。發布公開資料仍須程式顯式opt-in（CLI `--allow-public-data`、hosted `FINPRED_ALLOW_PUBLIC_DATA=true`），保留來源、hash、檔案安全、CAS／lease、deadline及正式模型門檻；任何地方不放帳密、cookie或token。教師ZIP／Yahoo原始資料再散布授權尚未核實，不冒稱老師已禁止或已授權。以STATUS的實際GitHub設定為準，不能把使用者決定說成設定已修改成功。
+
 ## 最新任務範圍（優先於下方較早狀態）
 
 使用者要求依Lauren Tan工作流完成系統、建立`live-data`分支放每天更新的資料與lag／return說明。此新授權允許在**同一私人repo的live-data分支**保存教師／市場原始快照與衍生資料；程式分支及公開平台仍不放raw，任何分支均不放帳密／cookie。先前發布時private檢查通過；最新REST／GraphQL已顯示repo變為Public。已停止發布／消費，恢復Private須重新驗證；不能沿用舊private結果。原先「raw不入Git」是較早偏好，不能拿它阻止本次明確授權。

@@ -1,5 +1,13 @@
 # 當前狀態與交接
 
+## 2026-11-03最新決定與交付
+
+完整本輪進度與操作清單見[2026-11-03報告](PROGRESS_2026-11-03.md)。實際採集已確認：教師Training／Live缺GitHub Actions憑證，FRED兩來源為network_or_tls；舊版保留。公開與default branch修改均403，試圖安全寫入COURSE_EMAIL secret也403，因此repo仍Private、default仍main、cron未啟用。程式公開模式提交cf89ddb的遠端CI41558603125成功；Python3.12共294項通過、3.10共290項／3 skips。這不是正式每日服務全部驗收完成。
+
+使用者決定「全部公開」，不再要求資料只給組員或另設私人repo。程式已加入明確公開資料opt-in，工作流配置依此選擇；CLI需`--allow-public-data`，hosted需`FINPRED_ALLOW_PUBLIC_DATA=true`。公開模式不放寬hash、來源identity、secret排除、Git CAS／lease、模型或deadline gate。GitHub可見性與default branch尚須實際套用／核對，不能把程式完成稱為設定已完成。
+
+GCP是Google雲端平台，可用Cloud Run Jobs／Cloud Scheduler／Cloud Storage承接定時批次與持久資料，但尚未開通帳戶／建立資源；目前先沿用已實作的GitHub Actions。Codex本對話仍沒有建立排程工具。
+
 ## 2026-11-02最新更新
 
 獨立稽核實際發現舊builder可將10/30 Live作11/03輸入；已在prediction builder及顯式預測表入口加入目標日04:00～08:10真實取得的course-live manifest／hash／TLS檢查，舊快照反例現在blocked。該檢查不證明供應商資料已涵蓋前一官方交易日，也不證明外部表內數值由來源bytes正確轉換；這兩項仍須正式驗證，不能據此宣稱freshness完整或模型可上線。

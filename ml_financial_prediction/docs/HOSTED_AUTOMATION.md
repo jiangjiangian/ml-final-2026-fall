@@ -1,5 +1,7 @@
 # 不靠學校主機的每日同步與模型流程
 
+2026-11-03最新選擇：使用者明確改為全部公開。兩份workflow已顯式設定`FINPRED_ALLOW_PUBLIC_DATA=true`，CLI另有`--allow-public-data`；未opt-in仍拒絕公開資料發布。以下同repo私人／分離私人repo方案為仍支援的替代與歷史決策，不再是使用者目前偏好。可見性、default branch及正式排程以實際API結果為準，任何模式都不發布憑證。
+
 更新：2026-10-31，Asia/Taipei。這份文件說明已實作的hosted入口及啟用條件，**不以workflow檔存在宣稱排程已運行**。實際遠端run、分支與部署結果由[STATUS](STATUS.md)記錄。
 
 2026-11-02更新：repo已恢復Private，手動rehearsal run41475878023成功；定時任務與正式提交尚未驗收。若使用者選擇公開程式／私人資料，本地已新增跨repo資料來源與獨立token支援，尚未建立資料repo或部署。下方2026-10-31 Public及恢復步驟為歷史紀錄。

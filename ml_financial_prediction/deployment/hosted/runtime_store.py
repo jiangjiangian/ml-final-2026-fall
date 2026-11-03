@@ -230,7 +230,7 @@ class PrivateGitStore:
         visibility = privacy_check()
         if not isinstance(visibility, bool):
             raise HostedBlocked('repository visibility is unknown; publication is blocked')
-        if not visibility and not allow_public_data:
+        if not visibility and allow_public_data is not True:
             raise HostedBlocked('live data and runtime publishing require the same private repository')
         if origin_check is None:
             def origin_check():

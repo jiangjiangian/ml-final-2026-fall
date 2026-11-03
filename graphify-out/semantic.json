@@ -12877,6 +12877,142 @@
       "captured_at": null,
       "author": null,
       "contributor": null
+    },
+    {
+      "id": "agents_public_data_user_decision_20261103",
+      "label": "11/03使用者明確暫定程式與live-data全部公開；取代私人限定偏好",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": "2026-11-03最新使用者決定",
+      "authorization_scope": "public_code_and_data_not_credentials"
+    },
+    {
+      "id": "agents_public_opt_in_guards",
+      "label": "公開資料需CLI --allow-public-data或hosted FINPRED_ALLOW_PUBLIC_DATA=true，來源／secret／deadline保護保留",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": "2026-11-03最新使用者決定"
+    },
+    {
+      "id": "readme_explicit_public_data_mode_20261103",
+      "label": "匿名公開資料讀取可顯式opt-in；實際GitHub可見性與排程以STATUS為準",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "2026-11-03"
+    },
+    {
+      "id": "docs_status_public_settings_and_secrets_403",
+      "label": "GitHub公開、default branch修改與COURSE_EMAIL secret寫入均403；repo仍Private、default仍main",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付",
+      "status": "externally_blocked"
+    },
+    {
+      "id": "docs_status_known_collection_failure_categories",
+      "label": "教師Training／Live缺Actions憑證；兩FRED來源network_or_tls；11來源更新、舊版保留",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付",
+      "collection_status": "partial"
+    },
+    {
+      "id": "docs_status_public_mode_validation",
+      "label": "公開模式3.12共294測試通過、3.10共290含3skip；cf89ddb遠端CI41558603125成功",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付"
+    },
+    {
+      "id": "docs_status_gcp_not_provisioned",
+      "label": "GCP可承接批次／排程／儲存但尚未建立資源；目前沿用GitHub Actions",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付"
+    },
+    {
+      "id": "docs_hosted_automation_public_mode_explicit_opt_in_20261103",
+      "label": "使用者改為全部公開，兩workflow明確opt-in；私人方案仍支援但非當前偏好",
+      "file_type": "concept",
+      "source_file": "docs/HOSTED_AUTOMATION.md",
+      "source_location": "2026-11-03最新選擇"
+    },
+    {
+      "id": "docs_phase2_guide_all_public_current_choice",
+      "label": "11/03目前選全部公開；下文組員限定／分離私人repo是先前可選方案",
+      "file_type": "concept",
+      "source_file": "docs/PHASE2_GUIDE.md",
+      "source_location": "2026-11-03使用者暫定全部公開"
+    },
+    {
+      "id": "docs_progress_2026_11_03_document",
+      "label": "11/03系統進度報告：完成項與實際外部阻礙",
+      "file_type": "document",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "整份文件"
+    },
+    {
+      "id": "docs_progress_2026_11_03_shared_data_delivery",
+      "label": "live-data16來源、README公式／lag、82900feature格及乾淨遠端同版本還原已完成",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "目標與目前進度"
+    },
+    {
+      "id": "docs_progress_2026_11_03_partial_cloud_collection",
+      "label": "雲端採集部分成功：11來源成功，教師缺憑證與FRED網路／TLS失敗，保留舊版",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "目標與目前進度"
+    },
+    {
+      "id": "docs_progress_2026_11_03_four_architectures_complete",
+      "label": "R2四模型48fits完成、30加18續跑，獨立評分與權重重播通過；非正式模型",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "模型結果：可以解讀到哪裡"
+    },
+    {
+      "id": "docs_progress_2026_11_03_notebook_local_kaggle_blocked",
+      "label": "本機真實Notebook6cells完成；無Kaggle帳戶token／MCP，未遠端訓練",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "目標與目前進度"
+    },
+    {
+      "id": "docs_progress_2026_11_03_public_and_schedule_blocked",
+      "label": "使用者已選全公開，但GitHub設定403；實際仍Private、main為default且cron未啟用",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "需要使用者在GitHub完成的設定"
+    },
+    {
+      "id": "docs_progress_2026_11_03_source_freshness_limits",
+      "label": "當日取得guard已修正；供應商交易日覆蓋與外部表值綁定仍未完整驗證",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "模型結果：可以解讀到哪裡"
+    },
+    {
+      "id": "docs_progress_2026_11_03_actual_test_evidence",
+      "label": "3.12共294測試通過、3.10共290含3skip；cf89ddb遠端CI成功",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "已執行的驗證"
+    },
+    {
+      "id": "docs_progress_2026_11_03_remaining_acceptance",
+      "label": "正式PIT模型、第一筆真實提交／回執及五交易日演練未完成",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "目標與目前進度"
+    },
+    {
+      "id": "docs_progress_2026_11_03_codex_gcp_scheduling",
+      "label": "本對話無Codex排程工具；GCP尚未開通，先沿用GitHub雲端runner",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "排程與GCP建議"
     }
   ],
   "edges": [
@@ -30365,6 +30501,206 @@
       "source_file": "docs/HOSTED_AUTOMATION.md",
       "source_location": "已實作的資料流",
       "weight": 1.0
+    },
+    {
+      "source": "agents_document",
+      "target": "agents_public_data_user_decision_20261103",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": "2026-11-03最新使用者決定",
+      "weight": 1.0
+    },
+    {
+      "source": "agents_document",
+      "target": "agents_public_opt_in_guards",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": "2026-11-03最新使用者決定",
+      "weight": 1.0
+    },
+    {
+      "source": "readme_document",
+      "target": "readme_explicit_public_data_mode_20261103",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "2026-11-03",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_public_settings_and_secrets_403",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_known_collection_failure_categories",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_public_mode_validation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_gcp_not_provisioned",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_hosted_automation_document",
+      "target": "docs_hosted_automation_public_mode_explicit_opt_in_20261103",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/HOSTED_AUTOMATION.md",
+      "source_location": "2026-11-03最新選擇",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_phase2_guide_document",
+      "target": "docs_phase2_guide_all_public_current_choice",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PHASE2_GUIDE.md",
+      "source_location": "2026-11-03使用者暫定全部公開",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_shared_data_delivery",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "目標與目前進度",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_partial_cloud_collection",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "目標與目前進度",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_four_architectures_complete",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "模型結果：可以解讀到哪裡",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_notebook_local_kaggle_blocked",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "目標與目前進度",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_public_and_schedule_blocked",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "需要使用者在GitHub完成的設定",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_source_freshness_limits",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "模型結果：可以解讀到哪裡",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_actual_test_evidence",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "已執行的驗證",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_remaining_acceptance",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "目標與目前進度",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_codex_gcp_scheduling",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "排程與GCP建議",
+      "weight": 1.0
+    },
+    {
+      "source": "agents_public_data_user_decision_20261103",
+      "target": "docs_progress_2026_11_03_document",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03最新決定與交付",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_status_public_settings_and_secrets_403",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "需要使用者在GitHub完成的設定",
+      "weight": 1.0
     }
   ],
   "hyperedges": [
@@ -30670,8 +31006,8 @@
   "input_tokens": 0,
   "output_tokens": 0,
   "coverage": {
-    "AGENTS.md": 71,
-    "README.md": 162,
+    "AGENTS.md": 75,
+    "README.md": 164,
     "docs/ARCHITECTURE.md": 182,
     "docs/DATA_CONTRACT.md": 52,
     "docs/DATA_SOURCES.md": 35,
@@ -30684,7 +31020,7 @@
     "docs/PROJECT_GRAPH.md": 40,
     "docs/SOURCES.md": 58,
     "docs/SOURCE_ALIGNMENT.md": 48,
-    "docs/STATUS.md": 115,
+    "docs/STATUS.md": 123,
     "docs/DATASET_INVENTORY.md": 88,
     "docs/IMPLEMENTATION_PLAN.md": 93,
     "docs/API_INVENTORY.md": 56,
@@ -30705,11 +31041,12 @@
     "docs/deep-research/AGENT_WORKFLOW.md": 83,
     "docs/deep-research/SOURCES.md": 704,
     "docs/COMPLETION_CHECKLIST.md": 66,
-    "docs/HOSTED_AUTOMATION.md": 96,
+    "docs/HOSTED_AUTOMATION.md": 98,
     "docs/KAGGLE_TRAINING.md": 115,
     "docs/LIVE_DATA_FEATURES.md": 60,
     "docs/REPORT_OUTLINE.md": 58,
-    "docs/PHASE2_GUIDE.md": 37
+    "docs/PHASE2_GUIDE.md": 39,
+    "docs/PROGRESS_2026-11-03.md": 47
   },
   "source_hashes": {
     "docs/SOURCE_ALIGNMENT.md": "bf23cc1c2bf05ff3743bccf45464ed42ef1d182754d31343449eb3d8e58c0d53",
@@ -30717,12 +31054,12 @@
     "docs/SOURCES.md": "757dea3165bea9b3d124be21ab1f02c86787827a97e26756ba54f61cd75d560c",
     "docs/DATA_SOURCES.md": "fe56e2e989ece37852578be672e75a72d0fefdaca4f146a82dc6f742bb8b2771",
     "docs/PROJECT_GRAPH.md": "46645b130d7b526c351a53bc2fe78d4f7aea64d0134e26ee2245b2799d7801f8",
-    "AGENTS.md": "1e70653b3259acd3312b0ed7c8b907b8f0ea096d41679d10433ba91ef31f0122",
+    "AGENTS.md": "ebb3c0ecffd26ac57b800e55575f543cfce86c926469eae743b55484898188b6",
     "docs/DATA_CONTRACT.md": "9fc11ab867368e591207a623db084e1a06645a81736661cc258ab3fa1903c21c",
-    "README.md": "2a834e70e3c88a790b516c0a979823e445a8aabb41b8666101a8e7408875585c",
+    "README.md": "328b257f03203d6601e70030f597c76f1bace3989b63d19c2d04afc0193c271b",
     "docs/FEATURE_SPEC.md": "2d7b731cec77d3688a42b0c3423ac3b1252585721606e901ee5ce197793def30",
     "docs/PROJECT_CONTEXT.md": "26787093295b48d2117ca21c6ea2666184bf3aef41e55ab51df8d4928b01cadc",
-    "docs/STATUS.md": "69c7102d87af4f7f90f99ce944bf98630b402e22345c8dc3c1fe4295de377971",
+    "docs/STATUS.md": "b551809bc14c227d88c9eb004b9e1c9efda8097600565af3c2659a2f9459452d",
     "docs/MARKET_FEATURES.md": "604dd523e025becde30ddd9e5f0bebe58ef3f48221836c37cbaed93bb8eaa5de",
     "docs/EXPERIMENTS.md": "c70f67a7b966ba5275e72c3efdd61ce99285aaa62c54ab9d348ae28948e4d7e3",
     "docs/DECISIONS.md": "850c9a0c59d6424f7f208f591277788ca71552ef27b427a284ba153e513a5fca",
@@ -30747,11 +31084,12 @@
     "docs/deep-research/AGENT_WORKFLOW.md": "776c8fd759aec6850e7cf4c7e69d9fb339bda91c1ec67054ff8c15a9e486cff0",
     "docs/deep-research/SOURCES.md": "eeaa7f770ae11807acf3277271f26b42e50382e15a713b3fa1697aadb7d56412",
     "docs/COMPLETION_CHECKLIST.md": "d006557180b22e8ae7ba38bbb098fd9d6fd6b019cb85d6a8f9c907a178d2219a",
-    "docs/HOSTED_AUTOMATION.md": "544dfd43259629d45cb52e45fa744888aca2cf858e91738c4e94743aef186e1e",
+    "docs/HOSTED_AUTOMATION.md": "9ab71a4b362a8ca63e5980d126f19ea5e43cc4b3ac1e6741330e555bf84747e9",
     "docs/KAGGLE_TRAINING.md": "8ed16b92397b5294073e115bbcb4dfff62c7d7632ddaa473356193bea78699e1",
     "docs/LIVE_DATA_FEATURES.md": "f6cd039008dadad634f29544beed214915a9dd758dddf1f5fada920985e39ce2",
     "docs/REPORT_OUTLINE.md": "0c86c94ac873a56ee2f030202e812ba81c1fb1cb8d169c619f0f8b0e1526985e",
-    "docs/PHASE2_GUIDE.md": "9ad9b8c602f3ca1a1e8302168efed91c88c73b66bb2a3ecb56353a0938867ef8"
+    "docs/PHASE2_GUIDE.md": "4cfe28a1e0e93f24fe7930034a05c74be9b0e0ae1773779320db7bc47efda2e4",
+    "docs/PROGRESS_2026-11-03.md": "4922e22734fde36fde962cbdcff51df91645bb6e5c3399b61857d462dd4d24c2"
   },
   "token_usage_status": "unavailable: host agent API does not expose measured usage; zeros are placeholders",
   "refresh_provenance": {
@@ -30988,5 +31326,20 @@
     "at": "2026-11-02T16:07:15.591221+00:00",
     "source": "docs/HOSTED_AUTOMATION.md",
     "scope": "Complete reread: dual-repo configuration names and explicit no-token-fallback, historical privacy event vs restored private state; new repo/token/deployment not claimed created."
+  },
+  "public_decision_refresh_provenance": {
+    "at": "2026-11-03T01:22:25.329193+00:00",
+    "method": "Root semantic extraction of authored inserts, verified exact fully-read cached base preservation; new report fully authored/read",
+    "sources": [
+      "AGENTS.md",
+      "README.md",
+      "docs/STATUS.md",
+      "docs/HOSTED_AUTOMATION.md",
+      "docs/PHASE2_GUIDE.md",
+      "docs/PROGRESS_2026-11-03.md"
+    ],
+    "existing_ids_preserved": 1006,
+    "external_settings_changed": false,
+    "token_usage": "unavailable"
   }
 }

@@ -29,7 +29,7 @@ def require_private_repository(repository, *, allow_public=False):
     try:
         visibility = command(['gh', 'repo', 'view', repository, '--json', 'isPrivate', '--jq', '.isPrivate'])
     except SharingError:
-        if not allow_public:
+        if allow_public is not True:
             raise
         # Anonymous reads of an explicitly public dataset need no gh account.
         # A failed/redirected/private/unknown response never counts as consent.

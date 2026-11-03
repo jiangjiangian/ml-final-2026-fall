@@ -47,7 +47,7 @@ def curl_ipv4_diagnostic(source):
         return {'status': 'unavailable', 'reason': 'curl_not_installed'}
     # URL is from the fixed adapter registry; no arbitrary headers, credentials,
     # redirects, shell expansion or --insecure flags can enter this invocation.
-    arguments = [binary, '--silent', '--show-error', '--ipv4', '--connect-timeout', '10',
+    arguments = [binary, '--disable', '--silent', '--show-error', '--ipv4', '--connect-timeout', '10',
                  '--max-time', '45', '--max-filesize', str(MAX_PAYLOAD_BYTES),
                  '--output', os.devnull, '--write-out', '%{http_code} %{ssl_verify_result}',
                  SOURCE_SPECS[source]['url']]

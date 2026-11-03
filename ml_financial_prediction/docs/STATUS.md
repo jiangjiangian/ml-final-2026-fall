@@ -2,6 +2,8 @@
 
 ## 2026-11-03最新決定與交付
 
+續作最新雲端採集41571756896：13來源成功、教師Training／Live兩項因missing_course_credentials失敗。FRED已以相同官方CSV、curl IPv4正常TLS及原有資料解析實際修復；新data commit346f87d。公開／default／Secrets設定的403仍未解除，正式排程仍未啟用。新測試3.12共301項通過、3.10共297含3skip；詳見進度報告。
+
 本次續作已推送`live-data@221875e`：人工刷新Training／Live／template及兩FRED來源；Live42日期4000完成／200 pending，台北11:04取得，不能作今日盤前證據。共享表83000格、100 pending labels、26缺觀測label。正式預測入口已從hash核對的原始ZIP重建並比對特徵值／schema／來源程式版本，補上只綁hash卻可改值的缺口；官方交易日覆蓋／供應商更新狀態仍需證據。新的外部來源診斷workflow已推送，沒有放寬TLS。299項3.12測試通過、3.10共295項含3skip；詳見報告的續作段落。
 
 完整本輪進度與操作清單見[2026-11-03報告](PROGRESS_2026-11-03.md)。實際採集已確認：教師Training／Live缺GitHub Actions憑證，FRED兩來源為network_or_tls；舊版保留。公開與default branch修改均403，試圖安全寫入COURSE_EMAIL secret也403，因此repo仍Private、default仍main、cron未啟用。程式公開模式提交cf89ddb的遠端CI41558603125成功；Python3.12共294項通過、3.10共290項／3 skips。這不是正式每日服務全部驗收完成。

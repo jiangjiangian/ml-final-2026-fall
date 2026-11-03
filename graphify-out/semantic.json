@@ -13111,6 +13111,48 @@
       "file_type": "concept",
       "source_file": "docs/PROGRESS_2026-11-03.md",
       "source_location": "本次續作新增成果"
+    },
+    {
+      "id": "docs_status_fred_resolution_curl_fred_verified",
+      "label": "FRED以相同官方CSV＋curl IPv4正常TLS及資料解析完成雲端驗收，沒有鏡像或關TLS",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作最新雲端驗收"
+    },
+    {
+      "id": "docs_status_fred_resolution_cloud13_verified",
+      "label": "雲端41571756896已13來源成功，僅教師Training／Live缺Actions憑證，data commit346f87d",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作最新雲端驗收"
+    },
+    {
+      "id": "docs_status_fred_resolution_tests301",
+      "label": "3.12共301項通過、3.10共297含3skip，官方freshness／正式模型仍未驗收",
+      "file_type": "concept",
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作最新雲端驗收"
+    },
+    {
+      "id": "docs_progress_2026_11_03_fred_resolution_curl_fred_verified",
+      "label": "FRED以相同官方CSV＋curl IPv4正常TLS及資料解析完成雲端驗收，沒有鏡像或關TLS",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作最新雲端驗收"
+    },
+    {
+      "id": "docs_progress_2026_11_03_fred_resolution_cloud13_verified",
+      "label": "雲端41571756896已13來源成功，僅教師Training／Live缺Actions憑證，data commit346f87d",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作最新雲端驗收"
+    },
+    {
+      "id": "docs_progress_2026_11_03_fred_resolution_tests301",
+      "label": "3.12共301項通過、3.10共297含3skip，官方freshness／正式模型仍未驗收",
+      "file_type": "concept",
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作最新雲端驗收"
     }
   ],
   "edges": [
@@ -30939,6 +30981,66 @@
       "source_file": "docs/PROGRESS_2026-11-03.md",
       "source_location": "2026-11-03續作",
       "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_fred_resolution_curl_fred_verified",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作最新雲端驗收",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_fred_resolution_cloud13_verified",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作最新雲端驗收",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_status_document",
+      "target": "docs_status_fred_resolution_tests301",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STATUS.md",
+      "source_location": "2026-11-03續作最新雲端驗收",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_fred_resolution_curl_fred_verified",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作最新雲端驗收",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_fred_resolution_cloud13_verified",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作最新雲端驗收",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_progress_2026_11_03_document",
+      "target": "docs_progress_2026_11_03_fred_resolution_tests301",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PROGRESS_2026-11-03.md",
+      "source_location": "2026-11-03續作最新雲端驗收",
+      "weight": 1.0
     }
   ],
   "hyperedges": [
@@ -31258,7 +31360,7 @@
     "docs/PROJECT_GRAPH.md": 40,
     "docs/SOURCES.md": 58,
     "docs/SOURCE_ALIGNMENT.md": 48,
-    "docs/STATUS.md": 125,
+    "docs/STATUS.md": 127,
     "docs/DATASET_INVENTORY.md": 88,
     "docs/IMPLEMENTATION_PLAN.md": 93,
     "docs/API_INVENTORY.md": 56,
@@ -31284,7 +31386,7 @@
     "docs/LIVE_DATA_FEATURES.md": 60,
     "docs/REPORT_OUTLINE.md": 58,
     "docs/PHASE2_GUIDE.md": 39,
-    "docs/PROGRESS_2026-11-03.md": 58
+    "docs/PROGRESS_2026-11-03.md": 60
   },
   "source_hashes": {
     "docs/SOURCE_ALIGNMENT.md": "bf23cc1c2bf05ff3743bccf45464ed42ef1d182754d31343449eb3d8e58c0d53",
@@ -31297,7 +31399,7 @@
     "README.md": "328b257f03203d6601e70030f597c76f1bace3989b63d19c2d04afc0193c271b",
     "docs/FEATURE_SPEC.md": "2d7b731cec77d3688a42b0c3423ac3b1252585721606e901ee5ce197793def30",
     "docs/PROJECT_CONTEXT.md": "26787093295b48d2117ca21c6ea2666184bf3aef41e55ab51df8d4928b01cadc",
-    "docs/STATUS.md": "2017627404358a05a1caa4fea5685f7f40f8710913640fb5f2e1e8094066cc62",
+    "docs/STATUS.md": "e83e7692b75118cbd2e61f71400a74fb8009d3c06fcb46045ec9ce59d8aa953c",
     "docs/MARKET_FEATURES.md": "604dd523e025becde30ddd9e5f0bebe58ef3f48221836c37cbaed93bb8eaa5de",
     "docs/EXPERIMENTS.md": "c70f67a7b966ba5275e72c3efdd61ce99285aaa62c54ab9d348ae28948e4d7e3",
     "docs/DECISIONS.md": "850c9a0c59d6424f7f208f591277788ca71552ef27b427a284ba153e513a5fca",
@@ -31327,7 +31429,7 @@
     "docs/LIVE_DATA_FEATURES.md": "f6cd039008dadad634f29544beed214915a9dd758dddf1f5fada920985e39ce2",
     "docs/REPORT_OUTLINE.md": "0c86c94ac873a56ee2f030202e812ba81c1fb1cb8d169c619f0f8b0e1526985e",
     "docs/PHASE2_GUIDE.md": "4cfe28a1e0e93f24fe7930034a05c74be9b0e0ae1773779320db7bc47efda2e4",
-    "docs/PROGRESS_2026-11-03.md": "2a0d504d2683f9169cb0a64aa2b959947490a548b313939b3fdf9db0efc2c789"
+    "docs/PROGRESS_2026-11-03.md": "7fe1be38274771e029597a395cb76673dec541d31d824dc85461ea49591db324"
   },
   "token_usage_status": "unavailable: host agent API does not expose measured usage; zeros are placeholders",
   "refresh_provenance": {
@@ -31588,6 +31690,16 @@
       "docs/PROGRESS_2026-11-03.md"
     ],
     "existing_ids_preserved": 1025,
+    "token_usage": "unavailable"
+  },
+  "fred_resolution_refresh_provenance": {
+    "method": "Root semantic delta extraction; exact cached fully-read base retained, authored inserts read and verified",
+    "sources": [
+      "docs/STATUS.md",
+      "docs/PROGRESS_2026-11-03.md"
+    ],
+    "cloud_run": 41571756896,
+    "old_ids_preserved": true,
     "token_usage": "unavailable"
   }
 }

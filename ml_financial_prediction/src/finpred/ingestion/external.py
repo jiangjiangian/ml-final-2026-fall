@@ -238,7 +238,7 @@ def download_fred_ipv4(source_id: str, root: str | Path) -> dict:
     spec = SOURCE_SPECS[source_id]
     with tempfile.TemporaryDirectory(prefix='finpred-fred-') as temporary:
         destination = Path(temporary) / 'data.csv'
-        args = [binary, '--silent', '--show-error', '--fail', '--ipv4', '--proto', '=https',
+        args = [binary, '--disable', '--silent', '--show-error', '--fail', '--ipv4', '--proto', '=https',
                 '--connect-timeout', '10', '--max-time', '45', '--max-filesize', str(MAX_PAYLOAD_BYTES),
                 '--output', str(destination), '--write-out', '%{http_code} %{ssl_verify_result}', spec['url']]
         try:

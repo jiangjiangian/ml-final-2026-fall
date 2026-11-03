@@ -28,7 +28,9 @@ permissions:
   contents: write
 
 concurrency:
-  group: finpred-private-runtime
+  # Research must not replace a pending formal job in GitHub's single pending
+  # slot. The shared durable Git lease still serializes every state publication.
+  group: finpred-research-shadow
   cancel-in-progress: false
 
 jobs:

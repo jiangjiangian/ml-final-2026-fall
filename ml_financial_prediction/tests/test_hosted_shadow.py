@@ -27,6 +27,9 @@ spec.loader.exec_module(hosted)
 
 class HostedShadowTests(unittest.TestCase):
     def setUp(self):
+        # GitHub runners use 022; do not let this workspace's restrictive umask
+        # hide unsafe intermediate directories created by parents=True.
+        self.addCleanup(os.umask, os.umask(0o022))
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name) / 'runtime'

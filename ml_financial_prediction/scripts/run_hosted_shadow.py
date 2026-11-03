@@ -26,7 +26,9 @@ from finpred.data.daily_tables import prepare_prediction_table, prepare_training
 from finpred.data.sharing import import_snapshot_bundle  # noqa: E402
 from finpred.labels.intraday import aware_datetime  # noqa: E402
 from finpred.pipelines.daily import PipelineBlocked, TAIPEI, _at, _private_file_bytes  # noqa: E402
-from finpred.pipelines.shadow import build_shadow_session_evidence, run_shadow_forecast  # noqa: E402
+from finpred.pipelines.shadow import (  # noqa: E402
+    _store_directory, build_shadow_session_evidence, run_shadow_forecast,
+)
 from finpred.submission.course import CourseSubmissionClient, _session  # noqa: E402
 from finpred.training.fit import fit_model, save_model_bundle  # noqa: E402
 
@@ -90,7 +92,8 @@ def train_research(root, day, *, clock, fit_worker=bounded_research_fit):
     table = json.loads(table_bytes)
     identity = uuid.uuid4().hex
     destination = root / 'shadow/models' / day / identity
-    destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    for directory in (root / 'shadow', root / 'shadow/models', destination.parent):
+        _store_directory(directory)
     cutoff = _at(day, 7, 20).isoformat()
     outcome = fit_worker(table, destination, cutoff, (_at(day, 7, 50) - _now(clock)).total_seconds())
     completed = _now(clock)
@@ -162,7 +165,9 @@ def predict_shadow(root, day, *, clock, client_factory=CourseSubmissionClient):
         state, day, state_fetched_at=state_time, template_payload=template,
         template_fetched_at=template_time, tls_verified=True)
     inputs = root / 'shadow/inputs' / day / uuid.uuid4().hex
-    inputs.mkdir(parents=True, mode=0o700)
+    for directory in (root / 'shadow/inputs', inputs.parent):
+        _store_directory(directory)
+    inputs.mkdir(mode=0o700)
     write_private(inputs / 'template.csv', template)
     write_json(inputs / 'session-evidence.json', evidence)
     return run_shadow_forecast(

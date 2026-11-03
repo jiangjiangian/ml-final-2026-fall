@@ -1,6 +1,6 @@
 # 團隊每日資料：live-data
 
-這是私人團隊共用的資料分支。程式與排程在 `dev`／`system-completion`；研究在 `deep-research`。本分支存實際取得的教師、Live及額外市場資料，保留修訂與來源時間，不放帳密或cookie。使用者已授權在這個私人分支分享資料；請勿改為公開或自行轉傳課程資料。
+使用者於2026-11-03暫定程式與資料全部公開；實際可見性以GitHub設定為準。程式與排程在 `dev`／`system-completion`；研究在 `deep-research`。本分支存實際取得的教師、Live及額外市場資料，保留修訂與來源時間，不放帳密或cookie。教師ZIP與Yahoo原始資料的公開再散布授權尚未核實，此處不代表已取得來源授權。
 
 資料是否真的更新，以 `catalog/latest.json` 指向的內容、來源的 `fetched_at` 及 Git commit 為準；不是看到本 README 就代表排程成功。研究特徵標記 `research_assumption`，不等於已取得歷史發布／修訂版本的證明。真正的正式模型、提交回執與每日運作驗收另看程式分支的 STATUS。
 
@@ -34,10 +34,10 @@ live-data/
 先在程式分支取得完整程式，再由 `ml_financial_prediction/` 執行：
 
 ```bash
-# 必須有這個私人repo的讀取權限。第一次可解析live-data，之後記下回傳的40碼commit。
+# 公開repo可匿名下載；請明確加上--allow-public-data。實驗應固定回傳的40碼commit。
 uv run --locked --no-sync python scripts/fetch_live_data.py \
   --repo jiangjiangian/ml-final-2026-fall \
-  --revision live-data --runtime-dir /private/finpred-runtime --with-features
+  --revision live-data --runtime-dir /private/finpred-runtime --with-features --allow-public-data
 
 # 可重現實驗：把live-data替換成已記錄的40碼commit，避免默默換成明天的資料。
 ```

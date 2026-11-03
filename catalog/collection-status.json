@@ -4,57 +4,57 @@
     {
       "source": "cboe_vix",
       "sha256": "a5409500cdb8fdd86ba926dcfc7de5b1a54d365d4b7850a1a50c803ae57fddd1",
-      "fetched_at": "2026-11-02T16:06:18.878275+00:00"
+      "fetched_at": "2026-11-03T01:16:50.105990+00:00"
     },
     {
       "source": "twse_twii",
-      "sha256": "07c5f272c4efbc6770f4d99a5fe039bf77b2cb24bf7db1b56b49474cd54400db",
-      "fetched_at": "2026-11-02T16:06:20.128372+00:00"
+      "sha256": "cfc1e8b5928cf8681483598aa68f23113c4f849f1d3924b6181dd3c6a0babc54",
+      "fetched_at": "2026-11-03T01:16:51.384316+00:00"
     },
     {
       "source": "yahoo-ixic",
-      "sha256": "704a05137688f3b42c8115b678e67144e237830b3481eb31b8c8938e2febd68d",
-      "fetched_at": "2026-11-02T16:10:22.817452+00:00"
+      "sha256": "0d55c7351297291c695c95281b517747bd537d6554c861734e520eef4c3b75fd",
+      "fetched_at": "2026-11-03T01:20:54.198978+00:00"
     },
     {
       "source": "yahoo-gspc",
-      "sha256": "bf958b0105abde10e07b212ef21092aad5ea9c15fd48fa0ae2968ef76c1838d9",
-      "fetched_at": "2026-11-02T16:10:22.952093+00:00"
+      "sha256": "3955ada1c80039ade1bb115b540329c2006ca6b4ec57be1abb7ab1bb6d69fac3",
+      "fetched_at": "2026-11-03T01:20:54.390497+00:00"
     },
     {
       "source": "yahoo-twii",
-      "sha256": "a95d457c07406677f2680905424193324f708c0b81c6f3d3bbe3e7db37e64a46",
-      "fetched_at": "2026-11-02T16:10:23.082167+00:00"
+      "sha256": "ec7e3fc9817284b91fbf6c175c95785d46ab58ad09ff2f45fec5e834f63c6be5",
+      "fetched_at": "2026-11-03T01:20:54.618857+00:00"
     },
     {
       "source": "yahoo-ks11",
-      "sha256": "8141200800c467aa20e2042a62ec26d18a63a7261343c0332828855fbef202ad",
-      "fetched_at": "2026-11-02T16:10:23.226562+00:00"
+      "sha256": "1aa9e333040ff69fcbe4b4cea45cb572ac095c6873cbe615452150c86ca9e012",
+      "fetched_at": "2026-11-03T01:20:54.820519+00:00"
     },
     {
       "source": "yahoo-vix",
-      "sha256": "07c53a6ce0cf9e111cf21a269164bd846d70876f914cc8abbbb7dc9ff45b49e3",
-      "fetched_at": "2026-11-02T16:10:23.343384+00:00"
+      "sha256": "6055babd12f6e314b1cb9e16bb19e61d4deb56e6225b48a2ea9e3768fb420000",
+      "fetched_at": "2026-11-03T01:20:55.074825+00:00"
     },
     {
       "source": "yahoo-sox",
-      "sha256": "5477967a4ba166059b539da67351215e33eb46472591e03edcb3b891756f863a",
-      "fetched_at": "2026-11-02T16:10:23.454681+00:00"
+      "sha256": "58ba0508320bc1de675f8ca530b274b3343b905f9cdd9a48b7ad61214d7dc374",
+      "fetched_at": "2026-11-03T01:20:55.264533+00:00"
     },
     {
       "source": "yahoo-tsm_adr",
-      "sha256": "077639ac98117093d0cf46d89c8978a3cfc3ad0e294236c630fdd7e4c7c897f7",
-      "fetched_at": "2026-11-02T16:10:23.610226+00:00"
+      "sha256": "d826bbe5a526113cd479899803da0708b73a3c8153f220b82f912f025c03422a",
+      "fetched_at": "2026-11-03T01:20:55.492645+00:00"
     },
     {
       "source": "yahoo-nvda",
-      "sha256": "9b356d346fbe2d0b5de30eb9b2b1039faa42d1ae907684e8b9c0b43a7fe8b2d8",
-      "fetched_at": "2026-11-02T16:10:23.813522+00:00"
+      "sha256": "e82f093f07d15b585f8d9a845645fc13b3e7369cbbbd7d0bcadef72c7358fd83",
+      "fetched_at": "2026-11-03T01:20:55.692523+00:00"
     },
     {
       "source": "twse-sectors",
-      "sha256": "ad63f8cc33622c0c4c32a5945d6f2cfffc389d147392b7b07263b060876619e5",
-      "fetched_at": "2026-11-02T16:10:25.102132+00:00"
+      "sha256": "0034b193b4b6241cbe6821af37ff34d1e0b3e69cceb894dcd5533aef5aa49672",
+      "fetched_at": "2026-11-03T01:20:56.598687+00:00"
     }
   ],
   "failures": [
@@ -83,8 +83,8 @@
       "detail": "source response and credentials omitted"
     }
   ],
-  "started_at": "2026-11-02T16:06:18.665129+00:00",
-  "finished_at": "2026-11-02T16:10:25.104256+00:00",
+  "started_at": "2026-11-03T01:16:49.864353+00:00",
+  "finished_at": "2026-11-03T01:20:56.600683+00:00",
   "required_sources": [
     "cboe_vix",
     "course-live",
@@ -110,7 +110,7 @@
     "readiness": "research_assumption",
     "production_eligible": false,
     "historical_vintage_verified": false,
-    "raw_catalog_sha256": "c6b3a4d0583dacf2c4448feb0aafde56426a332cda859bd154e655616628bfeb",
+    "raw_catalog_sha256": "a660bb80f4f3b215e9a2f58dd98bf30db4a34314db66b9053200cf528590b42a",
     "target_date_count": 1658,
     "stock_count": 50,
     "stock_feature_rows": 82900,
@@ -133,7 +133,7 @@
         "size_bytes": 1321077
       },
       "features/market_report.json": {
-        "sha256": "247790225b7706f273c152e776af86ebed7482e87c0c07c7e78c967a33f68a5c",
+        "sha256": "5de8d7fc5b2bba7478848d4c092b8ddf16461d3aa09c0d591f7c82df74663afd",
         "size_bytes": 5219
       },
       "features/schema.json": {

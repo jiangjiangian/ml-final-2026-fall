@@ -39,6 +39,18 @@
       "size_bytes": 3285
     },
     {
+      "path": "candidates/course-benchmark-v1/snapshot-manifests/249200c5e57e569f18946b0301b4476d16a36aed7334f0caecf843c6b85534c9.json",
+      "object_key": "runtime/objects/249200c5e57e569f18946b0301b4476d16a36aed7334f0caecf843c6b85534c9.bin",
+      "sha256": "249200c5e57e569f18946b0301b4476d16a36aed7334f0caecf843c6b85534c9",
+      "size_bytes": 212062
+    },
+    {
+      "path": "candidates/course-benchmark-v1/snapshot-manifests/fc267843d8f132d1eb427e342b4ab99dbce9674081a7e453d8e44751ecde3146.json",
+      "object_key": "runtime/objects/fc267843d8f132d1eb427e342b4ab99dbce9674081a7e453d8e44751ecde3146.bin",
+      "sha256": "fc267843d8f132d1eb427e342b4ab99dbce9674081a7e453d8e44751ecde3146",
+      "size_bytes": 215201
+    },
+    {
       "path": "candidates/phase1-static-v1/artifacts.zip",
       "object_key": "runtime/objects/0e5401ee9957fabd55e1e4cb031326abe35326f6b171d67e4dfc321f2db95f2d.bin",
       "sha256": "0e5401ee9957fabd55e1e4cb031326abe35326f6b171d67e4dfc321f2db95f2d",
@@ -69,8 +81,8 @@
       "size_bytes": 49758862
     }
   ],
-  "total_bytes": 99317853,
-  "created_at": "2026-11-04T06:53:03.805589+00:00",
+  "total_bytes": 99745116,
+  "created_at": "2026-11-04T06:55:19.421562+00:00",
   "trust_scope": "internally_created_finpred_state_in_verified_repository",
   "excluded": [
     "raw",
@@ -82,7 +94,7 @@
   ],
   "retention": {
     "policy": "published_unreferenced_large_tables_only-v1",
-    "archived_commit": "3781d325db0675c95cd255e8dab05fbd7cbf5dd0",
+    "archived_commit": "fc2fc58e3998ed5bdc9cc0fadd5e2fc7ee5a74ef",
     "pruned_paths": []
   }
 }

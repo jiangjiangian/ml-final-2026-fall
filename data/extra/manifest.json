@@ -1,5 +1,5 @@
 {
-  "schema_version": "yfinance-extra-manifest-v1",
+  "schema_version": "yfinance-extra-manifest-v2",
   "source": "Yahoo Finance via yfinance",
   "library": "https://github.com/ranaroussi/yfinance",
   "library_version": "1.7.0",
@@ -16,23 +16,55 @@
     "repair": false
   },
   "date_semantics": "date＝該日K的交易所當地原生交易日；不是發布或可用時間",
-  "rate_limit": {
-    "min_interval_seconds": 2.0,
-    "jitter_seconds": 1.0,
-    "max_retries": 5,
-    "backoff_base_seconds": 5.0,
-    "backoff_max_seconds": 120.0,
-    "rate_limited_backoff_multiplier": 3.0,
-    "request_timeout_seconds": 30.0,
-    "mode": "sequential_single_thread",
-    "requests_this_run": 1,
-    "paced_sleep_seconds_this_run": 0.0
+  "cleaning_rules": {
+    "bad_tick": "close 超出 [low, high] 0.5% 以上 → 刪除該列",
+    "placeholder_bar": "股票／ETF：成交量 0、OHLC 相同且等於前一收盤 → 刪除該列（Yahoo 補的佔位K棒）",
+    "split_fix": "股票／ETF：前後收盤與 adj_close 比都接近整數 n（2..50，誤差 <3%）→ 之前的價格 ÷n、成交量 ×n"
   },
-  "run_started_at": "2026-11-04T07:37:52+00:00",
-  "series_requested_this_run": [
-    "etf_006201"
-  ],
-  "failed_this_run": [],
+  "rate_limit": {
+    "config": {
+      "min_interval_seconds": 2.0,
+      "jitter_seconds": 1.0,
+      "max_retries": 5,
+      "backoff_base_seconds": 5.0,
+      "backoff_max_seconds": 120.0,
+      "rate_limited_backoff_multiplier": 3.0,
+      "request_timeout_seconds": 30.0,
+      "mode": "sequential_single_thread",
+      "scope": "每一個 HTTP 請求（時區、cookie、crumb、chart）都經過同一限流器",
+      "yfinance_internal_retries": 0,
+      "circuit_breaker": "序列因限流放棄後冷卻 backoff_max 秒；連續 3 個序列被限流即中止"
+    },
+    "last_run": {
+      "run_started_at": "2026-11-04T08:32:44+00:00",
+      "series_requested": [
+        "sox",
+        "tsm_adr",
+        "nvda",
+        "usd_twd",
+        "dxy",
+        "us10y",
+        "us13w",
+        "etf_006201",
+        "etf_0050",
+        "etf_0052",
+        "etf_0055",
+        "dji",
+        "n225",
+        "hsi",
+        "sse",
+        "stoxx50e",
+        "gdaxi",
+        "wti",
+        "gold"
+      ],
+      "http_requests": 20,
+      "paced_sleep_seconds": 46.039,
+      "circuit_breaker_cooldown_seconds": 0.0
+    }
+  },
+  "failed_last_run": [],
+  "aborted_last_run": [],
   "missing_required": [],
   "status": "complete",
   "series": {
@@ -48,12 +80,17 @@
       "file": "yfinance/sox.csv",
       "sha256": "839fb5b9e7b10dd8523e05fa5929644444a9a282dde72cc44996adadd1af088f",
       "rows": 1674,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "tsm_adr": {
       "ticker": "TSM",
@@ -65,14 +102,19 @@
       "required": true,
       "status": "ok",
       "file": "yfinance/tsm_adr.csv",
-      "sha256": "d936356b6f316966d88d961b94533d9aea3ba212bf56d9a112a21755b54b74dc",
+      "sha256": "72c9a4477c308dcd9ebf4f201ef9eb49a3356574068292d756e2dd3fa95bfb24",
       "rows": 1674,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "nvda": {
       "ticker": "NVDA",
@@ -84,14 +126,19 @@
       "required": true,
       "status": "ok",
       "file": "yfinance/nvda.csv",
-      "sha256": "e197beee0124161451aac362b9a86e9971e2d40cf3c0f0d3a934afce1005a40c",
+      "sha256": "5e64b2716500c8ed6c703f64222573bddbeb07cc9766ea08ac996194712879ac",
       "rows": 1674,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "usd_twd": {
       "ticker": "TWD=X",
@@ -103,14 +150,38 @@
       "required": true,
       "status": "ok",
       "file": "yfinance/usd_twd.csv",
-      "sha256": "1e183a78a2383da9d62b5ae76c6a8e88180ed668cd3262cbf8988456e1d6a80e",
-      "rows": 1734,
-      "dropped_rows": 0,
+      "sha256": "14f91653776424bd5e98b68eebd2e83f37b848377c3f2b671bc9c7f31a4db40c",
+      "rows": 1732,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-01",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [
+          {
+            "date": "2020-12-08",
+            "open": 28.22209930419922,
+            "high": 28.277000427246094,
+            "low": 28.194000244140625,
+            "close": 28.0,
+            "adj_close": 28.0,
+            "volume": 0.0
+          },
+          {
+            "date": "2024-08-28",
+            "open": 31.69499969482422,
+            "high": 31.993000030517578,
+            "low": 31.872800827026367,
+            "close": 31.69499969482422,
+            "adj_close": 31.69499969482422,
+            "volume": 0.0
+          }
+        ],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "dxy": {
       "ticker": "DX-Y.NYB",
@@ -124,12 +195,17 @@
       "file": "yfinance/dxy.csv",
       "sha256": "76e6e88517a5b0fff15fed22cb7422987ff7f52dd5dc85621d360e665c1c1bd0",
       "rows": 1676,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "us10y": {
       "ticker": "^TNX",
@@ -143,12 +219,17 @@
       "file": "yfinance/us10y.csv",
       "sha256": "466709b6157ae8380d5fd17e7bdd3147032162801d07eb0af2acc37fe1fd47d3",
       "rows": 1674,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "us13w": {
       "ticker": "^IRX",
@@ -162,12 +243,17 @@
       "file": "yfinance/us13w.csv",
       "sha256": "093db4507bbe6628f42e944385e1ced02fcd294f127b43960db57af0045c3347",
       "rows": 1674,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "etf_006201": {
       "ticker": "006201.TWO",
@@ -179,14 +265,101 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/etf_006201.csv",
-      "sha256": "5a8c213be55df92a84cec18b82c25fc0e665e643f57de69e7cd1a06ae3d6d2b5",
-      "rows": 1617,
-      "dropped_rows": 0,
+      "sha256": "5d1b5e8bf9f5bbd4212e53609d12ddb1c386550b8fbc3b4283214adbe5efa323",
+      "rows": 1608,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:37:52+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [
+          {
+            "date": "2020-03-09",
+            "open": 13.75,
+            "high": 13.75,
+            "low": 13.75,
+            "close": 13.75,
+            "adj_close": 11.39530086517334,
+            "volume": 0.0
+          },
+          {
+            "date": "2020-03-13",
+            "open": 12.170000076293945,
+            "high": 12.170000076293945,
+            "low": 12.170000076293945,
+            "close": 12.170000076293945,
+            "adj_close": 10.08587646484375,
+            "volume": 0.0
+          },
+          {
+            "date": "2020-03-18",
+            "open": 10.720000267028809,
+            "high": 10.720000267028809,
+            "low": 10.720000267028809,
+            "close": 10.720000267028809,
+            "adj_close": 8.884190559387207,
+            "volume": 0.0
+          },
+          {
+            "date": "2024-01-15",
+            "open": 19.700000762939453,
+            "high": 19.700000762939453,
+            "low": 19.700000762939453,
+            "close": 19.700000762939453,
+            "adj_close": 18.447391510009766,
+            "volume": 0.0
+          },
+          {
+            "date": "2024-03-18",
+            "open": 21.600000381469727,
+            "high": 21.600000381469727,
+            "low": 21.600000381469727,
+            "close": 21.600000381469727,
+            "adj_close": 20.226581573486328,
+            "volume": 0.0
+          },
+          {
+            "date": "2024-03-20",
+            "open": 22.15999984741211,
+            "high": 22.15999984741211,
+            "low": 22.15999984741211,
+            "close": 22.15999984741211,
+            "adj_close": 20.750974655151367,
+            "volume": 0.0
+          },
+          {
+            "date": "2024-03-25",
+            "open": 21.90999984741211,
+            "high": 21.90999984741211,
+            "low": 21.90999984741211,
+            "close": 21.90999984741211,
+            "adj_close": 20.516868591308594,
+            "volume": 0.0
+          },
+          {
+            "date": "2024-03-26",
+            "open": 21.90999984741211,
+            "high": 21.90999984741211,
+            "low": 21.90999984741211,
+            "close": 21.90999984741211,
+            "adj_close": 20.516868591308594,
+            "volume": 0.0
+          },
+          {
+            "date": "2024-11-20",
+            "open": 22.5,
+            "high": 22.5,
+            "low": 22.5,
+            "close": 22.5,
+            "adj_close": 21.77480125427246,
+            "volume": 0.0
+          }
+        ],
+        "split_adjustments": []
+      }
     },
     "etf_0050": {
       "ticker": "0050.TW",
@@ -198,14 +371,74 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/etf_0050.csv",
-      "sha256": "81d8749ab990a523a49abab5a304776d6193690c91daae716a9e23324d3919e3",
-      "rows": 1617,
-      "dropped_rows": 0,
+      "sha256": "4049c9c86ad580097ff7930f02acd0f03ab1a2a55c122f9d7353f56a16980379",
+      "rows": 1611,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [
+          {
+            "date": "2024-01-15",
+            "open": 33.162498474121094,
+            "high": 33.162498474121094,
+            "low": 33.162498474121094,
+            "close": 33.162498474121094,
+            "adj_close": 30.952098846435547,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-06-11",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-06-12",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-06-13",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-06-16",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-06-17",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0
+          }
+        ],
+        "split_adjustments": []
+      }
     },
     "etf_0052": {
       "ticker": "0052.TW",
@@ -217,14 +450,82 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/etf_0052.csv",
-      "sha256": "75a195c356299f6751fb88f0381e595f660693772c95f99e588df7fd5a86b839",
-      "rows": 1617,
-      "dropped_rows": 0,
+      "sha256": "004a041fecba610b8c2e17d22b68047612e9b5bd4d5c57a24fd30c910560a89c",
+      "rows": 1611,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [
+          {
+            "date": "2024-01-15",
+            "open": 126.55000305175781,
+            "high": 126.55000305175781,
+            "low": 126.55000305175781,
+            "close": 126.55000305175781,
+            "adj_close": 122.44215393066406,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-11-19",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-11-20",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-11-21",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-11-24",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0
+          },
+          {
+            "date": "2025-11-25",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0
+          }
+        ],
+        "split_adjustments": [
+          {
+            "effective_date": "2025-11-17",
+            "factor": 7.0,
+            "previous_close_before_fix": 248.5,
+            "close_on_effective_date": 35.57143020629883,
+            "reason": "Yahoo 未調整的分割：前後收盤與 adj_close 比都接近整數"
+          }
+        ]
+      }
     },
     "etf_0055": {
       "ticker": "0055.TW",
@@ -236,14 +537,29 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/etf_0055.csv",
-      "sha256": "7237b349971660a040506ddc1125646261779f4bd54bc74aee57c0468fd2ebad",
-      "rows": 1617,
-      "dropped_rows": 0,
+      "sha256": "15059357cc83a80d4ffc67f4602a034b15dba14912619b74463da06e85a3edbe",
+      "rows": 1616,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [
+          {
+            "date": "2024-01-15",
+            "open": 23.829999923706055,
+            "high": 23.829999923706055,
+            "low": 23.829999923706055,
+            "close": 23.829999923706055,
+            "adj_close": 21.93063735961914,
+            "volume": 0.0
+          }
+        ],
+        "split_adjustments": []
+      }
     },
     "dji": {
       "ticker": "^DJI",
@@ -257,12 +573,17 @@
       "file": "yfinance/dji.csv",
       "sha256": "1f8e9047a07fbff8eaea6e15fa1c20072b46ca3dfb0fdb27a26d75bd5c9cd503",
       "rows": 1674,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "n225": {
       "ticker": "^N225",
@@ -276,12 +597,17 @@
       "file": "yfinance/n225.csv",
       "sha256": "ab83c55c694503ff0c28b332c4afdce4de0b0fe60df48bb1240352e3193024c6",
       "rows": 1626,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-06",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "hsi": {
       "ticker": "^HSI",
@@ -295,12 +621,17 @@
       "file": "yfinance/hsi.csv",
       "sha256": "b639e1f495f2266613e250944f6bfb5e727a53e8279d1a7561c93a8e4607668c",
       "rows": 1638,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "sse": {
       "ticker": "000001.SS",
@@ -314,12 +645,17 @@
       "file": "yfinance/sse.csv",
       "sha256": "db89c5337f33bb02cddcefc6b5ff39122d915a1cb702832a068961516a2c9c1a",
       "rows": 1615,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "stoxx50e": {
       "ticker": "^STOXX50E",
@@ -333,12 +669,17 @@
       "file": "yfinance/stoxx50e.csv",
       "sha256": "9fca8d19dea36766f9545c0da3168f9b3a144964c461c73e3089b6f1e5d80825",
       "rows": 1676,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-03",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "gdaxi": {
       "ticker": "^GDAXI",
@@ -352,12 +693,17 @@
       "file": "yfinance/gdaxi.csv",
       "sha256": "d63fd6c8e02ea9d4b4c5d8fd513f942a46476f0090896f8561e6f8677d33bcd4",
       "rows": 1697,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "wti": {
       "ticker": "CL=F",
@@ -371,12 +717,17 @@
       "file": "yfinance/wti.csv",
       "sha256": "f5a4ceb558d0ca8e1105776a8c0ca6a93af53170ecdd352004f5b5813e8610c2",
       "rows": 1676,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     },
     "gold": {
       "ticker": "GC=F",
@@ -390,12 +741,17 @@
       "file": "yfinance/gold.csv",
       "sha256": "fb78601517ec3fb7b169c0f5153920f92bd1fa9ad0a403c59247c2bdd822f8eb",
       "rows": 1677,
-      "dropped_rows": 0,
+      "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
       "date_max": "2026-08-31",
-      "fetched_at": "2026-11-04T07:35:44+00:00",
+      "fetched_at": "2026-11-04T08:32:44+00:00",
       "attempts": 1,
-      "retry_events": []
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": []
+      }
     }
   }
 }

@@ -1,9 +1,0 @@
-[Unit]
-Description=Train daily candidate at Taipei 07:20
-[Timer]
-OnCalendar=*-*-* 07:20:00 Asia/Taipei
-Unit=finpred@train.service
-Persistent=false
-AccuracySec=1s
-[Install]
-WantedBy=timers.target

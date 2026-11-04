@@ -1,5 +1,5 @@
 {
-  "schema_version": "data-folder-schema-v1",
+  "schema_version": "data-folder-schema-v2",
   "generated_by": "crawler.py",
   "date_range": {
     "start": "2020-01-01",
@@ -9,11 +9,13 @@
   "historical_vintage_verified": false,
   "layout": {
     "data/teacher/info.json": "Top50@Y（預測目標50股）／Top100@Y 名單",
-    "data/teacher/global/global_data.csv": "老師全球指標（每台股日一列）",
+    "data/teacher/global/global_data.csv": "老師全球指標；只有台／美／韓同日都交易的日期才有列（1506 列，缺 112 個台股交易日）",
     "data/teacher/market/<stock_id>.csv": "老師個股資料（每股一檔，21欄含 y）",
-    "data/extra/yfinance/<series_id>.csv": "yfinance 額外指標原生日K（date, open, high, low, close, adj_close, volume）",
-    "data/extra/manifest.json": "爬蟲紀錄：取得時間、限流設定、重試、hash、失敗原因",
-    "data/features/market_features.csv": "每台股交易日一列：老師 global 欄位＋已對齊的額外特徵"
+    "data/extra/yfinance/<series_id>.csv": "yfinance 額外指標日K（已清理，見 extra.series.*.cleaning）",
+    "data/extra/manifest.json": "爬蟲紀錄：取得時間、限流設定、重試、清理、hash、失敗原因",
+    "data/features/market_features.csv": "每台股交易日一列：老師市場欄（已處理當日收盤）＋已對齊的額外特徵",
+    "data/transform/lag2/<feature>.csv": "每個特徵一檔：date＋第 2 期收盤報酬",
+    "data/transform/lag5/<feature>.csv": "每個特徵一檔：date＋第 5 期收盤報酬"
   },
   "join_keys": {
     "stock": [
@@ -23,7 +25,10 @@
     "market": [
       "date"
     ],
-    "how_to_join": "data/teacher/market/<stock_id>.csv 的 date ＝ data/features/market_features.csv 的 date；同日市場特徵由 50 股共用，驗證需按日期切分"
+    "transform": [
+      "date"
+    ],
+    "how_to_join": "data/teacher/market/<stock_id>.csv、data/features/market_features.csv 與 data/transform/lag*/<feature>.csv 都以 date（台股交易日）對齊；同日市場特徵由 50 股共用，驗證需按日期切分"
   },
   "teacher": {
     "source": {
@@ -41,61 +46,62 @@
     "global_rows": 1506,
     "global_date_min": "2020-01-03",
     "global_date_max": "2026-08-31",
+    "global_missing_taiwan_trading_days": 112,
     "global_columns": {
       "date": {
         "role": "key",
-        "description": "台股交易日（老師 global 表的列日期）",
+        "description": "台股交易日（老師 global 表的列日期；台／美／韓交易日交集）",
         "unit": "ISO date",
-        "file": "data/teacher/global/global_data.csv",
-        "role_note": "索引鍵，不是數值特徵"
+        "role_note": "索引鍵，不是數值特徵",
+        "file": "data/teacher/global/global_data.csv"
       },
       "^VIX": {
-        "role": "market",
+        "role": "market_lagged_by_teacher",
         "description": "CBOE VIX 波動率指數",
         "unit": "index_point",
+        "role_note": "全市場共用；老師已位移到前一列日期，可直接作輸入",
         "file": "data/teacher/global/global_data.csv",
-        "role_note": "全市場共用；見 timing",
-        "timing": "老師表的美股欄位已對齊到台股日期（已含位移）；^TWII／^KS11 可能是目標日當日收盤，09:00 前尚不可知。使用前需依專案 MARKET_FEATURES.md 對齊，不可再盲目 shift。"
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的美股收盤（老師已位移，09:00 前可得）。global 表是台／美／韓交易日交集，長假後可能落後多個美股交易日；不要再自行 shift。"
       },
       "^IXIC": {
-        "role": "market",
+        "role": "market_lagged_by_teacher",
         "description": "Nasdaq Composite 那斯達克綜合指數",
         "unit": "index_point",
+        "role_note": "全市場共用；老師已位移到前一列日期，可直接作輸入",
         "file": "data/teacher/global/global_data.csv",
-        "role_note": "全市場共用；見 timing",
-        "timing": "老師表的美股欄位已對齊到台股日期（已含位移）；^TWII／^KS11 可能是目標日當日收盤，09:00 前尚不可知。使用前需依專案 MARKET_FEATURES.md 對齊，不可再盲目 shift。"
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的美股收盤（老師已位移，09:00 前可得）。global 表是台／美／韓交易日交集，長假後可能落後多個美股交易日；不要再自行 shift。"
       },
       "^GSPC": {
-        "role": "market",
+        "role": "market_lagged_by_teacher",
         "description": "S&P 500 標普500指數",
         "unit": "index_point",
+        "role_note": "全市場共用；老師已位移到前一列日期，可直接作輸入",
         "file": "data/teacher/global/global_data.csv",
-        "role_note": "全市場共用；見 timing",
-        "timing": "老師表的美股欄位已對齊到台股日期（已含位移）；^TWII／^KS11 可能是目標日當日收盤，09:00 前尚不可知。使用前需依專案 MARKET_FEATURES.md 對齊，不可再盲目 shift。"
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的美股收盤（老師已位移，09:00 前可得）。global 表是台／美／韓交易日交集，長假後可能落後多個美股交易日；不要再自行 shift。"
       },
       "^TWII": {
-        "role": "market",
+        "role": "raw_same_day",
         "description": "台灣加權股價指數",
         "unit": "index_point",
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
         "file": "data/teacher/global/global_data.csv",
-        "role_note": "全市場共用；見 timing",
-        "timing": "老師表的美股欄位已對齊到台股日期（已含位移）；^TWII／^KS11 可能是目標日當日收盤，09:00 前尚不可知。使用前需依專案 MARKET_FEATURES.md 對齊，不可再盲目 shift。"
+        "timing": "列日期 d 的值＝d 當日收盤（實證：^TWII 列報酬與 0050 同日報酬相關 0.96），09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。"
       },
       "^KS11": {
-        "role": "market",
+        "role": "raw_same_day",
         "description": "KOSPI 韓國綜合指數",
         "unit": "index_point",
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
         "file": "data/teacher/global/global_data.csv",
-        "role_note": "全市場共用；見 timing",
-        "timing": "老師表的美股欄位已對齊到台股日期（已含位移）；^TWII／^KS11 可能是目標日當日收盤，09:00 前尚不可知。使用前需依專案 MARKET_FEATURES.md 對齊，不可再盲目 shift。"
+        "timing": "列日期 d 的值＝d 當日收盤（實證：^TWII 列報酬與 0050 同日報酬相關 0.96），09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。"
       },
       "TX_OI": {
-        "role": "market",
+        "role": "timing_unverified",
         "description": "台指期外資淨未平倉口數（多方減空方，可為負）",
         "unit": "contracts",
+        "role_note": "發布時點未驗證；使用前自行確認",
         "file": "data/teacher/global/global_data.csv",
-        "role_note": "全市場共用；見 timing",
-        "timing": "老師表的美股欄位已對齊到台股日期（已含位移）；^TWII／^KS11 可能是目標日當日收盤，09:00 前尚不可知。使用前需依專案 MARKET_FEATURES.md 對齊，不可再盲目 shift。"
+        "timing": "發布時點未驗證（相關性檢查無定論）；專案在取得證據前不把它當正式特徵。"
       }
     },
     "stock_columns": {
@@ -103,148 +109,148 @@
         "role": "key",
         "description": "台股交易日",
         "unit": "ISO date",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "索引鍵，不是數值特徵"
+        "role_note": "索引鍵，不是數值特徵",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "etl:adj_close": {
         "role": "outcome_same_day",
         "description": "還原收盤價",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "目標日當日價格＝答案的一部分；只能用前一觀測（lag）"
+        "role_note": "目標日當日價格＝答案的一部分；只能用前一觀測（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "etl:adj_open": {
         "role": "outcome_same_day",
         "description": "還原開盤價",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "目標日當日價格＝答案的一部分；只能用前一觀測（lag）"
+        "role_note": "目標日當日價格＝答案的一部分；只能用前一觀測（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "etl:adj_high": {
         "role": "outcome_same_day",
         "description": "還原最高價",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "目標日當日價格＝答案的一部分；只能用前一觀測（lag）"
+        "role_note": "目標日當日價格＝答案的一部分；只能用前一觀測（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "etl:adj_low": {
         "role": "outcome_same_day",
         "description": "還原最低價",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "目標日當日價格＝答案的一部分；只能用前一觀測（lag）"
+        "role_note": "目標日當日價格＝答案的一部分；只能用前一觀測（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "price:成交筆數": {
         "role": "raw_same_day",
         "description": "成交筆數",
         "unit": "trades",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "price:成交金額": {
         "role": "raw_same_day",
         "description": "成交金額",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "price:成交股數": {
         "role": "raw_same_day",
         "description": "成交股數",
         "unit": "shares",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "foreign_investors_shareholding:全體外資及陸資持股比率": {
         "role": "raw_same_day",
         "description": "全體外資及陸資持股比率",
         "unit": "percent",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "institutional_investors_trading_summary:外陸資買賣超股數(不含外資自營商)": {
         "role": "raw_same_day",
         "description": "外陸資買賣超股數（不含外資自營商）",
         "unit": "shares_signed",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "institutional_investors_trading_summary:投信買賣超股數": {
         "role": "raw_same_day",
         "description": "投信買賣超股數",
         "unit": "shares_signed",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "institutional_investors_trading_summary:自營商買賣超股數(自行買賣)": {
         "role": "raw_same_day",
         "description": "自營商買賣超股數（自行買賣）",
         "unit": "shares_signed",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "institutional_investors_trading_summary:自營商買賣超股數(避險)": {
         "role": "raw_same_day",
         "description": "自營商買賣超股數（避險）",
         "unit": "shares_signed",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "RSI": {
         "role": "raw_same_day",
         "description": "RSI 相對強弱指標（來源尺度）",
         "unit": "provider_units",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "SMA": {
         "role": "raw_same_day",
         "description": "SMA 簡單移動平均",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "MACD": {
         "role": "raw_same_day",
         "description": "MACD",
         "unit": "provider_units",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "ATR": {
         "role": "raw_same_day",
         "description": "ATR 平均真實波幅",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "BBANDS_upper": {
         "role": "raw_same_day",
         "description": "布林通道上軌",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "BBANDS_mid": {
         "role": "raw_same_day",
         "description": "布林通道中軌",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "BBANDS_lower": {
         "role": "raw_same_day",
         "description": "布林通道下軌",
         "unit": "TWD",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "收盤後才知道；只能用前一觀測（lag）"
+        "role_note": "目標日收盤後才知道；只能用前一列（lag）",
+        "file": "data/teacher/market/<stock_id>.csv"
       },
       "y": {
         "role": "label",
         "description": "目標：1{adj_close > adj_open}（盤中上漲）",
         "unit": "binary",
-        "file": "data/teacher/market/<stock_id>.csv",
-        "role_note": "只用於訓練／評分，絕不放入輸入"
+        "role_note": "只用於訓練／評分，絕不放入輸入",
+        "file": "data/teacher/market/<stock_id>.csv"
       }
     },
     "label_columns": [
@@ -257,10 +263,11 @@
     "label_definition": "y＝1{etl:adj_close > etl:adj_open}；盤中報酬＝adj_close/adj_open−1；官方分數 mean((2p−1)×盤中報酬)"
   },
   "extra": {
-    "source": "Yahoo Finance via yfinance (https://github.com/ranaroussi/yfinance)",
+    "api": "yfinance（Yahoo Finance chart API：query1/query2.finance.yahoo.com/v8/finance/chart）；19 個序列全部經 yfinance",
     "library_version": "1.7.0",
     "crawl_status": "complete",
     "missing_required": [],
+    "skipped_series_hash_mismatch": [],
     "excluded_teacher_tickers": [
       "^VIX",
       "^IXIC",
@@ -269,22 +276,57 @@
       "^KS11"
     ],
     "rate_limit": {
-      "min_interval_seconds": 2.0,
-      "jitter_seconds": 1.0,
-      "max_retries": 5,
-      "backoff_base_seconds": 5.0,
-      "backoff_max_seconds": 120.0,
-      "rate_limited_backoff_multiplier": 3.0,
-      "request_timeout_seconds": 30.0,
-      "mode": "sequential_single_thread",
-      "requests_this_run": 1,
-      "paced_sleep_seconds_this_run": 0.0
+      "config": {
+        "min_interval_seconds": 2.0,
+        "jitter_seconds": 1.0,
+        "max_retries": 5,
+        "backoff_base_seconds": 5.0,
+        "backoff_max_seconds": 120.0,
+        "rate_limited_backoff_multiplier": 3.0,
+        "request_timeout_seconds": 30.0,
+        "mode": "sequential_single_thread",
+        "scope": "每一個 HTTP 請求（時區、cookie、crumb、chart）都經過同一限流器",
+        "yfinance_internal_retries": 0,
+        "circuit_breaker": "序列因限流放棄後冷卻 backoff_max 秒；連續 3 個序列被限流即中止"
+      },
+      "last_run": {
+        "run_started_at": "2026-11-04T08:32:44+00:00",
+        "series_requested": [
+          "sox",
+          "tsm_adr",
+          "nvda",
+          "usd_twd",
+          "dxy",
+          "us10y",
+          "us13w",
+          "etf_006201",
+          "etf_0050",
+          "etf_0052",
+          "etf_0055",
+          "dji",
+          "n225",
+          "hsi",
+          "sse",
+          "stoxx50e",
+          "gdaxi",
+          "wti",
+          "gold"
+        ],
+        "http_requests": 20,
+        "paced_sleep_seconds": 46.039,
+        "circuit_breaker_cooldown_seconds": 0.0
+      }
+    },
+    "cleaning_rules": {
+      "bad_tick": "close 超出 [low, high] 0.5% 以上 → 刪除該列",
+      "placeholder_bar": "股票／ETF：成交量 0、OHLC 相同且等於前一收盤 → 刪除該列（Yahoo 補的佔位K棒）",
+      "split_fix": "股票／ETF：前後收盤與 adj_close 比都接近整數 n（2..50，誤差 <3%）→ 之前的價格 ÷n、成交量 ×n"
     },
     "raw_columns": {
       "date": "交易所當地原生交易日",
-      "open/high/low/close": "該序列單位",
-      "adj_close": "含分割／股利調整（指數＝close）",
-      "volume": "股數或口數；指數／FX 為 0 或空"
+      "open/high/low/close": "該序列單位；Yahoo 已做分割調整（股利未調整），另經本程式補正漏調的分割",
+      "adj_close": "分割＋股利調整；指數／FX／殖利率／期貨等於 close",
+      "volume": "股票／ETF＝股數，期貨＝口數；指數為供應商彙總量（可能非 0），FX／殖利率為 0"
     },
     "series": {
       "sox": {
@@ -302,7 +344,12 @@
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "839fb5b9e7b10dd8523e05fa5929644444a9a282dde72cc44996adadd1af088f",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "tsm_adr": {
@@ -319,8 +366,13 @@
         "rows": 1674,
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
-        "sha256": "d936356b6f316966d88d961b94533d9aea3ba212bf56d9a112a21755b54b74dc",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "sha256": "72c9a4477c308dcd9ebf4f201ef9eb49a3356574068292d756e2dd3fa95bfb24",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "nvda": {
@@ -337,8 +389,13 @@
         "rows": 1674,
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
-        "sha256": "e197beee0124161451aac362b9a86e9971e2d40cf3c0f0d3a934afce1005a40c",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "sha256": "5e64b2716500c8ed6c703f64222573bddbeb07cc9766ea08ac996194712879ac",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "usd_twd": {
@@ -349,14 +406,38 @@
         "kind": "fx",
         "unit": "TWD_per_USD",
         "required": true,
-        "note": "報價＝1美元兌多少台幣；報酬為正＝台幣貶值。Yahoo FX 日K依倫敦／GMT日界，不是台北收盤或定盤。",
+        "note": "報價＝1美元兌多少台幣；報酬為正＝台幣貶值。Yahoo FX 日K依倫敦／GMT日界，不是台北收盤或定盤；約 68% 的列 close＝open（close 常是當日第一筆報價），各年比例不同。",
         "status": "ok",
         "file": "data/extra/yfinance/usd_twd.csv",
-        "rows": 1734,
+        "rows": 1732,
         "date_min": "2020-01-01",
         "date_max": "2026-08-31",
-        "sha256": "1e183a78a2383da9d62b5ae76c6a8e88180ed668cd3262cbf8988456e1d6a80e",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "sha256": "14f91653776424bd5e98b68eebd2e83f37b848377c3f2b671bc9c7f31a4db40c",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [
+            {
+              "date": "2020-12-08",
+              "open": 28.22209930419922,
+              "high": 28.277000427246094,
+              "low": 28.194000244140625,
+              "close": 28.0,
+              "adj_close": 28.0,
+              "volume": 0.0
+            },
+            {
+              "date": "2024-08-28",
+              "open": 31.69499969482422,
+              "high": 31.993000030517578,
+              "low": 31.872800827026367,
+              "close": 31.69499969482422,
+              "adj_close": 31.69499969482422,
+              "volume": 0.0
+            }
+          ],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "dxy": {
@@ -374,7 +455,12 @@
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "76e6e88517a5b0fff15fed22cb7422987ff7f52dd5dc85621d360e665c1c1bd0",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "us10y": {
@@ -385,14 +471,19 @@
         "kind": "yield_percent",
         "unit": "percent_per_annum",
         "required": true,
-        "note": "以百分比報價（4.25＝4.25%）；變化用基點，不是債券價格報酬。",
+        "note": "以百分比報價（4.25＝4.25%）。",
         "status": "ok",
         "file": "data/extra/yfinance/us10y.csv",
         "rows": 1674,
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "466709b6157ae8380d5fd17e7bdd3147032162801d07eb0af2acc37fe1fd47d3",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "us13w": {
@@ -403,14 +494,19 @@
         "kind": "yield_percent",
         "unit": "percent_per_annum",
         "required": false,
-        "note": null,
+        "note": "2020–2021 接近 0 且偶有負值；百分比報酬在此期間會非常大。",
         "status": "ok",
         "file": "data/extra/yfinance/us13w.csv",
         "rows": 1674,
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "093db4507bbe6628f42e944385e1ced02fcd294f127b43960db57af0045c3347",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "etf_006201": {
@@ -424,12 +520,111 @@
         "note": "Yahoo 沒有櫃買指數本身（^TWOII／^TWO／^TPEX 皆查無）；以追蹤富櫃50指數的 ETF 代理櫃買市場。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_006201.csv",
-        "rows": 1617,
+        "rows": 1608,
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
-        "sha256": "5a8c213be55df92a84cec18b82c25fc0e665e643f57de69e7cd1a06ae3d6d2b5",
-        "fetched_at": "2026-11-04T07:37:52+00:00",
-        "last_error": null
+        "sha256": "5d1b5e8bf9f5bbd4212e53609d12ddb1c386550b8fbc3b4283214adbe5efa323",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [
+            {
+              "date": "2020-03-09",
+              "open": 13.75,
+              "high": 13.75,
+              "low": 13.75,
+              "close": 13.75,
+              "adj_close": 11.39530086517334,
+              "volume": 0.0
+            },
+            {
+              "date": "2020-03-13",
+              "open": 12.170000076293945,
+              "high": 12.170000076293945,
+              "low": 12.170000076293945,
+              "close": 12.170000076293945,
+              "adj_close": 10.08587646484375,
+              "volume": 0.0
+            },
+            {
+              "date": "2020-03-18",
+              "open": 10.720000267028809,
+              "high": 10.720000267028809,
+              "low": 10.720000267028809,
+              "close": 10.720000267028809,
+              "adj_close": 8.884190559387207,
+              "volume": 0.0
+            },
+            {
+              "date": "2024-01-15",
+              "open": 19.700000762939453,
+              "high": 19.700000762939453,
+              "low": 19.700000762939453,
+              "close": 19.700000762939453,
+              "adj_close": 18.447391510009766,
+              "volume": 0.0
+            },
+            {
+              "date": "2024-03-18",
+              "open": 21.600000381469727,
+              "high": 21.600000381469727,
+              "low": 21.600000381469727,
+              "close": 21.600000381469727,
+              "adj_close": 20.226581573486328,
+              "volume": 0.0
+            },
+            {
+              "date": "2024-03-20",
+              "open": 22.15999984741211,
+              "high": 22.15999984741211,
+              "low": 22.15999984741211,
+              "close": 22.15999984741211,
+              "adj_close": 20.750974655151367,
+              "volume": 0.0
+            },
+            {
+              "date": "2024-03-25",
+              "open": 21.90999984741211,
+              "high": 21.90999984741211,
+              "low": 21.90999984741211,
+              "close": 21.90999984741211,
+              "adj_close": 20.516868591308594,
+              "volume": 0.0
+            },
+            {
+              "date": "2024-03-26",
+              "open": 21.90999984741211,
+              "high": 21.90999984741211,
+              "low": 21.90999984741211,
+              "close": 21.90999984741211,
+              "adj_close": 20.516868591308594,
+              "volume": 0.0
+            },
+            {
+              "date": "2024-11-20",
+              "open": 22.5,
+              "high": 22.5,
+              "low": 22.5,
+              "close": 22.5,
+              "adj_close": 21.77480125427246,
+              "volume": 0.0
+            }
+          ],
+          "split_adjustments": []
+        },
+        "last_error": null,
+        "missing_taiwan_trading_days": [
+          "2020-03-09",
+          "2020-03-13",
+          "2020-03-18",
+          "2021-04-06",
+          "2024-01-15",
+          "2024-03-18",
+          "2024-03-20",
+          "2024-03-25",
+          "2024-03-26",
+          "2024-11-20"
+        ]
       },
       "etf_0050": {
         "ticker": "0050.TW",
@@ -439,15 +634,84 @@
         "kind": "etf",
         "unit": "TWD",
         "required": false,
-        "note": "ETF 代理，不是台灣50指數本身；報酬用含分割／股利調整的 adj_close。",
+        "note": "ETF 代理，不是台灣50指數本身。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_0050.csv",
-        "rows": 1617,
+        "rows": 1611,
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
-        "sha256": "81d8749ab990a523a49abab5a304776d6193690c91daae716a9e23324d3919e3",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
-        "last_error": null
+        "sha256": "4049c9c86ad580097ff7930f02acd0f03ab1a2a55c122f9d7353f56a16980379",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [
+            {
+              "date": "2024-01-15",
+              "open": 33.162498474121094,
+              "high": 33.162498474121094,
+              "low": 33.162498474121094,
+              "close": 33.162498474121094,
+              "adj_close": 30.952098846435547,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-06-11",
+              "open": 47.162498474121094,
+              "high": 47.162498474121094,
+              "low": 47.162498474121094,
+              "close": 47.162498474121094,
+              "adj_close": 45.901371002197266,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-06-12",
+              "open": 47.162498474121094,
+              "high": 47.162498474121094,
+              "low": 47.162498474121094,
+              "close": 47.162498474121094,
+              "adj_close": 45.901371002197266,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-06-13",
+              "open": 47.162498474121094,
+              "high": 47.162498474121094,
+              "low": 47.162498474121094,
+              "close": 47.162498474121094,
+              "adj_close": 45.901371002197266,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-06-16",
+              "open": 47.162498474121094,
+              "high": 47.162498474121094,
+              "low": 47.162498474121094,
+              "close": 47.162498474121094,
+              "adj_close": 45.901371002197266,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-06-17",
+              "open": 47.162498474121094,
+              "high": 47.162498474121094,
+              "low": 47.162498474121094,
+              "close": 47.162498474121094,
+              "adj_close": 45.901371002197266,
+              "volume": 0.0
+            }
+          ],
+          "split_adjustments": []
+        },
+        "last_error": null,
+        "missing_taiwan_trading_days": [
+          "2021-04-06",
+          "2024-01-15",
+          "2025-06-11",
+          "2025-06-12",
+          "2025-06-13",
+          "2025-06-16",
+          "2025-06-17"
+        ]
       },
       "etf_0052": {
         "ticker": "0052.TW",
@@ -460,12 +724,89 @@
         "note": "電子類股代理，不是證交所電子類指數。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_0052.csv",
-        "rows": 1617,
+        "rows": 1611,
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
-        "sha256": "75a195c356299f6751fb88f0381e595f660693772c95f99e588df7fd5a86b839",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
-        "last_error": null
+        "sha256": "004a041fecba610b8c2e17d22b68047612e9b5bd4d5c57a24fd30c910560a89c",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [
+            {
+              "date": "2024-01-15",
+              "open": 126.55000305175781,
+              "high": 126.55000305175781,
+              "low": 126.55000305175781,
+              "close": 126.55000305175781,
+              "adj_close": 122.44215393066406,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-11-19",
+              "open": 35.0428581237793,
+              "high": 35.0428581237793,
+              "low": 35.0428581237793,
+              "close": 35.0428581237793,
+              "adj_close": 34.203369140625,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-11-20",
+              "open": 35.0428581237793,
+              "high": 35.0428581237793,
+              "low": 35.0428581237793,
+              "close": 35.0428581237793,
+              "adj_close": 34.203369140625,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-11-21",
+              "open": 35.0428581237793,
+              "high": 35.0428581237793,
+              "low": 35.0428581237793,
+              "close": 35.0428581237793,
+              "adj_close": 34.203369140625,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-11-24",
+              "open": 35.0428581237793,
+              "high": 35.0428581237793,
+              "low": 35.0428581237793,
+              "close": 35.0428581237793,
+              "adj_close": 34.203369140625,
+              "volume": 0.0
+            },
+            {
+              "date": "2025-11-25",
+              "open": 35.0428581237793,
+              "high": 35.0428581237793,
+              "low": 35.0428581237793,
+              "close": 35.0428581237793,
+              "adj_close": 34.203369140625,
+              "volume": 0.0
+            }
+          ],
+          "split_adjustments": [
+            {
+              "effective_date": "2025-11-17",
+              "factor": 7.0,
+              "previous_close_before_fix": 248.5,
+              "close_on_effective_date": 35.57143020629883,
+              "reason": "Yahoo 未調整的分割：前後收盤與 adj_close 比都接近整數"
+            }
+          ]
+        },
+        "last_error": null,
+        "missing_taiwan_trading_days": [
+          "2021-04-06",
+          "2024-01-15",
+          "2025-11-19",
+          "2025-11-20",
+          "2025-11-21",
+          "2025-11-24",
+          "2025-11-25"
+        ]
       },
       "etf_0055": {
         "ticker": "0055.TW",
@@ -478,12 +819,31 @@
         "note": "金融類股代理，不是證交所金融保險類指數。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_0055.csv",
-        "rows": 1617,
+        "rows": 1616,
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
-        "sha256": "7237b349971660a040506ddc1125646261779f4bd54bc74aee57c0468fd2ebad",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
-        "last_error": null
+        "sha256": "15059357cc83a80d4ffc67f4602a034b15dba14912619b74463da06e85a3edbe",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [
+            {
+              "date": "2024-01-15",
+              "open": 23.829999923706055,
+              "high": 23.829999923706055,
+              "low": 23.829999923706055,
+              "close": 23.829999923706055,
+              "adj_close": 21.93063735961914,
+              "volume": 0.0
+            }
+          ],
+          "split_adjustments": []
+        },
+        "last_error": null,
+        "missing_taiwan_trading_days": [
+          "2021-04-06",
+          "2024-01-15"
+        ]
       },
       "dji": {
         "ticker": "^DJI",
@@ -500,7 +860,12 @@
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "1f8e9047a07fbff8eaea6e15fa1c20072b46ca3dfb0fdb27a26d75bd5c9cd503",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "n225": {
@@ -518,7 +883,12 @@
         "date_min": "2020-01-06",
         "date_max": "2026-08-31",
         "sha256": "ab83c55c694503ff0c28b332c4afdce4de0b0fe60df48bb1240352e3193024c6",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "hsi": {
@@ -536,7 +906,12 @@
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "b639e1f495f2266613e250944f6bfb5e727a53e8279d1a7561c93a8e4607668c",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "sse": {
@@ -554,7 +929,12 @@
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "db89c5337f33bb02cddcefc6b5ff39122d915a1cb702832a068961516a2c9c1a",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "stoxx50e": {
@@ -565,14 +945,19 @@
         "kind": "index",
         "unit": "index_point",
         "required": false,
-        "note": null,
+        "note": "Yahoo 依瑞士假日缺 21 個 Eurex 交易日（1/2、耶穌升天日、聖靈降臨節翌日、8/1），因此 1 期報酬偶爾跨 2 個交易日。",
         "status": "ok",
         "file": "data/extra/yfinance/stoxx50e.csv",
         "rows": 1676,
         "date_min": "2020-01-03",
         "date_max": "2026-08-31",
         "sha256": "9fca8d19dea36766f9545c0da3168f9b3a144964c461c73e3089b6f1e5d80825",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "gdaxi": {
@@ -590,7 +975,12 @@
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "d63fd6c8e02ea9d4b4c5d8fd513f942a46476f0090896f8561e6f8677d33bcd4",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "wti": {
@@ -601,14 +991,19 @@
         "kind": "futures",
         "unit": "USD_per_barrel",
         "required": false,
-        "note": "連續近月合約；2020-04-20 結算價為負，碰到非正價格的報酬保持空值。",
+        "note": "連續近月合約；2020-04-20 結算價 −37.63，碰到非正價格的報酬保持空值。",
         "status": "ok",
         "file": "data/extra/yfinance/wti.csv",
         "rows": 1676,
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "f5a4ceb558d0ca8e1105776a8c0ca6a93af53170ecdd352004f5b5813e8610c2",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       },
       "gold": {
@@ -626,28 +1021,36 @@
         "date_min": "2020-01-02",
         "date_max": "2026-08-31",
         "sha256": "fb78601517ec3fb7b169c0f5153920f92bd1fa9ad0a403c59247c2bdd822f8eb",
-        "fetched_at": "2026-11-04T07:35:44+00:00",
+        "fetched_at": "2026-11-04T08:32:44+00:00",
+        "cleaning": {
+          "bad_ticks_dropped": [],
+          "placeholder_bars_dropped": [],
+          "split_adjustments": []
+        },
         "last_error": null
       }
     }
   },
   "market_features": {
     "file": "data/features/market_features.csv",
-    "sha256": "c642fb23a65439ebc97e9455ae097ba7b00d3a7612b99bb8734bd5b39e2a0dd6",
+    "sha256": "48e374f45a9ccf9639b961dc385a82f6e01b6c04bf5af42a33786e5cd18d123c",
     "rows": 1618,
     "date_min": "2020-01-02",
     "date_max": "2026-08-31",
-    "row_dates": "老師個股檔所有台股交易日（聯集）",
-    "alignment_rule": "額外特徵：對每個台股目標日 t，取來源原生交易日 s <= t − 1 日曆天的最後一筆；報酬先在完整原生序列計算再對齊，不先做多市場日期交集。研究假設：美股收盤約台北 04:00–05:00，FX／期貨日K可能在台北清晨才收盤，未經歷史發布時間驗證。",
+    "date_definition": "老師個股檔所有台股交易日（聯集），比老師 global 表多",
+    "alignment_rule": "額外特徵：對每個台股目標日 t，取來源交易日 s <= t − 1 日曆天的最後一筆；報酬先在完整原生序列計算再對齊，不先做多市場日期交集。研究假設：美股收盤約台北 04:00–05:00，FX／期貨日K可能在台北清晨才收盤，未經歷史發布時間驗證。",
     "teacher_columns": [
       "^VIX",
       "^IXIC",
       "^GSPC",
-      "^TWII",
-      "^KS11",
+      "^TWII_prev_row",
+      "^KS11_prev_row",
       "TX_OI"
     ],
-    "teacher_columns_note": "老師 global 原值照抄（該日缺列則空白）；時間語意見 teacher.global_columns.*.timing",
+    "teacher_columns_definition": {
+      "^VIX/^IXIC/^GSPC/TX_OI": "老師 global 同日期原值照抄（老師表缺該日則空白）；時間語意見 teacher.global_columns",
+      "^TWII_prev_row/^KS11_prev_row": "最後一個日期 < t 的老師 global 列之 ^TWII／^KS11（避免當日收盤洩漏）"
+    },
     "extra_columns": [
       "sox_ret_1s",
       "sox_ret_5s",
@@ -747,14 +1150,13 @@
       "gold_age_days",
       "gold_source_date"
     ],
-    "skipped_series": [],
     "columns_in_order": [
       "date",
       "^VIX",
       "^IXIC",
       "^GSPC",
-      "^TWII",
-      "^KS11",
+      "^TWII_prev_row",
+      "^KS11_prev_row",
       "TX_OI",
       "sox_ret_1s",
       "sox_ret_5s",
@@ -860,43 +1262,43 @@
       "series_id": "sox",
       "ticker": "^SOX",
       "group": "M1_semiconductor",
-      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "費城半導體指數 1 個原生交易日報酬",
+      "description": "費城半導體指數 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "sox_ret_5s": {
       "series_id": "sox",
       "ticker": "^SOX",
       "group": "M1_semiconductor",
-      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "費城半導體指數 5 個原生交易日報酬",
+      "description": "費城半導體指數 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "sox_ret_20s": {
       "series_id": "sox",
       "ticker": "^SOX",
       "group": "M1_semiconductor",
-      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "費城半導體指數 20 個原生交易日報酬",
+      "description": "費城半導體指數 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "sox_age_days": {
       "series_id": "sox",
       "ticker": "^SOX",
       "group": "M1_semiconductor",
-      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -906,54 +1308,54 @@
       "series_id": "sox",
       "ticker": "^SOX",
       "group": "M1_semiconductor",
-      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^SOX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "tsm_adr_ret_1s": {
       "series_id": "tsm_adr",
       "ticker": "TSM",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "台積電ADR 1 個原生交易日報酬",
+      "description": "台積電ADR 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "tsm_adr_ret_5s": {
       "series_id": "tsm_adr",
       "ticker": "TSM",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "台積電ADR 5 個原生交易日報酬",
+      "description": "台積電ADR 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "tsm_adr_ret_20s": {
       "series_id": "tsm_adr",
       "ticker": "TSM",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "台積電ADR 20 個原生交易日報酬",
+      "description": "台積電ADR 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "tsm_adr_age_days": {
       "series_id": "tsm_adr",
       "ticker": "TSM",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -963,54 +1365,54 @@
       "series_id": "tsm_adr",
       "ticker": "TSM",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TSM 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "nvda_ret_1s": {
       "series_id": "nvda",
       "ticker": "NVDA",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "輝達 1 個原生交易日報酬",
+      "description": "輝達 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "nvda_ret_5s": {
       "series_id": "nvda",
       "ticker": "NVDA",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "輝達 5 個原生交易日報酬",
+      "description": "輝達 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "nvda_ret_20s": {
       "series_id": "nvda",
       "ticker": "NVDA",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "輝達 20 個原生交易日報酬",
+      "description": "輝達 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "nvda_age_days": {
       "series_id": "nvda",
       "ticker": "NVDA",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1020,18 +1422,18 @@
       "series_id": "nvda",
       "ticker": "NVDA",
       "group": "M2_overseas_stock",
-      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝NVDA 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "usd_twd_level": {
       "series_id": "usd_twd",
       "ticker": "TWD=X",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]",
       "unit": "TWD_per_USD",
@@ -1041,43 +1443,43 @@
       "series_id": "usd_twd",
       "ticker": "TWD=X",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "美元兌新台幣匯率 1 個原生交易日報酬；正值＝台幣貶值",
+      "description": "美元兌新台幣匯率 1 個交易日累積報酬；正值＝台幣貶值",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "usd_twd_ret_5s": {
       "series_id": "usd_twd",
       "ticker": "TWD=X",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "美元兌新台幣匯率 5 個原生交易日報酬；正值＝台幣貶值",
+      "description": "美元兌新台幣匯率 5 個交易日累積報酬；正值＝台幣貶值",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "usd_twd_ret_20s": {
       "series_id": "usd_twd",
       "ticker": "TWD=X",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "美元兌新台幣匯率 20 個原生交易日報酬；正值＝台幣貶值",
+      "description": "美元兌新台幣匯率 20 個交易日累積報酬；正值＝台幣貶值",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "usd_twd_age_days": {
       "series_id": "usd_twd",
       "ticker": "TWD=X",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1087,18 +1489,18 @@
       "series_id": "usd_twd",
       "ticker": "TWD=X",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝TWD=X 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "dxy_level": {
       "series_id": "dxy",
       "ticker": "DX-Y.NYB",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]",
       "unit": "index_point",
@@ -1108,43 +1510,43 @@
       "series_id": "dxy",
       "ticker": "DX-Y.NYB",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "美元指數 1 個原生交易日報酬",
+      "description": "美元指數 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "dxy_ret_5s": {
       "series_id": "dxy",
       "ticker": "DX-Y.NYB",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "美元指數 5 個原生交易日報酬",
+      "description": "美元指數 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "dxy_ret_20s": {
       "series_id": "dxy",
       "ticker": "DX-Y.NYB",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "美元指數 20 個原生交易日報酬",
+      "description": "美元指數 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "dxy_age_days": {
       "series_id": "dxy",
       "ticker": "DX-Y.NYB",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1154,18 +1556,18 @@
       "series_id": "dxy",
       "ticker": "DX-Y.NYB",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝DX-Y.NYB 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "us10y_level_pct": {
       "series_id": "us10y",
       "ticker": "^TNX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "Y[s]",
       "unit": "percent_per_annum",
@@ -1175,7 +1577,7 @@
       "series_id": "us10y",
       "ticker": "^TNX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "100*(Y[s]-Y[s-1])",
       "unit": "basis_point",
@@ -1185,7 +1587,7 @@
       "series_id": "us10y",
       "ticker": "^TNX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "100*(Y[s]-Y[s-5])",
       "unit": "basis_point",
@@ -1195,7 +1597,7 @@
       "series_id": "us10y",
       "ticker": "^TNX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1205,18 +1607,18 @@
       "series_id": "us10y",
       "ticker": "^TNX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^TNX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "us13w_level_pct": {
       "series_id": "us13w",
       "ticker": "^IRX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "Y[s]",
       "unit": "percent_per_annum",
@@ -1226,7 +1628,7 @@
       "series_id": "us13w",
       "ticker": "^IRX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "100*(Y[s]-Y[s-1])",
       "unit": "basis_point",
@@ -1236,7 +1638,7 @@
       "series_id": "us13w",
       "ticker": "^IRX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "100*(Y[s]-Y[s-5])",
       "unit": "basis_point",
@@ -1246,7 +1648,7 @@
       "series_id": "us13w",
       "ticker": "^IRX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1256,54 +1658,54 @@
       "series_id": "us13w",
       "ticker": "^IRX",
       "group": "M3_fx_rates",
-      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^IRX 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "etf_006201_ret_1s": {
       "series_id": "etf_006201",
       "ticker": "006201.TWO",
       "group": "M4_taiwan",
-      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "元大富櫃50（櫃買市場代理） 1 個原生交易日報酬",
+      "description": "元大富櫃50（櫃買市場代理） 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_006201_ret_5s": {
       "series_id": "etf_006201",
       "ticker": "006201.TWO",
       "group": "M4_taiwan",
-      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "元大富櫃50（櫃買市場代理） 5 個原生交易日報酬",
+      "description": "元大富櫃50（櫃買市場代理） 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_006201_ret_20s": {
       "series_id": "etf_006201",
       "ticker": "006201.TWO",
       "group": "M4_taiwan",
-      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "元大富櫃50（櫃買市場代理） 20 個原生交易日報酬",
+      "description": "元大富櫃50（櫃買市場代理） 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_006201_age_days": {
       "series_id": "etf_006201",
       "ticker": "006201.TWO",
       "group": "M4_taiwan",
-      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1313,54 +1715,54 @@
       "series_id": "etf_006201",
       "ticker": "006201.TWO",
       "group": "M4_taiwan",
-      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝006201.TWO 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "etf_0050_ret_1s": {
       "series_id": "etf_0050",
       "ticker": "0050.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "元大台灣50（台灣50指數代理） 1 個原生交易日報酬",
+      "description": "元大台灣50（台灣50指數代理） 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_0050_ret_5s": {
       "series_id": "etf_0050",
       "ticker": "0050.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "元大台灣50（台灣50指數代理） 5 個原生交易日報酬",
+      "description": "元大台灣50（台灣50指數代理） 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_0050_ret_20s": {
       "series_id": "etf_0050",
       "ticker": "0050.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "元大台灣50（台灣50指數代理） 20 個原生交易日報酬",
+      "description": "元大台灣50（台灣50指數代理） 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_0050_age_days": {
       "series_id": "etf_0050",
       "ticker": "0050.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1370,54 +1772,54 @@
       "series_id": "etf_0050",
       "ticker": "0050.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0050.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "etf_0052_ret_1s": {
       "series_id": "etf_0052",
       "ticker": "0052.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "富邦科技（電子類代理） 1 個原生交易日報酬",
+      "description": "富邦科技（電子類代理） 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_0052_ret_5s": {
       "series_id": "etf_0052",
       "ticker": "0052.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "富邦科技（電子類代理） 5 個原生交易日報酬",
+      "description": "富邦科技（電子類代理） 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_0052_ret_20s": {
       "series_id": "etf_0052",
       "ticker": "0052.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "富邦科技（電子類代理） 20 個原生交易日報酬",
+      "description": "富邦科技（電子類代理） 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_0052_age_days": {
       "series_id": "etf_0052",
       "ticker": "0052.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1427,54 +1829,54 @@
       "series_id": "etf_0052",
       "ticker": "0052.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0052.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "etf_0055_ret_1s": {
       "series_id": "etf_0055",
       "ticker": "0055.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "元大MSCI金融（金融類代理） 1 個原生交易日報酬",
+      "description": "元大MSCI金融（金融類代理） 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_0055_ret_5s": {
       "series_id": "etf_0055",
       "ticker": "0055.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "元大MSCI金融（金融類代理） 5 個原生交易日報酬",
+      "description": "元大MSCI金融（金融類代理） 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_0055_ret_20s": {
       "series_id": "etf_0055",
       "ticker": "0055.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "adj_close（缺值時 close）",
-      "description": "元大MSCI金融（金融類代理） 20 個原生交易日報酬",
+      "description": "元大MSCI金融（金融類代理） 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "etf_0055_age_days": {
       "series_id": "etf_0055",
       "ticker": "0055.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1484,54 +1886,54 @@
       "series_id": "etf_0055",
       "ticker": "0055.TW",
       "group": "M4_taiwan",
-      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝0055.TW 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "dji_ret_1s": {
       "series_id": "dji",
       "ticker": "^DJI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "道瓊工業指數 1 個原生交易日報酬",
+      "description": "道瓊工業指數 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "dji_ret_5s": {
       "series_id": "dji",
       "ticker": "^DJI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "道瓊工業指數 5 個原生交易日報酬",
+      "description": "道瓊工業指數 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "dji_ret_20s": {
       "series_id": "dji",
       "ticker": "^DJI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "道瓊工業指數 20 個原生交易日報酬",
+      "description": "道瓊工業指數 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "dji_age_days": {
       "series_id": "dji",
       "ticker": "^DJI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1541,54 +1943,54 @@
       "series_id": "dji",
       "ticker": "^DJI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^DJI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "n225_ret_1s": {
       "series_id": "n225",
       "ticker": "^N225",
       "group": "M5_global_index",
-      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "日經225指數 1 個原生交易日報酬",
+      "description": "日經225指數 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "n225_ret_5s": {
       "series_id": "n225",
       "ticker": "^N225",
       "group": "M5_global_index",
-      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "日經225指數 5 個原生交易日報酬",
+      "description": "日經225指數 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "n225_ret_20s": {
       "series_id": "n225",
       "ticker": "^N225",
       "group": "M5_global_index",
-      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "日經225指數 20 個原生交易日報酬",
+      "description": "日經225指數 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "n225_age_days": {
       "series_id": "n225",
       "ticker": "^N225",
       "group": "M5_global_index",
-      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1598,54 +2000,54 @@
       "series_id": "n225",
       "ticker": "^N225",
       "group": "M5_global_index",
-      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^N225 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "hsi_ret_1s": {
       "series_id": "hsi",
       "ticker": "^HSI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "恒生指數 1 個原生交易日報酬",
+      "description": "恒生指數 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "hsi_ret_5s": {
       "series_id": "hsi",
       "ticker": "^HSI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "恒生指數 5 個原生交易日報酬",
+      "description": "恒生指數 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "hsi_ret_20s": {
       "series_id": "hsi",
       "ticker": "^HSI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "恒生指數 20 個原生交易日報酬",
+      "description": "恒生指數 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "hsi_age_days": {
       "series_id": "hsi",
       "ticker": "^HSI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1655,54 +2057,54 @@
       "series_id": "hsi",
       "ticker": "^HSI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^HSI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "sse_ret_1s": {
       "series_id": "sse",
       "ticker": "000001.SS",
       "group": "M5_global_index",
-      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "上證綜合指數 1 個原生交易日報酬",
+      "description": "上證綜合指數 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "sse_ret_5s": {
       "series_id": "sse",
       "ticker": "000001.SS",
       "group": "M5_global_index",
-      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "上證綜合指數 5 個原生交易日報酬",
+      "description": "上證綜合指數 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "sse_ret_20s": {
       "series_id": "sse",
       "ticker": "000001.SS",
       "group": "M5_global_index",
-      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "上證綜合指數 20 個原生交易日報酬",
+      "description": "上證綜合指數 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "sse_age_days": {
       "series_id": "sse",
       "ticker": "000001.SS",
       "group": "M5_global_index",
-      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1712,54 +2114,54 @@
       "series_id": "sse",
       "ticker": "000001.SS",
       "group": "M5_global_index",
-      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝000001.SS 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "stoxx50e_ret_1s": {
       "series_id": "stoxx50e",
       "ticker": "^STOXX50E",
       "group": "M5_global_index",
-      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "歐洲斯托克50指數 1 個原生交易日報酬",
+      "description": "歐洲斯托克50指數 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "stoxx50e_ret_5s": {
       "series_id": "stoxx50e",
       "ticker": "^STOXX50E",
       "group": "M5_global_index",
-      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "歐洲斯托克50指數 5 個原生交易日報酬",
+      "description": "歐洲斯托克50指數 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "stoxx50e_ret_20s": {
       "series_id": "stoxx50e",
       "ticker": "^STOXX50E",
       "group": "M5_global_index",
-      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "歐洲斯托克50指數 20 個原生交易日報酬",
+      "description": "歐洲斯托克50指數 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "stoxx50e_age_days": {
       "series_id": "stoxx50e",
       "ticker": "^STOXX50E",
       "group": "M5_global_index",
-      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1769,54 +2171,54 @@
       "series_id": "stoxx50e",
       "ticker": "^STOXX50E",
       "group": "M5_global_index",
-      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^STOXX50E 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "gdaxi_ret_1s": {
       "series_id": "gdaxi",
       "ticker": "^GDAXI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "德國DAX指數 1 個原生交易日報酬",
+      "description": "德國DAX指數 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "gdaxi_ret_5s": {
       "series_id": "gdaxi",
       "ticker": "^GDAXI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "德國DAX指數 5 個原生交易日報酬",
+      "description": "德國DAX指數 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "gdaxi_ret_20s": {
       "series_id": "gdaxi",
       "ticker": "^GDAXI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "德國DAX指數 20 個原生交易日報酬",
+      "description": "德國DAX指數 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "gdaxi_age_days": {
       "series_id": "gdaxi",
       "ticker": "^GDAXI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1826,54 +2228,54 @@
       "series_id": "gdaxi",
       "ticker": "^GDAXI",
       "group": "M5_global_index",
-      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝^GDAXI 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "wti_ret_1s": {
       "series_id": "wti",
       "ticker": "CL=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "WTI原油期貨 1 個原生交易日報酬",
+      "description": "WTI原油期貨 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "wti_ret_5s": {
       "series_id": "wti",
       "ticker": "CL=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "WTI原油期貨 5 個原生交易日報酬",
+      "description": "WTI原油期貨 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "wti_ret_20s": {
       "series_id": "wti",
       "ticker": "CL=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "WTI原油期貨 20 個原生交易日報酬",
+      "description": "WTI原油期貨 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "wti_age_days": {
       "series_id": "wti",
       "ticker": "CL=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1883,54 +2285,54 @@
       "series_id": "wti",
       "ticker": "CL=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝CL=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     },
     "gold_ret_1s": {
       "series_id": "gold",
       "ticker": "GC=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-1]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "黃金期貨 1 個原生交易日報酬",
+      "description": "黃金期貨 1 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "gold_ret_5s": {
       "series_id": "gold",
       "ticker": "GC=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-5]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "黃金期貨 5 個原生交易日報酬",
+      "description": "黃金期貨 5 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "gold_ret_20s": {
       "series_id": "gold",
       "ticker": "GC=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "P[s]/P[s-20]-1",
       "unit": "decimal_return",
       "price_column": "close",
-      "description": "黃金期貨 20 個原生交易日報酬",
+      "description": "黃金期貨 20 個交易日累積報酬",
       "missing_policy": "前 k 期不存在或任一價格 <= 0 時為空值"
     },
     "gold_age_days": {
       "series_id": "gold",
       "ticker": "GC=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "target_date − s",
       "unit": "calendar_days",
@@ -1940,12 +2342,12 @@
       "series_id": "gold",
       "ticker": "GC=F",
       "group": "M5_commodity",
-      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的原生交易日；k 期＝往回 k 個原生交易日，不是台股列位移",
+      "lag_rule": "s＝GC=F 最後一個 session_date <= target_date − 1 日曆天的交易日；k 期＝往回 k 個該序列有資料的交易日，不是台股列位移",
       "historical_vintage_verified": false,
       "formula": "s",
       "unit": "ISO date",
       "role": "trace_not_model_input",
-      "description": "實際採用的來源原生交易日（追溯用，不是模型輸入）"
+      "description": "實際採用的來源交易日（追溯用，不是模型輸入）"
     }
   },
   "extra_feature_non_missing_rows": {
@@ -1953,80 +2355,2730 @@
     "sox_ret_5s": 1612,
     "sox_ret_20s": 1603,
     "sox_age_days": 1617,
+    "sox_source_date": 1617,
     "tsm_adr_ret_1s": 1616,
     "tsm_adr_ret_5s": 1612,
     "tsm_adr_ret_20s": 1603,
     "tsm_adr_age_days": 1617,
+    "tsm_adr_source_date": 1617,
     "nvda_ret_1s": 1616,
     "nvda_ret_5s": 1612,
     "nvda_ret_20s": 1603,
     "nvda_age_days": 1617,
+    "nvda_source_date": 1617,
     "usd_twd_level": 1618,
     "usd_twd_ret_1s": 1617,
     "usd_twd_ret_5s": 1613,
     "usd_twd_ret_20s": 1605,
     "usd_twd_age_days": 1618,
+    "usd_twd_source_date": 1618,
     "dxy_level": 1617,
     "dxy_ret_1s": 1616,
     "dxy_ret_5s": 1612,
     "dxy_ret_20s": 1603,
     "dxy_age_days": 1617,
+    "dxy_source_date": 1617,
     "us10y_level_pct": 1617,
     "us10y_change_bp_1s": 1616,
     "us10y_change_bp_5s": 1612,
     "us10y_age_days": 1617,
+    "us10y_source_date": 1617,
     "us13w_level_pct": 1617,
     "us13w_change_bp_1s": 1616,
     "us13w_change_bp_5s": 1612,
     "us13w_age_days": 1617,
+    "us13w_source_date": 1617,
     "etf_006201_ret_1s": 1616,
     "etf_006201_ret_5s": 1612,
     "etf_006201_ret_20s": 1597,
     "etf_006201_age_days": 1617,
+    "etf_006201_source_date": 1617,
     "etf_0050_ret_1s": 1616,
     "etf_0050_ret_5s": 1612,
     "etf_0050_ret_20s": 1597,
     "etf_0050_age_days": 1617,
+    "etf_0050_source_date": 1617,
     "etf_0052_ret_1s": 1616,
     "etf_0052_ret_5s": 1612,
     "etf_0052_ret_20s": 1597,
     "etf_0052_age_days": 1617,
+    "etf_0052_source_date": 1617,
     "etf_0055_ret_1s": 1616,
     "etf_0055_ret_5s": 1612,
     "etf_0055_ret_20s": 1597,
     "etf_0055_age_days": 1617,
+    "etf_0055_source_date": 1617,
     "dji_ret_1s": 1616,
     "dji_ret_5s": 1612,
     "dji_ret_20s": 1603,
     "dji_age_days": 1617,
+    "dji_source_date": 1617,
     "n225_ret_1s": 1614,
     "n225_ret_5s": 1609,
     "n225_ret_20s": 1601,
     "n225_age_days": 1615,
+    "n225_source_date": 1615,
     "hsi_ret_1s": 1616,
     "hsi_ret_5s": 1612,
     "hsi_ret_20s": 1602,
     "hsi_age_days": 1617,
+    "hsi_source_date": 1617,
     "sse_ret_1s": 1616,
     "sse_ret_5s": 1612,
     "sse_ret_20s": 1598,
     "sse_age_days": 1617,
+    "sse_source_date": 1617,
     "stoxx50e_ret_1s": 1615,
     "stoxx50e_ret_5s": 1611,
     "stoxx50e_ret_20s": 1603,
     "stoxx50e_age_days": 1616,
+    "stoxx50e_source_date": 1616,
     "gdaxi_ret_1s": 1616,
     "gdaxi_ret_5s": 1612,
     "gdaxi_ret_20s": 1604,
     "gdaxi_age_days": 1617,
+    "gdaxi_source_date": 1617,
     "wti_ret_1s": 1614,
     "wti_ret_5s": 1610,
     "wti_ret_20s": 1601,
     "wti_age_days": 1617,
+    "wti_source_date": 1617,
     "gold_ret_1s": 1616,
     "gold_ret_5s": 1612,
     "gold_ret_20s": 1603,
-    "gold_age_days": 1617
+    "gold_age_days": 1617,
+    "gold_source_date": 1617
+  },
+  "transform": {
+    "definition": {
+      "return": "r_i = (close_i − close_{i−1}) / close_{i−1}；i＝日期，close_{i−1}＝同一序列的前一個交易日",
+      "placement": "r_i 放在同日期的台股交易日列；該序列那天沒有資料就空白",
+      "lag_k": "ret_lag{k}(t) ＝ 往前第 k 個台股交易日列的 r（lag2＝t 前 2 列，lag5＝t 前 5 列）",
+      "price": "額外指標：股票／ETF 用 adj_close，其他用 close；老師個股用 etl:adj_close；老師全球指數用該欄值",
+      "yields": "殖利率（us10y、us13w）也一律用百分比報酬（依使用者要求）；接近 0 時數值很大",
+      "missing": "空白＝缺值：序列當天無資料、前一交易日無資料、任一價格 <= 0、或前 k 列不存在；不補值",
+      "leakage": "lag >= 1 列，所以只用 t 之前台股交易日的報酬；老師美股欄已被老師位移一次，其 lag 實際更舊"
+    },
+    "lags": [
+      2,
+      5
+    ],
+    "rows_per_file": 1618,
+    "date_min": "2020-01-02",
+    "date_max": "2026-08-31",
+    "feature_count": 124,
+    "files_per_lag": 124,
+    "features": {
+      "sox": {
+        "source": "yfinance ^SOX",
+        "name_zh": "費城半導體指數",
+        "group": "M1_semiconductor",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/sox.csv",
+            "column": "sox_ret_lag2",
+            "sha256": "f8de889a711181c81f88c36d29861560fea794ad7f140d57fa727bf6edc72bad",
+            "non_missing_rows": 1562
+          },
+          "lag5": {
+            "file": "transform/lag5/sox.csv",
+            "column": "sox_ret_lag5",
+            "sha256": "1df6deb57b8404cf01869656f2e2457924e4cbf515b6eb20416a231e5f1e8a90",
+            "non_missing_rows": 1559
+          }
+        }
+      },
+      "tsm_adr": {
+        "source": "yfinance TSM",
+        "name_zh": "台積電ADR",
+        "group": "M2_overseas_stock",
+        "price_column": "adj_close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/tsm_adr.csv",
+            "column": "tsm_adr_ret_lag2",
+            "sha256": "d688ad3cca2e43c3e7be2c9c41ac468eb3850487a0511ed326b7291ae3c114ed",
+            "non_missing_rows": 1562
+          },
+          "lag5": {
+            "file": "transform/lag5/tsm_adr.csv",
+            "column": "tsm_adr_ret_lag5",
+            "sha256": "4fadb7ae9e554bde07c9513b1576f9f6c662bb6943cb2220b8ca711e1e9cd4ef",
+            "non_missing_rows": 1559
+          }
+        }
+      },
+      "nvda": {
+        "source": "yfinance NVDA",
+        "name_zh": "輝達",
+        "group": "M2_overseas_stock",
+        "price_column": "adj_close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/nvda.csv",
+            "column": "nvda_ret_lag2",
+            "sha256": "29e27a8bd8ba23fed9cb4922efa0426bfd0e3fd26d857398d7049a7234e9c976",
+            "non_missing_rows": 1562
+          },
+          "lag5": {
+            "file": "transform/lag5/nvda.csv",
+            "column": "nvda_ret_lag5",
+            "sha256": "c3cb6cc93956245f4bf1b070e25796fb9aa38199592de465c11ab7f613a9b2f1",
+            "non_missing_rows": 1559
+          }
+        }
+      },
+      "usd_twd": {
+        "source": "yfinance TWD=X",
+        "name_zh": "美元兌新台幣匯率",
+        "group": "M3_fx_rates",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/usd_twd.csv",
+            "column": "usd_twd_ret_lag2",
+            "sha256": "92d6cc4215777b2627f42cc37a453cf0cfe4d083ba59d6c04881641bb768bfdf",
+            "non_missing_rows": 1612
+          },
+          "lag5": {
+            "file": "transform/lag5/usd_twd.csv",
+            "column": "usd_twd_ret_lag5",
+            "sha256": "aa42a4a751890e3780accb6ce1dbfb9782b49a1f54172040ce2a51e1e20f3bf3",
+            "non_missing_rows": 1609
+          }
+        }
+      },
+      "dxy": {
+        "source": "yfinance DX-Y.NYB",
+        "name_zh": "美元指數",
+        "group": "M3_fx_rates",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/dxy.csv",
+            "column": "dxy_ret_lag2",
+            "sha256": "4927ebe212cee591049d465dc5c31863256934c8b70759946ede74ca08246340",
+            "non_missing_rows": 1564
+          },
+          "lag5": {
+            "file": "transform/lag5/dxy.csv",
+            "column": "dxy_ret_lag5",
+            "sha256": "74f9a60f2ccda666bbf03fb4a181ba0172a8e1350b711d022a631123427feab9",
+            "non_missing_rows": 1561
+          }
+        }
+      },
+      "us10y": {
+        "source": "yfinance ^TNX",
+        "name_zh": "美國10年期公債殖利率",
+        "group": "M3_fx_rates",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/us10y.csv",
+            "column": "us10y_ret_lag2",
+            "sha256": "8c83ab9b5f75f3d3e32647ba11996fa94ac0df0d1358c4ff9bb2021f37cad90e",
+            "non_missing_rows": 1562
+          },
+          "lag5": {
+            "file": "transform/lag5/us10y.csv",
+            "column": "us10y_ret_lag5",
+            "sha256": "acc7606998a8f4ea299d4b2b09d2db4bce38f4f640ac7b4a2e9740f5726de893",
+            "non_missing_rows": 1559
+          }
+        }
+      },
+      "us13w": {
+        "source": "yfinance ^IRX",
+        "name_zh": "美國13週國庫券殖利率",
+        "group": "M3_fx_rates",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/us13w.csv",
+            "column": "us13w_ret_lag2",
+            "sha256": "54c74e7b2ecd505aba2ac3ba4d8ca7e253af90ffa9776af5982a3c5097ba42af",
+            "non_missing_rows": 1554
+          },
+          "lag5": {
+            "file": "transform/lag5/us13w.csv",
+            "column": "us13w_ret_lag5",
+            "sha256": "5c3a23b64a66329e9a03a785d224e8864aacb367fef40a442f1d5069114cec85",
+            "non_missing_rows": 1551
+          }
+        }
+      },
+      "etf_006201": {
+        "source": "yfinance 006201.TWO",
+        "name_zh": "元大富櫃50（櫃買市場代理）",
+        "group": "M4_taiwan",
+        "price_column": "adj_close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/etf_006201.csv",
+            "column": "etf_006201_ret_lag2",
+            "sha256": "24555d56eeac5ca256948f81aa47a9400c850ce68fe51393d441e6f31ffb5a74",
+            "non_missing_rows": 1605
+          },
+          "lag5": {
+            "file": "transform/lag5/etf_006201.csv",
+            "column": "etf_006201_ret_lag5",
+            "sha256": "e5cbe649bbb84205ec2d0d14efdf2387f77e61f6203af651f29881c9b4f4c1eb",
+            "non_missing_rows": 1602
+          }
+        }
+      },
+      "etf_0050": {
+        "source": "yfinance 0050.TW",
+        "name_zh": "元大台灣50（台灣50指數代理）",
+        "group": "M4_taiwan",
+        "price_column": "adj_close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/etf_0050.csv",
+            "column": "etf_0050_ret_lag2",
+            "sha256": "0180d7930ff757f39c564a1da09def13e639cb8d3b28428902e0ff939d47606b",
+            "non_missing_rows": 1608
+          },
+          "lag5": {
+            "file": "transform/lag5/etf_0050.csv",
+            "column": "etf_0050_ret_lag5",
+            "sha256": "18bb88fe4b9c6c22f11817e6e37f8801d8c560bce7e7060f75ffa8283acf5607",
+            "non_missing_rows": 1605
+          }
+        }
+      },
+      "etf_0052": {
+        "source": "yfinance 0052.TW",
+        "name_zh": "富邦科技（電子類代理）",
+        "group": "M4_taiwan",
+        "price_column": "adj_close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/etf_0052.csv",
+            "column": "etf_0052_ret_lag2",
+            "sha256": "e22780478173ea01b1ab649240038b2a1fa1fc5cb90843c279d5ea1037de63c3",
+            "non_missing_rows": 1608
+          },
+          "lag5": {
+            "file": "transform/lag5/etf_0052.csv",
+            "column": "etf_0052_ret_lag5",
+            "sha256": "2bb3cebcb6ca97054d5c9b58d21407daa27af48d3df3a6b66e25aea413d6e5b9",
+            "non_missing_rows": 1605
+          }
+        }
+      },
+      "etf_0055": {
+        "source": "yfinance 0055.TW",
+        "name_zh": "元大MSCI金融（金融類代理）",
+        "group": "M4_taiwan",
+        "price_column": "adj_close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/etf_0055.csv",
+            "column": "etf_0055_ret_lag2",
+            "sha256": "e1194e2d45896c79e454252c62378eea3d4e91b3747db91e38bbb7b8c1d2879e",
+            "non_missing_rows": 1613
+          },
+          "lag5": {
+            "file": "transform/lag5/etf_0055.csv",
+            "column": "etf_0055_ret_lag5",
+            "sha256": "256215b3c855b0568c6b0efd26d8ec49c5f9252d8d5111e5c6d9f132c52e4e22",
+            "non_missing_rows": 1610
+          }
+        }
+      },
+      "dji": {
+        "source": "yfinance ^DJI",
+        "name_zh": "道瓊工業指數",
+        "group": "M5_global_index",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/dji.csv",
+            "column": "dji_ret_lag2",
+            "sha256": "cd39f390e6c657db74ffc859fa1656c518e758699f9d60e1053c026a65910e5f",
+            "non_missing_rows": 1562
+          },
+          "lag5": {
+            "file": "transform/lag5/dji.csv",
+            "column": "dji_ret_lag5",
+            "sha256": "1a6ecd547ef4664c627ec2b802273b114f84f712dc3a01c5a555c1e6963b1539",
+            "non_missing_rows": 1559
+          }
+        }
+      },
+      "n225": {
+        "source": "yfinance ^N225",
+        "name_zh": "日經225指數",
+        "group": "M5_global_index",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/n225.csv",
+            "column": "n225_ret_lag2",
+            "sha256": "df34817c0095c638f3fdf6ddcf2a621cf5aeadf56315c17b8219df55f15b9b8e",
+            "non_missing_rows": 1515
+          },
+          "lag5": {
+            "file": "transform/lag5/n225.csv",
+            "column": "n225_ret_lag5",
+            "sha256": "735d20640adbd0c6bd869ba4e5b0d220b0d53cd5a69e40a3dd973e7fc74c0e5f",
+            "non_missing_rows": 1512
+          }
+        }
+      },
+      "hsi": {
+        "source": "yfinance ^HSI",
+        "name_zh": "恒生指數",
+        "group": "M5_global_index",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/hsi.csv",
+            "column": "hsi_ret_lag2",
+            "sha256": "6c2940104acdb7599266c1ef3965cad83b1964bbb98f2c8db9765da9f4d6dfc7",
+            "non_missing_rows": 1561
+          },
+          "lag5": {
+            "file": "transform/lag5/hsi.csv",
+            "column": "hsi_ret_lag5",
+            "sha256": "aa7e642fa7431c87d9ea9b1661a262fdbaf850561a3f490854e171ed4a876ea6",
+            "non_missing_rows": 1558
+          }
+        }
+      },
+      "sse": {
+        "source": "yfinance 000001.SS",
+        "name_zh": "上證綜合指數",
+        "group": "M5_global_index",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/sse.csv",
+            "column": "sse_ret_lag2",
+            "sha256": "ce3af3f02a76fc09cb54d09b848a080391d1f066964f29491a16c5386126a2c5",
+            "non_missing_rows": 1559
+          },
+          "lag5": {
+            "file": "transform/lag5/sse.csv",
+            "column": "sse_ret_lag5",
+            "sha256": "d5944247cef5ab4af1b8c0075c74d0443ba9b9d05672b185d649edb8e942cf46",
+            "non_missing_rows": 1556
+          }
+        }
+      },
+      "stoxx50e": {
+        "source": "yfinance ^STOXX50E",
+        "name_zh": "歐洲斯托克50指數",
+        "group": "M5_global_index",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stoxx50e.csv",
+            "column": "stoxx50e_ret_lag2",
+            "sha256": "76bcac293ede03d4f77fc4a178c51d24188c09cd20d2b0b40c686aeafccb6f34",
+            "non_missing_rows": 1569
+          },
+          "lag5": {
+            "file": "transform/lag5/stoxx50e.csv",
+            "column": "stoxx50e_ret_lag5",
+            "sha256": "15e2a0e3cdf55d07d1c6f2c2dbbe6beb2f0a6b89e0404c788233c798652fa003",
+            "non_missing_rows": 1566
+          }
+        }
+      },
+      "gdaxi": {
+        "source": "yfinance ^GDAXI",
+        "name_zh": "德國DAX指數",
+        "group": "M5_global_index",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/gdaxi.csv",
+            "column": "gdaxi_ret_lag2",
+            "sha256": "a7f1aa268a1da09a51a6769320b1f42615393477d80fd1a7d47d3879caa1f2fb",
+            "non_missing_rows": 1589
+          },
+          "lag5": {
+            "file": "transform/lag5/gdaxi.csv",
+            "column": "gdaxi_ret_lag5",
+            "sha256": "6925554357785b9879c5956fa8a9adb60c13b9bc282c04900f9d77644ff0bb55",
+            "non_missing_rows": 1586
+          }
+        }
+      },
+      "wti": {
+        "source": "yfinance CL=F",
+        "name_zh": "WTI原油期貨",
+        "group": "M5_commodity",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/wti.csv",
+            "column": "wti_ret_lag2",
+            "sha256": "12e905f5518878b05b0429250524bf7bf4c7b7b25ae90015086bb859310b3f06",
+            "non_missing_rows": 1562
+          },
+          "lag5": {
+            "file": "transform/lag5/wti.csv",
+            "column": "wti_ret_lag5",
+            "sha256": "ce367c85ff3bcff69ea4c28dcc48d4618e70da29b9339736b599377714ae8d7e",
+            "non_missing_rows": 1559
+          }
+        }
+      },
+      "gold": {
+        "source": "yfinance GC=F",
+        "name_zh": "黃金期貨",
+        "group": "M5_commodity",
+        "price_column": "close",
+        "previous_trading_day": "該序列在 Yahoo 的前一個有資料交易日",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/gold.csv",
+            "column": "gold_ret_lag2",
+            "sha256": "ade9edcb9bfad6a94d85746a48cb6c4c30f5d285f740b7b8141a9b8dac9c02dc",
+            "non_missing_rows": 1565
+          },
+          "lag5": {
+            "file": "transform/lag5/gold.csv",
+            "column": "gold_ret_lag5",
+            "sha256": "cd6467222d8055fda1762df290f99e3e410dac17c924255b375e17b1dc4e9cfc",
+            "non_missing_rows": 1562
+          }
+        }
+      },
+      "teacher_vix": {
+        "source": "teacher global_data.csv ^VIX",
+        "name_zh": "CBOE VIX 波動率指數",
+        "group": "teacher_global",
+        "price_column": "^VIX",
+        "previous_trading_day": "老師 global 表的前一列（台／美／韓交集，可能跨多個交易日）",
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的美股收盤（老師已位移，09:00 前可得）。global 表是台／美／韓交易日交集，長假後可能落後多個美股交易日；不要再自行 shift。",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/teacher_vix.csv",
+            "column": "teacher_vix_ret_lag2",
+            "sha256": "c9514dcfe4222af97a7046a56ee7a7eaed29567ff59a1ac56619e8b1478fb880",
+            "non_missing_rows": 1503
+          },
+          "lag5": {
+            "file": "transform/lag5/teacher_vix.csv",
+            "column": "teacher_vix_ret_lag5",
+            "sha256": "384ed6431b86f0dcb2a24a5bbaa5774c5f2cc7028209d155cb0ff4a7b358d277",
+            "non_missing_rows": 1500
+          }
+        }
+      },
+      "teacher_ixic": {
+        "source": "teacher global_data.csv ^IXIC",
+        "name_zh": "Nasdaq Composite 那斯達克綜合指數",
+        "group": "teacher_global",
+        "price_column": "^IXIC",
+        "previous_trading_day": "老師 global 表的前一列（台／美／韓交集，可能跨多個交易日）",
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的美股收盤（老師已位移，09:00 前可得）。global 表是台／美／韓交易日交集，長假後可能落後多個美股交易日；不要再自行 shift。",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/teacher_ixic.csv",
+            "column": "teacher_ixic_ret_lag2",
+            "sha256": "2749f1c574693627fce76e3b78ed38352c7f77cf9499c8f89a1efa0d37028eac",
+            "non_missing_rows": 1503
+          },
+          "lag5": {
+            "file": "transform/lag5/teacher_ixic.csv",
+            "column": "teacher_ixic_ret_lag5",
+            "sha256": "a1cc0cf6d764feddeaacdc9c48796c0bfffe375d768212a4268348144ee36e94",
+            "non_missing_rows": 1500
+          }
+        }
+      },
+      "teacher_gspc": {
+        "source": "teacher global_data.csv ^GSPC",
+        "name_zh": "S&P 500 標普500指數",
+        "group": "teacher_global",
+        "price_column": "^GSPC",
+        "previous_trading_day": "老師 global 表的前一列（台／美／韓交集，可能跨多個交易日）",
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的美股收盤（老師已位移，09:00 前可得）。global 表是台／美／韓交易日交集，長假後可能落後多個美股交易日；不要再自行 shift。",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/teacher_gspc.csv",
+            "column": "teacher_gspc_ret_lag2",
+            "sha256": "ba190e0e28e5586340f02a9287431eaef9ce300bc876cd21fc8b08f1ff270093",
+            "non_missing_rows": 1503
+          },
+          "lag5": {
+            "file": "transform/lag5/teacher_gspc.csv",
+            "column": "teacher_gspc_ret_lag5",
+            "sha256": "3756eaa2ec9097fe206721601ac3830291c8a1156397d5c006ac93c2ae72aafd",
+            "non_missing_rows": 1500
+          }
+        }
+      },
+      "teacher_twii": {
+        "source": "teacher global_data.csv ^TWII",
+        "name_zh": "台灣加權股價指數",
+        "group": "teacher_global",
+        "price_column": "^TWII",
+        "previous_trading_day": "老師 global 表的前一列（台／美／韓交集，可能跨多個交易日）",
+        "timing": "列日期 d 的值＝d 當日收盤（實證：^TWII 列報酬與 0050 同日報酬相關 0.96），09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/teacher_twii.csv",
+            "column": "teacher_twii_ret_lag2",
+            "sha256": "057755eb555061aae29979788b1724aa5890f177b3195b03b7df3bd1c01ab965",
+            "non_missing_rows": 1503
+          },
+          "lag5": {
+            "file": "transform/lag5/teacher_twii.csv",
+            "column": "teacher_twii_ret_lag5",
+            "sha256": "22fe003a52ce3971ec53243d5200315f208cefb5d62508ad01e56c5b3cdd6f77",
+            "non_missing_rows": 1500
+          }
+        }
+      },
+      "teacher_ks11": {
+        "source": "teacher global_data.csv ^KS11",
+        "name_zh": "KOSPI 韓國綜合指數",
+        "group": "teacher_global",
+        "price_column": "^KS11",
+        "previous_trading_day": "老師 global 表的前一列（台／美／韓交集，可能跨多個交易日）",
+        "timing": "列日期 d 的值＝d 當日收盤（實證：^TWII 列報酬與 0050 同日報酬相關 0.96），09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/teacher_ks11.csv",
+            "column": "teacher_ks11_ret_lag2",
+            "sha256": "50f188d98eb9ec1d71bff04aaae9743da15c89205e4321940bec2fb8184807f7",
+            "non_missing_rows": 1503
+          },
+          "lag5": {
+            "file": "transform/lag5/teacher_ks11.csv",
+            "column": "teacher_ks11_ret_lag5",
+            "sha256": "9d011cbb24115f9c383baf178d388f3a6a3adb83938d5e0e8324608bd2f8af7a",
+            "non_missing_rows": 1500
+          }
+        }
+      },
+      "stock_1101": {
+        "source": "teacher market/1101.csv etl:adj_close",
+        "name_zh": "個股 1101",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1101.csv",
+            "column": "stock_1101_ret_lag2",
+            "sha256": "8d3009486dc2f2bee64f327e85272460e994acd4b73290eee35cc3ba3e43c924",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1101.csv",
+            "column": "stock_1101_ret_lag5",
+            "sha256": "46a88e07e4895bbfbcd415f9f08b210a56de17dfc564b848e66e98bc1c3ad398",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_1102": {
+        "source": "teacher market/1102.csv etl:adj_close",
+        "name_zh": "個股 1102",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1102.csv",
+            "column": "stock_1102_ret_lag2",
+            "sha256": "01e8b5a229a7afbc89228f73c4c9d43edc8f487995ff40f1669eb20980b1c855",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1102.csv",
+            "column": "stock_1102_ret_lag5",
+            "sha256": "45b8cd56a076194c582c829cbb0232dae8c040f30d1004adbb1ecf7d6a5d9a8e",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_1216": {
+        "source": "teacher market/1216.csv etl:adj_close",
+        "name_zh": "個股 1216",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1216.csv",
+            "column": "stock_1216_ret_lag2",
+            "sha256": "7b4e4a4104c39bb511fe0110fc339eac21d782fd864a9e5bc8764c9e33892a74",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1216.csv",
+            "column": "stock_1216_ret_lag5",
+            "sha256": "7710517343701338404ce1dda6d01b0e51d1a8017fddd1551763c9bd8b871b17",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_1301": {
+        "source": "teacher market/1301.csv etl:adj_close",
+        "name_zh": "個股 1301",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1301.csv",
+            "column": "stock_1301_ret_lag2",
+            "sha256": "0af1ba64d2a88d7472085013807c64491bbbcda3f81470683f9b8aa447534ce5",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1301.csv",
+            "column": "stock_1301_ret_lag5",
+            "sha256": "97b53ebabab05ce657bf9a8296b27ee1c012197ae32d81d9e3c82ca249fa1b89",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_1303": {
+        "source": "teacher market/1303.csv etl:adj_close",
+        "name_zh": "個股 1303",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1303.csv",
+            "column": "stock_1303_ret_lag2",
+            "sha256": "b8f1233240a2485eda3964f2b9c0dd7f3d67d487573d9136de09577b39c63e46",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1303.csv",
+            "column": "stock_1303_ret_lag5",
+            "sha256": "17f6f95e5da92925f5bbdab1021eae834e2b7bfd7fa16b1a9f93eb6ebae73ed3",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_1326": {
+        "source": "teacher market/1326.csv etl:adj_close",
+        "name_zh": "個股 1326",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1326.csv",
+            "column": "stock_1326_ret_lag2",
+            "sha256": "6ba831a8a87ec4e44c9663f18c67c2f5e55b4da5397d3b4cd3bdbe354d4d9efa",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1326.csv",
+            "column": "stock_1326_ret_lag5",
+            "sha256": "bdff63385b57a280f0880a57ced257e56dbd76964bb5de06b29dfa5773503ada",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_1402": {
+        "source": "teacher market/1402.csv etl:adj_close",
+        "name_zh": "個股 1402",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1402.csv",
+            "column": "stock_1402_ret_lag2",
+            "sha256": "e7d01cf7f90e3b05ff89399470cbf2da201b01b4ea408bce69109ef8962ad542",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1402.csv",
+            "column": "stock_1402_ret_lag5",
+            "sha256": "ce1a02f84e4248549eb17129caabe4c9b9e98ba6473c9d3fcbf7890af2446741",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_1476": {
+        "source": "teacher market/1476.csv etl:adj_close",
+        "name_zh": "個股 1476",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1476.csv",
+            "column": "stock_1476_ret_lag2",
+            "sha256": "790068893c825f81f753341a461bf762489e71145539243ba11bcec55cd380ae",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1476.csv",
+            "column": "stock_1476_ret_lag5",
+            "sha256": "d08555c030b29e3ecb79c4627b23d8adbd8c1c0f31661dc19a0d6d3e4a0597ea",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_1504": {
+        "source": "teacher market/1504.csv etl:adj_close",
+        "name_zh": "個股 1504",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1504.csv",
+            "column": "stock_1504_ret_lag2",
+            "sha256": "da5d71635cfd6c4ae76cc7421f44b5b1de24cf292cc13fff0bc306565ed5c2ae",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1504.csv",
+            "column": "stock_1504_ret_lag5",
+            "sha256": "0e7cab1bad61d4d9a745350c51c7f5464e6c88b5a3ff22def3cad1549d175221",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_1519": {
+        "source": "teacher market/1519.csv etl:adj_close",
+        "name_zh": "個股 1519",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1519.csv",
+            "column": "stock_1519_ret_lag2",
+            "sha256": "51f7efe654d0b89412ed6d6800c0cfcc1e854c4761a3ecb20bffe06e73c6064f",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1519.csv",
+            "column": "stock_1519_ret_lag5",
+            "sha256": "a256fb8bc249d8a117c74e6a8d9eb9dcc4006d54b1bdfcd155235ff5023b0122",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_1590": {
+        "source": "teacher market/1590.csv etl:adj_close",
+        "name_zh": "個股 1590",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_1590.csv",
+            "column": "stock_1590_ret_lag2",
+            "sha256": "63a366eed79fe0a1db45a8d41e4cd92f17749ccfc20ee4f86353a1e4c8a27346",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_1590.csv",
+            "column": "stock_1590_ret_lag5",
+            "sha256": "a3b9c2bba12b98f00866ce4fa475317bc06312e5bde227a156e00b66860d618c",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2002": {
+        "source": "teacher market/2002.csv etl:adj_close",
+        "name_zh": "個股 2002",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2002.csv",
+            "column": "stock_2002_ret_lag2",
+            "sha256": "0c9e68ed3bc6f6b9961146fac7cfee45149da00029dc881252d6fad62fe37ac8",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2002.csv",
+            "column": "stock_2002_ret_lag5",
+            "sha256": "6cd7346a7f82c5d980940fd65eddc4664f60049f9a912bea97665059f46bfcca",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2059": {
+        "source": "teacher market/2059.csv etl:adj_close",
+        "name_zh": "個股 2059",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2059.csv",
+            "column": "stock_2059_ret_lag2",
+            "sha256": "868c06bd0b250605a20435e7d567cd1be7f28c5f79a1354e2a22c32c8be129df",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2059.csv",
+            "column": "stock_2059_ret_lag5",
+            "sha256": "787d5e64311f6c5d4fd8071b3cd0bf5a37b79af9cec45e0277e83d803690c0c0",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2105": {
+        "source": "teacher market/2105.csv etl:adj_close",
+        "name_zh": "個股 2105",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2105.csv",
+            "column": "stock_2105_ret_lag2",
+            "sha256": "eca48a975973e2b03a14ca89bc9f2dfad419eda20ebe5d1d95e5a66a697021b8",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2105.csv",
+            "column": "stock_2105_ret_lag5",
+            "sha256": "7de8ee46fa78755e46880bcaa486bad95b6be2d3cf34503288efd7260b922993",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2207": {
+        "source": "teacher market/2207.csv etl:adj_close",
+        "name_zh": "個股 2207",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2207.csv",
+            "column": "stock_2207_ret_lag2",
+            "sha256": "16317c825ff2740d16b9db89a6d0144f2be7d348079af6c3c85e52a83d10aceb",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2207.csv",
+            "column": "stock_2207_ret_lag5",
+            "sha256": "4958967c2d750dd3fa57e5705873e9c1b9411d6be45956feff2b73ca773f14ee",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_2301": {
+        "source": "teacher market/2301.csv etl:adj_close",
+        "name_zh": "個股 2301",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2301.csv",
+            "column": "stock_2301_ret_lag2",
+            "sha256": "b6c3576c51b69472c6cec8ad3fd789a6970fe6e8551cec567668a8ecf48f620a",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2301.csv",
+            "column": "stock_2301_ret_lag5",
+            "sha256": "e3be0ebffe4f78d0b56d1569d5c0041de9c6a03aa33da4d1bad4929da2369093",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2303": {
+        "source": "teacher market/2303.csv etl:adj_close",
+        "name_zh": "個股 2303",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2303.csv",
+            "column": "stock_2303_ret_lag2",
+            "sha256": "91417e5b7b3398d02d4a9a5179c207196ead9fa698646e3999e3395c20cecc7c",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2303.csv",
+            "column": "stock_2303_ret_lag5",
+            "sha256": "f2e5a248f342d69d679d46deb419e484372ec95af3d8d2b49cb115762993b986",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2308": {
+        "source": "teacher market/2308.csv etl:adj_close",
+        "name_zh": "個股 2308",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2308.csv",
+            "column": "stock_2308_ret_lag2",
+            "sha256": "e5e6aea64c88271309b7bd51296a6e89527c081e1c86a1ba8fcb10ec2e144285",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2308.csv",
+            "column": "stock_2308_ret_lag5",
+            "sha256": "b922dafa8079204ec2d7cc176e4f84d5f0183003ab5bdfda4dd8d406759b1d06",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2317": {
+        "source": "teacher market/2317.csv etl:adj_close",
+        "name_zh": "個股 2317",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2317.csv",
+            "column": "stock_2317_ret_lag2",
+            "sha256": "bf1bf8160050179a6249b6815d629d248502044f2304c4a539cb6ccaf7490be6",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2317.csv",
+            "column": "stock_2317_ret_lag5",
+            "sha256": "fead905cf75446e1d0158f0c7ee680ceb7ffce32d0c699b22cd8bc507e589d64",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_2324": {
+        "source": "teacher market/2324.csv etl:adj_close",
+        "name_zh": "個股 2324",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2324.csv",
+            "column": "stock_2324_ret_lag2",
+            "sha256": "9a377128d8bbea9c193b1de37d467f277c6bd4e9946a479ba846fa05dd5081b1",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2324.csv",
+            "column": "stock_2324_ret_lag5",
+            "sha256": "d5c916e02c48bc1742723f0d8ff71465e2c0a19dbb63fa55041e18f0a389368e",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2327": {
+        "source": "teacher market/2327.csv etl:adj_close",
+        "name_zh": "個股 2327",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2327.csv",
+            "column": "stock_2327_ret_lag2",
+            "sha256": "fa5343a165b0e640aac35326741bd16cabc35c3463d5e918be283c4a6a039a8c",
+            "non_missing_rows": 1600
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2327.csv",
+            "column": "stock_2327_ret_lag5",
+            "sha256": "8a58440c3ed388144758c51657063654b7dab71d55b7a682baf61a99417bb886",
+            "non_missing_rows": 1597
+          }
+        }
+      },
+      "stock_2330": {
+        "source": "teacher market/2330.csv etl:adj_close",
+        "name_zh": "個股 2330",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2330.csv",
+            "column": "stock_2330_ret_lag2",
+            "sha256": "3c649a8c3ebb219951f42adde764d58c18cf43370c779c2aa2403a1e0f446349",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2330.csv",
+            "column": "stock_2330_ret_lag5",
+            "sha256": "5ff983bc3a25d2bb0668b048cef7aa9d871b5e579531e3ad4421ca4f708011a2",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2344": {
+        "source": "teacher market/2344.csv etl:adj_close",
+        "name_zh": "個股 2344",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2344.csv",
+            "column": "stock_2344_ret_lag2",
+            "sha256": "8fc297d9aa6c03c497741af019371287d752defed33b0fa3731a5e7a74bd1584",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2344.csv",
+            "column": "stock_2344_ret_lag5",
+            "sha256": "f5ccf1dab6484d6dda88bc0bbc4e48b01309b31211f0ff7652775db8be6943a8",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2345": {
+        "source": "teacher market/2345.csv etl:adj_close",
+        "name_zh": "個股 2345",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2345.csv",
+            "column": "stock_2345_ret_lag2",
+            "sha256": "70066e42c7487be251feb0e5655217d249b0ced6da38689f9e4b98776a5ab734",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2345.csv",
+            "column": "stock_2345_ret_lag5",
+            "sha256": "1f3b343975da480b528120dce2e7f8cc87afa2a41402ce290409c808a8659bdd",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2356": {
+        "source": "teacher market/2356.csv etl:adj_close",
+        "name_zh": "個股 2356",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2356.csv",
+            "column": "stock_2356_ret_lag2",
+            "sha256": "5902f4bd9ba2881074e09dbe01c77c53950dc01bd26594ae0ebc656818575530",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2356.csv",
+            "column": "stock_2356_ret_lag5",
+            "sha256": "c3f532fce1554d57064b0a9a939a2c289e444c82d30070bf742e2f6a0e42bfc0",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2357": {
+        "source": "teacher market/2357.csv etl:adj_close",
+        "name_zh": "個股 2357",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2357.csv",
+            "column": "stock_2357_ret_lag2",
+            "sha256": "2bf094ab1d48637a51f5eb0904926cb64ff41f74aa60890f4f875186aae76285",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2357.csv",
+            "column": "stock_2357_ret_lag5",
+            "sha256": "9cc0fc5727ba8222eaaba28bd704b41168e5ce6a46f2eeaeeca8671ae220cfeb",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2360": {
+        "source": "teacher market/2360.csv etl:adj_close",
+        "name_zh": "個股 2360",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2360.csv",
+            "column": "stock_2360_ret_lag2",
+            "sha256": "728659293ccabea085911807f4fd336965ddfdbb608a1e7adf412244ba5d8f63",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2360.csv",
+            "column": "stock_2360_ret_lag5",
+            "sha256": "8c5df39374194156bcb8e3df19dd10512a867a65c01058f3d7c5b434bd5131c6",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2368": {
+        "source": "teacher market/2368.csv etl:adj_close",
+        "name_zh": "個股 2368",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2368.csv",
+            "column": "stock_2368_ret_lag2",
+            "sha256": "033f48d7cd322bcdbcb266eb3352f437890cdd38664e66399db854a58fb24193",
+            "non_missing_rows": 1608
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2368.csv",
+            "column": "stock_2368_ret_lag5",
+            "sha256": "c93017308060ae3f1e232434ab9b285c89811b79dbbce98d93923cced142dcd6",
+            "non_missing_rows": 1605
+          }
+        }
+      },
+      "stock_2376": {
+        "source": "teacher market/2376.csv etl:adj_close",
+        "name_zh": "個股 2376",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2376.csv",
+            "column": "stock_2376_ret_lag2",
+            "sha256": "5a9fdfc767ce10718fc5014f3ea7a394ae75277d42fc8820cbedfd73fa8afcc0",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2376.csv",
+            "column": "stock_2376_ret_lag5",
+            "sha256": "2c41effc53a349e78e386530d5a30c9f4fe0b4b991c51b20f6b9216b7ebf1eb1",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2377": {
+        "source": "teacher market/2377.csv etl:adj_close",
+        "name_zh": "個股 2377",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2377.csv",
+            "column": "stock_2377_ret_lag2",
+            "sha256": "f924e58945b776ac5c9863463639432328d8d68163f3b01cf041a02b2b4687ea",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2377.csv",
+            "column": "stock_2377_ret_lag5",
+            "sha256": "658b859fb0ed344ccd904f122268d4e3cb0fab65ef4c7c3b44da9fd354f5a798",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2379": {
+        "source": "teacher market/2379.csv etl:adj_close",
+        "name_zh": "個股 2379",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2379.csv",
+            "column": "stock_2379_ret_lag2",
+            "sha256": "ce0ecc493c065f857e52b13f8a4301de2e6fa5cf370a94894ccdb23ee33a7120",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2379.csv",
+            "column": "stock_2379_ret_lag5",
+            "sha256": "079c54975706fc93f863c6e2ac62440dc455d6f17d2e8479a73fe21e7053985e",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2382": {
+        "source": "teacher market/2382.csv etl:adj_close",
+        "name_zh": "個股 2382",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2382.csv",
+            "column": "stock_2382_ret_lag2",
+            "sha256": "ff8fc2907660f12ca296ac39345a486fdf7017744144d20bd621a2b5bc86f207",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2382.csv",
+            "column": "stock_2382_ret_lag5",
+            "sha256": "5b706f78625b6703e33f42d5666601176f41dd8ca366443589f9012b3eb8299e",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2383": {
+        "source": "teacher market/2383.csv etl:adj_close",
+        "name_zh": "個股 2383",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2383.csv",
+            "column": "stock_2383_ret_lag2",
+            "sha256": "fcc781efebb9ec0ff30c28d836e4461cd8f9b036d63204adfb3cc593089d74e6",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2383.csv",
+            "column": "stock_2383_ret_lag5",
+            "sha256": "678a51f3dff7d505a956f7c85882a515b2dc503923633b3f663f5e738eea9e59",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2395": {
+        "source": "teacher market/2395.csv etl:adj_close",
+        "name_zh": "個股 2395",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2395.csv",
+            "column": "stock_2395_ret_lag2",
+            "sha256": "100932affd1a87af19cd571fb802761001692a606b10c9d34c51f744f1925fa7",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2395.csv",
+            "column": "stock_2395_ret_lag5",
+            "sha256": "bdae4bc60761f5fc045a85990498fc913ad214c8d32f97f286492a62818bdbcd",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2404": {
+        "source": "teacher market/2404.csv etl:adj_close",
+        "name_zh": "個股 2404",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2404.csv",
+            "column": "stock_2404_ret_lag2",
+            "sha256": "03ad742f6f8ff130319945ea0603ddcf2e11f1e4bf6ec1c35ae9bda165bdb102",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2404.csv",
+            "column": "stock_2404_ret_lag5",
+            "sha256": "5a2dcbf80397f7a60848bcd421fd056ed4ee90ab11ab15281ec219a68ee3fb3b",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2408": {
+        "source": "teacher market/2408.csv etl:adj_close",
+        "name_zh": "個股 2408",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2408.csv",
+            "column": "stock_2408_ret_lag2",
+            "sha256": "3ed6bee90c2681626fb28e9f4ebcd732b388cbde2a2a651066f90cdd51eb5222",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2408.csv",
+            "column": "stock_2408_ret_lag5",
+            "sha256": "e9a249b4d497c3890e0ce993ec55b5fd4866b31f60214aea663fe76812192561",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2412": {
+        "source": "teacher market/2412.csv etl:adj_close",
+        "name_zh": "個股 2412",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2412.csv",
+            "column": "stock_2412_ret_lag2",
+            "sha256": "a5ee8f2f6ae88ff679eea151ab51d3b4046a0561a97efb0d7ed755b023f6bacc",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2412.csv",
+            "column": "stock_2412_ret_lag5",
+            "sha256": "912e2881ae3bed70d65579cb67a9161131ece130a6ac6ffe4e5d9f706e76f88c",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2449": {
+        "source": "teacher market/2449.csv etl:adj_close",
+        "name_zh": "個股 2449",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2449.csv",
+            "column": "stock_2449_ret_lag2",
+            "sha256": "f6f7d79feba9e2f0fef1de623a7d30af03251bea964354c76cd3fd8753cb1e5f",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2449.csv",
+            "column": "stock_2449_ret_lag5",
+            "sha256": "eca079668244fd13028cf20533036310fd6c8e4f970cde4734f6554eff5839ce",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_2454": {
+        "source": "teacher market/2454.csv etl:adj_close",
+        "name_zh": "個股 2454",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2454.csv",
+            "column": "stock_2454_ret_lag2",
+            "sha256": "dfe679f7897c8d3afab5df8d975c75ef7eea08e205b310801e32e1043ba17e71",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2454.csv",
+            "column": "stock_2454_ret_lag5",
+            "sha256": "649fda721bcda506f70771809383280a5907463b484897b4bea64a9750af2ac5",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2474": {
+        "source": "teacher market/2474.csv etl:adj_close",
+        "name_zh": "個股 2474",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2474.csv",
+            "column": "stock_2474_ret_lag2",
+            "sha256": "833fd3c115ef8164ceb4e0807d7da0a100323ee949fa7f6d0159eeeddccdf7f9",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2474.csv",
+            "column": "stock_2474_ret_lag5",
+            "sha256": "2c462cd8bb74a0a1e372ab9b32cb3f79b75b42d7c67ae2c5e92371794e1c3505",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_2603": {
+        "source": "teacher market/2603.csv etl:adj_close",
+        "name_zh": "個股 2603",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2603.csv",
+            "column": "stock_2603_ret_lag2",
+            "sha256": "213d2b31f872b850a06a31257af732587249c8303b60038fe2c4f21bb8be3760",
+            "non_missing_rows": 1608
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2603.csv",
+            "column": "stock_2603_ret_lag5",
+            "sha256": "53f2d01033585f1b419ce5bb05dc0f0b7a178f732ccc72709a7c0cb1c6cab1d6",
+            "non_missing_rows": 1605
+          }
+        }
+      },
+      "stock_2609": {
+        "source": "teacher market/2609.csv etl:adj_close",
+        "name_zh": "個股 2609",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2609.csv",
+            "column": "stock_2609_ret_lag2",
+            "sha256": "18fd3f0ecb6d88aa3efe1cab1dce745b916818f137c0f443f628ceead62e184e",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2609.csv",
+            "column": "stock_2609_ret_lag5",
+            "sha256": "0336d40a1d1ae790b0c41bdac2e756b066449d94f200496e3d9713bb5bdbc8c2",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2610": {
+        "source": "teacher market/2610.csv etl:adj_close",
+        "name_zh": "個股 2610",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2610.csv",
+            "column": "stock_2610_ret_lag2",
+            "sha256": "8267502d6b398572d85e5527f93c7c425212ff22a6fdb732c803c2d17375909b",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2610.csv",
+            "column": "stock_2610_ret_lag5",
+            "sha256": "69d4dafceab0ad3fbfbe24d024b219c2778d102507a75ce9db95fb6734e4123d",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2615": {
+        "source": "teacher market/2615.csv etl:adj_close",
+        "name_zh": "個股 2615",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2615.csv",
+            "column": "stock_2615_ret_lag2",
+            "sha256": "39e2415f2c09314f230667a204e6d3874b95eb7888da18e518e419278e842ac8",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2615.csv",
+            "column": "stock_2615_ret_lag5",
+            "sha256": "974c7175beae3059c87daaeb2b1fc81ed196fdea2aaffdb640e963461f98fb85",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2618": {
+        "source": "teacher market/2618.csv etl:adj_close",
+        "name_zh": "個股 2618",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2618.csv",
+            "column": "stock_2618_ret_lag2",
+            "sha256": "63b0444b661ed2dea2dfa0a7b494f885a5c98a73cb3109274ec1a50b2968f2b8",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2618.csv",
+            "column": "stock_2618_ret_lag5",
+            "sha256": "6921af0efbaf2832a37b6a9e2eb2e80672db6ae6a8bc0d4b92555207f85b036e",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2633": {
+        "source": "teacher market/2633.csv etl:adj_close",
+        "name_zh": "個股 2633",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2633.csv",
+            "column": "stock_2633_ret_lag2",
+            "sha256": "6a28e0589f964c9c119a8e32031513103333395fb0ec67d30705f94e4a97b46c",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2633.csv",
+            "column": "stock_2633_ret_lag5",
+            "sha256": "8182711c7c31b19dc9919c6f56eb98af42fad8e50baab4329dfad280968ea7a8",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2801": {
+        "source": "teacher market/2801.csv etl:adj_close",
+        "name_zh": "個股 2801",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2801.csv",
+            "column": "stock_2801_ret_lag2",
+            "sha256": "9c6164a1a70d9f8104e81fd76a2ace86211cbce6426a32329c586a40eefcda1e",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2801.csv",
+            "column": "stock_2801_ret_lag5",
+            "sha256": "08e73df90d0052411e83ce8f8ca68ab2c6e08e65335b4b2bf632baca8a6a24f6",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2812": {
+        "source": "teacher market/2812.csv etl:adj_close",
+        "name_zh": "個股 2812",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2812.csv",
+            "column": "stock_2812_ret_lag2",
+            "sha256": "8d2630d710fcdec4883213496d4e5f71c2a5a4f1cfb8d8cc46f822949704fb7d",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2812.csv",
+            "column": "stock_2812_ret_lag5",
+            "sha256": "3644feb39a117062c631e6af404ff62845f74a9a6a28a5207562fceec42d10d9",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2834": {
+        "source": "teacher market/2834.csv etl:adj_close",
+        "name_zh": "個股 2834",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2834.csv",
+            "column": "stock_2834_ret_lag2",
+            "sha256": "82c5da57f6860fd8dfe175282818a67a2cf1427f3c9a40e6a354afef1ea3e909",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2834.csv",
+            "column": "stock_2834_ret_lag5",
+            "sha256": "099861c6e16ef52fdb5396b33cc6c911d3a619293beff72c73d23137ea5ca963",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2880": {
+        "source": "teacher market/2880.csv etl:adj_close",
+        "name_zh": "個股 2880",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2880.csv",
+            "column": "stock_2880_ret_lag2",
+            "sha256": "8b26106ff04617c80c5ea5070b533dd7ec196969da68fd70bfd4893df68b97af",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2880.csv",
+            "column": "stock_2880_ret_lag5",
+            "sha256": "9a75bfd2edd65e27a2621124169dff0cf2fed2c3f3976c03f2c3b2a35deaf872",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2881": {
+        "source": "teacher market/2881.csv etl:adj_close",
+        "name_zh": "個股 2881",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2881.csv",
+            "column": "stock_2881_ret_lag2",
+            "sha256": "f6d33f018fb4869209b4377e840d532cdc5ae6da1665ea39112803152ccdec8d",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2881.csv",
+            "column": "stock_2881_ret_lag5",
+            "sha256": "aed6d4a1ebea37966f8015682a77bd6e8179f32057adda3008332acb29390948",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2882": {
+        "source": "teacher market/2882.csv etl:adj_close",
+        "name_zh": "個股 2882",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2882.csv",
+            "column": "stock_2882_ret_lag2",
+            "sha256": "ee912b49c23e2529e267cb23d06489eb16d35e8aaeb7493272479235d5da1233",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2882.csv",
+            "column": "stock_2882_ret_lag5",
+            "sha256": "27c6f924dfb368baaf0e51d528f6c846bc27d45498a5bd02559a1cd2f08d525d",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2883": {
+        "source": "teacher market/2883.csv etl:adj_close",
+        "name_zh": "個股 2883",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2883.csv",
+            "column": "stock_2883_ret_lag2",
+            "sha256": "b25e46fe39b4cf1a74e1483570932122f89a5f5ecbd8c34dfe97e1e7d2c93563",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2883.csv",
+            "column": "stock_2883_ret_lag5",
+            "sha256": "e6e5cf56d7fe417aa65b8eaf914b93b55477e4320f156474eda0ebbc2d3891aa",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2884": {
+        "source": "teacher market/2884.csv etl:adj_close",
+        "name_zh": "個股 2884",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2884.csv",
+            "column": "stock_2884_ret_lag2",
+            "sha256": "9ac7380f9f0a2eacd8f3d22161ec8fd4ddf7e6077f1b8e25e4bed6a444ce63c2",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2884.csv",
+            "column": "stock_2884_ret_lag5",
+            "sha256": "561e1b8900a65aff235c10e9abe94d6e7265fbe58cc95f209305fa5d0d4a4fb0",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_2885": {
+        "source": "teacher market/2885.csv etl:adj_close",
+        "name_zh": "個股 2885",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2885.csv",
+            "column": "stock_2885_ret_lag2",
+            "sha256": "22c7087c4554ef93696e853989eca6caa01bc43aacdeec83584678a1c6c6abe2",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2885.csv",
+            "column": "stock_2885_ret_lag5",
+            "sha256": "9633b00a50842c03f5e206f381e2699b8d391c9a284135e4aac60d74dcb73754",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2886": {
+        "source": "teacher market/2886.csv etl:adj_close",
+        "name_zh": "個股 2886",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2886.csv",
+            "column": "stock_2886_ret_lag2",
+            "sha256": "59bd3ac5b5509e79d2c6f35d4c51f66303ee911524c96f4312b2fb4bb6720d88",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2886.csv",
+            "column": "stock_2886_ret_lag5",
+            "sha256": "6003ec253520768e8fe2cfe7479d10d0c9262af8491de204d6bcd0fff01d4e4d",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2887": {
+        "source": "teacher market/2887.csv etl:adj_close",
+        "name_zh": "個股 2887",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2887.csv",
+            "column": "stock_2887_ret_lag2",
+            "sha256": "b4c3beb528cd2833150d78aa088ff52f8acfd753f526df86426fdeeee1cabb49",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2887.csv",
+            "column": "stock_2887_ret_lag5",
+            "sha256": "c920d9caee6266a9b652441a0da167aa2e1f567567daa845385e188309edc9ac",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_2890": {
+        "source": "teacher market/2890.csv etl:adj_close",
+        "name_zh": "個股 2890",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2890.csv",
+            "column": "stock_2890_ret_lag2",
+            "sha256": "a1144120031f9da99087d6315a0ec9edfe3720ed3349ba9276a24eb26b62002c",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2890.csv",
+            "column": "stock_2890_ret_lag5",
+            "sha256": "5db42cc6e3b128f84192ee37a3059c7610108aa4e2b1e810ec1a32f408040b05",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2891": {
+        "source": "teacher market/2891.csv etl:adj_close",
+        "name_zh": "個股 2891",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2891.csv",
+            "column": "stock_2891_ret_lag2",
+            "sha256": "e7d8f7fa44e45304401a16157a50741d336394d49833df3d2a446f7c0f6452ba",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2891.csv",
+            "column": "stock_2891_ret_lag5",
+            "sha256": "2f0b3d3557e643ae0ca1fbb630b660bfdb118576c5dff70997156df250efb79d",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2892": {
+        "source": "teacher market/2892.csv etl:adj_close",
+        "name_zh": "個股 2892",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2892.csv",
+            "column": "stock_2892_ret_lag2",
+            "sha256": "2fbd650fcb4d6c042864057a7b6b2de2b782d41903eab00ec31af49e70312161",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2892.csv",
+            "column": "stock_2892_ret_lag5",
+            "sha256": "7ddff5ed0ee66573add4eb01a560fcba0fee44245e0554ce71a3252812f7004a",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_2912": {
+        "source": "teacher market/2912.csv etl:adj_close",
+        "name_zh": "個股 2912",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_2912.csv",
+            "column": "stock_2912_ret_lag2",
+            "sha256": "5c375e1c630f7c2c2aa8f0e4b466e2f1b2724e0d73225fbaa63a4ff9a3b75a77",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_2912.csv",
+            "column": "stock_2912_ret_lag5",
+            "sha256": "6805d428b98f64d28fa748ea08f65ab623839c266523bb88ee00dab713c978a4",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3008": {
+        "source": "teacher market/3008.csv etl:adj_close",
+        "name_zh": "個股 3008",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3008.csv",
+            "column": "stock_3008_ret_lag2",
+            "sha256": "719acb8820d122111cc9ac2339e1d91b9bd1f86a457e833b0d99303542f9bc9d",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3008.csv",
+            "column": "stock_3008_ret_lag5",
+            "sha256": "cb6eb71b00b9423018b2085b539b05bff38fe9cc4241ea9b313d5c328fa2bb14",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3017": {
+        "source": "teacher market/3017.csv etl:adj_close",
+        "name_zh": "個股 3017",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3017.csv",
+            "column": "stock_3017_ret_lag2",
+            "sha256": "789f338d2c4ec43b487e23b327d35e52231f26f38088ac3a56f8b8490e5bcc74",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3017.csv",
+            "column": "stock_3017_ret_lag5",
+            "sha256": "8e47dfc485c0042a96764ff96c18ab615fee397858b04596e4829f99d85d243a",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3034": {
+        "source": "teacher market/3034.csv etl:adj_close",
+        "name_zh": "個股 3034",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3034.csv",
+            "column": "stock_3034_ret_lag2",
+            "sha256": "42455a7eaebaa79d92f902f0efe8714eed2ff377bb44ba63f5e4b3ce77c1b7e7",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3034.csv",
+            "column": "stock_3034_ret_lag5",
+            "sha256": "c942ec8e6ef5ef7c140fea0909d710065a11758dd64bc525719ef0fc9799df12",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3036": {
+        "source": "teacher market/3036.csv etl:adj_close",
+        "name_zh": "個股 3036",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3036.csv",
+            "column": "stock_3036_ret_lag2",
+            "sha256": "0e218a6c78d700985a43c7eae26672396241d3eca61932caf49d1f816ad02fab",
+            "non_missing_rows": 1611
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3036.csv",
+            "column": "stock_3036_ret_lag5",
+            "sha256": "f2cd6ea349d4f9f2328fcd5cbc8be80999c357ab3037cdfae390278945d3f761",
+            "non_missing_rows": 1608
+          }
+        }
+      },
+      "stock_3037": {
+        "source": "teacher market/3037.csv etl:adj_close",
+        "name_zh": "個股 3037",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3037.csv",
+            "column": "stock_3037_ret_lag2",
+            "sha256": "a1e3206a3f4cb675f6f23951ec52c5b6be026480400f3f4426ffab75f10a2a06",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3037.csv",
+            "column": "stock_3037_ret_lag5",
+            "sha256": "6da247626a815f5a8d108fcdc4b08a5b6fecab4c212c2d295865255e976bc29c",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_3044": {
+        "source": "teacher market/3044.csv etl:adj_close",
+        "name_zh": "個股 3044",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3044.csv",
+            "column": "stock_3044_ret_lag2",
+            "sha256": "40482b76972e7c8356bb5e5c14c0403d8dfd41275656664beae15875f4e4fe19",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3044.csv",
+            "column": "stock_3044_ret_lag5",
+            "sha256": "542afdba1e2a6d2782317e000efd06859885991a83556910abf4ca758816d427",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3045": {
+        "source": "teacher market/3045.csv etl:adj_close",
+        "name_zh": "個股 3045",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3045.csv",
+            "column": "stock_3045_ret_lag2",
+            "sha256": "75ace7c79f763e5886203ce149bfe24306f4f98d9634022314bcc61eb8d20453",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3045.csv",
+            "column": "stock_3045_ret_lag5",
+            "sha256": "4a852609e8e092cf8f5450a7c2c384b02bc49dfe690de545aea1dc51d34e4efb",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3231": {
+        "source": "teacher market/3231.csv etl:adj_close",
+        "name_zh": "個股 3231",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3231.csv",
+            "column": "stock_3231_ret_lag2",
+            "sha256": "a93a81bfb4c6323aa29a5a4ea88cbe2d0cfd6e6773d2e5eacfd0a72cd9b00bc1",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3231.csv",
+            "column": "stock_3231_ret_lag5",
+            "sha256": "06d8641e018e143ce9a518a8cb109c28dfe6fa4f68b5ee092d56adb842778e44",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3293": {
+        "source": "teacher market/3293.csv etl:adj_close",
+        "name_zh": "個股 3293",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3293.csv",
+            "column": "stock_3293_ret_lag2",
+            "sha256": "f1904a77714600573e2bc3f66000408f938ffa2f4fc1afde61377e2b99f566c9",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3293.csv",
+            "column": "stock_3293_ret_lag5",
+            "sha256": "c4a76f5004a9f3a5bc44408b3d55833d606aa005fa846239104381b8c0fbfaa0",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3443": {
+        "source": "teacher market/3443.csv etl:adj_close",
+        "name_zh": "個股 3443",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3443.csv",
+            "column": "stock_3443_ret_lag2",
+            "sha256": "6004c6214a2aae6d5b6f478571a7757b23d2ddced9de4b401fbf0d44e3cdf8d4",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3443.csv",
+            "column": "stock_3443_ret_lag5",
+            "sha256": "11c76ef4dabc70def22b4d8ad3ee852eddd3069c1390fb0783edd563e163cbab",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3529": {
+        "source": "teacher market/3529.csv etl:adj_close",
+        "name_zh": "個股 3529",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3529.csv",
+            "column": "stock_3529_ret_lag2",
+            "sha256": "4c2cfc406f9d81f4b60ea5af9ad1604e7a8099ea16b8233080e4421d4d0a1b2a",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3529.csv",
+            "column": "stock_3529_ret_lag5",
+            "sha256": "0c97fa26db52bdc5bbc9b6b45da00bd7d16db649b40f45c896a6c10c6f123c09",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3533": {
+        "source": "teacher market/3533.csv etl:adj_close",
+        "name_zh": "個股 3533",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3533.csv",
+            "column": "stock_3533_ret_lag2",
+            "sha256": "16c92aa398a23b783f4415bd8925c1811ede4885df4d0de9148a1d8705279a1b",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3533.csv",
+            "column": "stock_3533_ret_lag5",
+            "sha256": "72ee9e0584e01c44a31aeff3ea529c47a514dcefaad0fee659293491e36aa2a4",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3653": {
+        "source": "teacher market/3653.csv etl:adj_close",
+        "name_zh": "個股 3653",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3653.csv",
+            "column": "stock_3653_ret_lag2",
+            "sha256": "4d316bea5d4ae10a9711acd21925351d49b7bbd6f396c744a9833cb271c9ff63",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3653.csv",
+            "column": "stock_3653_ret_lag5",
+            "sha256": "82904932421dea0db5601a2b337dec7807060a7521aec2bc03000d2d7e1f7410",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3661": {
+        "source": "teacher market/3661.csv etl:adj_close",
+        "name_zh": "個股 3661",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3661.csv",
+            "column": "stock_3661_ret_lag2",
+            "sha256": "70f62b7e9a1c8a41d060a9cc83b46ea7ee629c188253c10d7ef81246749b8edb",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3661.csv",
+            "column": "stock_3661_ret_lag5",
+            "sha256": "22618848c386ca7574b5f8c8c1de85661928ab5e768f29add76b10064c19b5c0",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3665": {
+        "source": "teacher market/3665.csv etl:adj_close",
+        "name_zh": "個股 3665",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3665.csv",
+            "column": "stock_3665_ret_lag2",
+            "sha256": "9d2672ca5cd87d7cd6a9d01fbf5ed63edcb3a573f043ba596f2a3ce56409f681",
+            "non_missing_rows": 1613
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3665.csv",
+            "column": "stock_3665_ret_lag5",
+            "sha256": "89782406d45d35bcc2423eb54857c20b118345a97267d25c59fe3b89773fe86c",
+            "non_missing_rows": 1610
+          }
+        }
+      },
+      "stock_3702": {
+        "source": "teacher market/3702.csv etl:adj_close",
+        "name_zh": "個股 3702",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3702.csv",
+            "column": "stock_3702_ret_lag2",
+            "sha256": "79616190b12181f0d246bc6609b281c2d5485874d0ee3a2eb160282f9e088653",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3702.csv",
+            "column": "stock_3702_ret_lag5",
+            "sha256": "31570bb5e419e7eff4296a90e6c94153db2115b026072cc23dcb78e1c3a86380",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_3711": {
+        "source": "teacher market/3711.csv etl:adj_close",
+        "name_zh": "個股 3711",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_3711.csv",
+            "column": "stock_3711_ret_lag2",
+            "sha256": "62675a8e7f491cc45ff309546a6b8b2efb73ba8784db3a9877b7e1d55e7d8287",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_3711.csv",
+            "column": "stock_3711_ret_lag5",
+            "sha256": "eb098647a6053f8ca851943541053435b8c7542c20832b24373e350c6e98c4eb",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_4904": {
+        "source": "teacher market/4904.csv etl:adj_close",
+        "name_zh": "個股 4904",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_4904.csv",
+            "column": "stock_4904_ret_lag2",
+            "sha256": "0065dfadfa93b9e955870bddd0613a6377971bf5a185566b2de21905eddcc9e3",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_4904.csv",
+            "column": "stock_4904_ret_lag5",
+            "sha256": "0f8dac27b37a9489f73d74b4213f6657e6e9c9883ee7bdf40637890e8e3f8433",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_4938": {
+        "source": "teacher market/4938.csv etl:adj_close",
+        "name_zh": "個股 4938",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_4938.csv",
+            "column": "stock_4938_ret_lag2",
+            "sha256": "8285e8d669b3e538909295bb1ed1896c2d2ab972eef919c6f69cc733140a9068",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_4938.csv",
+            "column": "stock_4938_ret_lag5",
+            "sha256": "bdc816faf88b42b1fd8fddc07fd432edafb74328e956a3aa21e4b2afe47c07f3",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_4958": {
+        "source": "teacher market/4958.csv etl:adj_close",
+        "name_zh": "個股 4958",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_4958.csv",
+            "column": "stock_4958_ret_lag2",
+            "sha256": "8167d308acb854024fe3584088aa6050ca597b0ae86207c1d3ce2aa88ec3155b",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_4958.csv",
+            "column": "stock_4958_ret_lag5",
+            "sha256": "d6f602aa89ea771140f81da7c54538b25926d26ea2e2e1abdaa6b819b7a6e709",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_5269": {
+        "source": "teacher market/5269.csv etl:adj_close",
+        "name_zh": "個股 5269",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_5269.csv",
+            "column": "stock_5269_ret_lag2",
+            "sha256": "eeb1f560b54eb016bf4df75a8ca894fb6d47cb08b9ff37e304b02c3ca47294f4",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_5269.csv",
+            "column": "stock_5269_ret_lag5",
+            "sha256": "8fdacbf44082cae6c11e0b84d70c9d0d46e4ef0f390a458ae157a48c67609861",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_5274": {
+        "source": "teacher market/5274.csv etl:adj_close",
+        "name_zh": "個股 5274",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_5274.csv",
+            "column": "stock_5274_ret_lag2",
+            "sha256": "16f936cc0936dc6a1c0a72e64e93abab5e7af03af9af1f334da0c7699eae6ea7",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_5274.csv",
+            "column": "stock_5274_ret_lag5",
+            "sha256": "df9fab8a07a06abd4146f69a14b8fb311b1cfc51dc54333655d04b05180e441a",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_5347": {
+        "source": "teacher market/5347.csv etl:adj_close",
+        "name_zh": "個股 5347",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_5347.csv",
+            "column": "stock_5347_ret_lag2",
+            "sha256": "a2f7dd2f9639297918168e53a9ac55bb41294a84015d66f3d4f17e941d5fc172",
+            "non_missing_rows": 1614
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_5347.csv",
+            "column": "stock_5347_ret_lag5",
+            "sha256": "842c6d295f15047c05214d98355ed563aec21ddf8903fcf193cb329415ca2f2a",
+            "non_missing_rows": 1611
+          }
+        }
+      },
+      "stock_5871": {
+        "source": "teacher market/5871.csv etl:adj_close",
+        "name_zh": "個股 5871",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_5871.csv",
+            "column": "stock_5871_ret_lag2",
+            "sha256": "5f92eed3bed2c6c4eac16bc5e425d5ccb88a160f6f544fc576c97485cf5f56c8",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_5871.csv",
+            "column": "stock_5871_ret_lag5",
+            "sha256": "c7e5cc8cfc185e520fbf3524006520a5b1d713482f2c8c4e4f0d11ca45920e24",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_5876": {
+        "source": "teacher market/5876.csv etl:adj_close",
+        "name_zh": "個股 5876",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_5876.csv",
+            "column": "stock_5876_ret_lag2",
+            "sha256": "01e27fede34e0381b7b8f849b087b1d53cf3001ef7754284af63bc1cb07ba522",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_5876.csv",
+            "column": "stock_5876_ret_lag5",
+            "sha256": "9358b4db2aa5174dbb9f37ad273f7a268b0fd1abb02723d78ff53bb53ffb8f4a",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_5880": {
+        "source": "teacher market/5880.csv etl:adj_close",
+        "name_zh": "個股 5880",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_5880.csv",
+            "column": "stock_5880_ret_lag2",
+            "sha256": "5dcd8b3b2070d0d27ece1749cf8929fc61a7baf5cae54938f547bef9aee09a68",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_5880.csv",
+            "column": "stock_5880_ret_lag5",
+            "sha256": "6e418ee4aa5146ebc089876fe8be61ffb91c8cfcfb0592fdd60de108182e73ae",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_6223": {
+        "source": "teacher market/6223.csv etl:adj_close",
+        "name_zh": "個股 6223",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_6223.csv",
+            "column": "stock_6223_ret_lag2",
+            "sha256": "8344f658f9243bf1cf2cf73c1f36c351bb83b1434cf4c0056a060fb756cdee56",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_6223.csv",
+            "column": "stock_6223_ret_lag5",
+            "sha256": "36106eaa0f02be950ff5a6cebbe17476299a97685181eb32bd9e48f30de36432",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_6274": {
+        "source": "teacher market/6274.csv etl:adj_close",
+        "name_zh": "個股 6274",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_6274.csv",
+            "column": "stock_6274_ret_lag2",
+            "sha256": "24411bbb0af9a6934393048302e50e8044e3e82bf909e8474ff790bd600e7d1a",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_6274.csv",
+            "column": "stock_6274_ret_lag5",
+            "sha256": "e9b35bc1fc784a0a0309e8473553a2e532963600e3449c3de1d45b1a41dffc11",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_6409": {
+        "source": "teacher market/6409.csv etl:adj_close",
+        "name_zh": "個股 6409",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_6409.csv",
+            "column": "stock_6409_ret_lag2",
+            "sha256": "f26d3efb829a140cd7ed56a6abd844b942084021d52738a7ab3dcbd4fef5e33f",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_6409.csv",
+            "column": "stock_6409_ret_lag5",
+            "sha256": "d2f77b3b6586ea2f90342fba9a64225fd11180acbdf1df625e8cad93d8c85e29",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_6415": {
+        "source": "teacher market/6415.csv etl:adj_close",
+        "name_zh": "個股 6415",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_6415.csv",
+            "column": "stock_6415_ret_lag2",
+            "sha256": "c98a43e65ae1b7f804499ab5e8d7a566150a5d6fe2474066e6bb6e97df19d757",
+            "non_missing_rows": 1610
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_6415.csv",
+            "column": "stock_6415_ret_lag5",
+            "sha256": "54fab5c80292c82b7f5eda146a5fc4cd6f49cc53ff6b5126da6fd8bafdd7a6bc",
+            "non_missing_rows": 1607
+          }
+        }
+      },
+      "stock_6446": {
+        "source": "teacher market/6446.csv etl:adj_close",
+        "name_zh": "個股 6446",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_6446.csv",
+            "column": "stock_6446_ret_lag2",
+            "sha256": "9de02622d4a9daa78dd317e2b12350e8f8441b005950b4340099f949800f0915",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_6446.csv",
+            "column": "stock_6446_ret_lag5",
+            "sha256": "a3e1887baebb493cb5d9b521abe1fd9db193726921f9b6dacf830bb4971ff4d8",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_6488": {
+        "source": "teacher market/6488.csv etl:adj_close",
+        "name_zh": "個股 6488",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_6488.csv",
+            "column": "stock_6488_ret_lag2",
+            "sha256": "dc7bfa00426234848586a508ae4b706715cb485e4188abb56427061508642366",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_6488.csv",
+            "column": "stock_6488_ret_lag5",
+            "sha256": "92756d8c786c42d644e5ae7f0f95c011b03424642e49fe94bd8df30a742b0d15",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_6505": {
+        "source": "teacher market/6505.csv etl:adj_close",
+        "name_zh": "個股 6505",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_6505.csv",
+            "column": "stock_6505_ret_lag2",
+            "sha256": "17c6feef1bbdfe5d893c3abd91131132d39eabef7dc512b670ba6ba12fbf9bf6",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_6505.csv",
+            "column": "stock_6505_ret_lag5",
+            "sha256": "ceba0e35a6af5bbe2210e1e926c5b752090928644d9701bcb7b40e9c14d5847a",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_6669": {
+        "source": "teacher market/6669.csv etl:adj_close",
+        "name_zh": "個股 6669",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_6669.csv",
+            "column": "stock_6669_ret_lag2",
+            "sha256": "4656d52dfc667283a6b4ca5e4eb22f9251457eaf0e9640a66faeed32458e792a",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_6669.csv",
+            "column": "stock_6669_ret_lag5",
+            "sha256": "dabdbffa0d5822e3606860a34631ca3587d91a1a39cf9be5fea13fd4eb08e81b",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_8046": {
+        "source": "teacher market/8046.csv etl:adj_close",
+        "name_zh": "個股 8046",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_8046.csv",
+            "column": "stock_8046_ret_lag2",
+            "sha256": "20935869a92443620a53cc5e780e22c24529b779bbf2384be8e0d1df7a79cf7d",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_8046.csv",
+            "column": "stock_8046_ret_lag5",
+            "sha256": "683816e546246c674bbcc0d517eff8fe5463199c17099053d0d1bc0e865b482b",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_8069": {
+        "source": "teacher market/8069.csv etl:adj_close",
+        "name_zh": "個股 8069",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_8069.csv",
+            "column": "stock_8069_ret_lag2",
+            "sha256": "74ab7652596202661cecd8a4d8d975b8662681d75d21589e4bb8c1a731cdb7fc",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_8069.csv",
+            "column": "stock_8069_ret_lag5",
+            "sha256": "b78661182a4d282127529b201c81d95e9783f54c9209527ffd3730003674307a",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_8299": {
+        "source": "teacher market/8299.csv etl:adj_close",
+        "name_zh": "個股 8299",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_8299.csv",
+            "column": "stock_8299_ret_lag2",
+            "sha256": "42e257b27f23da1031ac8c8f58ceea3936cbe0ae3f6de9eef1bf1cdc82c15523",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_8299.csv",
+            "column": "stock_8299_ret_lag5",
+            "sha256": "fae6c30f2b886d0b05ce2a302f4a7fee053a3f6b9a4333d589d70847b8f778cc",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_8464": {
+        "source": "teacher market/8464.csv etl:adj_close",
+        "name_zh": "個股 8464",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_8464.csv",
+            "column": "stock_8464_ret_lag2",
+            "sha256": "e4f7c676cb91ec0c56c7a4dd7a8c7ab40bf7d6fbcf7cf9fd5fc176c3e100671c",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_8464.csv",
+            "column": "stock_8464_ret_lag5",
+            "sha256": "dfc10283dc6d3f4e7a9e33874dd9e8569b207793b8770066c9510e8dbaec4c50",
+            "non_missing_rows": 1612
+          }
+        }
+      },
+      "stock_9910": {
+        "source": "teacher market/9910.csv etl:adj_close",
+        "name_zh": "個股 9910",
+        "group": "teacher_stock",
+        "price_column": "etl:adj_close",
+        "previous_trading_day": "該股在老師資料中的前一列",
+        "files": {
+          "lag2": {
+            "file": "transform/lag2/stock_9910.csv",
+            "column": "stock_9910_ret_lag2",
+            "sha256": "af0c719448309f11d0d495aa50867b1d195ecb7f0f321c0e92db8f6d26bfb9fc",
+            "non_missing_rows": 1615
+          },
+          "lag5": {
+            "file": "transform/lag5/stock_9910.csv",
+            "column": "stock_9910_ret_lag5",
+            "sha256": "5f94aa006c782e573b9abd7578ae0547e9e7036003d020f207bf799731e16e5e",
+            "non_missing_rows": 1612
+          }
+        }
+      }
+    }
   },
   "project_derived_reference": {
     "note": "專案既有、由老師資料衍生的研究特徵；定義見 live-data 分支 features/schema.json，不在本資料夾重複存放",
@@ -2050,6 +5102,7 @@
       "tx_foreign_net_oi_change"
     ]
   },
-  "missing_value_policy": "空白＝缺值；不向前補值、不用未來值補洞",
+  "missing_value_policy": "空白＝缺值。market_features 的額外特徵是 as-of：沿用最後一個 <= t−1 的來源交易日，所以休市期間會在連續台股日重複；用 age_days／source_date 判斷新舊。transform 不沿用、不補值。",
+  "float_format": "完整精度（Python repr），不四捨五入",
   "license_note": "老師 ZIP 與 Yahoo 資料的公開再散布授權未核實，僅供課程研究。"
 }

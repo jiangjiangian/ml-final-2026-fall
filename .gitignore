@@ -1,19 +1,9 @@
-# Runtime caches and local Graphify state; keep the shareable graph artifacts.
+# Local caches and environments; never commit them.
 __pycache__/
+*.pyc
 .venv*/
-**/graphify-out/cache/
-graphify-out/.*
-graphify-out/manifest.json
-graphify-out/cost.json
-ml_financial_prediction/graphify-out/
 .env
 .env.*
-!.env.example
-# Local runtime stores; authorized raw data normally lives outside the checkout.
-ml_financial_prediction/data/
-ml_financial_prediction/artifacts/
-ml_financial_prediction/logs/
-.ruff_cache/
-*.egg-info/
-dist/
-build/
+# Interrupted atomic writes from crawler.py.
+data/**/.*.tmp
+.*.tmp

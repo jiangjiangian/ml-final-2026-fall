@@ -1,0 +1,12 @@
+{
+  "schema_version": "hosted-course-approval-v1",
+  "policy": "course-benchmark-v1",
+  "approved_pointer_sha256": "83875cc4d08777c52b99c7642895b74d3458737ba86388b5ec76d0c9575aa396",
+  "prediction_posted": false,
+  "published_commit": "6a74eb1321f4c2a1723e3240cac1f1765d83c876",
+  "published_at": "2026-11-04T05:19:46.319689+00:00",
+  "deadline": null,
+  "initialize": true,
+  "hosted_persistence_eligible": true,
+  "historical_vintage_verified": false
+}

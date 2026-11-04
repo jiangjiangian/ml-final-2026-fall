@@ -9,6 +9,12 @@
       "size_bytes": 3391
     },
     {
+      "path": "candidates/course-benchmark-v1/hosted-approved.json",
+      "object_key": "runtime/objects/ae05f58f6fff95b7cd54805167a30c86ef59df3aaf317c09eb5f7a1cceb21acb.bin",
+      "sha256": "ae05f58f6fff95b7cd54805167a30c86ef59df3aaf317c09eb5f7a1cceb21acb",
+      "size_bytes": 455
+    },
+    {
       "path": "candidates/course-benchmark-v1/runs/5463c68fc985e0c211da2651d1bfc29d46740678acb2199ee1e040a6e2efdc8c/candidate_report.json",
       "object_key": "runtime/objects/e3385595ba89084bd4aac2882c54a902ad1318a1a5de3f189ed597ef7e7d9c88.bin",
       "sha256": "e3385595ba89084bd4aac2882c54a902ad1318a1a5de3f189ed597ef7e7d9c88",
@@ -63,8 +69,8 @@
       "size_bytes": 49758862
     }
   ],
-  "total_bytes": 99317398,
-  "created_at": "2026-11-04T05:19:42.833562+00:00",
+  "total_bytes": 99317853,
+  "created_at": "2026-11-04T05:19:49.894835+00:00",
   "trust_scope": "internally_created_finpred_state_in_verified_repository",
   "excluded": [
     "raw",
@@ -76,7 +82,7 @@
   ],
   "retention": {
     "policy": "published_unreferenced_large_tables_only-v1",
-    "archived_commit": "15ca16b75b5318402673bc4093b4c119b7ac9f2b",
+    "archived_commit": "6a74eb1321f4c2a1723e3240cac1f1765d83c876",
     "pruned_paths": []
   }
 }

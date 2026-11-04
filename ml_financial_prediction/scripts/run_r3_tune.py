@@ -33,7 +33,7 @@ def main(argv=None):
                "hypothesis": "Optuna params chosen on 2022-2023 only; 2024-2025 is the confirmation",
                "tuned_by_attempt": study["attempt"]}
     report = rx.execute(confirm, data_root=args.data_root, out_root=str(out_root), log_path=log,
-                        threads=args.threads, baseline_daily=rx.load_baseline_reports(str(out_root), confirm))
+                        threads=args.threads, baseline_daily=rx.load_baseline_reports(str(out_root), confirm, study["data"]))
     print(json.dumps({"attempt": report["attempt"], "name": report["name"],
                       "score": report["summary"]["score"], "ci95": report["summary"]["ci95"],
                       "subperiods": report["summary"]["subperiods"]}))

@@ -243,6 +243,21 @@ class R3HarnessTest(unittest.TestCase):
                     part = pred[pred["fold"] == fold["index"]]
                     self.assertGreater(part["date"].min(), pd.Timestamp(fold["train_end"]))
 
+    def test_review_regressions(self):
+        with self.assertRaises(ValueError):
+            rx.resolve({"name": "x", "train_universe": "all"})
+        with self.assertRaises(ValueError):
+            wf.moving_block_indices(5, block=5)
+        ff = _synthetic_feature_frame()
+        cfg = rx.resolve({"name": "t", "family": "ridge", "params": {"alpha": 1.0},
+                          "feature_groups": ["stock_hist"], "test_start": "2022-01-01",
+                          "test_end": "2022-03-31"})
+        pred, _, _ = rx.run_predictions(cfg, ff, threads=1)
+        self.assertEqual(pred.attrs["unlabelled_top50_keys_excluded"], 0)
+        self.assertNotEqual(rx._label_hash(pred), rx._label_hash(pred.assign(r=pred["r"] * 2)))
+        with self.assertRaises(ValueError):
+            rx.run_predictions({**cfg, "mode": "final_holdout"}, ff, threads=1)
+
 
 if __name__ == "__main__":
     unittest.main()

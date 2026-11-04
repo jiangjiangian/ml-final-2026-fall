@@ -132,6 +132,8 @@ def daily_table(pred: pd.DataFrame) -> pd.DataFrame:
 
 
 def moving_block_indices(n_days: int, *, block=5, reps=2000, seed=20261104):
+    if n_days <= block:
+        raise ValueError("window too short for a moving-block bootstrap")
     rng = np.random.default_rng(seed)
     n_blocks = math.ceil(n_days / block)
     starts = rng.integers(0, max(n_days - block, 0) + 1, size=(reps, n_blocks))

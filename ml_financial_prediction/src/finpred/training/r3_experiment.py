@@ -104,6 +104,7 @@ def load_features(data_root: str, out_root: str, *, max_date: str) -> rf.Feature
     key = _sha_bytes(canonical({
         "panel": rf.sha256_file(paths["panel"]),
         "market": rf.sha256_file(paths["market"]),
+        "teacher": rf.teacher_hashes(data_root),
         "code": _sha_bytes((PROJECT / CODE_FILES[0]).read_bytes()),
         "max_date": max_date,
     }))[:16]
@@ -125,6 +126,10 @@ def resolve(config: dict) -> dict:
     merged.update(copy.deepcopy(config))
     if merged["mode"] != "dev":
         raise ValueError("this runner only executes development walk-forward runs")
+    if merged["train_universe"] not in ("all100", "top50"):
+        raise ValueError(f"unknown train_universe {merged['train_universe']!r}")
+    if merged["refit"] not in ("monthly", "quarterly", "weekly", "daily", "static"):
+        raise ValueError(f"unknown refit cadence {merged['refit']!r}")
     return merged
 
 
@@ -133,8 +138,16 @@ def _key_hash(pred: pd.DataFrame) -> str:
     return _sha_bytes("\n".join(keys).encode())
 
 
+def _label_hash(pred: pd.DataFrame) -> str:
+    rows = sorted(f"{s}|{pd.Timestamp(d).date().isoformat()}|{float(r)!r}"
+                  for s, d, r in zip(pred["stock_id"], pred["date"], pred["r"]))
+    return _sha_bytes("\n".join(rows).encode())
+
+
 def run_predictions(cfg: dict, ff: rf.FeatureFrame, *, threads=4):
     """Walk-forward predictions for every scored test key of the configuration."""
+    if cfg.get("mode") != "dev":
+        raise ValueError("run_predictions only serves development walk-forward runs")
     model_spec = {k: cfg[k] for k in ("family", "rule", "params", "objective", "market_columns",
                                       "stock_model", "components", "weights") if k in cfg}
     if model_spec.get("family") == "blend":
@@ -201,6 +214,12 @@ def run_predictions(cfg: dict, ff: rf.FeatureFrame, *, threads=4):
     pred = pd.concat(outputs, ignore_index=True)
     if pred.duplicated(["stock_id", "date"]).any():
         raise AssertionError("duplicate predicted keys across folds")
+    window = (data["is_top50"] == 1) & (data["date"] >= pd.Timestamp(cfg["test_start"])) & \
+        (data["date"] <= pd.Timestamp(cfg["test_end"]))
+    expected = set(zip(data.loc[window & labelled, "stock_id"], data.loc[window & labelled, "date"]))
+    if set(zip(pred["stock_id"], pred["date"])) != expected:
+        raise AssertionError("predicted keys differ from the labelled Top50 keys of the window")
+    pred.attrs["unlabelled_top50_keys_excluded"] = int((window & ~labelled).sum())
     return pred, fold_log, needed
 
 
@@ -218,11 +237,16 @@ def window_tag(cfg: dict) -> str:
 
 
 def append_attempt(log_path: Path, record: dict) -> int:
+    """Append under an exclusive lock so concurrent runs never share a number."""
+    import fcntl
+
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    existing = log_path.read_text(encoding="utf-8").splitlines() if log_path.exists() else []
-    record = {"attempt": len([line for line in existing if line.strip()]) + 1, **record}
-    with open(log_path, "a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n")
+    with open(str(log_path) + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        existing = log_path.read_text(encoding="utf-8").splitlines() if log_path.exists() else []
+        record = {"attempt": len([line for line in existing if line.strip()]) + 1, **record}
+        with open(log_path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n")
     return record["attempt"]
 
 
@@ -233,25 +257,27 @@ def _compact(summary: dict) -> dict:
 def execute(config: dict, *, data_root: str, out_root: str, log_path: Path, threads=4,
             baseline_daily: dict | None = None, ff: rf.FeatureFrame | None = None) -> dict:
     """Run one configuration, log it as an attempt and return the full report."""
-    cfg = resolve(config)
     started = datetime.now(timezone.utc)
     base_record = {
-        "name": cfg["name"], "stage": cfg.get("stage"), "hypothesis": cfg.get("hypothesis"),
-        "started_utc": started.isoformat(timespec="seconds"),
-        "config": cfg, "config_sha256": _sha_bytes(canonical(cfg)),
-        "code": code_state(), "packages": package_versions(),
+        "name": config.get("name"), "stage": config.get("stage"),
+        "hypothesis": config.get("hypothesis"), "started_utc": started.isoformat(timespec="seconds"),
+        "config": config, "code": code_state(), "packages": package_versions(),
     }
     try:
+        cfg = resolve(config)
+        base_record.update(config=cfg, config_sha256=_sha_bytes(canonical(cfg)))
         ff = ff or load_features(data_root, out_root, max_date=cfg["max_date"])
+        if ff.meta.get("max_date") != cfg["max_date"]:
+            raise ValueError("config max_date differs from the loaded feature frame")
         pred, folds, columns = run_predictions(cfg, ff, threads=threads)
         daily = wf.daily_table(pred)
         official = verify_official(pred, ff, daily)
         summary = wf.summarize(daily)
-        keys = _key_hash(pred)
+        keys, labels_hash = _key_hash(pred), _label_hash(pred)
         comparisons = {}
         for name, other in (baseline_daily or {}).items():
-            if other.get("key_hash") != keys:
-                comparisons[name] = {"error": "different scored keys; not comparable"}
+            if other.get("key_hash") != keys or other.get("label_hash") != labels_hash:
+                comparisons[name] = {"error": "different scored keys or outcomes; not comparable"}
                 continue
             comparisons[name] = {"baseline_score": other["summary"]["score"],
                                  **wf.paired_diff(daily, other["daily"])}
@@ -262,9 +288,10 @@ def execute(config: dict, *, data_root: str, out_root: str, log_path: Path, thre
         daily.to_csv(run_dir / "daily.csv")
         report = {
             **base_record, "status": "ok", "feature_columns": columns, "n_features": len(columns),
-            "data": ff.meta, "key_hash": keys, "official": official, "summary": summary,
+            "data": ff.meta, "key_hash": keys, "label_hash": labels_hash, "official": official, "summary": summary,
             "paired_vs_baselines": comparisons, "folds": folds,
             "total_fit_predict_seconds": round(sum(f["fit_predict_seconds"] for f in folds), 2),
+            "unlabelled_top50_keys_excluded": pred.attrs.get("unlabelled_top50_keys_excluded"),
             "finished_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "run_dir": str(run_dir),
         }
@@ -283,24 +310,33 @@ def execute(config: dict, *, data_root: str, out_root: str, log_path: Path, thre
         raise
 
 
-def load_baseline_reports(out_root: str, cfg: dict) -> dict:
-    """Latest successful baseline reports for the same evaluation window."""
+def load_baseline_reports(out_root: str, cfg: dict, data_meta: dict | None = None) -> dict:
+    """Latest successful canonical baselines for the same window, data and spec.
+
+    A report counts as baseline ``name`` only if its resolved config hash equals the
+    canonical ``baseline_config(name, window)`` and (when given) its data metadata
+    equals ``data_meta``; key and outcome hashes are re-checked at comparison time.
+    """
     found = {}
     runs = sorted((Path(out_root) / "runs").glob("*")) if (Path(out_root) / "runs").exists() else []
-    tag = window_tag(resolve(cfg))
+    window = resolve(cfg)
+    expected = {name: _sha_bytes(canonical(resolve(baseline_config(name, window))))
+                for name in BASELINES}
     for run in runs:
         report_path = run / "report.json"
         if not report_path.exists():
             continue
         report = json.loads(report_path.read_text())
-        name = report["config"]["name"]
-        if report.get("status") != "ok" or not name.startswith("baseline_"):
+        name = str(report.get("config", {}).get("name", "")).removeprefix("baseline_")
+        if report.get("status") != "ok" or name not in expected:
             continue
-        if window_tag(report["config"]) != tag:
+        if report.get("config_sha256") != expected[name]:
+            continue
+        if data_meta is not None and report.get("data") != data_meta:
             continue
         daily = pd.read_csv(run / "daily.csv", index_col=0, parse_dates=[0])
-        found[name.removeprefix("baseline_")] = {"key_hash": report["key_hash"],
-                                                 "summary": report["summary"], "daily": daily}
+        found[name] = {"key_hash": report["key_hash"], "label_hash": report.get("label_hash"),
+                       "summary": report["summary"], "daily": daily}
     return found
 
 

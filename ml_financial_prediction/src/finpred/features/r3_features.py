@@ -87,6 +87,18 @@ def sha256_file(path: str) -> str:
     return digest.hexdigest()
 
 
+def teacher_hashes(data_root: str) -> dict:
+    """Digest of every teacher stock CSV (Training and Live) used for labels/features."""
+    out = {}
+    for key in ("teacher", "teacher_live"):
+        digest = hashlib.sha256()
+        for path in sorted(glob.glob(os.path.join(_paths(data_root)[key], "*.csv"))):
+            digest.update(os.path.basename(path).encode())
+            digest.update(sha256_file(path).encode())
+        out[key] = digest.hexdigest()
+    return out
+
+
 def _paths(data_root: str) -> dict[str, str]:
     root = os.path.abspath(data_root)
     return {
@@ -352,6 +364,7 @@ def build_feature_frame(data_root: str, *, max_date: str = "2026-09-30") -> Feat
         "max_date": max_ts.date().isoformat(),
         "panel_sha256": sha256_file(paths["panel"]),
         "market_features_sha256": sha256_file(paths["market"]),
+        "teacher_sha256": teacher_hashes(data_root),
         "readiness": "research_assumption",
     }
     return FeatureFrame(frame=frame, labels=labels, groups=groups, meta=meta)

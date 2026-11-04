@@ -69,8 +69,18 @@ def tune(base_cfg: dict, *, data_root: str, out_root: str, log_path: Path, n_tri
     sampler = optuna.samplers.TPESampler(seed=seed)
     study = optuna.create_study(direction="maximize", sampler=sampler)
     optuna.logging.set_verbosity(optuna.logging.WARNING)
-    study.optimize(objective, n_trials=n_trials)
-    best = {**FIXED.get(family, {}), **study.best_params}
+    try:
+        # catch=: a failing trial is recorded as failed instead of aborting the study.
+        study.optimize(objective, n_trials=n_trials, catch=(Exception,))
+        failed = [t.number for t in study.trials if t.state.name == "FAIL"]
+        best = {**FIXED.get(family, {}), **study.best_params}
+    except Exception as exc:  # the study itself failed: still log every scored trial
+        rx.append_attempt(log_path, {
+            "name": f"{base_cfg['name']}_optuna_study", "stage": base_cfg.get("stage", "R3-3"),
+            "status": "failed", "error": f"{type(exc).__name__}: {exc}", "trials": trials,
+            "started_utc": started.isoformat(timespec="seconds"),
+            "finished_utc": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+        raise
     record = {
         "name": f"{base_cfg['name']}_optuna_study", "stage": base_cfg.get("stage", "R3-3"),
         "hypothesis": "hyper-parameter search on tuning window only",
@@ -79,6 +89,7 @@ def tune(base_cfg: dict, *, data_root: str, out_root: str, log_path: Path, n_tri
                    "refit": refit, "n_trials": n_trials, "sampler": "TPE", "seed": seed},
         "code": rx.code_state(), "packages": rx.package_versions(), "data": ff.meta,
         "best_params": best, "best_tuning_score": study.best_value, "trials": trials,
+        "failed_trials": failed,
         "finished_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     out = Path(out_root) / "studies"

@@ -33,7 +33,7 @@ def main(argv=None):
     windows = configs or [{"name": "window"}]
     if args.baselines:
         for window in windows:
-            have = rx.load_baseline_reports(str(out_root), window)
+            have = rx.load_baseline_reports(str(out_root), window, ff.meta)
             for name in rx.BASELINES:
                 if name in have:
                     continue
@@ -43,7 +43,7 @@ def main(argv=None):
                                   "score": report["summary"]["score"],
                                   "ci95": report["summary"]["ci95"]}))
     for cfg in configs:
-        baselines = rx.load_baseline_reports(str(out_root), cfg)
+        baselines = rx.load_baseline_reports(str(out_root), cfg, ff.meta)
         report = rx.execute(cfg, data_root=args.data_root, out_root=str(out_root), log_path=log,
                             threads=args.threads, baseline_daily=baselines, ff=ff)
         print(json.dumps({"attempt": report["attempt"], "name": report["name"],

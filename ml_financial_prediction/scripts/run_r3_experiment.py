@@ -23,13 +23,21 @@ def main(argv=None):
     parser.add_argument("--out-root", required=True, help="private output directory outside Git")
     parser.add_argument("--attempts-log", default=str(ROOT / "docs" / "r3" / "attempts.jsonl"))
     parser.add_argument("--threads", type=int, default=4)
+    parser.add_argument("--gspc-json", help="yfinance ^GSPC chart JSON (frame r4)")
+    parser.add_argument("--vix-json", help="yfinance ^VIX chart JSON (frame r4)")
     args = parser.parse_args(argv)
     out_root = Path(args.out_root).resolve()
     if any((parent / ".git").exists() for parent in (out_root, *out_root.parents)):
         raise SystemExit("--out-root must be outside any Git checkout")
     configs = [json.loads(Path(p).read_text()) for p in args.config]
     log = Path(args.attempts_log)
-    ff = rx.load_features(args.data_root, str(out_root), max_date=rx.DEFAULTS["max_date"])
+    if args.gspc_json and args.vix_json:
+        rx.R4_INPUTS.update(gspc_path=args.gspc_json, vix_path=args.vix_json)
+    frames = {c.get("frame", "r3") for c in configs} or {"r3"}
+    if len(frames) != 1:
+        raise SystemExit("run one feature frame per invocation")
+    frame_kind = frames.pop()
+    ff = rx.load_features(args.data_root, str(out_root), max_date=rx.DEFAULTS["max_date"], frame=frame_kind)
     windows = configs or [{"name": "window"}]
     if args.baselines:
         for window in windows:

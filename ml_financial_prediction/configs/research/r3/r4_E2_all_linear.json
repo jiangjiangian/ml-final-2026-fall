@@ -1,0 +1,16 @@
+{
+ "name": "r4_E2_all_linear",
+ "hypothesis": "Phi-v1 CORE+SECONDARY (16), |r|-weighted L2 logistic",
+ "stage": "R4",
+ "frame": "r4",
+ "family": "logistic",
+ "params": {
+  "alpha": 1.0,
+  "clip": 0.0
+ },
+ "train_universe": "top50",
+ "feature_groups": [
+  "phi_core",
+  "phi_secondary"
+ ]
+}

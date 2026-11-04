@@ -35,6 +35,8 @@ CODE_FILES = (
     "src/finpred/models/r3_estimators.py",
     "src/finpred/training/r3_experiment.py",
     "src/finpred/training/r3_tune.py",
+    "src/finpred/features/r4_raw.py",
+    "src/finpred/features/r4_phi.py",
 )
 PACKAGES = ("numpy", "pandas", "scikit-learn", "lightgbm", "catboost", "xgboost", "torch")
 
@@ -55,8 +57,9 @@ DEFAULTS = {
     "mode": "dev", "test_start": "2022-01-01", "test_end": "2025-12-31",
     "refit": "monthly", "embargo": 5, "train_start": "2020-01-02",
     "train_universe": "all100", "seeds": [42], "objective": "regression",
-    "feature_exclude": [], "max_date": "2026-09-30",
+    "feature_exclude": [], "max_date": "2026-09-30", "frame": "r3",
 }
+R4_INPUTS = {}  # {"gspc_path": ..., "vix_path": ...} set by the CLI for frame "r4"
 
 
 def _sha_bytes(payload: bytes) -> str:
@@ -98,21 +101,36 @@ def package_versions() -> dict:
     return out
 
 
-def load_features(data_root: str, out_root: str, *, max_date: str) -> rf.FeatureFrame:
+def load_features(data_root: str, out_root: str, *, max_date: str, frame: str = "r3") -> rf.FeatureFrame:
     """Build or reuse a cached feature frame keyed by input and code hashes."""
     paths = rf._paths(data_root)
-    key = _sha_bytes(canonical({
+    spec = {
         "panel": rf.sha256_file(paths["panel"]),
         "market": rf.sha256_file(paths["market"]),
         "teacher": rf.teacher_hashes(data_root),
         "code": _sha_bytes((PROJECT / CODE_FILES[0]).read_bytes()),
-        "max_date": max_date,
-    }))[:16]
-    cache = Path(out_root) / "cache" / f"features-{rf.FEATURE_VERSION}-{key}.pkl"
+        "max_date": max_date, "frame": frame,
+    }
+    if frame == "r4":
+        from finpred.features import r4_phi
+
+        spec["r4_code"] = [_sha_bytes((PROJECT / f).read_bytes()) for f in
+                           ("src/finpred/features/r4_raw.py", "src/finpred/features/r4_phi.py")]
+        spec["r4_inputs"] = {k: r4_phi.file_sha256(v) for k, v in sorted(R4_INPUTS.items())}
+    elif frame != "r3":
+        raise ValueError(f"unknown feature frame {frame!r}")
+    key = _sha_bytes(canonical(spec))[:16]
+    cache = Path(out_root) / "cache" / f"features-{frame}-{rf.FEATURE_VERSION}-{key}.pkl"
     if cache.exists():
         with open(cache, "rb") as handle:
             return pickle.load(handle)
-    frame = rf.build_feature_frame(data_root, max_date=max_date)
+    if frame == "r4":
+        from finpred.features import r4_phi
+
+        built = r4_phi.build_r4_feature_frame(data_root, max_date=max_date, **R4_INPUTS)
+    else:
+        built = rf.build_feature_frame(data_root, max_date=max_date)
+    frame = built
     cache.parent.mkdir(parents=True, exist_ok=True)
     tmp = cache.with_suffix(".tmp")
     with open(tmp, "wb") as handle:
@@ -266,7 +284,7 @@ def execute(config: dict, *, data_root: str, out_root: str, log_path: Path, thre
     try:
         cfg = resolve(config)
         base_record.update(config=cfg, config_sha256=_sha_bytes(canonical(cfg)))
-        ff = ff or load_features(data_root, out_root, max_date=cfg["max_date"])
+        ff = ff or load_features(data_root, out_root, max_date=cfg["max_date"], frame=cfg["frame"])
         if ff.meta.get("max_date") != cfg["max_date"]:
             raise ValueError("config max_date differs from the loaded feature frame")
         pred, folds, columns = run_predictions(cfg, ff, threads=threads)
@@ -343,5 +361,5 @@ def load_baseline_reports(out_root: str, cfg: dict, data_meta: dict | None = Non
 def baseline_config(name: str, window: dict) -> dict:
     spec = copy.deepcopy(BASELINES[name])
     return {"name": f"baseline_{name}", "stage": "R3-0", "hypothesis": "baseline",
-            **{k: window[k] for k in ("test_start", "test_end", "refit", "embargo") if k in window},
+            **{k: window[k] for k in ("test_start", "test_end", "refit", "embargo", "frame") if k in window},
             **spec}

@@ -1,7 +1,7 @@
-# Preserve exact upstream skill bytes and their recorded SHA256 values.
-# Upstream prose contains intentional/unmodified trailing spaces.
-.agents/skills/** whitespace=-blank-at-eol
+# Preserve exact upstream skill bytes and their recorded SHA256 values: no CRLF
+# conversion on checkout, and upstream prose keeps intentional trailing spaces.
+.agents/skills/** -text whitespace=-blank-at-eol
 # Keep data bytes exact on every OS so the sha256 values in schema.json and
-# data/extra/manifest.json still verify (no CRLF conversion on checkout).
+# data/extra/manifest.json still verify.
 data/** -text
 schema.json -text

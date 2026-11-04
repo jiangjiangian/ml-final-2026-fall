@@ -1,7 +1,7 @@
 # 專案記憶（hot cache）
 
-完整細節在 `memory/`：術語 → `memory/glossary.md`；資料決策 → `memory/context/data-decisions.md`；
-環境與分支 → `memory/context/environment.md`；這個分支的歷程與已知問題 → `memory/projects/data-folder.md`。
+更多細節在 `memory/`：術語 → `memory/glossary.md`；資料決策 → `memory/context/data-decisions.md`；
+環境、分支與 skills → `memory/context/environment.md`；本分支歷程、審查與已知限制 → `memory/projects/data-folder.md`。
 
 ## 這個分支是什麼
 課程 ML 期末專案（2026 秋）：預測台股 50 檔「盤中方向」`y = 1{adj_close > adj_open}`。
@@ -9,13 +9,13 @@
 
 | 路徑 | 內容 |
 |---|---|
-| `crawler.py` | 唯一程式：yfinance 限流爬蟲 → 清理 → 老師資料 → 特徵 → transform → schema |
-| `schema.json` | **所有特徵**（老師＋額外＋transform）的公式、單位、lag 規則、資料品質紀錄 |
+| `crawler.py` | 唯一程式：yfinance 限流爬蟲 → 清理 → 老師資料 → features → transform → schema |
+| `schema.json` | **所有特徵**（老師＋額外＋transform）的公式、單位、lag 規則、清理紀錄、hash |
 | `data/teacher/` | 老師 Training ZIP 原樣（100 股、`global/global_data.csv`、`info.json`） |
-| `data/extra/` | 19 個 yfinance 額外指標日K（已清理）＋ `manifest.json` |
-| `data/features/market_features.csv` | 1,618 個台股日 × 104 欄（老師市場欄＋對齊後額外特徵） |
-| `data/transform/lag2/`、`lag5/` | 124 個特徵 × 各一檔：`date, <id>_ret_lag{k}` |
-| `.agents/skills/` | 既有 skills：gh-fix-ci、graphify、markitdown、rtk、security-best-practices |
+| `data/extra/` | 19 個 yfinance 額外指標日K（已清理）＋ `manifest.json`（限流、重試、清理紀錄） |
+| `data/features/market_features.csv` | 1,618 個台股日 × 104 欄：老師市場欄＋as-of 對齊的額外特徵（`_ret_1s/5s/20s` 等） |
+| `data/transform/lag2/`、`lag5/` | 124 個特徵各一檔：`date, <id>_ret_lag{k}` |
+| `.agents/skills/` | 既有 Codex 格式 skills（Claude Code 不會自動載入，需要時直接讀 SKILL.md） |
 
 ## 人
 | 誰 | 角色 |
@@ -29,33 +29,34 @@
 |---|---|
 | **老師資料** | 課程 Training ZIP（2020-01-02～2026-08-31），在 `live-data` 分支以 sha256 命名 |
 | **老師 index** | global_data 的 `^VIX ^IXIC ^GSPC ^TWII ^KS11`（＋`TX_OI` 口數）；「額外指標」＝排除這些 |
-| **額外指標** | 19 個 yfinance 序列（SOX、TSM、NVDA、TWD=X、DXY、^TNX、^IRX、0050/0052/0055/006201、DJI、N225、HSI、SSE、STOXX50E、DAX、CL=F、GC=F） |
-| **r_i** | `(close_i − close_{i−1}) / close_{i−1}`；`i−1`＝**同一序列**的前一交易日 |
-| **lag k** | 把 r 放到同日台股列（無資料留空），再往前位移 k 個台股列 |
-| **ret_ks** | market_features 的 k 交易日**累積**報酬 `P[s]/P[s−k]−1`，不是 lag k |
-| **s／source_date** | 對目標日 t，該序列 `<= t−1 天` 的最後一個交易日 |
+| **額外指標** | 19 個 yfinance 序列：SOX、TSM、NVDA、TWD=X、DXY、^TNX、^IRX、0050/0052/0055/006201、DJI、N225、HSI、SSE、STOXX50E、DAX、CL=F、GC=F |
+| **lag k（transform）** | 台股日 t 那列＝`(close_i − close_{i−k}) / close_{i−k}`，**i＝t 的前一個台股交易日**，i−k 數該序列自己的交易日；i 那天沒資料就空白 |
+| **ret_ks（features）** | as-of 對齊的 k 交易日累積報酬 `P[s]/P[s−k]−1`，休市沿用不留空 |
+| **s／source_date** | features 中，該序列 `<= t−1 天` 的最後一個交易日 |
 | **Phase 1／2** | 靜態 84 日回測（截止 12/24）／每日 09:00 前提交 50 股 |
 | **live-data** | 共用資料分支（老師 ZIP、Live、manifest、研究特徵） |
 
 ## 偏好與規則（使用者明確要求）
-- 回覆用**繁體中文**；先講清楚定義讓使用者確認，再實作（例：transform 的 return）。
-- 這個分支只放：`crawler.py`、`schema.json`、`data/`、`.agents/skills/`、本檔與 `memory/`（加 `.gitignore`、`.gitattributes`）。**其他東西先不要放到 GitHub。**
+- 回覆用**繁體中文**；先講清楚定義讓使用者確認，再實作。
+- 這個分支只放：`crawler.py`、`schema.json`、`data/`、`.agents/skills/`、本檔與 `memory/`（加 `.gitignore`、`.gitattributes`）。**其他東西先不要放到 GitHub。** `crawler.py` 由使用者明確要求保留（2026-11-04）。
 - 額外指標一律用 **yfinance**；範圍固定 **2020-01-01～2026-08-31**；要含**台幣匯率** TWD=X。
 - 爬蟲**必須限流**（每個 HTTP 請求都過限流器，見 `memory/context/data-decisions.md`）。
-- 殖利率也用百分比報酬（使用者選擇，即使接近 0 時會很大）。
+- 殖利率也用百分比報酬（使用者選擇，即使接近 0 時數值很大）。
 - 缺漏日期留空白，不補值。
+- 審查有發現時，等審查結果出來再一起修（使用者偏好）。
 - 只推到 `claude/peaceful-babbage-09xeie`；不自行開 PR。
 
 ## 重建資料
 ```bash
-pip install yfinance==1.7.0          # 需開放 *.finance.yahoo.com 等網域
+pip install yfinance==1.7.0          # 需開放 finance.yahoo.com 等網域（見 environment.md）
 git fetch origin live-data           # 老師 ZIP 來源
 python crawler.py                    # 全部重建（約 1 分鐘）
-python crawler.py --skip-download --keep-teacher   # 不連網，只重算特徵/transform/schema
+python crawler.py --skip-download --keep-teacher   # 不連網，只重算 features/transform/schema（會核對老師檔 hash）
 ```
-測試在 session scratchpad，不在 repo（使用者要求分支只放上述檔案）。
+結束碼：0 完成；1 必要序列缺；2 錯誤；3 本次有序列失敗或中止（沿用舊檔，status＝stale）。
+**目前沒有存放測試**：測試只在當時 session 的暫存區，使用者要求分支不放其他檔案，所以已隨 session 消失；改動 crawler.py 前請先補測試（不要 commit，除非使用者同意）。
 
 ## 絕對不要
-- 把 `y`、當日 `etl:adj_*`、當日成交量／法人／技術指標，或老師 `^TWII`／`^KS11` 的**當日值**當輸入（後兩者是當日收盤，已實證）。
+- 把 `y`、當日 `etl:adj_*`、當日成交量／法人／技術指標，或老師 `^TWII`／`^KS11` 的**當日值**當輸入（兩者已實證是當日收盤）。
 - 隨機拆股票列做驗證（同日市場特徵 50 股共用，要按日期切）。
-- 把 yfinance 快取寫進 `data/`。
+- 把 yfinance 快取、`graphify-out/`、`tools/` 或其他非允許檔案 commit 到本分支。

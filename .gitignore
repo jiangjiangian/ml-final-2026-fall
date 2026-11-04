@@ -4,6 +4,14 @@ __pycache__/
 .venv*/
 .env
 .env.*
+.ruff_cache/
+.claude/settings.local.json
 # Interrupted atomic writes from crawler.py.
-data/**/.*.tmp
 .*.tmp
+# This branch holds only crawler.py, schema.json, data/, the skills, CLAUDE.md and
+# memory/. Ignore what the kept skills and their setup scripts generate.
+graphify-out/
+tools/
+RTK.md
+AGENTS.md
+.codex/

@@ -7,11 +7,12 @@
    並回補 Yahoo 漏調的股票分割（例：0052 在 2025-11-17 一拆七）。每筆修改都記在 manifest。
 3. 從 live-data 分支取出老師 Training ZIP（核對 sha256），原樣放入 data/teacher/。
 4. data/features/market_features.csv：每個台股交易日一列＝老師 global 欄位＋對齊後的額外特徵。
-5. data/transform/lag2、lag5：每個特徵各一個 CSV（列＝台股交易日，欄＝第 k 期收盤報酬）。
+5. data/transform/lag2、lag5：每個特徵各一個 CSV（列＝台股交易日 t；值＝i＝t 的前一個台股交易日時，
+   (close_i − close_{i−k}) / close_{i−k}，i−k 數該序列自己的交易日）。
 6. schema.json：老師全部欄位、額外指標、transform 的定義、單位、lag 規則與資料品質紀錄。
 
 限流：單執行緒；yfinance 發出的「每一個」HTTP 請求（時區、cookie、crumb、chart）都經過同一個
-限流器，上一個請求結束後至少間隔 --min-interval 秒＋0～--jitter 秒隨機抖動；暫時性錯誤指數退避重試，
+限流器（libcurl 自動跟隨的重新導向共用同一個名額，最多 5 次），上一個請求結束後至少間隔 --min-interval 秒＋0～--jitter 秒隨機抖動；暫時性錯誤指數退避重試，
 Yahoo 回 429／YFRateLimitError 時退避再乘倍率；404／查無代碼等永久錯誤不重試；yfinance 內建重試關閉、
 每次重試前清掉 yfinance 的記憶體快取；某序列因限流放棄後全域冷卻 --backoff-max 秒，連續 3 個序列
 被限流就中止並保留舊檔。
@@ -77,7 +78,8 @@ SERIES = [
     ('etf_0050', '0050.TW', 'Yuanta Taiwan Top 50 ETF', '元大台灣50（台灣50指數代理）', 'M4_taiwan', 'etf', 'TWD', False,
      'ETF 代理，不是台灣50指數本身。'),
     ('etf_0052', '0052.TW', 'Fubon Taiwan Technology ETF', '富邦科技（電子類代理）', 'M4_taiwan', 'etf', 'TWD', False,
-     '電子類股代理，不是證交所電子類指數。'),
+     '電子類股代理，不是證交所電子類指數。2025 年 11 月一拆七（11-19～25 停牌、11-26 復牌）；Yahoo 只把 11-17 起的K棒'
+     '÷7、更早的沒調整，且分割前的股利調整只做約 1/7，兩者都由 crawler 修正（見 cleaning）。'),
     ('etf_0055', '0055.TW', 'Yuanta MSCI Taiwan Financials ETF', '元大MSCI金融（金融類代理）', 'M4_taiwan', 'etf', 'TWD',
      False, '金融類股代理，不是證交所金融保險類指數。'),
     ('dji', '^DJI', 'Dow Jones Industrial Average', '道瓊工業指數', 'M5_global_index', 'index', 'index_point', False, None),
@@ -103,10 +105,14 @@ YAHOO_COLUMNS = {'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close',
                  'volume': 'Volume'}
 BAD_TICK_TOLERANCE = 0.005                    # close 超出 [low, high] 0.5% 以上視為壞報價
 SPLIT_TOLERANCE, MAX_SPLIT_FACTOR = 0.03, 50
+TW_SUFFIXES = ('.TW', '.TWO')                 # 台股漲跌幅 10%，單日 2 倍以上變動只可能是公司行動
+PARTIAL_BAR_VOLUME_RATIO, PARTIAL_BAR_WINDOW = 0.01, 21
+DIVIDEND_STEP_MIN = 1e-5                      # adj_close/close 比的跳動大於此值才算除息日
 RATE_LIMIT_ERRORS = {'YFRateLimitError'}
-PERMANENT_ERRORS = {'YFTickerMissingError', 'YFPricesMissingError', 'YFTzMissingError', 'YFInvalidPeriodError',
-                    'YFNotImplementedError'}
+PERMANENT_ERRORS = {'YFTickerMissingError', 'YFInvalidPeriodError', 'YFNotImplementedError'}
+RETRY_ONCE_ERRORS = {'YFPricesMissingError', 'YFTzMissingError'}  # Yahoo 暫時錯誤也會丟這兩種，重試一次
 CIRCUIT_BREAKER_SERIES = 3
+REDIRECT_LIMIT = 5
 
 # --------------------------------------------------------------------------- 老師欄位字典
 GLOBAL_COLUMNS = ('date', '^VIX', '^IXIC', '^GSPC', '^TWII', '^KS11', 'TX_OI')
@@ -122,16 +128,18 @@ STOCK_COLUMNS = (
 )
 US_TIMING = ('列日期 d 的值＝「前一個老師 global 列日期」的美股收盤（老師已位移，09:00 前可得）。'
              'global 表是台／美／韓交易日交集，長假後可能落後多個美股交易日；不要再自行 shift。')
-SAME_DAY_TIMING = ('列日期 d 的值＝d 當日收盤（實證：^TWII 列報酬與 0050 同日報酬相關 0.96），'
-                   '09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。')
+SAME_DAY_NOTE = '09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。'
+TWII_TIMING = '列日期 d 的值＝d 當日收盤（實證：列報酬與 0050 同日報酬相關 0.94、與前一交易日 0.08）；' + SAME_DAY_NOTE
+KS11_TIMING = '列日期 d 的值＝d 當日收盤（實證：列報酬與日經225同日報酬相關 0.65、與前一交易日 0.01）；' + SAME_DAY_NOTE
 OI_TIMING = '發布時點未驗證（相關性檢查無定論）；專案在取得證據前不把它當正式特徵。'
 TEACHER_GLOBAL = {
-    'date': ('key', '台股交易日（老師 global 表的列日期；台／美／韓交易日交集）', 'ISO date', None),
+    'date': ('key', '老師 global 表的列日期：五個老師 Yahoo 序列同日都有資料才有列（大致是台／美／韓交易日交集，'
+                    '但例如 2021-04-06 三地都有交易仍缺列）；缺列不代表休市', 'ISO date', None),
     '^VIX': ('market_lagged_by_teacher', 'CBOE VIX 波動率指數', 'index_point', US_TIMING),
     '^IXIC': ('market_lagged_by_teacher', 'Nasdaq Composite 那斯達克綜合指數', 'index_point', US_TIMING),
     '^GSPC': ('market_lagged_by_teacher', 'S&P 500 標普500指數', 'index_point', US_TIMING),
-    '^TWII': ('raw_same_day', '台灣加權股價指數', 'index_point', SAME_DAY_TIMING),
-    '^KS11': ('raw_same_day', 'KOSPI 韓國綜合指數', 'index_point', SAME_DAY_TIMING),
+    '^TWII': ('raw_same_day', '台灣加權股價指數', 'index_point', TWII_TIMING),
+    '^KS11': ('raw_same_day', 'KOSPI 韓國綜合指數', 'index_point', KS11_TIMING),
     'TX_OI': ('timing_unverified', '台指期外資淨未平倉口數（多方減空方，可為負）', 'contracts', OI_TIMING),
 }
 TEACHER_STOCK = {
@@ -226,6 +234,8 @@ def classify_error(exc):
         return 'rate_limited'
     if name in PERMANENT_ERRORS or isinstance(exc, CrawlError) or 'http error 404' in text or 'not found' in text:
         return 'permanent'
+    if name in RETRY_ONCE_ERRORS:
+        return 'maybe_permanent'
     return 'transient'
 
 
@@ -249,7 +259,7 @@ def fetch_with_retry(fetch, spec, start, end_exclusive, limiter, policy, *, slee
             kind = classify_error(exc)
             events.append({'attempt': attempt, 'error_class': type(exc).__name__, 'kind': kind,
                            'message': str(exc)[:200]})
-            if kind == 'permanent' or attempt > policy.max_retries:
+            if kind == 'permanent' or (kind == 'maybe_permanent' and attempt >= 2) or attempt > policy.max_retries:
                 error = CrawlError(f"{spec['series_id']}: {type(exc).__name__}: {str(exc)[:200]}")
                 error.events, error.kind = events, kind
                 raise error from exc
@@ -323,40 +333,104 @@ def _split_factor(prev, cur):
     return None
 
 
+def _flat(row):
+    return len({row[k] for k in ('open', 'high', 'low', 'close')}) == 1
+
+
+def _dropped(row, reason):
+    return {**{k: row[k] for k in RAW_COLUMNS}, 'reason': reason}
+
+
+def _is_bond_holiday(day):
+    """美國債市休市、股市照常的日子：哥倫布日（10 月第 2 個週一）、退伍軍人節（11/11；週六提前、週日順延）。"""
+    d = date.fromisoformat(day)
+    if d.month == 10:
+        return d.weekday() == 0 and 8 <= d.day <= 14
+    if d.month == 11:
+        vet = date(d.year, 11, 11)
+        if vet.weekday() == 5:
+            vet -= timedelta(days=1)
+        elif vet.weekday() == 6:
+            vet += timedelta(days=1)
+        return d == vet
+    return False
+
+
+def _rescale_dividends(rows, boundary, factor, log):
+    """Yahoo 漏調分割時，分割前的股利調整也只做了約 1/factor；把該段每個除息幅度乘回 factor。"""
+    ratios = [r['adj_close'] / r['close'] if r['adj_close'] and r['close'] else None for r in rows[:boundary]]
+    if boundary < 2 or any(x is None or x <= 0 for x in ratios):
+        return
+    level = ratios[-1]
+    fixes = []
+    for t in range(boundary - 2, -1, -1):
+        step = 1 - ratios[t] / ratios[t + 1]
+        if step > DIVIDEND_STEP_MIN:
+            fixed = min(step * factor, 0.95)
+            level *= 1 - fixed
+            fixes.append({'ex_date': rows[t + 1]['date'], 'yahoo_fraction': step, 'rescaled_fraction': fixed})
+        else:
+            level *= ratios[t] / ratios[t + 1]
+        rows[t]['adj_close'] = rows[t]['close'] * level
+    log['dividend_adjustments_rescaled'].extend(sorted(fixes, key=lambda x: x['ex_date']))
+
+
 def clean_series(rows, spec):
-    """回傳 (清理後列, 修改紀錄)。順序：壞報價 → 佔位K棒 → 漏調的分割。"""
-    log = {'bad_ticks_dropped': [], 'placeholder_bars_dropped': [], 'split_adjustments': []}
+    """回傳 (清理後列, 修改紀錄)。
+
+    順序：壞報價 → 債市假日平盤K棒（殖利率）→ 佔位／不完整K棒（股票、ETF）→ 漏調的分割與分割前股利（台股）。
+    紀錄中被刪除的列是 Yahoo 原始單位（尚未做分割修正）。
+    """
+    log = {'bad_ticks_dropped': [], 'bond_holiday_bars_dropped': [], 'placeholder_bars_dropped': [],
+           'split_adjustments': [], 'dividend_adjustments_rescaled': [], 'suspected_splits_not_applied': []}
     kept = []
     for row in rows:
         lo, hi, close = row['low'], row['high'], row['close']
         if lo is not None and hi is not None and lo <= hi and (
                 close < lo - BAD_TICK_TOLERANCE * abs(lo) or close > hi + BAD_TICK_TOLERANCE * abs(hi)):
-            log['bad_ticks_dropped'].append({k: row[k] for k in RAW_COLUMNS})
+            log['bad_ticks_dropped'].append(_dropped(row, 'close 超出 [low, high] 0.5% 以上'))
+            continue
+        if spec['kind'] == 'yield_percent' and _flat(row) and _is_bond_holiday(row['date']):
+            log['bond_holiday_bars_dropped'].append(_dropped(row, '美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒'))
             continue
         kept.append(row)
-    if spec['kind'] in ADJ_KINDS:
-        rows, kept = kept, []
-        for row in rows:
-            flat = len({row[k] for k in ('open', 'high', 'low', 'close')}) == 1
-            if kept and flat and not row['volume'] and row['close'] == kept[-1]['close']:
-                log['placeholder_bars_dropped'].append({k: row[k] for k in RAW_COLUMNS})
+    if spec['kind'] not in ADJ_KINDS:
+        return kept, log
+    rows, kept = kept, []
+    for row in rows:
+        if kept and _flat(row):
+            if not row['volume'] and row['close'] == kept[-1]['close']:
+                log['placeholder_bars_dropped'].append(_dropped(row, '零量平盤且等於前一收盤'))
                 continue
-            kept.append(row)
-        for i in range(1, len(kept)):
-            prev, cur = kept[i - 1], kept[i]
-            factor = _split_factor(prev['close'], cur['close'])
-            if factor is None or _split_factor(prev['adj_close'], cur['adj_close']) != factor:
+            recent = sorted(r['volume'] for r in kept[-PARTIAL_BAR_WINDOW:] if r['volume'])
+            median = recent[len(recent) // 2] if recent else None
+            if row['volume'] and median and row['volume'] < PARTIAL_BAR_VOLUME_RATIO * median:
+                log['placeholder_bars_dropped'].append(
+                    _dropped(row, f'平盤且成交量 < 前 {PARTIAL_BAR_WINDOW} 筆中位數的 1%（不完整K棒）'))
                 continue
-            for row in kept[:i]:
-                for key in PRICE_COLUMNS:
-                    if row[key] is not None:
-                        row[key] = row[key] / factor
-                if row['volume'] is not None:
-                    row['volume'] = row['volume'] * factor
-            log['split_adjustments'].append({'effective_date': cur['date'], 'factor': factor,
-                                             'previous_close_before_fix': prev['close'] * factor,
-                                             'close_on_effective_date': cur['close'],
-                                             'reason': 'Yahoo 未調整的分割：前後收盤與 adj_close 比都接近整數'})
+        kept.append(row)
+    taiwan = spec['ticker'].upper().endswith(TW_SUFFIXES)
+    for i in range(1, len(kept)):
+        prev, cur = kept[i - 1], kept[i]
+        factor = _split_factor(prev['close'], cur['close'])
+        if factor is None or _split_factor(prev['adj_close'], cur['adj_close']) != factor:
+            continue
+        if not taiwan:
+            log['suspected_splits_not_applied'].append(
+                {'date': cur['date'], 'factor': factor, 'reason': '非台股沒有漲跌幅限制，可能是真實的大漲跌；未修改'})
+            continue
+        for row in kept[:i]:
+            for key in PRICE_COLUMNS:
+                if row[key] is not None:
+                    row[key] = row[key] / factor
+            if row['volume'] is not None:
+                row['volume'] = row['volume'] * factor
+        log['split_adjustments'].append({
+            'yahoo_adjustment_boundary': cur['date'], 'factor': factor,
+            'previous_close_before_fix': prev['close'] * factor, 'close_on_boundary': cur['close'],
+            'reason': 'Yahoo 只把此日起的K棒做了分割調整；更早的價格 ÷factor、成交量 ×factor（台股漲跌幅 10%，'
+                      '單日 2 倍以上變動只可能是公司行動）'})
+        _rescale_dividends(kept, i, factor, log)
     return kept, log
 
 
@@ -440,7 +514,9 @@ def crawl(specs, extra_dir, fetch, *, start=START, end_inclusive=END_INCLUSIVE, 
         ordered = {s['series_id']: entries[s['series_id']] for s in specs if s['series_id'] in entries}
         missing = sorted(s['series_id'] for s in specs
                          if s['required'] and ordered.get(s['series_id'], {}).get('status') != 'ok')
-        complete = len(ordered) == len(specs) and all(v.get('status') == 'ok' for v in ordered.values())
+        all_ok = len(ordered) == len(specs) and all(v.get('status') == 'ok' for v in ordered.values())
+        refreshed = not state['failed'] and not state['aborted']
+        status = ('complete' if refreshed else 'stale') if all_ok else 'partial'
         return {
             'schema_version': MANIFEST_VERSION, 'source': 'Yahoo Finance via yfinance',
             'library': 'https://github.com/ranaroussi/yfinance', 'library_version': library_version,
@@ -450,10 +526,15 @@ def crawl(specs, extra_dir, fetch, *, start=START, end_inclusive=END_INCLUSIVE, 
             'request_options': {'interval': '1d', 'auto_adjust': False, 'actions': False, 'repair': False},
             'date_semantics': 'date＝該日K的交易所當地原生交易日；不是發布或可用時間',
             'cleaning_rules': {
-                'bad_tick': f'close 超出 [low, high] {BAD_TICK_TOLERANCE:.1%} 以上 → 刪除該列',
-                'placeholder_bar': '股票／ETF：成交量 0、OHLC 相同且等於前一收盤 → 刪除該列（Yahoo 補的佔位K棒）',
-                'split_fix': f'股票／ETF：前後收盤與 adj_close 比都接近整數 n（2..{MAX_SPLIT_FACTOR}，誤差 '
-                             f'<{SPLIT_TOLERANCE:.0%}）→ 之前的價格 ÷n、成交量 ×n',
+                'bad_tick': f'所有序列：close 超出 [low, high] {BAD_TICK_TOLERANCE:.1%} 以上 → 刪除該列',
+                'bond_holiday_bar': '殖利率：美國債市休市（哥倫布日、退伍軍人節，週六提前／週日順延）的平盤K棒 → 刪除',
+                'placeholder_bar': ('股票／ETF：OHLC 相同，且（成交量 0 並等於前一收盤，或成交量 < 前 '
+                                    f'{PARTIAL_BAR_WINDOW} 筆中位數的 {PARTIAL_BAR_VOLUME_RATIO:.0%}）→ 刪除'),
+                'split_fix': ('台股（' + '／'.join(TW_SUFFIXES) + '）股票／ETF：前後 close 與 adj_close 比都接近整數 n'
+                              f'（2..{MAX_SPLIT_FACTOR}，誤差 <{SPLIT_TOLERANCE:.0%}）→ 之前的價格 ÷n、成交量 ×n；'
+                              '反向（後/前≈n）則之前的價格 ×n、成交量 ÷n。非台股只記為 suspected，不修改'),
+                'split_dividend_fix': '修正分割時，分割前每個除息日的調整幅度（adj_close/close 比的跳動）乘以 n',
+                'logged_units': '被刪除列的紀錄是 Yahoo 原始單位（尚未做分割修正）',
             },
             'rate_limit': {
                 'config': {**asdict(policy), 'mode': 'sequential_single_thread',
@@ -467,7 +548,10 @@ def crawl(specs, extra_dir, fetch, *, start=START, end_inclusive=END_INCLUSIVE, 
                              'circuit_breaker_cooldown_seconds': round(state['cooldown_seconds'], 3)},
             },
             'failed_last_run': state['failed'], 'aborted_last_run': state['aborted'], 'missing_required': missing,
-            'status': 'complete' if complete else 'partial', 'series': ordered,
+            'status': status,
+            'status_meaning': ('complete＝全部 ok 且本次都更新；stale＝全部 ok 但本次有失敗或中止（沿用舊檔）；'
+                               'partial＝有序列不可用'),
+            'series': ordered,
         }
 
     for index, spec in enumerate(selected):
@@ -484,6 +568,8 @@ def crawl(specs, extra_dir, fetch, *, start=START, end_inclusive=END_INCLUSIVE, 
                                                      sleep=sleep, rng=rng)
             rows, dropped = validate_rows(raw, spec, start_d, end_d)
             rows, cleaning = clean_series(rows, spec)
+            if not rows:
+                raise CrawlError(f'{sid}: 清理後沒有資料')
             payload = rows_to_csv(rows)
             write_atomic(path, payload)
             entries[sid] = {**meta, 'status': 'ok', 'file': f'yfinance/{sid}.csv', 'sha256': _sha(payload),
@@ -506,8 +592,10 @@ def crawl(specs, extra_dir, fetch, *, start=START, end_inclusive=END_INCLUSIVE, 
                 entries[sid] = {**meta, 'status': 'failed', 'last_attempt': attempt}
             if kind == 'rate_limited':
                 state['consecutive_rate_limited'] += 1
-                sleep(policy.backoff_max_seconds)
-                state['cooldown_seconds'] += policy.backoff_max_seconds
+                last = index == len(selected) - 1
+                if not last and state['consecutive_rate_limited'] < CIRCUIT_BREAKER_SERIES:
+                    sleep(policy.backoff_max_seconds)
+                    state['cooldown_seconds'] += policy.backoff_max_seconds
             else:
                 state['consecutive_rate_limited'] = 0
         write_atomic(manifest_path, _json_bytes(manifest()))
@@ -534,7 +622,7 @@ def yfinance_fetcher(limiter, timeout=30.0, cache_dir=None):
     if cache_dir is not None:
         Path(cache_dir).mkdir(parents=True, exist_ok=True)
         yf.set_tz_cache_location(str(cache_dir))
-    session = PacedSession(impersonate='chrome')
+    session = PacedSession(impersonate='chrome', max_redirects=REDIRECT_LIMIT)
 
     def fetch(ticker, start, end_exclusive):
         cache = getattr(getattr(yf_data, 'YfData', None), 'cache_get', None)
@@ -605,7 +693,8 @@ def teacher_summary(members, expected_stocks=100, expected_targets=50):
         stock_rows += len(rows)
     gdates = {r['date'] for r in global_rows}
     in_range = {d for d in stock_dates if START <= d <= END_INCLUSIVE}
-    return {'stock_count': len(stocks), 'target_stock_count': len(info['Top50@Y']), 'stock_rows': stock_rows,
+    digest = hashlib.sha256(''.join(f'{name}\t{_sha(members[name])}\n' for name in sorted(members)).encode())
+    return {'members_sha256': digest.hexdigest(), 'stock_count': len(stocks), 'target_stock_count': len(info['Top50@Y']), 'stock_rows': stock_rows,
             'stock_date_min': min(stock_dates), 'stock_date_max': max(stock_dates),
             'global_rows': len(global_rows), 'global_date_min': min(gdates), 'global_date_max': max(gdates),
             'global_missing_taiwan_trading_days': len(in_range - gdates)}
@@ -803,20 +892,22 @@ def build_market_features(data_dir, usable, targets, min_lag_days=1):
 
 
 # --------------------------------------------------------------------------- 收盤報酬 lag 轉換
-def close_returns(dates, prices):
-    """r[d] = (close_d − close_prev) / close_prev，prev＝同一序列的前一個交易日；任一價格 <= 0 或缺值則無值。"""
+def k_period_returns(dates, prices, k):
+    """R_k(i) = (close_i − close_{i−k}) / close_{i−k}；i−k＝同一序列往回第 k 個自己的交易日。
+
+    兩個價格任一缺值或 <= 0 則沒有值。
+    """
     out = {}
-    for i in range(1, len(dates)):
-        prev, cur = prices[i - 1], prices[i]
-        if prev is not None and cur is not None and prev > 0 and cur > 0:
-            out[dates[i]] = (cur - prev) / prev
+    for i in range(k, len(dates)):
+        base, cur = prices[i - k], prices[i]
+        if base is not None and cur is not None and base > 0 and cur > 0:
+            out[dates[i]] = (cur - base) / base
     return out
 
 
-def lagged_on_calendar(targets, returns, lag):
-    """把 r 放到同日期的台股列（無資料則空白），再往前位移 lag 列。"""
-    placed = [returns.get(t) for t in targets]
-    return [placed[i - lag] if i >= lag else None for i in range(len(targets))]
+def at_previous_taiwan_day(targets, values_by_date):
+    """台股日 t 那一列放 i＝前一個台股交易日的值；該序列在 i 那天沒有資料就空白。"""
+    return [values_by_date.get(targets[j - 1]) if j >= 1 else None for j in range(len(targets))]
 
 
 def transform_sources(data_dir, usable):
@@ -827,13 +918,13 @@ def transform_sources(data_dir, usable):
         sources.append((spec['series_id'], dates, prices,
                         {'source': f"yfinance {spec['ticker']}", 'name_zh': spec['name_zh'], 'group': spec['group'],
                          'price_column': 'adj_close' if spec['kind'] in ADJ_KINDS else 'close',
-                         'previous_trading_day': '該序列在 Yahoo 的前一個有資料交易日'}))
+                         'previous_trading_day': '該序列在 Yahoo 往回第 k 個有資料的交易日'}))
     global_rows = _teacher_global(data_dir)
     for column, fid in TEACHER_TRANSFORM.items():
         sources.append((fid, [r['date'] for r in global_rows], [_num(r[column]) for r in global_rows],
                         {'source': f'teacher global_data.csv {column}', 'name_zh': TEACHER_GLOBAL[column][1],
                          'group': 'teacher_global', 'price_column': column,
-                         'previous_trading_day': '老師 global 表的前一列（台／美／韓交集，可能跨多個交易日）',
+                         'previous_trading_day': '老師 global 表的前 k 列（global 表只有五個序列同日都有資料才有列）',
                          'timing': TEACHER_GLOBAL[column][3]}))
     for path in sorted((Path(data_dir) / 'teacher' / 'market').glob('*.csv')):
         _, rows = _read_csv(path)
@@ -841,24 +932,23 @@ def transform_sources(data_dir, usable):
         sources.append((f'stock_{path.stem}', [r['date'] for r in rows], [_num(r['etl:adj_close']) for r in rows],
                         {'source': f'teacher market/{path.name} etl:adj_close', 'name_zh': f'個股 {path.stem}',
                          'group': 'teacher_stock', 'price_column': 'etl:adj_close',
-                         'previous_trading_day': '該股在老師資料中的前一列'}))
+                         'previous_trading_day': '該股在老師資料中往回第 k 列'}))
     return sources
 
 
-def build_transforms(data_dir, usable, targets):
+def build_transforms(data_dir, usable, targets, data_prefix='data'):
     root = Path(data_dir) / TRANSFORM_DIR
     if root.exists():
         shutil.rmtree(root)
     features = {}
     for fid, dates, prices, meta in transform_sources(data_dir, usable):
-        returns = close_returns(dates, prices)
         entry = {**meta, 'files': {}}
         for lag in TRANSFORM_LAGS:
             column = f'{fid}_ret_lag{lag}'
-            values = lagged_on_calendar(targets, returns, lag)
+            values = at_previous_taiwan_day(targets, k_period_returns(dates, prices, lag))
             rel = f'{TRANSFORM_DIR}/lag{lag}/{fid}.csv'
             sha = _write_table(Path(data_dir) / rel, ['date', column], {'date': targets, column: values}, len(targets))
-            entry['files'][f'lag{lag}'] = {'file': rel, 'column': column, 'sha256': sha,
+            entry['files'][f'lag{lag}'] = {'file': f'{data_prefix}/{rel}', 'column': column, 'sha256': sha,
                                            'non_missing_rows': sum(v is not None for v in values)}
         features[fid] = entry
     return features
@@ -900,7 +990,7 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
         if spec['required'] and not ok and sid not in missing_required:
             missing_required.append(sid)
     teacher_market = ['^VIX', '^IXIC', '^GSPC', '^TWII_prev_row', '^KS11_prev_row', 'TX_OI']
-    complete = manifest.get('status') == 'complete' and not skipped
+    crawl_status = 'partial' if skipped or manifest.get('status') in (None, 'partial') else manifest['status']
     return {
         'schema_version': SCHEMA_VERSION,
         'generated_by': 'crawler.py',
@@ -935,7 +1025,10 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
         'extra': {
             'api': 'yfinance（Yahoo Finance chart API：query1/query2.finance.yahoo.com/v8/finance/chart）；19 個序列全部經 yfinance',
             'library_version': manifest.get('library_version'),
-            'crawl_status': 'complete' if complete else 'partial',
+            'crawl_status': crawl_status,
+            'crawl_status_meaning': manifest.get('status_meaning'),
+            'failed_last_run': manifest.get('failed_last_run', []),
+            'aborted_last_run': manifest.get('aborted_last_run', []),
             'missing_required': sorted(missing_required),
             'skipped_series_hash_mismatch': skipped,
             'excluded_teacher_tickers': list(TEACHER_TICKERS),
@@ -968,13 +1061,18 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
         'extra_feature_non_missing_rows': coverage,
         'transform': {
             'definition': {
-                'return': 'r_i = (close_i − close_{i−1}) / close_{i−1}；i＝日期，close_{i−1}＝同一序列的前一個交易日',
-                'placement': 'r_i 放在同日期的台股交易日列；該序列那天沒有資料就空白',
-                'lag_k': 'ret_lag{k}(t) ＝ 往前第 k 個台股交易日列的 r（lag2＝t 前 2 列，lag5＝t 前 5 列）',
+                'confirmed_by_user': '2026-11-04 使用者確認；取代先前「往前位移 k 列的單日報酬」版本',
+                'formula': 'ret_lag{k}(t) = (close_i − close_{i−k}) / close_{i−k}，k＝2、5（k 個交易日的累積報酬）',
+                'i': 'i＝t 的前一個台股交易日，所以只用 t 開盤前已知的收盤；該序列在 i 那天沒有資料 → 空白',
+                'i_minus_k': ('i−k＝同一序列往回第 k 個「自己的」交易日（不是台股列）；老師 global 指數＝往回 k 個 '
+                              'global 列；老師個股＝該股往回 k 列'),
+                'example': ('SOX close 01-16=100、01-17=102、01-21=99（01-20 美股休市）。列 01-22 用 i＝01-21：'
+                            'lag2＝99/100−1＝−1.00%；列 01-21 用 i＝01-20，SOX 沒有資料 → 空白'),
                 'price': '額外指標：股票／ETF 用 adj_close，其他用 close；老師個股用 etl:adj_close；老師全球指數用該欄值',
-                'yields': '殖利率（us10y、us13w）也一律用百分比報酬（依使用者要求）；接近 0 時數值很大',
-                'missing': '空白＝缺值：序列當天無資料、前一交易日無資料、任一價格 <= 0、或前 k 列不存在；不補值',
-                'leakage': 'lag >= 1 列，所以只用 t 之前台股交易日的報酬；老師美股欄已被老師位移一次，其 lag 實際更舊',
+                'yields': ('殖利率（us10y、us13w）也一律用百分比報酬（使用者選擇）；us13w 在 2020-03 與 2021-02～2022-02 '
+                           '接近 0，報酬會到 ±100% 以上，建模時可考慮 winsorize 或穩健縮放'),
+                'missing': '空白＝缺值：序列在 i 沒有資料、往回不足 k 個交易日、或 close_i／close_{i−k} 缺值或 <= 0；不補值',
+                'leakage': 'i 一定早於 t；老師美股欄已被老師位移一次，所以 teacher_vix／ixic／gspc 的值實際更舊一天',
             },
             'lags': list(TRANSFORM_LAGS),
             'rows_per_file': len(targets), 'date_min': targets[0], 'date_max': targets[-1],
@@ -1013,18 +1111,23 @@ def build_outputs(data_dir, schema_path, specs, *, teacher_payload=None, teacher
                 old = json.loads(schema_path.read_text(encoding='utf-8')).get('teacher', {})
             except ValueError:
                 old = {}
-        teacher_info = {'source': old.get('source') or {'kept_existing_directory': True},
-                        'archive_sha256': old.get('archive_sha256'), **teacher_from_dir(data_dir)}
+        current = teacher_from_dir(data_dir)
+        if old.get('members_sha256') and old['members_sha256'] != current['members_sha256']:
+            raise CrawlError('data/teacher 的內容和 schema.json 記錄的老師 ZIP 不同；請改用 --live-data-ref 重新取出')
+        verified = old.get('members_sha256') == current['members_sha256']
+        teacher_info = {'source': old.get('source') if verified else {'kept_existing_directory': True,
+                                                                     'verified_against_archive': False},
+                        'archive_sha256': old.get('archive_sha256') if verified else None, **current}
     else:
         raise CrawlError('缺老師資料來源：用 --live-data-ref、--teacher-zip 或 --keep-teacher')
     targets = taiwan_target_dates(data_dir)
     usable, skipped = _usable_series(data_dir, specs, manifest)
     header, definitions, coverage, sha = build_market_features(data_dir, usable, targets, min_lag_days)
-    transforms = build_transforms(data_dir, usable, targets)
     try:
         prefix = data_dir.resolve().relative_to(schema_path.resolve().parent).as_posix()
     except ValueError:
         prefix = data_dir.as_posix()
+    transforms = build_transforms(data_dir, usable, targets, data_prefix=prefix)
     series_dates = {spec['series_id']: {r[0] for r in rows} for spec, rows in usable}
     schema = build_schema(specs, manifest, teacher_info, targets, header, definitions, coverage, skipped, sha,
                           transforms, min_lag_days, series_dates, data_prefix=prefix)
@@ -1052,7 +1155,8 @@ def main(argv=None):
     parser.add_argument('--backoff-max', type=float, default=rl.backoff_max_seconds, help='退避上限與限流冷卻秒數')
     parser.add_argument('--rate-limited-multiplier', type=float, default=rl.rate_limited_backoff_multiplier,
                         help='被 Yahoo 限流（429）時退避時間倍率')
-    parser.add_argument('--timeout', type=float, default=rl.request_timeout_seconds, help='單次請求逾時秒數')
+    parser.add_argument('--timeout', type=float, default=rl.request_timeout_seconds,
+                        help='chart 歷史資料請求的逾時秒數（yfinance 的時區／cookie 請求用自己的 10／30 秒）')
     parser.add_argument('--cache-dir', type=Path, default=Path.home() / '.cache' / 'finpred-yfinance',
                         help='yfinance 時區快取（放在 data/ 之外）')
     args = parser.parse_args(argv)
@@ -1077,10 +1181,13 @@ def main(argv=None):
     print(json.dumps({'crawl_status': extra['crawl_status'], 'missing_required': extra['missing_required'],
                       'series_ok': [k for k, v in extra['series'].items() if v['status'] == 'ok'],
                       'series_not_ok': {k: v['status'] for k, v in extra['series'].items() if v['status'] != 'ok'},
+                      'failed_last_run': extra['failed_last_run'], 'aborted_last_run': extra['aborted_last_run'],
                       'market_rows': m['rows'], 'market_columns': len(m['columns_in_order']),
                       'transform_features': tr['feature_count'], 'transform_files': tr['feature_count'] * len(tr['lags']),
                       'date_min': m['date_min'], 'date_max': m['date_max']}, ensure_ascii=False, indent=2))
-    return 1 if extra['missing_required'] else 0
+    if extra['missing_required']:
+        return 1
+    return 3 if extra['failed_last_run'] or extra['aborted_last_run'] else 0
 
 
 if __name__ == '__main__':

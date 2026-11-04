@@ -9,7 +9,7 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | Live ZIP | 9/1 之後的老師新資料（`y=-1`＝pending） | 不在本分支範圍內 |
 | template | 官方預測模板（股票／日期／欄位順序） | 不在本分支 |
 | Top50@Y／Top100@Y | `info.json` 的預測目標 50 股／全部 100 股 | |
-| global_data | 老師全球表：`date, ^VIX, ^IXIC, ^GSPC, ^TWII, ^KS11, TX_OI` | 只有台／美／韓同日都交易的日期才有列（1,506 列，缺 112 個台股日） |
+| global_data | 老師全球表：`date, ^VIX, ^IXIC, ^GSPC, ^TWII, ^KS11, TX_OI` | 五個老師 Yahoo 序列同日都有資料才有列（1,506 列，缺 112 個台股日；缺列不代表休市） |
 | TX_OI | 台指期外資淨未平倉口數（多減空，可負） | 單位是口數，不算 return；發布時點未驗證 |
 | 老師 index | global_data 的五個指數欄 | 使用者說的「除了老師以外的 index」＝排除這五個 |
 | 額外指標 | crawler.py 用 yfinance 抓的 19 個序列 | 清單見 data-decisions.md |
@@ -28,8 +28,7 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | `<id>_level`／`_level_pct` | FX／美元指數水準；殖利率水準（百分比） |
 | `<id>_change_bp_{k}s` | 殖利率 k 期基點變化 `100 × (Y[s] − Y[s−k])` |
 | `^TWII_prev_row`／`^KS11_prev_row` | 最後一個日期 < t 的老師 global 列之值（避開當日收盤） |
-| r_i | transform 用的單日收盤報酬 `(close_i − close_{i−1}) / close_{i−1}` |
-| `<id>_ret_lag{k}` | transform：往前第 k 個台股交易日列的 r_i |
+| `<id>_ret_lag{k}` | transform：台股日 t 那列＝`(close_i − close_{i−k}) / close_{i−k}`，i＝t 的前一個台股交易日，i−k 數該序列自己的交易日（k＝2、5） |
 | teacher_vix／ixic／gspc／twii／ks11 | transform 中老師五個指數的特徵 id |
 | stock_<代號> | transform 中老師個股（`etl:adj_close`）的特徵 id |
 | etf_0050／0052／0055／006201 | 台灣50／電子（富邦科技）／金融（元大MSCI金融）／櫃買（元大富櫃50）的 ETF 代理 |
@@ -39,8 +38,9 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | 詞 | 意思 |
 |---|---|
 | 壞報價（bad tick） | close 超出 [low, high] 0.5% 以上；整列刪除 |
-| 佔位K棒（placeholder bar） | 股票／ETF 的零量、OHLC 相同且等於前一收盤的列；Yahoo 補的假交易日 |
-| 漏調分割 | Yahoo 沒調整的分割（0052 在 2025-11-17 一拆七）；crawler 回補 |
+| 佔位K棒（placeholder bar） | 股票／ETF 的平盤K棒：零量且等於前一收盤，或成交量 < 前 21 筆中位數 1%（不完整K棒）；刪除 |
+| 債市假日K棒 | 殖利率在哥倫布日／退伍軍人節（債市休市、股市照常）的平盤K棒；刪除 |
+| 漏調分割 | Yahoo 沒調整的分割：0052 一拆七（Yahoo 只把 2025-11-17 起的K棒 ÷7；實際 11-19～25 停牌、11-26 復牌），分割前股利也只調了約 1/7；crawler 只對台股自動修正 |
 | research_assumption | 研究假設等級：歷史發布時間未驗證，不等於可上線 |
 | as-of | market_features 沿用最後可用交易日的值；休市時連續數個台股日會重複 |
 

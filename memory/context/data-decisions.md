@@ -16,6 +16,9 @@
   - Live global 的慣例和 Training 不同：每個台股日都有一列，休市市場沿用前一筆；美股欄＝日期 < d 的最後一個美股收盤（9 月 ^IXIC／^GSPC 20/20、^VIX 19/20），^TWII 20/20 同日、^KS11 19/20 同日（1 列韓國休市沿用）。值都在開盤前已知；9 月的 teacher_* lag 往回數的是 Live 的列。
   - 延長後 8/31 以前的值：老師相關欄完全相同；ETF／美股的 adj_close 因 Yahoo 重算有約 1e-6 以內的相對浮動（etf_0052 最大 1.04e-6；報酬絕對差：長表 ≤ 1e-6、market_features ≤ 1.1e-6；close 與缺值位置不變）。
   - 待定值 fail closed：使用範圍內只要有 -1（y、價格、指數欄、TX_OI），crawler 直接拒絕；Live 的待定列整列是 -1（10/23、11/04）。
+  - 兩種待定列不一樣（2026-11-04 查證，給每日模式用；見 `deploy/README.md` 第 11.3、11.5 節）：
+    - **當天的列**（11/04）：個股全部 -1；global 的 ^VIX／^IXIC／^GSPC 已填前一個美股收盤，^TWII／^KS11／TX_OI 是 -1。t 的特徵只讀 i＝前一個台股日以前，所以這列只當日曆。
+    - **永遠不補的列**（10/23）：100 檔全是 -1，global ^TWII、TX_OI 也是 -1，^KS11 有值。Yahoo ^TWII 沒有 10/23；0050 這天是同價佔位K棒 → 很可能休市。提議：台股日曆以官方 `/api/state` 為準，不在官方日曆的待定列拿掉。**未實作，等使用者確認。**
   - 指紋：`timing_verification.verified_against` 用 `teacher_live.used_rows_sha256`（只算實際用到的 9 月列），所以每天換新的 Live ZIP 不會讓驗證失效；整份 ZIP 的 `members_sha256` 只給 `--keep-teacher` 做完整性檢查。
 
 ## 19 個額外指標

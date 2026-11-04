@@ -25,6 +25,13 @@
 19. TX_OI 改前一列 → market_features 的 `TX_OI` 換成 `TX_OI_prev_row`；長表與 lag 檔本來就沒有 TX_OI，不受影響。
 20. 資料範圍延長到 2026-09-30 → yfinance 19 序列限流重抓；9/1～9/30 的老師資料接 Live ZIP（`data/teacher_live/`）；接縫與 Live 慣例逐值驗證；timing_verification 的數字與資料指紋全部重算。Phase 2 自動化使用者說「等下再問」。
 21. 第四輪審查（延長到 9/30；3 審查者＋3 反駁者，23 個發現去重約 12 項）已修：layout 的 TX_OI 文字、美股欄說法限定 Training、-1 待定值 fail closed（含 TX_OI）、Live 結構檢查（日期唯一、接縫重疊／間隔）、--keep-teacher 缺 Live 資料夾時報錯、CLI 參數組合檢查、date_range.data_end、指紋改用實際使用列、wti／us13w 相關係數改用 transform 的空值規則、memory 舊數字。資料檔沒變。
+22. deep-research 第二輪（Phase 2 免費方案、raw→模型輸入、Mermaid）→ `deploy/README.md` 新增第 10～12 節。
+    - 107 個 agent；25 條宣稱 3 票驗證，全部確認。
+    - 全免費版（不綁卡）：Cloudflare Workers Cron＋cron-job.org 觸發 workflow_dispatch，GitHub runner 執行，Healthchecks 監控。
+    - 綁卡版：GCP 只用 3 個 Scheduler job，仍是 0 元。
+    - 第 11 節：同一個轉換函式；pandas merge_asof 和 Feast 已核對原文；11/04 待定列與 10/23 永遠不補的列。
+    - 第 11.5 節的 5 個缺口等使用者確認。
+    - 三張 Mermaid 圖已用 mermaid 11.12 渲染驗證。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。

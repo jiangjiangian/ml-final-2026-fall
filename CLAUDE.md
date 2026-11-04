@@ -18,7 +18,7 @@
 | `data/features/market_features.csv` | 1,638 個台股日 × 104 欄：老師市場欄（`^TWII/^KS11/TX_OI` 都用 `_prev_row`）＋as-of 對齊的額外特徵（`_ret_1s/5s/20s` 等） |
 | `data/transform/panel_lag.csv.gz` | **組員直接用**：100 股 × 1,638 天＝163,800 列 × 56 欄（鍵、旗標、50 個 lag 特徵、`label_y`、`label_intraday_return`），7 MB |
 | `data/transform/lag2/`、`lag5/` | 124 個特徵各一檔：`date, <id>_ret_lag{k}` |
-| `deploy/README.md` | Phase 2 每日自動提交的部署設計：GitHub schedule 為何延遲、推薦 GCP Cloud Scheduler＋Cloud Run Job 為主、備援與監控、時間表、實作清單 |
+| `deploy/README.md` | Phase 2 每日自動提交的部署設計：GitHub schedule 為何延遲、推薦 GCP Cloud Scheduler＋Cloud Run Job 為主、備援與監控、時間表、實作清單；第 10 節免費方案（不綁卡版＝Cloudflare＋cron-job.org→dispatch）、第 11 節 raw→模型輸入、第 12 節 Mermaid 流程圖 |
 | `.agents/skills/` | 既有 Codex 格式 skills（Claude Code 不會自動載入，需要時直接讀 SKILL.md） |
 
 ## 人

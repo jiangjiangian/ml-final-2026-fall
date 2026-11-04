@@ -1,9 +1,22 @@
 {
   "schema_version": "hosted-runtime-v1",
   "runtime_root": "/tmp/finpred-hosted-runtime",
-  "files": [],
-  "total_bytes": 0,
-  "created_at": "2026-11-04T03:03:59.408599+00:00",
+  "files": [
+    {
+      "path": "candidates/phase1-static-v1/artifacts.zip",
+      "object_key": "runtime/objects/0e5401ee9957fabd55e1e4cb031326abe35326f6b171d67e4dfc321f2db95f2d.bin",
+      "sha256": "0e5401ee9957fabd55e1e4cb031326abe35326f6b171d67e4dfc321f2db95f2d",
+      "size_bytes": 49401245
+    },
+    {
+      "path": "candidates/phase1-static-v1/completion.json",
+      "object_key": "runtime/objects/6c6a7fcef9e02ba118031acc367a81b60d9615e985baa1c33ea818df17890145.bin",
+      "sha256": "6c6a7fcef9e02ba118031acc367a81b60d9615e985baa1c33ea818df17890145",
+      "size_bytes": 4693
+    }
+  ],
+  "total_bytes": 49405938,
+  "created_at": "2026-11-04T05:15:46.682022+00:00",
   "trust_scope": "internally_created_finpred_state_in_verified_repository",
   "excluded": [
     "raw",
@@ -12,5 +25,10 @@
     "HTTP sessions",
     "credentials",
     "lock files"
-  ]
+  ],
+  "retention": {
+    "policy": "published_unreferenced_large_tables_only-v1",
+    "archived_commit": null,
+    "pruned_paths": []
+  }
 }

@@ -63,6 +63,8 @@ TRANSFORM_LAGS = (2, 5)
 PANEL_FILE = 'transform/panel_lag.csv.gz'
 TEACHER_LIVE_DIR = 'teacher_live'                 # 老師 Live ZIP 原樣；只用 Training 之後、<= END_INCLUSIVE 的列
 LIVE_INDEX_COLUMNS = ('^VIX', '^IXIC', '^GSPC', '^TWII', '^KS11')  # Live 以 -1 標示待定值
+LIVE_PENDING_COLUMNS = LIVE_INDEX_COLUMNS + ('TX_OI',)             # global 表中 -1 代表待定的欄位
+LIVE_MAX_GAP_DAYS = 7                                               # Training 結束到 Live 第一個使用日的最大日曆天數
 
 # --------------------------------------------------------------------------- 額外指標清單
 # kind: index / stock / etf / fx / fx_index / yield_percent / futures
@@ -158,7 +160,8 @@ LIVE_GLOBAL_CONVENTION = (
 
 # 額外指標的時間語意：TIMING_VERIFIED_ON 用 Yahoo 小時K（只抓了 2025-11-10～2026-08-31）與逐年開盤跳空測試驗證。
 # complete_by_taipei＝該日K最後一根小時K開始＋1 小時，換成台北時間，取冬令／夏令中最晚者（保守上界）。
-# open_gap_corr＝序列單日報酬（價格欄同 transform）與台股 t 日開盤跳空的 Pearson 相關，2020-01～2026-09 全期。
+# open_gap_corr＝序列單日報酬（價格欄與空值規則同 transform：端點 <= 0 的報酬空白）與台股 t 日開盤跳空的 Pearson 相關，
+# 2020-01～2026-09 全期。
 _US_SESSION = '美東當地日 d 的正規盤（09:30–16:00 ET），在台股 d 日收盤之後'
 _FUTURES_SESSION = '前一日 18:00 ET → d 日 17:00 ET（結束在 d）'
 _TW_SESSION = '台股日 d（09:00–13:30），與老師個股同一天'
@@ -176,13 +179,14 @@ EXTRA_TIMING = {
                 0.001, -0.199,
                 ('跨年 Spearman（2020–2026 每一年；2026 到 9/30）：日期 d 的報酬對最新一個 < d 的 DJI 報酬 −0.16～−0.42、'
                  '對 DJI d 日 −0.07～+0.09 → close 在美股 d−1 收盤之後、美股 d 開盤之前；日期＝t 對 t 日盤中報酬'
-                 ' 2020–2025 為 −0.03～+0.04（2026 為 −0.08），下一根對 t 日盤中 −0.07～−0.26。所以 usd_twd 比名稱舊約一天。')),
+                 ' 2020–2025 為 −0.03～+0.04、下一根 −0.13～−0.26；2026 的盤中檢定沒有鑑別力（日期＝t −0.08、下一根 −0.07），'
+                 '2026 由小時K直接驗證，DJI 檢定（−0.26 對 +0.09）也支持。所以 usd_twd 比名稱舊約一天。')),
     'dxy': ('約前一日 19:00 ET → d 日 18:00 ET（結束在 d；日K open≈前一日 19:00 ET 的報價，含 17:00–18:00 ET 那根'
             '小時K）；高低點與「結束在 d」的分組相符約 87%、與「從 d 開始」約 3%（相對容差 2e-4）；close≈15:00 ET 的報價'
             '（14:00–15:00 小時K的收盤，中位差 0.31bp）；DX-Y.NYB 是指數，不是結算價',
             'd+1 07:00', -0.209, -0.116, None),
     'us10y': ('芝加哥時區當地日 d（CBOE 殖利率指數）', 'd+1 04:20', 0.030, -0.004, None),
-    'us13w': ('芝加哥時區當地日 d（CBOE 殖利率指數）', 'd+1 04:20', -0.028, 0.087, None),
+    'us13w': ('芝加哥時區當地日 d（CBOE 殖利率指數）', 'd+1 04:20', 0.048, 0.028, None),
     'etf_006201': (_TW_SESSION, 'd 當天 14:00', 0.002, 0.604, None),
     'etf_0050': (_TW_SESSION, 'd 當天 14:00', 0.001, 0.744, None),
     'etf_0052': (_TW_SESSION, 'd 當天 14:00', 0.006, 0.698, None),
@@ -193,7 +197,7 @@ EXTRA_TIMING = {
     'stoxx50e': ('蘇黎世時區當地日 d，在台股 d 日收盤之後', 'd+1 01:00', 0.391, 0.245, _EU_NOTE),
     'gdaxi': ('柏林時區當地日 d，在台股 d 日收盤之後', 'd+1 01:00', 0.372, 0.243, _EU_NOTE),
     'wti': (_FUTURES_SESSION + '；高低點與「結束在 d」相符 72%、與「從 d 開始」0%；close 推定為 CME 結算價（約 14:30 ET；'
-            '日K close 落在 14:00–15:00 ET 小時K高低區間內約 90%，無法精確驗證）', 'd+1 06:00', 0.072, 0.004, None),
+            '日K close 落在 14:00–15:00 ET 小時K高低區間內約 90%，無法精確驗證）', 'd+1 06:00', 0.119, -0.015, None),
     'gold': (_FUTURES_SESSION + '；高低點與「結束在 d」相符 81%、與「從 d 開始」0%；close 推定為 CME 結算價（約 13:30 ET；'
              '日K close 落在 13:00–14:00 ET 小時K高低區間內約 95%，無法精確驗證）', 'd+1 06:00', 0.184, 0.051, None),
 }
@@ -215,7 +219,7 @@ def extra_timing(series_id):
 # 驗證當時的資料指紋；build_schema 會拿目前的值比對，不同就表示資料改過、要重跑驗證。
 TIMING_VERIFIED_AGAINST = {
     'teacher_members_sha256': '31bbdc99c3bfd28f9df8b671160fba7030408d9eea18694c3cec9f94ccb73ea0',
-    'teacher_live_members_sha256': 'fe7607e1e880f002cfc903691b60a6a9067f68da12121b340528f857997bf565',
+    'teacher_live_used_rows_sha256': '171700b774ef7fe87c876642e2002cb7ec3c60f9b3f3dac0465b0fae3c516a53',
     'market_features_sha256': '59860b37ae802bcae0822fe78c974d5cfefa4c535a31ceaaf9f6a87a32867802',
     'panel_sha256_csv_uncompressed': '2242cfb129abea331382ffbc3e998a1e36226ef87d9f03d436201ea9259d7f2c',
 }
@@ -255,16 +259,17 @@ TIMING_VERIFICATION = {
     'extra_bars': ('每個序列的結果見 extra.series.<series_id>.timing。除 TWD=X 外，所有日K最晚在 d+1 07:00（台北）收完'
                    '（保守上界）；TWD=X 只驗證了 close 的時點：每一年都在美股 d 日開盤前（台北 d 日 22:30 前）'),
     'outputs': {
-        'market_features': ('19 個額外序列的 source_date 全部 <= t−1 日曆天；老師欄 ^VIX／^IXIC／^GSPC 照抄同日期（已驗證是'
-                            '前一個 global 列的收盤）、^TWII_prev_row／^KS11_prev_row／TX_OI_prev_row 取日期 < t 的最後一個'
-                            ' global 列'),
+        'market_features': ('19 個額外序列的 source_date 全部 <= t−1 日曆天；老師欄 ^VIX／^IXIC／^GSPC 照抄同日期（Training 列＝'
+                            '前一個 global 列日期的收盤；Live 9 月列＝日期 < d 的最後一個美股收盤，見 teacher_live.global_convention；'
+                            '都在 t 開盤前已知）、^TWII_prev_row／^KS11_prev_row／TX_OI_prev_row 取日期 < t 的最後一個 global 列'),
         'transform_and_panel': ('i＝t 的前一個台股交易日；t−i（日曆天）分布 1 天 1,278 列、2 天 10、3 天 299、4 天 29、'
                                 '5 天 13、6 天 1、10 天 2、12 天 4、13 天 1；不含 TX_OI'),
         'implication': ('用到的每根K棒都在 t 日台北 07:00 以前收完（市場時間；專案截止 08:10、老師截止 09:00）；'
                         'Yahoo 實際上架時間未驗證'),
     },
     'open_gap_test': {
-        'definition': ('序列單日報酬（該序列自己交易日上的報酬，價格欄同 transform：股票／ETF 用 adj_close，其他用 close）'
+        'definition': ('序列單日報酬（該序列自己交易日上的報酬，價格欄與空值規則同 transform：股票／ETF 用 adj_close，'
+                       '其他用 close，端點 <= 0 的報酬空白）'
                        'vs 台股 t 日開盤跳空（Top50@Y 各股 adj_open_t / adj_close_{該股前一列} − 1 的平均），比較「日期 < t'
                        ' 的最新一根」與「日期＝t 的那根」；逐年 Pearson'),
         'us_equity_series': ('SOX、TSM、NVDA、DJI，2020–2026 每一年：最新 < t 為 0.35～0.74、日期＝t 為 −0.15～+0.17'
@@ -289,7 +294,8 @@ TIMING_VERIFICATION = {
 def timing_verification(teacher_info, features_sha, panel, live_info=None):
     """驗證紀錄＋目前資料是否仍是驗證時那一版（不同就表示要重跑驗證）。"""
     current = {'teacher_members_sha256': teacher_info.get('members_sha256'),
-               'teacher_live_members_sha256': (live_info or {}).get('members_sha256'), 'market_features_sha256': features_sha,
+               'teacher_live_used_rows_sha256': (live_info or {}).get('used_rows_sha256'),
+               'market_features_sha256': features_sha,
                'panel_sha256_csv_uncompressed': (panel or {}).get('sha256_csv_uncompressed')}
     changed = [k for k, v in TIMING_VERIFIED_AGAINST.items() if current.get(k) != v]
     out = {**TIMING_VERIFICATION, 'applies_to_current_data': not changed, 'changed_since_verification': changed}
@@ -908,26 +914,56 @@ def live_summary(members, stock_ids, after, end_inclusive=END_INCLUSIVE):
     fields, global_rows = _csv_rows(members['data/global/global_data.csv'])
     if fields != GLOBAL_COLUMNS:
         raise CrawlError('Live global_data.csv 欄位改變')
-    dates, used, used_dates, pending = set(), 0, set(), 0
+    if not global_rows:
+        raise CrawlError('Live global_data.csv 是空的')
+    _check_dates([r['date'] for r in global_rows], 'Live global_data.csv')
+    dates, used_dates, used_rows = set(), set(), []
     for name in stocks:
         fields, rows = _csv_rows(members[name])
         if fields != STOCK_COLUMNS:
             raise CrawlError(f'Live {name} 欄位改變')
+        _check_dates([r['date'] for r in rows], f'Live {name}')
         for r in rows:
             dates.add(r['date'])
             if after < r['date'] <= end_inclusive:
-                used += 1
                 used_dates.add(r['date'])
-                pending += r['y'] not in ('0', '1', '0.0', '1.0')
+                used_rows.append((PurePosixPath(name).stem, r))
+    if not dates:
+        raise CrawlError('Live 個股檔都是空的')
+    if min(dates) <= after:
+        raise CrawlError(f'Live 個股有 {after}（Training 最後一天）以前的日期，接縫不明確')
     gused = [r for r in global_rows if after < r['date'] <= end_inclusive]
-    return {'members_sha256': _members_digest(members), 'stock_count': len(stocks),
+    # 待定值 fail closed：Live 的待定列整列是 -1（y、價格、TX_OI 都是），不能當資料
+    pending = [(sid, r['date']) for sid, r in used_rows
+               if r['y'] not in ('0', '1', '0.0', '1.0') or any(_num(r[c]) == -1 for c in STOCK_COLUMNS[1:5])]
+    gpending = [r['date'] for r in gused if any(_num(r[c]) == -1 for c in LIVE_PENDING_COLUMNS)]
+    if pending or gpending:
+        raise CrawlError(f'Live 使用範圍（{after} 之後到 {end_inclusive}）有待定值（-1）：個股 {len(pending)} 列、global '
+                         f'{sorted(set(gpending))}；請把 END_INCLUSIVE 縮短到待定日之前，或等老師補值')
+    if used_dates:
+        gap = (date.fromisoformat(min(used_dates)) - date.fromisoformat(after)).days
+        if gap > LIVE_MAX_GAP_DAYS:
+            raise CrawlError(f'Training 結束（{after}）到 Live 第一個使用日（{min(used_dates)}）相隔 {gap} 天，中間可能缺資料')
+    canonical = io.StringIO()
+    writer = csv.writer(canonical, lineterminator='\n')
+    for r in gused:
+        writer.writerow(['global'] + [r[c] for c in GLOBAL_COLUMNS])
+    for sid, r in sorted(used_rows, key=lambda x: (x[0], x[1]['date'])):
+        writer.writerow([sid] + [r[c] for c in STOCK_COLUMNS])
+    return {'members_sha256': _members_digest(members),
+            'used_rows_sha256': hashlib.sha256(canonical.getvalue().encode('utf-8')).hexdigest(),
+            'stock_count': len(stocks),
             'stock_date_min': min(dates), 'stock_date_max': max(dates),
             'global_rows': len(global_rows), 'global_date_min': min(r['date'] for r in global_rows),
             'global_date_max': max(r['date'] for r in global_rows),
             'used_range': {'after': after, 'end_inclusive': end_inclusive},
-            'used_taiwan_trading_days': len(used_dates), 'used_stock_rows': used, 'used_global_rows': len(gused),
-            'used_pending_label_rows': pending,
-            'used_global_rows_with_pending_marker': sum(any(r[c] == '-1' for c in LIVE_INDEX_COLUMNS) for r in gused)}
+            'used_taiwan_trading_days': len(used_dates), 'used_stock_rows': len(used_rows), 'used_global_rows': len(gused),
+            'used_pending_rows': 0}
+
+
+def _check_dates(dates, name):
+    if any(not d for d in dates) or dates != sorted(set(dates)):
+        raise CrawlError(f'{name}：日期須非空、已排序且唯一')
 
 
 def _training_stock_ids(data_dir):
@@ -1107,13 +1143,13 @@ def _teacher_global(data_dir, end_inclusive=END_INCLUSIVE):
         raise CrawlError('老師 global_data.csv 欄位改變')
     live = Path(data_dir) / TEACHER_LIVE_DIR / 'global' / 'global_data.csv'
     if live.exists():
-        last = max(r['date'] for r in rows)
+        last = _training_boundary(data_dir)  # 和 teacher_stock_rows／live_summary 用同一個接縫
         fields, extra = _read_csv(live)
         if fields != GLOBAL_COLUMNS:
             raise CrawlError('Live global_data.csv 欄位改變')
         for r in extra:
             if last < r['date'] <= end_inclusive:
-                rows.append({k: ('' if k in LIVE_INDEX_COLUMNS and v == '-1' else v) for k, v in r.items()})
+                rows.append({k: ('' if k in LIVE_PENDING_COLUMNS and _num(v) == -1 else v) for k, v in r.items()})
     return sorted(rows, key=lambda r: r['date'])
 
 
@@ -1190,7 +1226,7 @@ def transform_sources(data_dir, usable):
                          'group': 'teacher_global', 'price_column': column,
                          'previous_trading_day': ('老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；'
                                                   'Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值'),
-                         'timing': TEACHER_GLOBAL[column][3]}))
+                         'timing': TEACHER_GLOBAL[column][3] + '（以上是 Training；Live 9 月見 teacher_live.global_convention）'}))
     for sid, rows in teacher_stock_rows(data_dir).items():
         sources.append((f'stock_{sid}', [r['date'] for r in rows], [_num(r['etl:adj_close']) for r in rows],
                         {'source': f'teacher market/{sid}.csv＋teacher_live/market/{sid}.csv etl:adj_close',
@@ -1330,7 +1366,8 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
     return {
         'schema_version': SCHEMA_VERSION,
         'generated_by': 'crawler.py',
-        'date_range': {'start': START, 'end_inclusive': END_INCLUSIVE},
+        'date_range': {'start': START, 'end_inclusive': END_INCLUSIVE, 'data_end': targets[-1],
+                       'note': '資料實際到 data_end；沒有 Live 時只到 Training 最後一天'},
         'readiness': 'research_assumption',
         'historical_vintage_verified': False,
         'timing_verification': timing_verification(teacher_info, features_sha, panel, live_info),
@@ -1340,12 +1377,13 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
                 f"老師全球指標；只有台／美／韓同日都交易的日期才有列（{teacher_info.get('global_rows')} 列，"
                 f"缺 {teacher_info.get('global_missing_taiwan_trading_days')} 個台股交易日）",
             f'{data_prefix}/teacher/market/<stock_id>.csv': '老師個股資料（每股一檔，21欄含 y）',
-            f'{data_prefix}/{TEACHER_LIVE_DIR}/': ('老師 Live ZIP 原樣（逐位元組，sha256 見 teacher_live）：global/global_data.csv＋'
-                                                 'market/<stock_id>.csv；本分支只用 Training 最後一天之後、<= date_range.end_inclusive 的列'),
+            **({} if live_info is None else {f'{data_prefix}/{TEACHER_LIVE_DIR}/': (
+                '老師 Live ZIP 原樣（逐位元組，sha256 見 teacher_live）：global/global_data.csv＋market/<stock_id>.csv；'
+                '本分支只用 Training 最後一天之後、<= date_range.end_inclusive 的列')}),
             f'{data_prefix}/extra/yfinance/<series_id>.csv': 'yfinance 額外指標日K（已清理，見 extra.series.*.cleaning）',
             f'{data_prefix}/extra/manifest.json': '爬蟲紀錄：取得時間、限流設定、重試、清理、hash、失敗原因',
-            f'{data_prefix}/{FEATURES_FILE}': ('每台股交易日一列：老師市場欄（^TWII／^KS11 已改前一列；TX_OI 照抄同日期，疑似含當日資訊，不要當輸入）'
-                '＋已對齊的額外特徵'),
+            f'{data_prefix}/{FEATURES_FILE}': ('每台股交易日一列：老師市場欄（^VIX／^IXIC／^GSPC 照抄同日期；^TWII／^KS11／TX_OI'
+                ' 取日期 < t 的最後一個 global 列：*_prev_row）＋已對齊的額外特徵'),
             f'{data_prefix}/{TRANSFORM_DIR}/lag2/<feature>.csv': '每個特徵一檔：date＋第 2 期收盤報酬',
             f'{data_prefix}/{TRANSFORM_DIR}/lag5/<feature>.csv': '每個特徵一檔：date＋第 5 期收盤報酬',
             f'{data_prefix}/{PANEL_FILE}': '整合好的長表：100 股 × 台股交易日，lag2／lag5 特徵＋label_ 答案欄',
@@ -1367,7 +1405,9 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
             **live_info,
             'file': f'{data_prefix}/{TEACHER_LIVE_DIR}/',
             'how_used': ('個股檔與 global 表接在 Training 之後：只取 Training 最後日期之後、<= date_range.end_inclusive 的列；'
-                         '欄位與 Training 相同；-1 是 Live 的待定標記（y＝-1 → 答案空白；指數欄 -1 → 空白）'),
+                         '欄位與 Training 相同。-1 是 Live 的待定標記，待定列整列都是 -1（y、價格、量、法人、TX_OI…）；'
+                         '使用範圍內出現待定值時 crawler 會拒絕（fail closed）。自己讀 data/teacher_live 的組員請只取 '
+                         'date <= date_range.end_inclusive，或濾掉 -1 列'),
             'global_convention': LIVE_GLOBAL_CONVENTION,
         }),
         'extra': {
@@ -1400,7 +1440,8 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
                                '在 d 日就定下，所以 s <= t−1 的K棒都在 t 日 07:00 以前收完（市場時間）；Yahoo 實際上架時間未驗證。'),
             'teacher_columns': teacher_market,
             'teacher_columns_definition': {
-                '^VIX/^IXIC/^GSPC': '老師 global 同日期原值照抄（老師表缺該日則空白）；已驗證是前一個 global 列的收盤，可當輸入',
+                '^VIX/^IXIC/^GSPC': ('老師 global 同日期原值照抄（老師表缺該日則空白）；Training 列＝前一個 global 列日期的收盤，'
+                                     'Live 9 月列＝日期 < d 的最後一個美股收盤（見 teacher_live.global_convention）；都可當輸入'),
                 '^TWII_prev_row/^KS11_prev_row/TX_OI_prev_row': ('最後一個日期 < t 的老師 global 列之 ^TWII／^KS11／TX_OI'
                                                                   '（前兩者是當日收盤、TX_OI 疑似含當日資訊，所以都往前一列）'),
             },
@@ -1423,8 +1464,9 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
                            '接近 0，報酬會到 ±100% 以上，建模時可考慮 winsorize 或穩健縮放'),
                 'missing': '空白＝缺值：序列在 i 沒有資料、往回不足 k 個交易日、或 close_i／close_{i−k} 缺值或 <= 0；不補值',
                 'leakage': ('i 一定早於 t，所以用到的K棒都在 t 日台北 07:00 以前收完（市場時間，見 timing_verification）；'
-                            '老師美股欄已被老師位移一列，所以 teacher_vix／ixic／gspc 的值比名稱再舊一列（長假後可能落後'
-                            '多個美股日）；teacher_twii／ks11 在 i 列是 i 當日收盤，t 開盤前已知'),
+                            '老師美股欄已被老師位移：Training 列＝前一個 global 列日期的收盤（長假後可能落後多個美股日），'
+                            'Live 9 月列＝日期 < d 的最後一個美股收盤，所以 teacher_vix／ixic／gspc 的值比名稱舊；'
+                            'teacher_twii／ks11 在 i 列是 i 當日收盤，t 開盤前已知'),
             },
             'lags': list(TRANSFORM_LAGS),
             'rows_per_file': len(targets), 'date_min': targets[0], 'date_max': targets[-1],
@@ -1486,6 +1528,9 @@ def build_outputs(data_dir, schema_path, specs, *, teacher_payload=None, teacher
         live_info = {'source': old.get('source') if verified else {'kept_existing_directory': True,
                                                                   'verified_against_archive': False},
                      'archive_sha256': old.get('archive_sha256') if verified else None, **current}
+    elif keep_teacher and (old_schema.get('teacher_live') or {}).get('members_sha256'):
+        raise CrawlError('schema.json 記錄了 Live，但 data/teacher_live 不存在；請用 --live-data-ref 重新取出，'
+                         '或用 --live-data-ref --no-live 明確移除')
     else:
         if live_dir.exists():
             shutil.rmtree(live_dir)  # 沒有提供 Live：不要讓舊的 Live 混進新的 Training
@@ -1534,6 +1579,14 @@ def main(argv=None):
     parser.add_argument('--cache-dir', type=Path, default=Path.home() / '.cache' / 'finpred-yfinance',
                         help='yfinance 時區快取（放在 data/ 之外）')
     args = parser.parse_args(argv)
+    if args.live_zip and not args.teacher_zip:
+        parser.error('--live-zip 只能搭配 --teacher-zip')
+    if args.live_zip and args.no_live:
+        parser.error('--live-zip 和 --no-live 不能同時使用')
+    if args.teacher_zip and not (args.live_zip or args.no_live):
+        parser.error('--teacher-zip 需要搭配 --live-zip，或明確加 --no-live（資料只到 Training 最後一天）')
+    if args.keep_teacher and args.no_live:
+        parser.error('--keep-teacher 會沿用現有的 data/teacher_live；要拿掉 Live 請改用 --live-data-ref --no-live')
     try:
         if not args.skip_download:
             policy = RateLimitPolicy(args.min_interval, args.jitter, args.max_retries, args.backoff_base,
@@ -1545,15 +1598,13 @@ def main(argv=None):
         if args.teacher_zip:
             payload = args.teacher_zip.read_bytes()
             source = {'zip_file': args.teacher_zip.name, 'object_sha256': hashlib.sha256(payload).hexdigest()}
-            if args.live_zip and not args.no_live:
+            if args.live_zip:
                 live_payload = args.live_zip.read_bytes()
                 live_source = {'zip_file': args.live_zip.name, 'object_sha256': hashlib.sha256(live_payload).hexdigest()}
         elif not args.keep_teacher:
             payload, source = live_data_training_zip(ROOT, args.live_data_ref)
             if not args.no_live:
                 live_payload, live_source = live_data_zip(ROOT, args.live_data_ref, 'course-live')
-        if args.keep_teacher and args.no_live:
-            raise CrawlError('--keep-teacher 會沿用現有的 data/teacher_live；要拿掉 Live 請改用 --live-data-ref --no-live')
         schema = build_outputs(args.data_dir, args.schema, SPECS, teacher_payload=payload, teacher_source=source,
                                keep_teacher=args.keep_teacher, live_payload=live_payload, live_source=live_source,
                                min_lag_days=args.min_lag_days)

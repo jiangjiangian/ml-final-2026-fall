@@ -3,7 +3,9 @@
   "generated_by": "crawler.py",
   "date_range": {
     "start": "2020-01-01",
-    "end_inclusive": "2026-09-30"
+    "end_inclusive": "2026-09-30",
+    "data_end": "2026-09-30",
+    "note": "資料實際到 data_end；沒有 Live 時只到 Training 最後一天"
   },
   "readiness": "research_assumption",
   "historical_vintage_verified": false,
@@ -13,7 +15,7 @@
     "method": "另用 yfinance（同一套限流）抓 Yahoo 原始資料，只用來比對、不存進 data/：老師 5 個指數與 5 檔老師個股（2330、2317、2454、2881、1101）的日K（2019-12～2026-09），以及 19 個額外指標的小時K。小時K本次只抓2025-11-10～2026-08-31（約 10 個月，涵蓋冬令與夏令）；Yahoo 1h 最多回溯 730 天（約到 2024-11），更早的年份無法用小時K驗證。延長到 9/30 時，另抓老師 5 個指數與 100 檔老師個股 2026-07～10 的日K，核對 Live 與接縫。較早年份改用逐年開盤跳空測試：SOX、TSM、NVDA、DJI、4 檔台灣 ETF、N225 每年都有鑑別力，確認慣例不變；HSI、SSE、STOXX50E、GDAXI、TWD=X 方向一致但部分年份鑑別力弱；DXY、^TNX、^IRX、CL=F、GC=F沒有鑑別力，2025-11-10 以前的日期慣例是假設（交易所以當地交易日標示日K）。",
     "verified_against": {
       "teacher_members_sha256": "31bbdc99c3bfd28f9df8b671160fba7030408d9eea18694c3cec9f94ccb73ea0",
-      "teacher_live_members_sha256": "fe7607e1e880f002cfc903691b60a6a9067f68da12121b340528f857997bf565",
+      "teacher_live_used_rows_sha256": "171700b774ef7fe87c876642e2002cb7ec3c60f9b3f3dac0465b0fae3c516a53",
       "market_features_sha256": "59860b37ae802bcae0822fe78c974d5cfefa4c535a31ceaaf9f6a87a32867802",
       "panel_sha256_csv_uncompressed": "2242cfb129abea331382ffbc3e998a1e36226ef87d9f03d436201ea9259d7f2c"
     },
@@ -26,12 +28,12 @@
     "teacher_stocks": "日期＝台股交易日。盤中比 adj_close/adj_open 與 Yahoo 同日 close/open 一致 99.8%～99.9%（分母＝Yahoo 同日有成交量的K棒，絕對差 < 1e-4；含零量K棒為 99.7%～99.8%），錯一天只有 1.5%～7.0%，所以排除日期位移；y＝1{adj_close > adj_open} 同列 100%。不一致日都是 Yahoo 的資料問題，前後一天也對不上：2022-08-22（5/5 檔）、2024-03-29（4/5 檔）Yahoo 是不完整的盤中K棒（open 相同、高低在老師區間內、成交量只有老師的約 4～8 成）；2020-02-04 Yahoo 的 open 錯（超出 ±10% 漲跌幅）；2024-11-20 Yahoo 平盤K棒；2021-08-17 Yahoo 零量佔位K棒；Yahoo 缺 2021-04-06、2025-08-01。Live（2026-09-01～09-30）100 檔 2,000 列：盤中比與 Yahoo 同日一致 100%，錯一天約 2.3%；y 同列 2000/2000。Training／Live 接縫（8/31→9/1）：100 檔的還原價基準（老師 adj_close ÷ Yahoo 原始 close）完全相同，所以跨接縫的報酬連續；9 月除息日（例：2330 9/16）只在 Live 內部造成正常的除息調整。",
     "extra_bars": "每個序列的結果見 extra.series.<series_id>.timing。除 TWD=X 外，所有日K最晚在 d+1 07:00（台北）收完（保守上界）；TWD=X 只驗證了 close 的時點：每一年都在美股 d 日開盤前（台北 d 日 22:30 前）",
     "outputs": {
-      "market_features": "19 個額外序列的 source_date 全部 <= t−1 日曆天；老師欄 ^VIX／^IXIC／^GSPC 照抄同日期（已驗證是前一個 global 列的收盤）、^TWII_prev_row／^KS11_prev_row／TX_OI_prev_row 取日期 < t 的最後一個 global 列",
+      "market_features": "19 個額外序列的 source_date 全部 <= t−1 日曆天；老師欄 ^VIX／^IXIC／^GSPC 照抄同日期（Training 列＝前一個 global 列日期的收盤；Live 9 月列＝日期 < d 的最後一個美股收盤，見 teacher_live.global_convention；都在 t 開盤前已知）、^TWII_prev_row／^KS11_prev_row／TX_OI_prev_row 取日期 < t 的最後一個 global 列",
       "transform_and_panel": "i＝t 的前一個台股交易日；t−i（日曆天）分布 1 天 1,278 列、2 天 10、3 天 299、4 天 29、5 天 13、6 天 1、10 天 2、12 天 4、13 天 1；不含 TX_OI",
       "implication": "用到的每根K棒都在 t 日台北 07:00 以前收完（市場時間；專案截止 08:10、老師截止 09:00）；Yahoo 實際上架時間未驗證"
     },
     "open_gap_test": {
-      "definition": "序列單日報酬（該序列自己交易日上的報酬，價格欄同 transform：股票／ETF 用 adj_close，其他用 close）vs 台股 t 日開盤跳空（Top50@Y 各股 adj_open_t / adj_close_{該股前一列} − 1 的平均），比較「日期 < t 的最新一根」與「日期＝t 的那根」；逐年 Pearson",
+      "definition": "序列單日報酬（該序列自己交易日上的報酬，價格欄與空值規則同 transform：股票／ETF 用 adj_close，其他用 close，端點 <= 0 的報酬空白）vs 台股 t 日開盤跳空（Top50@Y 各股 adj_open_t / adj_close_{該股前一列} − 1 的平均），比較「日期 < t 的最新一根」與「日期＝t 的那根」；逐年 Pearson",
       "us_equity_series": "SOX、TSM、NVDA、DJI，2020–2026 每一年：最新 < t 為 0.35～0.74、日期＝t 為 −0.15～+0.17 → 美股 d 日在台股 d 日收盤之後",
       "taiwan_etfs": "每一年：日期＝t 為 0.46～0.83、最新 < t 為 −0.12～+0.09 → 與老師個股同一個台股日",
       "usd_twd": "每一年：日期＝t 為 −0.12～−0.43 → d 的 close 在台股 d 日開盤前定下（已含前一晚美股的消息）；更多跨年證據見 extra.series.usd_twd.timing.note"
@@ -58,7 +60,7 @@
     "data/teacher_live/": "老師 Live ZIP 原樣（逐位元組，sha256 見 teacher_live）：global/global_data.csv＋market/<stock_id>.csv；本分支只用 Training 最後一天之後、<= date_range.end_inclusive 的列",
     "data/extra/yfinance/<series_id>.csv": "yfinance 額外指標日K（已清理，見 extra.series.*.cleaning）",
     "data/extra/manifest.json": "爬蟲紀錄：取得時間、限流設定、重試、清理、hash、失敗原因",
-    "data/features/market_features.csv": "每台股交易日一列：老師市場欄（^TWII／^KS11 已改前一列；TX_OI 照抄同日期，疑似含當日資訊，不要當輸入）＋已對齊的額外特徵",
+    "data/features/market_features.csv": "每台股交易日一列：老師市場欄（^VIX／^IXIC／^GSPC 照抄同日期；^TWII／^KS11／TX_OI 取日期 < t 的最後一個 global 列：*_prev_row）＋已對齊的額外特徵",
     "data/transform/lag2/<feature>.csv": "每個特徵一檔：date＋第 2 期收盤報酬",
     "data/transform/lag5/<feature>.csv": "每個特徵一檔：date＋第 5 期收盤報酬",
     "data/transform/panel_lag.csv.gz": "整合好的長表：100 股 × 台股交易日，lag2／lag5 特徵＋label_ 答案欄"
@@ -320,6 +322,7 @@
     },
     "archive_sha256": "7f4c759af6df64e3a1b5e42330cfa5a56fe1f6a4644ca56a052d3a6297dc096b",
     "members_sha256": "fe7607e1e880f002cfc903691b60a6a9067f68da12121b340528f857997bf565",
+    "used_rows_sha256": "171700b774ef7fe87c876642e2002cb7ec3c60f9b3f3dac0465b0fae3c516a53",
     "stock_count": 100,
     "stock_date_min": "2026-09-01",
     "stock_date_max": "2026-11-04",
@@ -333,10 +336,9 @@
     "used_taiwan_trading_days": 20,
     "used_stock_rows": 2000,
     "used_global_rows": 20,
-    "used_pending_label_rows": 0,
-    "used_global_rows_with_pending_marker": 0,
+    "used_pending_rows": 0,
     "file": "data/teacher_live/",
-    "how_used": "個股檔與 global 表接在 Training 之後：只取 Training 最後日期之後、<= date_range.end_inclusive 的列；欄位與 Training 相同；-1 是 Live 的待定標記（y＝-1 → 答案空白；指數欄 -1 → 空白）",
+    "how_used": "個股檔與 global 表接在 Training 之後：只取 Training 最後日期之後、<= date_range.end_inclusive 的列；欄位與 Training 相同。-1 是 Live 的待定標記，待定列整列都是 -1（y、價格、量、法人、TX_OI…）；使用範圍內出現待定值時 crawler 會拒絕（fail closed）。自己讀 data/teacher_live 的組員請只取 date <= date_range.end_inclusive，或濾掉 -1 列",
     "global_convention": "2026-11-04 與 Yahoo 原始收盤逐值比對 Live 用到的 20 列（2026-09-01～09-30）：^IXIC／^GSPC 20/20＝日期 < d 的最後一個美股收盤；^VIX 19/20 同上，9/08 那列＝9/04 收盤（Yahoo 在 9/07 美國假日另有一根 VIX K棒）；^TWII 20/20＝同日收盤；^KS11 19/20＝同日收盤，1 列（韓國休市）＝前一個韓股收盤。和 Training 的差別：Training 只有五個序列同日都有資料才有列，美股欄＝前一個 global 列日期的收盤；Live 每個台股日都有一列，美股或韓股休市時沿用前一筆值（9 月 ^VIX／^IXIC／^GSPC／^KS11 各有 1 列和前一列相同）。兩者的值都在 t 開盤前已知；teacher_* 的 lag 在 9 月往回數的是 Live 的列。"
   },
   "extra": {
@@ -579,7 +581,7 @@
             "bar_dated_t": -0.199
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）",
-          "note": "跨年 Spearman（2020–2026 每一年；2026 到 9/30）：日期 d 的報酬對最新一個 < d 的 DJI 報酬 −0.16～−0.42、對 DJI d 日 −0.07～+0.09 → close 在美股 d−1 收盤之後、美股 d 開盤之前；日期＝t 對 t 日盤中報酬 2020–2025 為 −0.03～+0.04（2026 為 −0.08），下一根對 t 日盤中 −0.07～−0.26。所以 usd_twd 比名稱舊約一天。"
+          "note": "跨年 Spearman（2020–2026 每一年；2026 到 9/30）：日期 d 的報酬對最新一個 < d 的 DJI 報酬 −0.16～−0.42、對 DJI d 日 −0.07～+0.09 → close 在美股 d−1 收盤之後、美股 d 開盤之前；日期＝t 對 t 日盤中報酬 2020–2025 為 −0.03～+0.04、下一根 −0.13～−0.26；2026 的盤中檢定沒有鑑別力（日期＝t −0.08、下一根 −0.07），2026 由小時K直接驗證，DJI 檢定（−0.26 對 +0.09）也支持。所以 usd_twd 比名稱舊約一天。"
         }
       },
       "dxy": {
@@ -909,8 +911,8 @@
           "complete_by_taipei": "d+1 04:20",
           "open_gap_corr": {
             "period": "2020-01～2026-09 全期（Pearson）",
-            "latest_bar_before_t": -0.028,
-            "bar_dated_t": 0.087
+            "latest_bar_before_t": 0.048,
+            "bar_dated_t": 0.028
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -1648,8 +1650,8 @@
           "complete_by_taipei": "d+1 06:00",
           "open_gap_corr": {
             "period": "2020-01～2026-09 全期（Pearson）",
-            "latest_bar_before_t": 0.072,
-            "bar_dated_t": 0.004
+            "latest_bar_before_t": 0.119,
+            "bar_dated_t": -0.015
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -1710,7 +1712,7 @@
       "TX_OI_prev_row"
     ],
     "teacher_columns_definition": {
-      "^VIX/^IXIC/^GSPC": "老師 global 同日期原值照抄（老師表缺該日則空白）；已驗證是前一個 global 列的收盤，可當輸入",
+      "^VIX/^IXIC/^GSPC": "老師 global 同日期原值照抄（老師表缺該日則空白）；Training 列＝前一個 global 列日期的收盤，Live 9 月列＝日期 < d 的最後一個美股收盤（見 teacher_live.global_convention）；都可當輸入",
       "^TWII_prev_row/^KS11_prev_row/TX_OI_prev_row": "最後一個日期 < t 的老師 global 列之 ^TWII／^KS11／TX_OI（前兩者是當日收盤、TX_OI 疑似含當日資訊，所以都往前一列）"
     },
     "extra_columns": [
@@ -3121,7 +3123,7 @@
       "price": "額外指標：股票／ETF 用 adj_close，其他用 close；老師個股用 etl:adj_close；老師全球指數用該欄值",
       "yields": "殖利率（us10y、us13w）也一律用百分比報酬（使用者選擇）；us13w 在 2020-03 與 2021-02～2022-02 接近 0，報酬會到 ±100% 以上，建模時可考慮 winsorize 或穩健縮放",
       "missing": "空白＝缺值：序列在 i 沒有資料、往回不足 k 個交易日、或 close_i／close_{i−k} 缺值或 <= 0；不補值",
-      "leakage": "i 一定早於 t，所以用到的K棒都在 t 日台北 07:00 以前收完（市場時間，見 timing_verification）；老師美股欄已被老師位移一列，所以 teacher_vix／ixic／gspc 的值比名稱再舊一列（長假後可能落後多個美股日）；teacher_twii／ks11 在 i 列是 i 當日收盤，t 開盤前已知"
+      "leakage": "i 一定早於 t，所以用到的K棒都在 t 日台北 07:00 以前收完（市場時間，見 timing_verification）；老師美股欄已被老師位移：Training 列＝前一個 global 列日期的收盤（長假後可能落後多個美股日），Live 9 月列＝日期 < d 的最後一個美股收盤，所以 teacher_vix／ixic／gspc 的值比名稱舊；teacher_twii／ks11 在 i 列是 i 當日收盤，t 開盤前已知"
     },
     "lags": [
       2,
@@ -3538,7 +3540,7 @@
         "group": "teacher_global",
         "price_column": "^VIX",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。",
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_vix.csv",
@@ -3560,7 +3562,7 @@
         "group": "teacher_global",
         "price_column": "^IXIC",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。",
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_ixic.csv",
@@ -3582,7 +3584,7 @@
         "group": "teacher_global",
         "price_column": "^GSPC",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。",
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_gspc.csv",
@@ -3604,7 +3606,7 @@
         "group": "teacher_global",
         "price_column": "^TWII",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^TWII 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與 0050 同日 0.94、前一交易日 0.08）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。",
+        "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^TWII 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與 0050 同日 0.94、前一交易日 0.08）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_twii.csv",
@@ -3626,7 +3628,7 @@
         "group": "teacher_global",
         "price_column": "^KS11",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^KS11 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與日經225同日 0.65、前一交易日 0.01）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。",
+        "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^KS11 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與日經225同日 0.65、前一交易日 0.01）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_ks11.csv",

@@ -24,6 +24,7 @@
 18. deep-research：Phase 2 自動流程怎麼準時 → `deploy/README.md`（推薦 GCP Cloud Scheduler＋Cloud Run Job 為主、GitHub dispatch／Claude 雲端排程任務為備援、Healthchecks 監控；11/04 GitHub schedule 延遲 3h42m～6h17m 全被時鐘擋下）。待使用者決定：開不開 GCP、實作分支、能否建 Claude 排程任務、告警通道。
 19. TX_OI 改前一列 → market_features 的 `TX_OI` 換成 `TX_OI_prev_row`；長表與 lag 檔本來就沒有 TX_OI，不受影響。
 20. 資料範圍延長到 2026-09-30 → yfinance 19 序列限流重抓；9/1～9/30 的老師資料接 Live ZIP（`data/teacher_live/`）；接縫與 Live 慣例逐值驗證；timing_verification 的數字與資料指紋全部重算。Phase 2 自動化使用者說「等下再問」。
+21. 第四輪審查（延長到 9/30；3 審查者＋3 反駁者，23 個發現去重約 12 項）已修：layout 的 TX_OI 文字、美股欄說法限定 Training、-1 待定值 fail closed（含 TX_OI）、Live 結構檢查（日期唯一、接縫重疊／間隔）、--keep-teacher 缺 Live 資料夾時報錯、CLI 參數組合檢查、date_range.data_end、指紋改用實際使用列、wti／us13w 相關係數改用 transform 的空值規則、memory 舊數字。資料檔沒變。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。
@@ -46,7 +47,7 @@
 ## 已知限制（交接時要說）
 - 日期語意已用 Yahoo 原始資料驗證（2026-11-04）；但歷史上幾點真的抓得到（發布延遲）沒有驗證，所以仍標 research_assumption。
 - TWD=X 日期 d 的 close≈倫敦 d 日 00:00～01:00 報價（台北 d 日早上），所以 usd_twd 特徵比名稱舊約一天；若要台北收盤，需另找來源（例如 live-data 的 FRED DEXTAUS，但那不是 yfinance）。
-- 老師 global 表只有 1,506 天；transform 的 teacher_* 只在「前一個台股日」是 global 日期時有值（lag2 1,503、lag5 1,500 列）。
+- 老師 global：Training 1,506 列＋Live 9 月 20 列；transform 的 teacher_* 只在「前一個台股日」是 global 日期時有值（lag2 1,523、lag5 1,520 列）。
 - 授權：老師 ZIP 與 Yahoo 資料的公開再散布授權未核實。
 
 ## 數字
@@ -54,4 +55,4 @@
 - market_features：1,638 列 × 104 欄（date＋6 個老師市場欄＋97 個額外特徵）。
 - transform：124 個特徵 × lag2／lag5 ＝ 248 個 CSV。
 - panel：163,800 列 × 56 欄（50 個特徵），有答案 163,746 列，top50 81,900 列，7 MB；老師缺列仍是 54 格。
-- data/ 約 71 MB：teacher 45M、transform 20M（含 panel 7M）、extra 3.2M、features 2.5M。
+- data/ 約 72 MB：teacher 45M、transform 20M（含 panel 7M）、extra 3.2M、features 2.5M、teacher_live 1.6M。

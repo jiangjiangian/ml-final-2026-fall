@@ -126,7 +126,18 @@ i−k ＝ 該序列往回第 k 個「自己的」交易日
 ### 5. 想加其他特徵時
 
 - 老師個股的其他欄位（成交量、法人、RSI…）都是**收盤後才知道**。要先在每檔股票內往前移一列（`groupby("stock_id").shift(1)`），再用 `(stock_id, date)` 和長表合併。
-- 老師 `^TWII`、`^KS11` 是當日收盤，不能直接當輸入。`^VIX`、`^IXIC`、`^GSPC` 已被老師移到前一個 global 列的日期。
+- 老師 `^TWII`、`^KS11` 是當日收盤，不能直接當輸入。`^VIX`、`^IXIC`、`^GSPC` 已被老師往前移（Training 列＝前一個 global 列日期的收盤；9 月 Live 列＝d 之前最後一個美股收盤，見注意事項）。
+- 9/1～9/30 的老師個股列在 `data/teacher_live/market/<id>.csv`（global 在 `data/teacher_live/global/`）。要用其他老師欄位時，先把 Training 和 Live 接起來、只保留 `date <= 2026-09-30`，再 shift：
+
+  ```python
+  import glob, os
+  def read_dir(d):
+      return pd.concat([pd.read_csv(f, parse_dates=["date"]).assign(stock_id=os.path.basename(f)[:-4]) for f in sorted(glob.glob(f"{d}/*.csv"))])
+  stocks = pd.concat([read_dir("data/teacher/market"), read_dir("data/teacher_live/market").query('date <= "2026-09-30"')])
+  lagged = stocks.sort_values(["stock_id", "date"]).groupby("stock_id").shift(1)   # 再用 (stock_id, date) 合併
+  ```
+
+  Live 的 `-1` 是待定標記，不是數值；待定列整列都是 -1，目前只出現在 9/30 之後（10/23、11/4）。
 - `data/features/market_features.csv` 另有 1／5／20 日累積報酬、匯率水準、殖利率基點變化，用 `date` 合併。
   其中的 `TX_OI_prev_row` 已經是前一個 global 列的值（老師原始 `TX_OI` 疑似含當天收盤後才公布的資訊，不要直接用老師檔的同日值）。
 
@@ -139,6 +150,10 @@ python crawler.py                # 下載＋取老師 Training／Live＋整合�
 python crawler.py --skip-download --keep-teacher   # 不連網，只用現有檔案重算
 ```
 
+- `python crawler.py` 會取 live-data 上**當天最新**的 Live ZIP，所以 `data/teacher_live/` 每天都可能換；只要 9 月的列沒變，`schema.json → timing_verification` 仍適用（指紋只看實際用到的列）。
+- 用本機 ZIP：`--teacher-zip T.zip --live-zip L.zip`；只要 Training（資料到 8/31）：`--no-live`。參數組合不明確時會直接報錯。
+- Live 在使用範圍（到 9/30）內出現待定值 `-1` 時，crawler 會拒絕，不會把 -1 當資料。
+
 爬蟲有限流：每個 HTTP 請求間隔至少 2 秒（另加 0～1 秒隨機），被 Yahoo 限流時指數退避並自動冷卻。
 
 ## 注意事項
@@ -146,7 +161,7 @@ python crawler.py --skip-download --keep-teacher   # 不連網，只用現有檔
 - **時間對齊已驗證日期語意**（2026-11-04，用 Yahoo 原始日K與小時K逐值比對）：
   - 機器可讀的完整紀錄在 `schema.json` 的 `timing_verification` 與 `extra.series.<id>.timing`；說明在 `memory/context/data-decisions.md`。
   - 除 TWD=X 外，每個額外指標的日K最晚在隔天台北 07:00 收完。lag 只用 t 之前的台股日，所以用到的K棒都在 t 開盤前收完。
-  - 老師的 `^GSPC`、`^IXIC`、`^VIX` 是前一個 global 列的收盤；`^TWII`、`^KS11` 是同日收盤。
+  - 老師的 `^GSPC`、`^IXIC`、`^VIX`：Training 列是前一個 global 列的收盤，9 月 Live 列是 d 之前最後一個美股收盤（見下方 Live 說明）；`^TWII`、`^KS11` 是同日收盤。
   - Yahoo 實際何時上架（發布延遲）沒辦法驗證；DXY、^TNX、^IRX、CL=F、GC=F 在 2025-11 以前的日期慣例也只是假設。所以仍算研究假設。
 - **TWD=X 比名稱舊約一天**：日期 d 的 close 是台北 d 日早上（倫敦午夜前後）的報價；每一年都在美股 d 日開盤前定下。
 - **`TX_OI` 疑似含當天資訊**：`market_features.csv` 已改成 `TX_OI_prev_row`（日期 < t 的最後一個 global 列）；長表與 lag 檔本來就沒有 TX_OI。

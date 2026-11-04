@@ -19,6 +19,7 @@
 13. 在 root 做檔案樹並說明如何提供組員使用 → 新增 `README.md`（檔案樹、取得方式、X/y、lag 定義、注意事項）。
 14. 問：100 股的 lag2／lag5 有包含當前的 y 嗎？→ 沒有：t 那列只用 t−1 以前的收盤；合併後 corr(y_t, stock lag2)＝−0.017，若誤用當日收盤則為 0.373。
 15. 整合 lag2、lag5 成可直接用的 dataframe → `data/transform/panel_lag.csv.gz`（長表、100 股＋is_top50、label_ 前綴、CSV.gz）。
+16. 驗證老師與額外指標的時間對齊 → 用 Yahoo 原始日K、小時K逐值比對，沒有對齊錯誤或洩漏，資料不需修改（證據見 `data-decisions.md` 的「時間對齊驗證」）。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。
@@ -39,8 +40,8 @@
 - 只記錄、未改資料：TWD=X close 常等於 open；STOXX50E 依瑞士假日缺 21 天；台灣 ETF 缺 2021-04-06；殖利率百分比報酬的極端值（使用者選擇保留）。
 
 ## 已知限制（交接時要說）
-- 所有時間對齊都是 research_assumption，未驗證歷史發布時間。
-- TWD=X 的 close 常是倫敦日第一筆報價；若要台北收盤，需另找來源（例如 live-data 的 FRED DEXTAUS，但那不是 yfinance）。
+- 日期語意已用 Yahoo 原始資料驗證（2026-11-04）；但歷史上幾點真的抓得到（發布延遲）沒有驗證，所以仍標 research_assumption。
+- TWD=X 日期 d 的 close≈倫敦 d 日 00:00～01:00 報價（台北 d 日早上），所以 usd_twd 特徵比名稱舊約一天；若要台北收盤，需另找來源（例如 live-data 的 FRED DEXTAUS，但那不是 yfinance）。
 - 老師 global 表只有 1,506 天；transform 的 teacher_* 只在「前一個台股日」是 global 日期時有值（lag2 1,503、lag5 1,500 列）。
 - 授權：老師 ZIP 與 Yahoo 資料的公開再散布授權未核實。
 

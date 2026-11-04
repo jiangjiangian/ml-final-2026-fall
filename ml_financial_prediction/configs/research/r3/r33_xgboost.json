@@ -1,0 +1,19 @@
+{
+ "name": "r33_xgboost",
+ "stage": "R3-3",
+ "family": "xgboost",
+ "objective": "regression",
+ "params": {
+  "max_depth": 4,
+  "n_estimators": 300,
+  "learning_rate": 0.03,
+  "min_child_weight": 50,
+  "subsample": 0.8,
+  "colsample_bytree": 0.8
+ },
+ "feature_groups": [
+  "panel",
+  "stock_hist"
+ ],
+ "hypothesis": "H5 XGBoost family"
+}

@@ -1,0 +1,21 @@
+{
+ "name": "r33_lgbm_cls",
+ "stage": "R3-3",
+ "family": "lightgbm",
+ "objective": "classification",
+ "params": {
+  "n_estimators": 300,
+  "learning_rate": 0.03,
+  "num_leaves": 15,
+  "min_child_samples": 200,
+  "subsample": 0.8,
+  "subsample_freq": 1,
+  "colsample_bytree": 0.8,
+  "reg_lambda": 1.0
+ },
+ "feature_groups": [
+  "panel",
+  "stock_hist"
+ ],
+ "hypothesis": "H6 plain classification"
+}

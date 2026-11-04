@@ -151,6 +151,10 @@ def run_predictions(cfg: dict, ff: rf.FeatureFrame, *, threads=4):
             else:
                 resolved.append(item)
         model_spec["market_columns"] = list(dict.fromkeys(resolved))
+        stock = dict(model_spec["stock_model"])
+        if stock.get("feature_groups"):
+            stock["_columns"] = ff.columns(stock["feature_groups"])
+        model_spec["stock_model"] = stock
     columns = ff.columns(cfg.get("feature_groups", []), exclude=cfg["feature_exclude"])
     probe = build_model(model_spec, threads=threads)
     needed = list(dict.fromkeys([*columns, *probe.needs]))

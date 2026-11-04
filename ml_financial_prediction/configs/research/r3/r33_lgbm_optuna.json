@@ -1,0 +1,8 @@
+{
+ "name": "r33_lgbm_optuna",
+ "stage": "R3-3",
+ "hypothesis": "H5 tuned LightGBM on S*",
+ "family": "lightgbm",
+ "objective": "regression",
+ "feature_groups": ["panel", "stock_hist"]
+}

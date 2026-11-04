@@ -203,8 +203,12 @@ class TwoHeadModel:
         self.market = Ridge(alpha=self.market_alpha).fit(self.pre.transform(day), m_day)
         self.stock = build_model(self.stock_spec, threads=self.threads)
         resid = r - m
-        self.stock.fit(X, resid, (resid > 0).astype(int), seed=seed)
+        self.stock.fit(self._stock_x(X), resid, (resid > 0).astype(int), seed=seed)
         return self
+
+    def _stock_x(self, X):
+        cols = self.stock_spec.get("_columns")
+        return X[cols] if cols else X
 
     def decision(self, X, dates=None):
         if dates is None:
@@ -213,7 +217,7 @@ class TwoHeadModel:
         day = self._day_frame(X, dates)
         m_hat = pd.Series(self.market.predict(self.pre.transform(day)), index=day.index)
         market = m_hat.reindex(dates).to_numpy()
-        return self.shrink * market + self.stock.decision(X)
+        return self.shrink * market + self.stock.decision(self._stock_x(X))
 
 
 class MLPModel:

@@ -1,0 +1,17 @@
+{
+ "name": "r33_catboost",
+ "stage": "R3-3",
+ "family": "catboost",
+ "objective": "regression",
+ "params": {
+  "depth": 4,
+  "iterations": 300,
+  "learning_rate": 0.05,
+  "l2_leaf_reg": 3.0
+ },
+ "feature_groups": [
+  "panel",
+  "stock_hist"
+ ],
+ "hypothesis": "H5 CatBoost family"
+}

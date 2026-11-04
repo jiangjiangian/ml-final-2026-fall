@@ -1,0 +1,24 @@
+{
+ "name": "r33_mlp",
+ "stage": "R3-3",
+ "family": "mlp",
+ "objective": "regression",
+ "params": {
+  "hidden": [
+   64,
+   32
+  ],
+  "dropout": 0.1,
+  "epochs": 8
+ },
+ "seeds": [
+  42,
+  43,
+  44
+ ],
+ "feature_groups": [
+  "panel",
+  "stock_hist"
+ ],
+ "hypothesis": "H5 neural tabular baseline (CPU)"
+}

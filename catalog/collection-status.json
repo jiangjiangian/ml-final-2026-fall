@@ -4,87 +4,87 @@
     {
       "source": "course-training",
       "sha256": "7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2",
-      "fetched_at": "2026-11-04T00:37:37.392338+00:00"
+      "fetched_at": "2026-11-04T05:17:56.148802+00:00"
     },
     {
       "source": "course-template",
       "sha256": "2081e92b216ff1cd231f0e1ec32d709b6e6b734d9ace41fc7d0b3fe02cc93f28",
-      "fetched_at": "2026-11-04T00:37:37.577457+00:00"
+      "fetched_at": "2026-11-04T05:17:56.348519+00:00"
     },
     {
       "source": "course-live",
       "sha256": "7f4c759af6df64e3a1b5e42330cfa5a56fe1f6a4644ca56a052d3a6297dc096b",
-      "fetched_at": "2026-11-04T00:37:43.961711+00:00"
+      "fetched_at": "2026-11-04T05:18:02.013308+00:00"
     },
     {
       "source": "cboe_vix",
-      "sha256": "2b76ef381fbff39fa7a500d4973d01952ccb47368a27b603b88e6bc78e990b42",
-      "fetched_at": "2026-11-04T00:37:44.146035+00:00"
+      "sha256": "e5d1e436c05c0e346387984c9750daf5d8da140ba6e34bca79d81b326510a62b",
+      "fetched_at": "2026-11-04T05:18:02.173420+00:00"
     },
     {
       "source": "twse_twii",
       "sha256": "08e11fce4733c637b35236fa64661f87e0ebd124aac215a30e7bdcb6d76a5620",
-      "fetched_at": "2026-11-04T00:37:45.360447+00:00"
+      "fetched_at": "2026-11-04T05:18:03.570645+00:00"
     },
     {
       "source": "fred_us10y",
       "sha256": "a960c659b08dec31394a7150119fd54dcd45091ec4cc017e318ba54aa11adfac",
-      "fetched_at": "2026-11-04T00:37:45.553038+00:00"
+      "fetched_at": "2026-11-04T05:18:03.972085+00:00"
     },
     {
       "source": "fred_usd_twd",
       "sha256": "7fd8734f5f8a6d95d0d98856d4087a09e6b0a3796fdc265b7a8c5c7a29b7b8b4",
-      "fetched_at": "2026-11-04T00:37:45.745362+00:00"
+      "fetched_at": "2026-11-04T05:18:04.328187+00:00"
     },
     {
       "source": "yahoo-ixic",
-      "sha256": "6236f69492118320b443133396f47fbe9913076b5a39e2af1be224a18372439a",
-      "fetched_at": "2026-11-04T00:37:46.012185+00:00"
+      "sha256": "3665213542b6a249ed43e92c6db649ca749d2f420b94b3cf73fbb028b8e2c1de",
+      "fetched_at": "2026-11-04T05:18:04.665083+00:00"
     },
     {
       "source": "yahoo-gspc",
-      "sha256": "1bb9a13315450537393e075a875ae93110b0a83c2e216ac36f15c078761e295c",
-      "fetched_at": "2026-11-04T00:37:46.294967+00:00"
+      "sha256": "836914db73128cc812ef7da88446466c3972b6300b86039b17be233ecf40bb5b",
+      "fetched_at": "2026-11-04T05:18:04.943380+00:00"
     },
     {
       "source": "yahoo-twii",
-      "sha256": "7fd29c4baa44a4e70f36daff0191f8025ee7f7db4d36758dc684a87a56c7eae3",
-      "fetched_at": "2026-11-04T00:37:46.548678+00:00"
+      "sha256": "39276656bfbc9f5a5d20688eb35647bf049b4e2aa1c525b30f7924591c4b694c",
+      "fetched_at": "2026-11-04T05:18:05.289386+00:00"
     },
     {
       "source": "yahoo-ks11",
-      "sha256": "34e7f5a0652740e88b97d0f68321cb60ce7c42877ff9b376eb0aabeda626a6e2",
-      "fetched_at": "2026-11-04T00:37:46.776230+00:00"
+      "sha256": "6e37e9183885beaa0c530f8d1e60905333b6cc38e627e9d2967a98d7a1ae675a",
+      "fetched_at": "2026-11-04T05:18:05.581200+00:00"
     },
     {
       "source": "yahoo-vix",
-      "sha256": "fc4afc55f4332e2bd8fc1f716dbf23ec09e47b0a2ad249a588ec93d1fd2c32bb",
-      "fetched_at": "2026-11-04T00:37:47.004553+00:00"
+      "sha256": "cbc1dd16e6c619369e607215b16e567c1aabe5c2b4b612341653d8847bb964ca",
+      "fetched_at": "2026-11-04T05:18:05.885655+00:00"
     },
     {
       "source": "yahoo-sox",
-      "sha256": "f371e297a12492d30f3e80702a219dd881330487e2800cfcb036b755efbd3200",
-      "fetched_at": "2026-11-04T00:37:47.357926+00:00"
+      "sha256": "35c6959ff6eb94bcb7d91919a6f996376aaa1b71c5185108193c9ea45e19bf53",
+      "fetched_at": "2026-11-04T05:18:06.174743+00:00"
     },
     {
       "source": "yahoo-tsm_adr",
-      "sha256": "703948393aa83bc74c85da600764bd7a605765f92b06fef90311c74f93e4924f",
-      "fetched_at": "2026-11-04T00:37:47.590616+00:00"
+      "sha256": "f059c4d5353fd22f18e6c930945e6018899a00c443696b4cec88dbe6d76174a6",
+      "fetched_at": "2026-11-04T05:18:06.477489+00:00"
     },
     {
       "source": "yahoo-nvda",
-      "sha256": "b714149ae2b9b5be832878b9f0d91df71bbf82608357a4bce0af7bc894c4c561",
-      "fetched_at": "2026-11-04T00:37:47.847693+00:00"
+      "sha256": "ab8f571ae66a53854650c4df3d3dfba7299bdb2fa7b1aeb1bcce12a83f54c122",
+      "fetched_at": "2026-11-04T05:18:06.844257+00:00"
     },
     {
       "source": "twse-sectors",
       "sha256": "f3d2baac06c74ee6e004a9d272a7d5d8a89da1e6898ca22783d134ab901ca5de",
-      "fetched_at": "2026-11-04T00:37:48.550201+00:00"
+      "fetched_at": "2026-11-04T05:18:08.044140+00:00"
     }
   ],
   "failures": [],
-  "started_at": "2026-11-04T00:37:31.511660+00:00",
-  "finished_at": "2026-11-04T00:37:48.552522+00:00",
+  "started_at": "2026-11-04T05:17:49.569218+00:00",
+  "finished_at": "2026-11-04T05:18:08.046110+00:00",
   "required_sources": [
     "cboe_vix",
     "course-live",
@@ -110,7 +110,7 @@
     "readiness": "research_assumption",
     "production_eligible": false,
     "historical_vintage_verified": false,
-    "raw_catalog_sha256": "c8ec0ac844dddfb55094d0b520287096802dfb3f5b92b778a697936ffd7d4caf",
+    "raw_catalog_sha256": "863e98640fd99bffda6c940388315066625e74ae8afd8c969bbf20f7150bd0cb",
     "target_date_count": 1661,
     "stock_count": 50,
     "stock_feature_rows": 83050,
@@ -129,11 +129,11 @@
         "size_bytes": 882566
       },
       "features/market.csv": {
-        "sha256": "8347f2b7ae7420eb346d5b55ff9b53615a77ebcd2d1ea404b878a97be246e079",
-        "size_bytes": 1323421
+        "sha256": "bc355331c1aca26fefc5f08c957f31cc95225d948cf6ec736b5aee425d6348c2",
+        "size_bytes": 1323461
       },
       "features/market_report.json": {
-        "sha256": "87af9cd56e4dbaaafc5d90a54d65f5f4638334d81eae8d05833c9aa898eeaf52",
+        "sha256": "ee6ac454752c37c1afe3d97d4da795026b032a34c5ae9385cb0926f72788a341",
         "size_bytes": 5219
       },
       "features/schema.json": {

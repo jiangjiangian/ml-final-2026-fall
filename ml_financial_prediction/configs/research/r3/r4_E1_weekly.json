@@ -1,0 +1,16 @@
+{
+ "name": "r4_E1_weekly",
+ "hypothesis": "deployment realism: E1 refit weekly (Phase 2 cadence)",
+ "stage": "R4",
+ "frame": "r4",
+ "family": "logistic",
+ "params": {
+  "alpha": 1.0,
+  "clip": 0.0
+ },
+ "train_universe": "top50",
+ "feature_groups": [
+  "phi_core"
+ ],
+ "refit": "weekly"
+}

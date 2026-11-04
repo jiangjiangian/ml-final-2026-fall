@@ -204,7 +204,11 @@ def run_predictions(cfg: dict, ff: rf.FeatureFrame, *, threads=4):
             raise AssertionError("training labels overlap the test block")
         tr = labelled & universe & (data["date"] >= train_start) & (data["date"] <= train_end)
         te = labelled & (data["is_top50"] == 1) & (data["date"] >= test_start) & (data["date"] <= test_end)
-        train, test = data[tr], data[te]
+        train, test = data[tr], data[te].copy()
+        for col in cfg.get("zero_at_inference", []):  # simulate a source outage at prediction time
+            if col not in needed:
+                raise ValueError(f"zero_at_inference column {col!r} is not a model input")
+            test[col] = 0.0
         if train["date"].max() >= test["date"].min():
             raise AssertionError("same or later date in train and test")
         started = time.perf_counter()

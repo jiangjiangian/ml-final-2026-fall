@@ -1,0 +1,18 @@
+{
+ "name": "r4_E1_no_yf",
+ "hypothesis": "robustness: E1 with yfinance-derived C1 set to neutral 0 at inference (outage)",
+ "stage": "R4",
+ "frame": "r4",
+ "family": "logistic",
+ "params": {
+  "alpha": 1.0,
+  "clip": 0.0
+ },
+ "train_universe": "top50",
+ "feature_groups": [
+  "phi_core"
+ ],
+ "zero_at_inference": [
+  "us_overnight_shock_z"
+ ]
+}

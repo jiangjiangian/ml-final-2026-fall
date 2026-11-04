@@ -195,5 +195,5 @@ R3 全部最多 **80 組設定**（每組＝一次完整 walk-forward），失�
 
 ## 下一步
 
-R4：盲設計完成，特徵目錄 Φ-v1（16 個：CORE 6＋SECONDARY 10）在 `docs/r4/PHI_V1_CATALOGUE.md`，狀態 proposed，等使用者審閱鎖定。鎖定後：實作 Φ-v1＋時間測試 → |r| 加權正則化線性模型評估。
+R4：盲設計完成，特徵目錄 Φ-v1（16 個：CORE 6＋SECONDARY 10）在 `docs/r4/PHI_V1_CATALOGUE.md`，**2026-11-04 使用者已核可鎖定（16 個全收）；C1／S5 用 yfinance ^GSPC、^VIX**。評估計畫使用者選「另訂」，細節待確認。接著：實作 Φ-v1＋時間測試 → |r| 加權正則化線性模型評估。
 設計過程：4 個領域視角共提出 31 個特徵，審查者判定 keep／revise／drop 後合併；全程不讀標籤與先前結果（workflow wf_1d41f33b-164，9 個 agent）。

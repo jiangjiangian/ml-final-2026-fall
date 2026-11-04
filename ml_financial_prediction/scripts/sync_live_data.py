@@ -16,7 +16,13 @@ from finpred.data.sharing import SharingError, export_snapshot_bundle
 
 
 def command(arguments, *, cwd=None):
-    result = subprocess.run(arguments, cwd=cwd, capture_output=True, text=True, check=False)
+    try:
+        result = subprocess.run(arguments, cwd=cwd, capture_output=True, text=True, check=False)
+    except OSError:
+        # A fresh public-data consumer need not install or log into gh. Keep
+        # missing executables in the same safe failure contract so the explicit
+        # anonymous-public fallback below can run; never expose argv or stderr.
+        raise SharingError('Git or GitHub operation failed; response omitted') from None
     if result.returncode:
         raise SharingError('Git or GitHub operation failed; response omitted')
     return result.stdout.strip()

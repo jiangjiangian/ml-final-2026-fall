@@ -27,6 +27,21 @@ with patch.dict(sys.modules, {'sync_live_data': publisher}):
 
 
 class DataSharingTests(unittest.TestCase):
+    def test_missing_gh_executable_uses_only_explicit_public_fallback(self):
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value = response
+        response.status_code = 200
+        response.content = b'{}'
+        response.json.return_value = {'private': False, 'full_name': 'owner/project'}
+        with (patch.object(publisher.subprocess, 'run', side_effect=FileNotFoundError('gh missing')),
+              patch.object(publisher.requests, 'get', return_value=response) as get):
+            self.assertEqual('public', publisher.require_private_repository('owner/project', allow_public=True))
+            get.assert_called_once()
+            get.reset_mock()
+            with self.assertRaises(sharing.SharingError):
+                publisher.require_private_repository('owner/project')
+            get.assert_not_called()
+
     def test_explicit_public_read_can_verify_anonymously_without_gh_login(self):
         response = unittest.mock.MagicMock()
         response.__enter__.return_value = response

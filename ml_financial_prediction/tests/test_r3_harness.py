@@ -225,6 +225,24 @@ class R3HarnessTest(unittest.TestCase):
             part = pred[pred["fold"] == fold["index"]]
             self.assertGreater(part["date"].min(), pd.Timestamp(fold["train_end"]))
 
+    @unittest.skipUnless(importlib.util.find_spec("torch"), "optional neural extra absent")
+    def test_mlp_and_blend_models_run_out_of_sample(self):
+        ff = _synthetic_feature_frame()
+        for spec in (
+            {"family": "mlp", "params": {"epochs": 1, "hidden": [8]}},
+            {"family": "blend", "components": [
+                {"family": "ridge", "params": {"alpha": 1.0}, "feature_groups": ["stock_hist"]},
+                {"family": "mlp", "params": {"epochs": 1, "hidden": [8]}}]},
+        ):
+            with self.subTest(family=spec["family"]):
+                cfg = rx.resolve({"name": "t3", "feature_groups": ["stock_hist"],
+                                  "test_start": "2022-01-01", "test_end": "2022-02-28", **spec})
+                pred, folds, _ = rx.run_predictions(cfg, ff, threads=1)
+                self.assertTrue(np.all(np.isfinite(pred["decision"])))
+                for fold in folds:
+                    part = pred[pred["fold"] == fold["index"]]
+                    self.assertGreater(part["date"].min(), pd.Timestamp(fold["train_end"]))
+
 
 if __name__ == "__main__":
     unittest.main()

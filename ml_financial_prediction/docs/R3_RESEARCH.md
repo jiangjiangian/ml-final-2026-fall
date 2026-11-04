@@ -98,6 +98,26 @@ R3 全部最多 **80 組設定**（每組＝一次完整 walk-forward），失�
 | 驗證設計 | 最終保留期 2026-10-01～11-13，只用一次；Phase 1 模型絕不用 6/1–9/30 標籤；Phase 2 正式模型可把 6/1–9/30 當一般歷史訓練，但選模永不用 |
 | 計畫 | 核准，從 R3-0 開始 |
 
+## 7b. 老師技術指標的時間性核對（2026-11-04）
+
+用 2330、2881、1101 的還原收盤／高低價重算，老師欄位都只用到當列與更早的價格（中位絕對誤差 0）：
+`SMA`＝30 日簡單均線；`BBANDS_*`＝5 日均線 ± 2σ（母體標準差），所以收盤一定在帶內、`bb_pos` 落在 [0,1]；`RSI`、`ATR`＝Wilder 14 日；`MACD`＝柱狀值（EMA12−EMA26 再減 9 日訊號線）。各指標日變化與次日報酬的相關係數絕對值都 < 0.08。R3 特徵一律再 `shift(1)`，所以沒有前視。Phase 2 若需要可以自行重算這些指標。
+
+## 7c. R3-3 預先登記（2026-11-04，R3-2 尚未全部完成時寫下）
+
+**基底特徵集 S\* 的選法**：取 R3-2 中開發期分數最高的 LightGBM 特徵集；若它對 `A_hist`（panel＋stock_hist，最簡單的有效集合）的成對差 95% CI 含 0，就用 `A_hist`。
+
+**R3-3 設定（皆在 S\* 上，其他參數同 R3-2）**：
+1. LightGBM `weighted_classification`（|r| 加權）
+2. LightGBM `classification`
+3. CatBoost 回歸（depth 4、300 iterations、learning_rate 0.05、l2 3）
+4. XGBoost 回歸（max_depth 4、300 trees、learning_rate 0.03、min_child_weight 50、subsample／colsample 0.8）
+5. LightGBM 回歸，只用 Top50 訓練
+6. 兩頭模型 H9：市場頭 Ridge（alpha 10，用同日相同的市場欄）＋個股頭 LightGBM（對去市場平均的報酬）
+7. Optuna：LightGBM 30 trials，只在 2022–2023（季重訓）評分；8. 用最佳參數跑完整開發期一次，2024–2025 為調參外的確認
+9. MLP（PyTorch CPU，3 seeds）
+10. 等權集成：最佳 GBDT＋最佳 Ridge 的標準化 decision 平均（用已存預測，不重訓）
+
 ## 8. 嘗試紀錄
 
 機器可讀完整紀錄：`docs/r3/attempts.jsonl`（格式見 `docs/r3/README.md`）。下表為摘要；分數為 2022-01～2025-12 逐月 walk-forward（5 日 embargo、訓練 100 股、計分 Top50 共 48,475 鍵），全部經 `official_score.py` 重算一致。CI＝依日期 block bootstrap（5 日、2000 次）95% 信賴區間。

@@ -156,6 +156,10 @@ def build_model(spec: dict, *, threads=4):
         return LinearModel("weighted_classification", **params)
     if family in ("lightgbm", "catboost", "xgboost"):
         return GBDTModel(family, objective, params, threads=threads)
+    if family == "mlp":
+        return MLPModel(objective, threads=threads, **params)
+    if family == "blend":
+        return BlendModel(spec["components"], spec.get("weights"), threads=threads)
     if family == "two_head":
         return TwoHeadModel(spec["market_columns"], spec["stock_model"],
                             threads=threads, **params)
@@ -210,3 +214,90 @@ class TwoHeadModel:
         m_hat = pd.Series(self.market.predict(self.pre.transform(day)), index=day.index)
         market = m_hat.reindex(dates).to_numpy()
         return self.shrink * market + self.stock.decision(X)
+
+
+class MLPModel:
+    """Small PyTorch MLP on train-only standardized features (CPU, fixed epochs)."""
+
+    def __init__(self, objective="regression", hidden=(64, 32), dropout=0.1, epochs=8,
+                 lr=1e-3, weight_decay=1e-4, batch=1024, threads=4):
+        if objective != "regression":
+            raise ValueError("MLP supports regression only")
+        self.hidden, self.dropout, self.epochs = tuple(hidden), dropout, epochs
+        self.lr, self.weight_decay, self.batch, self.threads = lr, weight_decay, batch, threads
+        self.needs = []
+
+    def fit(self, X, r, y, *, seed=42):
+        import torch
+
+        torch.set_num_threads(self.threads)
+        torch.manual_seed(seed)
+        rng = np.random.default_rng(seed)
+        self.pre = TrainOnlyPreprocessor().fit(X)
+        Z = torch.tensor(self.pre.transform(X), dtype=torch.float32)
+        r = np.asarray(r, dtype=float)
+        self.scale = float(np.std(r)) or 1.0
+        target = torch.tensor(r / self.scale, dtype=torch.float32)
+        layers, width = [], Z.shape[1]
+        for h in self.hidden:
+            layers += [torch.nn.Linear(width, h), torch.nn.ReLU(), torch.nn.Dropout(self.dropout)]
+            width = h
+        layers.append(torch.nn.Linear(width, 1))
+        self.net = torch.nn.Sequential(*layers)
+        opt = torch.optim.AdamW(self.net.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        loss_fn = torch.nn.MSELoss()
+        n = len(Z)
+        self.net.train()
+        for _ in range(self.epochs):
+            order = torch.tensor(rng.permutation(n))
+            for start in range(0, n, self.batch):
+                idx = order[start:start + self.batch]
+                opt.zero_grad()
+                loss = loss_fn(self.net(Z[idx]).squeeze(1), target[idx])
+                loss.backward()
+                opt.step()
+        self.net.eval()
+        return self
+
+    def decision(self, X):
+        import torch
+
+        with torch.no_grad():
+            Z = torch.tensor(self.pre.transform(X), dtype=torch.float32)
+            return self.net(Z).squeeze(1).numpy().astype(float) * self.scale
+
+
+class BlendModel:
+    """Weighted average of components, each scaled by its training-fold decision std."""
+
+    def __init__(self, components, weights=None, threads=4):
+        self.specs = [dict(c) for c in components]
+        self.weights = list(weights or [1.0] * len(self.specs))
+        self.threads = threads
+        self.needs = []
+        self.uses_dates = any(c.get("family") == "two_head" for c in self.specs)
+
+    def fit(self, X, r, y, *, seed=42, dates=None):
+        self.models, self.scales = [], []
+        for spec in self.specs:
+            model = build_model(spec, threads=self.threads)
+            cols = spec.get("_columns")
+            Xi = X[cols] if cols else X
+            if getattr(model, "uses_dates", False):
+                model.fit(Xi, r, y, seed=seed, dates=dates)
+                train_dec = model.decision(Xi, dates=dates)
+            else:
+                model.fit(Xi, r, y, seed=seed)
+                train_dec = model.decision(Xi)
+            self.models.append(model)
+            self.scales.append(float(np.std(train_dec)) or 1.0)
+        return self
+
+    def decision(self, X, dates=None):
+        total = np.zeros(len(X))
+        for spec, model, scale, w in zip(self.specs, self.models, self.scales, self.weights):
+            cols = spec.get("_columns")
+            Xi = X[cols] if cols else X
+            dec = model.decision(Xi, dates=dates) if getattr(model, "uses_dates", False) else model.decision(Xi)
+            total += w * dec / scale
+        return total / sum(self.weights)

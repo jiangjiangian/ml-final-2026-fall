@@ -136,10 +136,21 @@ def _key_hash(pred: pd.DataFrame) -> str:
 def run_predictions(cfg: dict, ff: rf.FeatureFrame, *, threads=4):
     """Walk-forward predictions for every scored test key of the configuration."""
     model_spec = {k: cfg[k] for k in ("family", "rule", "params", "objective", "market_columns",
-                                      "stock_model") if k in cfg}
-    if model_spec.get("family") == "two_head" and isinstance(model_spec.get("market_columns"), str):
-        model_spec["market_columns"] = ff.columns([model_spec["market_columns"]]) if \
-            model_spec["market_columns"] in ff.groups else None
+                                      "stock_model", "components", "weights") if k in cfg}
+    if model_spec.get("family") == "blend":
+        model_spec["components"] = [
+            {**c, "_columns": ff.columns(c["feature_groups"])} if c.get("feature_groups") else dict(c)
+            for c in model_spec["components"]]
+    if model_spec.get("family") == "two_head":
+        resolved = []
+        for item in model_spec["market_columns"]:
+            if item == "panel_market":  # panel lag columns that are identical across stocks
+                resolved += [c for c in ff.groups["panel"] if not c.startswith("stock_")]
+            elif item in ff.groups:
+                resolved += ff.groups[item]
+            else:
+                resolved.append(item)
+        model_spec["market_columns"] = list(dict.fromkeys(resolved))
     columns = ff.columns(cfg.get("feature_groups", []), exclude=cfg["feature_exclude"])
     probe = build_model(model_spec, threads=threads)
     needed = list(dict.fromkeys([*columns, *probe.needs]))

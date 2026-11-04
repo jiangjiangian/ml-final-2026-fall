@@ -196,7 +196,7 @@ def verify_prediction_values(table, target_date, payloads):
     if table.get('transform_code_sha256') != _transform_hashes():
         raise DailyTableError('prediction transform hashes differ from the current trusted builder')
     stocks, provenance = read_course_archives(payloads['course-training'], [payloads['course-live']])
-    expected, _ = prediction_rows_from_history(stocks, target_date)
+    expected, latest_dates = prediction_rows_from_history(stocks, target_date)
     if table.get('provenance') != provenance:
         raise DailyTableError('prediction provenance differs from the bound course bytes')
     actual = table.get('rows')
@@ -214,6 +214,7 @@ def verify_prediction_values(table, target_date, payloads):
                 raise DailyTableError('prediction input values differ from source reconstruction')
             if value is not None and (not isinstance(value, (int, float)) or value != expected_value):
                 raise DailyTableError('prediction input values differ from source reconstruction')
+    return latest_dates
 
 
 def prepare_training_table(runtime_root, target_date, allow_research=False):

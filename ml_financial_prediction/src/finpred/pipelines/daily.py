@@ -150,7 +150,52 @@ def _private_file_bytes(path):
         return stream.read()
 
 
-def _prediction_table(table, day, now):
+def previous_session_coverage(latest_dates, official_state, day):
+    """Check observed row coverage against actual enabled competition sessions.
+
+    This proves row presence, not a complete exchange calendar, completed values,
+    historical vintages or a trading-halt exemption. Pending values stay missing.
+    The caller supplies the state obtained through the verified course client.
+    """
+    sessions = official_state.get('phase2Days') if isinstance(official_state, dict) else None
+    if not isinstance(sessions, list) or not sessions:
+        raise PipelineBlocked('official session history is required for source coverage')
+    seen, enabled = set(), []
+    for session in sessions:
+        if not isinstance(session, dict):
+            raise PipelineBlocked('official session history is malformed or ambiguous')
+        value = session.get('tradingDate')
+        try:
+            valid = isinstance(value, str) and date.fromisoformat(value).isoformat() == value
+        except ValueError:
+            valid = False
+        if not valid or value in seen or session.get('enabled') not in (False, True, 0, 1):
+            raise PipelineBlocked('official session history is malformed or ambiguous')
+        seen.add(value)
+        if session['enabled'] in (True, 1):
+            enabled.append(value)
+    if day not in enabled:
+        raise PipelineBlocked('target session must be enabled for source coverage')
+    previous = [value for value in enabled if value < day]
+    if not previous:
+        raise PipelineBlocked('previous official session is unavailable; source coverage unverified')
+    required = max(previous)
+    if not isinstance(latest_dates, dict) or len(latest_dates) != 50:
+        raise PipelineBlocked('source coverage requires all 50 reconstructed observation dates')
+    for value in latest_dates.values():
+        try:
+            valid = isinstance(value, str) and date.fromisoformat(value).isoformat() == value
+        except ValueError:
+            valid = False
+        if not valid or not required <= value < day:
+            raise PipelineBlocked('course observations do not cover the previous official session for every stock')
+    return {'status': 'verified', 'required_previous_session': required,
+            'stock_count': len(latest_dates),
+            'scope': 'observed_row_presence_only; pending values retain their missing masks',
+            'exchange_calendar_certified': False, 'historical_vintage_verified': False}
+
+
+def _prediction_table(table, day, now, *, official_state=None):
     cutoff = _at(day, 8, 10)
     if now < cutoff:
         raise PipelineBlocked('prediction waits until the 08:10 feature freeze')
@@ -223,9 +268,11 @@ def _prediction_table(table, day, now):
         if row['target_date'] != day or aware_datetime(row['feature_cutoff'], name='cutoff') != cutoff:
             raise PipelineBlocked('prediction rows must use target-day 08:10 cutoff')
     try:
-        verify_prediction_values(table, day, bound_payloads)
+        latest_dates = verify_prediction_values(table, day, bound_payloads)
     except (DailyTableError, ValueError, KeyError, TypeError):
         raise PipelineBlocked('prediction inputs do not match the trusted course-source reconstruction') from None
+    if official_state is not None:
+        previous_session_coverage(latest_dates, official_state, day)
     return cutoff
 
 
@@ -326,12 +373,15 @@ def _train(root, day, now, clock, table_path, allow_research, train_worker):
     return {'status': 'promoted', **pointer}
 
 
-def _predict(root, day, now, client, table_path):
+def _predict(root, day, now, client, table_path, *, official_state=None):
     if table_path is None:
         raise PipelineBlocked('--prediction-table is required')
     table_bytes = Path(table_path).read_bytes()
     table = json.loads(table_bytes)
-    cutoff = _prediction_table(table, day, now)
+    # The source dates come from hash-bound ZIP reconstruction, never the
+    # caller-editable preparation report. A new fetch of old bytes is insufficient.
+    state = client.state() if official_state is None else official_state
+    cutoff = _prediction_table(table, day, now, official_state=state)
     approved, bundle = _approved(root)
     predictions = predict_rows(bundle, table['rows'], feature_columns=table['feature_columns'],
                                feature_version=table['feature_version'], require_production=True)
@@ -352,6 +402,7 @@ def _predict(root, day, now, client, table_path):
                 'feature_table_sha256': hashlib.sha256(table_bytes).hexdigest(), 'model_path': approved['model_path'],
                 'csv_sha256': hashlib.sha256(payload).hexdigest(),
                 'readiness': {'model_validated': True, 'feature_availability_verified': True,
+                              'previous_official_session_covered': True,
                               'feature_cutoff': cutoff.isoformat()}}
     identity = hashlib.sha256(json.dumps(metadata, sort_keys=True).encode()).hexdigest()
     destination = root / 'predictions' / day / identity
@@ -382,6 +433,8 @@ def _submit(root, day, client, clock, dry_run, csv_path, verify_only):
         raise PipelineBlocked('approved model changed; regenerate predictions')
     if not bundle.metadata.get('production_eligible'):
         raise PipelineBlocked('research model cannot submit')
+    if latest.get('readiness', {}).get('previous_official_session_covered') is not True:
+        raise PipelineBlocked('prediction requires previous official session coverage; regenerate predictions')
     if verify_only:
         template = client.daily_template(day)
         expected = validate_prediction_csv(payload, template, day)
@@ -418,7 +471,8 @@ def run_stage(runtime_dir, stage, *, target_date=None, dry_run=True,
             if owned:
                 client.login(os.environ.get('COURSE_EMAIL'), os.environ.get('COURSE_PASSWORD'))
             now = window(clock(), day)
-            session = _session(client.state(), day)
+            official_state = client.state()
+            session = _session(official_state, day)
             if session.get('enabled') not in (True, 1):
                 raise PipelineBlocked('official target session is disabled')
             if stage == 'collect':
@@ -438,7 +492,7 @@ def run_stage(runtime_dir, stage, *, target_date=None, dry_run=True,
                     if not prepared.get('table_path'):
                         raise PipelineBlocked('no verified current prediction table; see preparation report')
                     prediction_table = prepared['table_path']
-                value = _predict(root, day, now, client, prediction_table)
+                value = _predict(root, day, now, client, prediction_table, official_state=official_state)
             else:
                 value = _submit(root, day, client, clock, dry_run, csv_path, stage == 'verify')
             window(clock(), day)

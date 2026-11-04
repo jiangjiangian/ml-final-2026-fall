@@ -20,6 +20,8 @@ ALLOWED_ROOTS = {'approved.json', 'candidates', 'predictions', 'submission', 've
 MAX_OBJECT_BYTES = 90 * 1024 * 1024
 MAX_STATE_BYTES = 512 * 1024 * 1024
 MAX_INDEX_BYTES = 8 * 1024 * 1024
+LARGE_TABLE_BYTES = 1024 * 1024
+TABLE_SCHEMAS = {'training-table-v1', 'sequence-feature-table-v1', 'prediction-table-v1'}
 PRIVATE_NAMES = {'environment', '.env', 'cookies', 'cookies.json', 'cookie.jar',
                  'credentials', 'credentials.json', 'kaggle.json', 'runtime.env'}
 
@@ -102,6 +104,7 @@ def reject_json_credentials(payload):
                     stack.append(child)
             elif isinstance(item, list):
                 stack.extend(item)
+        return value
     except (UnicodeDecodeError, ValueError, RecursionError):
         raise HostedBlocked('runtime JSON must parse safely before publication') from None
 
@@ -121,11 +124,129 @@ def github_origin_identity(value):
     return path.lower()
 
 
+def _published_state(data_root, runtime_root):
+    """Only a known remote commit can authorize removing a local table.
+
+    A preceding call to pack_runtime may have written an index without pushing
+    it. Reading that working-tree index would incorrectly treat new data as
+    archived. The remote-tracking ref is the last fetched/pushed durable version;
+    the caller's Git lease/CAS remains responsible for publication serialization.
+    """
+    reference = 'refs/remotes/origin/live-data'
+    try:
+        result = subprocess.run(['git', 'show', reference + ':runtime/state.json'],
+                                cwd=data_root, capture_output=True, timeout=10, check=False)
+        if result.returncode:
+            return {}, set(), None
+        if len(result.stdout) > MAX_INDEX_BYTES:
+            raise HostedBlocked('published runtime index exceeds its bounded size')
+        previous = json.loads(result.stdout)
+        if (not isinstance(previous, dict) or previous.get('schema_version') != 'hosted-runtime-v1'
+                or previous.get('runtime_root') != str(runtime_root)):
+            raise HostedBlocked('published runtime index does not identify this runtime')
+        if not isinstance(previous.get('files'), list):
+            raise HostedBlocked('published runtime index requires its explicit file list')
+        entries = {}
+        for entry in previous['files']:
+            relative = safe_relative(entry.get('path'))
+            digest = entry.get('sha256', '')
+            key = 'runtime/objects/' + digest + '.bin'
+            if (not allowed_member(relative) or relative.as_posix() in entries
+                    or not re.fullmatch('[a-f0-9]{64}', digest) or entry.get('object_key') != key):
+                raise HostedBlocked('published runtime index has invalid or duplicate members')
+            entries[relative.as_posix()] = entry
+        tracked = subprocess.run(['git', 'ls-tree', '--name-only', reference + ':runtime/objects'],
+                                 cwd=data_root, capture_output=True, text=True, timeout=10, check=False)
+        revision = subprocess.run(['git', 'rev-parse', reference], cwd=data_root,
+                                  capture_output=True, text=True, timeout=10, check=False)
+        if tracked.returncode or revision.returncode:
+            return {}, set(), None
+        names = {name for name in tracked.stdout.splitlines() if re.fullmatch('[a-f0-9]{64}\\.bin', name)}
+        commit = revision.stdout.strip()
+        if not re.fullmatch('[a-f0-9]{40}', commit):
+            raise HostedBlocked('published runtime revision is not a commit identity')
+        return entries, names, commit
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        # Without an established published archive nothing is eligible to prune.
+        return {}, set(), None
+    except (KeyError, TypeError, json.JSONDecodeError):
+        raise HostedBlocked('published runtime index is malformed') from None
+
+
+def _active_evidence(files, documents, runtime_root):
+    """Follow active pointers, not every historical registration left on disk."""
+    roots, newest, pending_hashes = set(), {}, set()
+    for name, document in documents.items():
+        parts = Path(name).parts
+        if (name == 'approved.json' or name == 'shadow/model-latest.json'
+                or (parts[0] == 'candidates' and parts[-1] == 'approved.json')):
+            roots.add(name)
+        if parts[0] == 'submission' and isinstance(document, dict):
+            if document.get('status') in {'post_in_flight', 'unverified'}:
+                roots.add(name)
+                digest = document.get('csv_sha256')
+                if isinstance(digest, str) and re.fullmatch('[a-f0-9]{64}', digest):
+                    pending_hashes.add(digest)
+        if parts[0] == 'predictions' and parts[-1] == 'latest.json':
+            date_index = next((i for i, part in enumerate(parts)
+                               if re.fullmatch(r'\d{4}-\d{2}-\d{2}', part)), None)
+            if date_index is not None:
+                group, day = parts[:date_index], parts[date_index]
+                if group not in newest or day > newest[group][0]:
+                    newest[group] = (day, name)
+    roots.update(name for _, name in newest.values())
+    if pending_hashes:
+        roots.update(name for name, document in documents.items()
+                     if isinstance(document, dict) and document.get('csv_sha256') in pending_hashes)
+    hashes, protected, processed, queue = set(), set(), set(), list(roots)
+    by_hash = {}
+    for entry in files:
+        by_hash.setdefault(entry['sha256'], []).append(entry['path'])
+        if entry.get('document_sha256'):
+            by_hash.setdefault(entry['document_sha256'], []).append(entry['path'])
+    while queue:
+        name = queue.pop()
+        if name in processed:
+            continue
+        processed.add(name)
+        protected.add(name)
+        document = documents.get(name)
+        stack = [document] if document is not None else []
+        while stack:
+            value = stack.pop()
+            if isinstance(value, dict):
+                stack.extend(value.values())
+            elif isinstance(value, list):
+                stack.extend(value)
+            elif isinstance(value, str):
+                if re.fullmatch('[a-f0-9]{64}', value):
+                    hashes.add(value)
+                    queue.extend(by_hash.get(value, ()))
+                candidate = Path(value)
+                if (candidate.is_absolute() and '..' not in candidate.parts
+                        and candidate.is_relative_to(runtime_root)):
+                    relative = candidate.relative_to(runtime_root).as_posix()
+                    if relative in documents:
+                        queue.append(relative)
+                    # A model directory links its own manifests and the run's
+                    # sibling registration/report; older run registrations do
+                    # not become roots merely because we retain those reports.
+                    prefix = relative.rstrip('/') + '/'
+                    queue.extend(item for item in documents if item.startswith(prefix))
+                    if candidate.is_dir() and candidate != runtime_root:
+                        for sibling in ('registration.json', 'candidate_report.json'):
+                            sibling_name = (candidate.parent / sibling).relative_to(runtime_root).as_posix()
+                            if sibling_name in documents:
+                                queue.append(sibling_name)
+                    protected.add(relative)
+    return protected, hashes
+
+
 def pack_runtime(runtime_root, data_root):
     runtime_root, data_root = Path(runtime_root).absolute(), Path(data_root).absolute()
     no_symlink(runtime_root)
     no_symlink(data_root)
-    files, total = [], 0
+    files, documents, total = [], {}, 0
     for prefix in sorted(ALLOWED_ROOTS):
         start = runtime_root / prefix
         candidates = sorted(start.rglob('*')) if start.is_dir() else [start]
@@ -139,27 +260,75 @@ def pack_runtime(runtime_root, data_root):
             payload = bounded_bytes(source, MAX_OBJECT_BYTES)
             if any(value in payload for value in credential_values()):
                 raise HostedBlocked('runtime state contains an active credential literal')
-            if source.suffix.lower() == '.json':
-                reject_json_credentials(payload)
+            document = reject_json_credentials(payload) if source.suffix.lower() == '.json' else None
             total += len(payload)
-            if len(payload) > MAX_OBJECT_BYTES or total > MAX_STATE_BYTES:
-                raise HostedBlocked('private runtime exceeded bounded Git object/state capacity')
             digest = hashlib.sha256(payload).hexdigest()
             object_key = 'runtime/objects/' + digest + '.bin'
-            object_path = data_root / object_key
-            if object_path.exists():
-                no_symlink(object_path)
-                if hashlib.sha256(bounded_bytes(object_path, MAX_OBJECT_BYTES)).hexdigest() != digest:
-                    raise HostedBlocked('existing runtime object checksum mismatch')
-            else:
-                write_private(object_path, payload)
-            files.append({'path': source.relative_to(runtime_root).as_posix(), 'object_key': object_key,
-                          'sha256': digest, 'size_bytes': len(payload)})
+            item = {'path': relative.as_posix(), 'object_key': object_key,
+                    'sha256': digest, 'size_bytes': len(payload)}
+            if source.suffix.lower() == '.json' and len(payload) <= LARGE_TABLE_BYTES:
+                documents[relative.as_posix()] = document
+            if (len(payload) > LARGE_TABLE_BYTES and isinstance(document, dict)
+                    and document.get('schema_version') in TABLE_SCHEMAS):
+                item['large_table'] = True
+                item['document_sha256'] = hashlib.sha256(json.dumps(
+                    document, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+            files.append(item)
+    previous, tracked_objects, archived_commit = _published_state(data_root, runtime_root)
+    protected, protected_hashes = _active_evidence(files, documents, runtime_root)
+    removed = []
+    target = MAX_STATE_BYTES // 2
+    for entry in sorted(files, key=lambda item: item['path']):
+        if total <= target:
+            break
+        name, digest = entry['path'], entry['sha256']
+        old = previous.get(name, {})
+        archived = data_root / entry['object_key']
+        if (not entry.get('large_table') or name in protected or digest in protected_hashes
+                or entry.get('document_sha256') in protected_hashes
+                or old.get('sha256') != digest or old.get('size_bytes') != entry['size_bytes']
+                or archived.name not in tracked_objects or not archived.is_file()):
+            continue
+        if hashlib.sha256(bounded_bytes(archived, MAX_OBJECT_BYTES)).hexdigest() != digest:
+            raise HostedBlocked('archived table checksum changed; retention is blocked')
+        removed.append(entry)
+        total -= entry['size_bytes']
+    if total > MAX_STATE_BYTES:
+        raise HostedBlocked('private runtime exceeded capacity; active or unpublished evidence cannot be pruned')
+    removed_names = {entry['path'] for entry in removed}
+    files = [entry for entry in files if entry['path'] not in removed_names]
+    for entry in files:
+        source = runtime_root / entry['path']
+        payload = bounded_bytes(source, MAX_OBJECT_BYTES)
+        digest, object_key = entry['sha256'], entry['object_key']
+        if hashlib.sha256(payload).hexdigest() != digest:
+            raise HostedBlocked('runtime file changed during checkpoint preparation')
+        object_path = data_root / object_key
+        if object_path.exists():
+            no_symlink(object_path)
+            if hashlib.sha256(bounded_bytes(object_path, MAX_OBJECT_BYTES)).hexdigest() != digest:
+                raise HostedBlocked('existing runtime object checksum mismatch')
+        else:
+            write_private(object_path, payload)
+        entry.pop('large_table', None)
+        entry.pop('document_sha256', None)
     record = {'schema_version': 'hosted-runtime-v1', 'runtime_root': str(runtime_root), 'files': files,
               'total_bytes': total, 'created_at': datetime.now(timezone.utc).isoformat(),
               'trust_scope': 'internally_created_finpred_state_in_verified_repository',
-              'excluded': ['raw', 'market-history', 'environment', 'HTTP sessions', 'credentials', 'lock files']}
+              'excluded': ['raw', 'market-history', 'environment', 'HTTP sessions', 'credentials', 'lock files'],
+              'retention': {'policy': 'published_unreferenced_large_tables_only-v1',
+                            'archived_commit': archived_commit,
+                            'pruned_paths': sorted(removed_names)}}
     write_json(data_root / 'runtime/state.json', record)
+    for entry in removed:
+        source = runtime_root / entry['path']
+        if hashlib.sha256(bounded_bytes(source, MAX_OBJECT_BYTES)).hexdigest() == entry['sha256']:
+            source.unlink()
+    referenced_objects = {Path(entry['object_key']).name for entry in files}
+    for name in tracked_objects - referenced_objects:
+        path = data_root / 'runtime/objects' / name
+        if path.is_file() and hashlib.sha256(bounded_bytes(path, MAX_OBJECT_BYTES)).hexdigest() == name[:-4]:
+            path.unlink()
     return record
 
 

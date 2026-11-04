@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from finpred.pipelines.daily import (
     HISTORY_SERIES, SOURCE_SPECS, PipelineBlocked, _approved, _collect,
-    _prediction_table, _submit, _train, bounded_training, run_stage, window,
+    _prediction_table, _submit, _train, bounded_training, previous_session_coverage, run_stage, window,
 )
 
 
@@ -23,7 +23,8 @@ def clock(value):
 
 class Client:
     def state(self):
-        return {'phase2Days': [{'tradingDate': '2026-11-02', 'enabled': True}]}
+        return {'phase2Days': [{'tradingDate': '2026-11-02', 'enabled': True},
+                               {'tradingDate': '2026-10-30', 'enabled': True}]}
 
 
 def feature_evidence(root, *, columns=None, fetched_at='2026-11-02T08:00:00+08:00'):
@@ -63,6 +64,59 @@ def canonical_prediction_table(root, *, fetched_at='2026-11-02T07:00:00+08:00', 
 
 
 class DailyTests(unittest.TestCase):
+    def test_source_coverage_uses_official_sessions_across_weekend(self):
+        latest = {f'{n:04}': '2026-10-30' for n in range(50)}
+        report = previous_session_coverage(latest, Client().state(), '2026-11-02')
+        self.assertEqual(report['required_previous_session'], '2026-10-30')
+        self.assertEqual(report['stock_count'], 50)
+        self.assertFalse(report['exchange_calendar_certified'])
+        self.assertFalse(report['historical_vintage_verified'])
+
+    def test_source_coverage_ignores_disabled_days_and_order(self):
+        state = {'phase2Days': [
+            {'tradingDate': '2026-10-30', 'enabled': 1},
+            {'tradingDate': '2026-11-01', 'enabled': 0},
+            {'tradingDate': '2026-11-02', 'enabled': 1},
+        ]}
+        latest = {f'{n:04}': '2026-10-30' for n in range(50)}
+        self.assertEqual(previous_session_coverage(latest, state, '2026-11-02')[
+            'required_previous_session'], '2026-10-30')
+
+    def test_source_coverage_rejects_missing_history_and_ambiguous_sessions(self):
+        latest = {f'{n:04}': '2026-10-30' for n in range(50)}
+        cases = [None, {}, {'phase2Days': []}, {'phase2Days': [{}]},
+                 {'phase2Days': [{'tradingDate': '2026-11-02', 'enabled': 1}]},
+                 {'phase2Days': Client().state()['phase2Days'] * 2},
+                 {'phase2Days': [{'tradingDate': '2026-11-02', 'enabled': 0},
+                                  {'tradingDate': '2026-10-30', 'enabled': 1}]},
+                 {'phase2Days': [{'tradingDate': '2026-11-02', 'enabled': 1},
+                                  {'tradingDate': '2026-10-3', 'enabled': 1}]}]
+        for state in cases:
+            with self.subTest(state=state), self.assertRaises(PipelineBlocked):
+                previous_session_coverage(latest, state, '2026-11-02')
+
+    def test_source_coverage_rejects_one_stale_or_current_stock_and_missing_stock(self):
+        for value in ('2026-10-29', '2026-11-02', '2026-11-03', None, '2026-10-3'):
+            latest = {f'{n:04}': '2026-10-30' for n in range(50)}
+            latest['0000'] = value
+            with self.subTest(value=value), self.assertRaises(PipelineBlocked):
+                previous_session_coverage(latest, Client().state(), '2026-11-02')
+        with self.assertRaises(PipelineBlocked):
+            previous_session_coverage({'0001': '2026-10-30'}, Client().state(), '2026-11-02')
+
+    def test_fresh_retrieval_and_editable_report_cannot_hide_stale_source_rows(self):
+        with tempfile.TemporaryDirectory() as root:
+            table = canonical_prediction_table(root)
+            state = Client().state()
+            _prediction_table(table, '2026-11-02', clock('08:20:00')(), official_state=state)
+            # Deliberately synthetic Saturday session proves we follow official
+            # records, rather than subtracting a weekday or trusting a report.
+            state['phase2Days'].append({'tradingDate': '2026-10-31', 'enabled': 1})
+            table['daily_preparation']['latest_observation_dates'] = {
+                sid: '2026-11-01' for sid in table['daily_preparation']['latest_observation_dates']}
+            with self.assertRaisesRegex(PipelineBlocked, 'previous official session'):
+                _prediction_table(table, '2026-11-02', clock('08:20:00')(), official_state=state)
+
     def test_exact_window_and_timezone_required(self):
         for value in ('03:59:59', '09:00:00'):
             with self.assertRaises(PipelineBlocked):
@@ -333,7 +387,8 @@ class DailyTests(unittest.TestCase):
             source.write_bytes(original)
             (day_dir / 'latest.json').write_text(json.dumps({'csv_path': str(source),
                 'csv_sha256': hashlib.sha256(original).hexdigest(), 'model_manifest_sha256': 'a' * 64,
-                'generated_at': '2026-11-02T08:10:00+08:00', 'readiness': {}}))
+                'generated_at': '2026-11-02T08:10:00+08:00',
+                'readiness': {'previous_official_session_covered': True}}))
             read_bytes = Path.read_bytes
             csv_reads = []
             def replace_after_read(path):

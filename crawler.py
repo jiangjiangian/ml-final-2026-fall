@@ -63,7 +63,8 @@ SERIES = [
      'percent_per_annum', True, '以百分比報價（4.25＝4.25%）；變化用基點，不是債券價格報酬。'),
     ('us13w', '^IRX', '13-Week Treasury Bill Yield', '美國13週國庫券殖利率', 'M3_fx_rates', 'yield_percent',
      'percent_per_annum', False, None),
-    ('twoii', '^TWOII', 'TPEx Index', '櫃買指數', 'M4_taiwan', 'index', 'index_point', False, None),
+    ('etf_006201', '006201.TWO', 'Yuanta TPEx 50 ETF', '元大富櫃50（櫃買市場代理）', 'M4_taiwan', 'etf', 'TWD', False,
+     'Yahoo 沒有櫃買指數本身（^TWOII／^TWO／^TPEX 皆查無）；以追蹤富櫃50指數的 ETF 代理櫃買市場。'),
     ('etf_0050', '0050.TW', 'Yuanta Taiwan Top 50 ETF', '元大台灣50（台灣50指數代理）', 'M4_taiwan', 'etf', 'TWD', False,
      'ETF 代理，不是台灣50指數本身；報酬用含分割／股利調整的 adj_close。'),
     ('etf_0052', '0052.TW', 'Fubon Taiwan Technology ETF', '富邦科技（電子類代理）', 'M4_taiwan', 'etf', 'TWD', False,
@@ -203,7 +204,7 @@ def classify_error(exc):
     name, text = type(exc).__name__, str(exc).lower()
     if name in RATE_LIMIT_ERRORS or 'too many requests' in text or 'rate limit' in text or ' 429' in text:
         return 'rate_limited'
-    if name in PERMANENT_ERRORS or isinstance(exc, CrawlError):
+    if name in PERMANENT_ERRORS or isinstance(exc, CrawlError) or 'http error 404' in text or 'not found' in text:
         return 'permanent'
     return 'transient'
 

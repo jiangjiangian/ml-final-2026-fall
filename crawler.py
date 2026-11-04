@@ -9,7 +9,8 @@
 4. data/features/market_features.csv：每個台股交易日一列＝老師 global 欄位＋對齊後的額外特徵。
 5. data/transform/lag2、lag5：每個特徵各一個 CSV（列＝台股交易日 t；值＝i＝t 的前一個台股交易日時，
    (close_i − close_{i−k}) / close_{i−k}，i−k 數該序列自己的交易日）。
-6. schema.json：老師全部欄位、額外指標、transform 的定義、單位、lag 規則與資料品質紀錄。
+6. data/transform/panel_lag.csv.gz：整合好的長表（100 股 × 台股交易日），可直接當模型輸入＋答案。
+7. schema.json：老師全部欄位、額外指標、transform 的定義、單位、lag 規則與資料品質紀錄。
 
 限流：單執行緒；yfinance 發出的「每一個」HTTP 請求（時區、cookie、crumb、chart）都經過同一個
 限流器（libcurl 自動跟隨的重新導向共用同一個名額，最多 5 次），上一個請求結束後至少間隔 --min-interval 秒＋0～--jitter 秒隨機抖動；暫時性錯誤指數退避重試，
@@ -33,6 +34,7 @@ from contextlib import nullcontext
 import csv
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta, timezone
+import gzip
 import hashlib
 import io
 import json
@@ -57,6 +59,7 @@ MANIFEST_VERSION = 'yfinance-extra-manifest-v2'
 FEATURES_FILE = 'features/market_features.csv'
 TRANSFORM_DIR = 'transform'
 TRANSFORM_LAGS = (2, 5)
+PANEL_FILE = 'transform/panel_lag.csv.gz'
 
 # --------------------------------------------------------------------------- 額外指標清單
 # kind: index / stock / etf / fx / fx_index / yield_percent / futures
@@ -940,23 +943,94 @@ def build_transforms(data_dir, usable, targets, data_prefix='data'):
     root = Path(data_dir) / TRANSFORM_DIR
     if root.exists():
         shutil.rmtree(root)
-    features = {}
+    features, values_by_feature = {}, {}
     for fid, dates, prices, meta in transform_sources(data_dir, usable):
-        entry = {**meta, 'files': {}}
+        entry, entry_values = {**meta, 'files': {}}, {}
         for lag in TRANSFORM_LAGS:
             column = f'{fid}_ret_lag{lag}'
             values = at_previous_taiwan_day(targets, k_period_returns(dates, prices, lag))
+            entry_values[lag] = values
             rel = f'{TRANSFORM_DIR}/lag{lag}/{fid}.csv'
             sha = _write_table(Path(data_dir) / rel, ['date', column], {'date': targets, column: values}, len(targets))
             entry['files'][f'lag{lag}'] = {'file': f'{data_prefix}/{rel}', 'column': column, 'sha256': sha,
                                            'non_missing_rows': sum(v is not None for v in values)}
         features[fid] = entry
-    return features
+        values_by_feature[fid] = entry_values
+    return features, values_by_feature
+
+
+PANEL_KEYS = ('date', 'stock_id', 'is_top50', 'has_teacher_row')
+PANEL_LABELS = ('label_y', 'label_intraday_return')
+
+
+def build_panel(data_dir, targets, transforms, values_by_feature, data_prefix='data'):
+    """長表：每列＝一股 × 一個台股交易日；欄＝該股 lag＋市場 lag（同日各股相同）＋ label_ 答案欄。"""
+    data_dir = Path(data_dir)
+    top50 = {str(x) for x in json.loads((data_dir / 'teacher' / 'info.json').read_text(encoding='utf-8-sig'))['Top50@Y']}
+    market = [fid for fid, meta in transforms.items() if meta['group'] != 'teacher_stock']
+    own = [f'stock_ret_lag{k}' for k in TRANSFORM_LAGS]
+    market_cols = [f'{fid}_ret_lag{k}' for fid in market for k in TRANSFORM_LAGS]
+    header = list(PANEL_KEYS) + own + market_cols + list(PANEL_LABELS)
+    stocks = sorted(path.stem for path in (data_dir / 'teacher' / 'market').glob('*.csv'))
+    labels = {}
+    for sid in stocks:
+        _, rows = _read_csv(data_dir / 'teacher' / 'market' / f'{sid}.csv')
+        for r in rows:
+            y, o, c = _num(r['y']), _num(r['etl:adj_open']), _num(r['etl:adj_close'])
+            ret = c / o - 1 if o is not None and c is not None and o > 0 and c > 0 else None
+            labels[sid, r['date']] = (int(y) if y in (0.0, 1.0) else None, ret)
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator='\n')
+    writer.writerow(header)
+    stats = {'rows': 0, 'rows_with_label': 0, 'top50_rows': 0}
+    for j, t in enumerate(targets):
+        market_values = [_cell(values_by_feature[fid][k][j]) for fid in market for k in TRANSFORM_LAGS]
+        for sid in stocks:
+            label = labels.get((sid, t))
+            own_values = [_cell(values_by_feature[f'stock_{sid}'][k][j]) for k in TRANSFORM_LAGS]
+            label_cells = ['', ''] if label is None else [_cell(label[0]), _cell(label[1])]
+            writer.writerow([t, sid, int(sid in top50), int(label is not None)] + own_values + market_values + label_cells)
+            stats['rows'] += 1
+            stats['rows_with_label'] += label is not None and label[0] is not None
+            stats['top50_rows'] += sid in top50
+    payload = buffer.getvalue().encode('utf-8')
+    packed = io.BytesIO()
+    with gzip.GzipFile(filename='', mode='wb', fileobj=packed, mtime=0, compresslevel=9) as stream:
+        stream.write(payload)
+    write_atomic(data_dir / PANEL_FILE, packed.getvalue())
+    columns = {
+        'date': {'role': 'key', 'description': '台股交易日 t（老師個股檔日期聯集）'},
+        'stock_id': {'role': 'key', 'description': '股票代號（4 位數字串；讀取時用 dtype={"stock_id": str}）'},
+        'is_top50': {'role': 'flag', 'description': '1＝官方預測目標（info.json Top50@Y）；提交只用這 50 股'},
+        'has_teacher_row': {'role': 'flag', 'description': '1＝老師該股該日有資料；0 的格子 label 為空白'},
+    }
+    for k in TRANSFORM_LAGS:
+        columns[f'stock_ret_lag{k}'] = {
+            'role': 'feature', 'description': f'該列股票自己的 lag{k}（＝transform/lag{k}/stock_<stock_id>.csv）',
+            'formula': f'(close_i − close_(i−{k})) / close_(i−{k})，i＝t 的前一個台股交易日，用 etl:adj_close'}
+    for fid in market:
+        for k in TRANSFORM_LAGS:
+            columns[f'{fid}_ret_lag{k}'] = {
+                'role': 'feature', 'description': f"{transforms[fid]['name_zh']} lag{k}；同一天所有股票相同",
+                'same_as': f"{data_prefix}/transform/lag{k}/{fid}.csv"}
+    columns['label_y'] = {'role': 'label', 'description': '答案：老師 y＝1{etl:adj_close_t > etl:adj_open_t}；絕不可當輸入'}
+    columns['label_intraday_return'] = {'role': 'label',
+                                        'description': '答案：etl:adj_close_t / etl:adj_open_t − 1（官方分數用）；絕不可當輸入'}
+    return {
+        'file': f'{data_prefix}/{PANEL_FILE}', 'format': 'gzip 壓縮的 UTF-8 CSV（LF）；pandas 可直接 read_csv',
+        'sha256_csv_uncompressed': _sha(payload), 'sha256_gz': hashlib.sha256(packed.getvalue()).hexdigest(),
+        'row_definition': f'每列＝一股 × 一個台股交易日；{len(stocks)} 股 × {len(targets)} 天的完整格子，依 date、stock_id 排序',
+        'stocks': len(stocks), 'dates': len(targets), **stats,
+        'key_columns': list(PANEL_KEYS), 'feature_columns': own + market_cols, 'label_columns': list(PANEL_LABELS),
+        'columns_in_order': header, 'columns': columns,
+        'usage': ('df = pd.read_csv(path, dtype={"stock_id": str}, parse_dates=["date"]); '
+                  'X = df[feature_columns]; y = df["label_y"]；驗證請按日期切分'),
+    }
 
 
 # --------------------------------------------------------------------------- schema
 def build_schema(specs, manifest, teacher_info, targets, header, definitions, coverage, skipped, features_sha,
-                 transforms, min_lag_days, series_dates, data_prefix='data'):
+                 transforms, min_lag_days, series_dates, panel, data_prefix='data'):
     def teacher_global_cols():
         return {name: {'role': role, 'description': desc, 'unit': unit, 'role_note': ROLE_NOTES[role],
                        'file': f'{data_prefix}/teacher/global/global_data.csv', **({'timing': timing} if timing else {})}
@@ -1008,6 +1082,7 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
             f'{data_prefix}/{FEATURES_FILE}': '每台股交易日一列：老師市場欄（已處理當日收盤）＋已對齊的額外特徵',
             f'{data_prefix}/{TRANSFORM_DIR}/lag2/<feature>.csv': '每個特徵一檔：date＋第 2 期收盤報酬',
             f'{data_prefix}/{TRANSFORM_DIR}/lag5/<feature>.csv': '每個特徵一檔：date＋第 5 期收盤報酬',
+            f'{data_prefix}/{PANEL_FILE}': '整合好的長表：100 股 × 台股交易日，lag2／lag5 特徵＋label_ 答案欄',
         },
         'join_keys': {
             'stock': ['stock_id（檔名）', 'date'], 'market': ['date'], 'transform': ['date'],
@@ -1080,6 +1155,7 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
             'files_per_lag': len(transforms),
             'features': transforms,
         },
+        'panel': panel,
         'project_derived_reference': {
             'note': '專案既有、由老師資料衍生的研究特徵；定義見 live-data 分支 features/schema.json，不在本資料夾重複存放',
             'stock_lags': ['stock_prev_intraday_return', 'stock_return_between_observed_rows', 'stock_prev_log_volume',
@@ -1127,10 +1203,11 @@ def build_outputs(data_dir, schema_path, specs, *, teacher_payload=None, teacher
         prefix = data_dir.resolve().relative_to(schema_path.resolve().parent).as_posix()
     except ValueError:
         prefix = data_dir.as_posix()
-    transforms = build_transforms(data_dir, usable, targets, data_prefix=prefix)
+    transforms, values_by_feature = build_transforms(data_dir, usable, targets, data_prefix=prefix)
+    panel = build_panel(data_dir, targets, transforms, values_by_feature, data_prefix=prefix)
     series_dates = {spec['series_id']: {r[0] for r in rows} for spec, rows in usable}
     schema = build_schema(specs, manifest, teacher_info, targets, header, definitions, coverage, skipped, sha,
-                          transforms, min_lag_days, series_dates, data_prefix=prefix)
+                          transforms, min_lag_days, series_dates, panel, data_prefix=prefix)
     write_atomic(schema_path, _json_bytes(schema))
     return schema
 
@@ -1184,6 +1261,7 @@ def main(argv=None):
                       'failed_last_run': extra['failed_last_run'], 'aborted_last_run': extra['aborted_last_run'],
                       'market_rows': m['rows'], 'market_columns': len(m['columns_in_order']),
                       'transform_features': tr['feature_count'], 'transform_files': tr['feature_count'] * len(tr['lags']),
+                      'panel_rows': schema['panel']['rows'], 'panel_columns': len(schema['panel']['columns_in_order']),
                       'date_min': m['date_min'], 'date_max': m['date_max']}, ensure_ascii=False, indent=2))
     if extra['missing_required']:
         return 1

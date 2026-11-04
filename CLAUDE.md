@@ -9,11 +9,13 @@
 
 | 路徑 | 內容 |
 |---|---|
-| `crawler.py` | 唯一程式：yfinance 限流爬蟲 → 清理 → 老師資料 → features → transform → schema |
+| `README.md` | 給組員：檔案樹、取得方式、X/y 切法、lag 定義、注意事項 |
+| `crawler.py` | 唯一程式：yfinance 限流爬蟲 → 清理 → 老師資料 → features → transform → panel → schema |
 | `schema.json` | **所有特徵**（老師＋額外＋transform）的公式、單位、lag 規則、清理紀錄、hash |
 | `data/teacher/` | 老師 Training ZIP 原樣（100 股、`global/global_data.csv`、`info.json`） |
 | `data/extra/` | 19 個 yfinance 額外指標日K（已清理）＋ `manifest.json`（限流、重試、清理紀錄） |
 | `data/features/market_features.csv` | 1,618 個台股日 × 104 欄：老師市場欄＋as-of 對齊的額外特徵（`_ret_1s/5s/20s` 等） |
+| `data/transform/panel_lag.csv.gz` | **組員直接用**：100 股 × 1,618 天＝161,800 列 × 56 欄（鍵、旗標、50 個 lag 特徵、`label_y`、`label_intraday_return`），7 MB |
 | `data/transform/lag2/`、`lag5/` | 124 個特徵各一檔：`date, <id>_ret_lag{k}` |
 | `.agents/skills/` | 既有 Codex 格式 skills（Claude Code 不會自動載入，需要時直接讀 SKILL.md） |
 
@@ -31,6 +33,7 @@
 | **老師 index** | global_data 的 `^VIX ^IXIC ^GSPC ^TWII ^KS11`（＋`TX_OI` 口數）；「額外指標」＝排除這些 |
 | **額外指標** | 19 個 yfinance 序列：SOX、TSM、NVDA、TWD=X、DXY、^TNX、^IRX、0050/0052/0055/006201、DJI、N225、HSI、SSE、STOXX50E、DAX、CL=F、GC=F |
 | **lag k（transform）** | 台股日 t 那列＝`(close_i − close_{i−k}) / close_{i−k}`，**i＝t 的前一個台股交易日**，i−k 數該序列自己的交易日；i 那天沒資料就空白 |
+| **panel** | `data/transform/panel_lag.csv.gz` 長表；`label_` 開頭的欄是答案，不可當輸入 |
 | **ret_ks（features）** | as-of 對齊的 k 交易日累積報酬 `P[s]/P[s−k]−1`，休市沿用不留空 |
 | **s／source_date** | features 中，該序列 `<= t−1 天` 的最後一個交易日 |
 | **Phase 1／2** | 靜態 84 日回測（截止 12/24）／每日 09:00 前提交 50 股 |
@@ -38,7 +41,7 @@
 
 ## 偏好與規則（使用者明確要求）
 - 回覆用**繁體中文**；先講清楚定義讓使用者確認，再實作。
-- 這個分支只放：`crawler.py`、`schema.json`、`data/`、`.agents/skills/`、本檔與 `memory/`（加 `.gitignore`、`.gitattributes`）。**其他東西先不要放到 GitHub。** `crawler.py` 由使用者明確要求保留（2026-11-04）。
+- 這個分支只放：`crawler.py`、`schema.json`、`data/`、`.agents/skills/`、`README.md`、本檔與 `memory/`（加 `.gitignore`、`.gitattributes`）。**其他東西先不要放到 GitHub。** `crawler.py` 由使用者明確要求保留（2026-11-04）。
 - 額外指標一律用 **yfinance**；範圍固定 **2020-01-01～2026-08-31**；要含**台幣匯率** TWD=X。
 - 爬蟲**必須限流**（每個 HTTP 請求都過限流器，見 `memory/context/data-decisions.md`）。
 - 殖利率也用百分比報酬（使用者選擇，即使接近 0 時數值很大）。

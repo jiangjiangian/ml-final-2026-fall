@@ -28,6 +28,10 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | `<id>_level`／`_level_pct` | FX／美元指數水準；殖利率水準（百分比） |
 | `<id>_change_bp_{k}s` | 殖利率 k 期基點變化 `100 × (Y[s] − Y[s−k])` |
 | `^TWII_prev_row`／`^KS11_prev_row` | 最後一個日期 < t 的老師 global 列之值（避開當日收盤） |
+| panel／長表 | `data/transform/panel_lag.csv.gz`：每列＝一股 × 一個台股交易日（100 × 1,618），56 欄 |
+| `stock_ret_lag{k}` | 長表中該列股票自己的 lag（＝`transform/lag{k}/stock_<代號>.csv`） |
+| `label_y`／`label_intraday_return` | 長表的答案欄（老師 y、adj_close/adj_open−1）；只用於訓練與評分 |
+| is_top50／has_teacher_row | 長表旗標：官方 50 檔預測目標／老師該股該日有資料（54 格為 0） |
 | `<id>_ret_lag{k}` | transform：台股日 t 那列＝`(close_i − close_{i−k}) / close_{i−k}`，i＝t 的前一個台股交易日，i−k 數該序列自己的交易日（k＝2、5） |
 | teacher_vix／ixic／gspc／twii／ks11 | transform 中老師五個指數的特徵 id |
 | stock_<代號> | transform 中老師個股（`etl:adj_close`）的特徵 id |

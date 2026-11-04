@@ -16,6 +16,9 @@
 10. `crawler.py` 也保留；等審查結果出來再修。
 11. lag 定義改為 `(close_i − close_{i−k}) / close_{i−k}`，i＝前一個台股交易日（使用者選擇 i−2 與「前一個台股交易日」）。
 12. 問：`features/` 資料夾是什麼？→ as-of 對齊的市場特徵表（見 CLAUDE.md），使用者尚未決定是否保留。
+13. 在 root 做檔案樹並說明如何提供組員使用 → 新增 `README.md`（檔案樹、取得方式、X/y、lag 定義、注意事項）。
+14. 問：100 股的 lag2／lag5 有包含當前的 y 嗎？→ 沒有：t 那列只用 t−1 以前的收盤；合併後 corr(y_t, stock lag2)＝−0.017，若誤用當日收盤則為 0.373。
+15. 整合 lag2、lag5 成可直接用的 dataframe → `data/transform/panel_lag.csv.gz`（長表、100 股＋is_top50、label_ 前綴、CSV.gz）。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。
@@ -45,4 +48,5 @@
 - 老師：100 股、161,746 列、個股日期 2020-01-02～2026-08-31；global 1,506 列、缺 112 個台股日。
 - market_features：1,618 列 × 104 欄（date＋6 個老師市場欄＋97 個額外特徵）。
 - transform：124 個特徵 × lag2／lag5 ＝ 248 個 CSV。
-- data/ 約 64 MB：teacher 45M、transform 13M、extra 3.2M、features 2.5M。
+- panel：161,800 列 × 56 欄（50 個特徵），有答案 161,746 列，top50 80,900 列，7 MB。
+- data/ 約 71 MB：teacher 45M、transform 20M（含 panel 7M）、extra 3.2M、features 2.5M。

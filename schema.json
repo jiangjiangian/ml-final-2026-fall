@@ -15,7 +15,8 @@
     "data/extra/manifest.json": "爬蟲紀錄：取得時間、限流設定、重試、清理、hash、失敗原因",
     "data/features/market_features.csv": "每台股交易日一列：老師市場欄（已處理當日收盤）＋已對齊的額外特徵",
     "data/transform/lag2/<feature>.csv": "每個特徵一檔：date＋第 2 期收盤報酬",
-    "data/transform/lag5/<feature>.csv": "每個特徵一檔：date＋第 5 期收盤報酬"
+    "data/transform/lag5/<feature>.csv": "每個特徵一檔：date＋第 5 期收盤報酬",
+    "data/transform/panel_lag.csv.gz": "整合好的長表：100 股 × 台股交易日，lag2／lag5 特徵＋label_ 答案欄"
   },
   "join_keys": {
     "stock": [
@@ -5455,6 +5456,415 @@
         }
       }
     }
+  },
+  "panel": {
+    "file": "data/transform/panel_lag.csv.gz",
+    "format": "gzip 壓縮的 UTF-8 CSV（LF）；pandas 可直接 read_csv",
+    "sha256_csv_uncompressed": "97bcd835392d130253a39022b27b902cf192bd63b23ab51331e0bc6f356bb448",
+    "sha256_gz": "1fd0d88aa8d91c6a36c8475f9bc31bed4e96246d52db75c3833def8fe0840847",
+    "row_definition": "每列＝一股 × 一個台股交易日；100 股 × 1618 天的完整格子，依 date、stock_id 排序",
+    "stocks": 100,
+    "dates": 1618,
+    "rows": 161800,
+    "rows_with_label": 161746,
+    "top50_rows": 80900,
+    "key_columns": [
+      "date",
+      "stock_id",
+      "is_top50",
+      "has_teacher_row"
+    ],
+    "feature_columns": [
+      "stock_ret_lag2",
+      "stock_ret_lag5",
+      "sox_ret_lag2",
+      "sox_ret_lag5",
+      "tsm_adr_ret_lag2",
+      "tsm_adr_ret_lag5",
+      "nvda_ret_lag2",
+      "nvda_ret_lag5",
+      "usd_twd_ret_lag2",
+      "usd_twd_ret_lag5",
+      "dxy_ret_lag2",
+      "dxy_ret_lag5",
+      "us10y_ret_lag2",
+      "us10y_ret_lag5",
+      "us13w_ret_lag2",
+      "us13w_ret_lag5",
+      "etf_006201_ret_lag2",
+      "etf_006201_ret_lag5",
+      "etf_0050_ret_lag2",
+      "etf_0050_ret_lag5",
+      "etf_0052_ret_lag2",
+      "etf_0052_ret_lag5",
+      "etf_0055_ret_lag2",
+      "etf_0055_ret_lag5",
+      "dji_ret_lag2",
+      "dji_ret_lag5",
+      "n225_ret_lag2",
+      "n225_ret_lag5",
+      "hsi_ret_lag2",
+      "hsi_ret_lag5",
+      "sse_ret_lag2",
+      "sse_ret_lag5",
+      "stoxx50e_ret_lag2",
+      "stoxx50e_ret_lag5",
+      "gdaxi_ret_lag2",
+      "gdaxi_ret_lag5",
+      "wti_ret_lag2",
+      "wti_ret_lag5",
+      "gold_ret_lag2",
+      "gold_ret_lag5",
+      "teacher_vix_ret_lag2",
+      "teacher_vix_ret_lag5",
+      "teacher_ixic_ret_lag2",
+      "teacher_ixic_ret_lag5",
+      "teacher_gspc_ret_lag2",
+      "teacher_gspc_ret_lag5",
+      "teacher_twii_ret_lag2",
+      "teacher_twii_ret_lag5",
+      "teacher_ks11_ret_lag2",
+      "teacher_ks11_ret_lag5"
+    ],
+    "label_columns": [
+      "label_y",
+      "label_intraday_return"
+    ],
+    "columns_in_order": [
+      "date",
+      "stock_id",
+      "is_top50",
+      "has_teacher_row",
+      "stock_ret_lag2",
+      "stock_ret_lag5",
+      "sox_ret_lag2",
+      "sox_ret_lag5",
+      "tsm_adr_ret_lag2",
+      "tsm_adr_ret_lag5",
+      "nvda_ret_lag2",
+      "nvda_ret_lag5",
+      "usd_twd_ret_lag2",
+      "usd_twd_ret_lag5",
+      "dxy_ret_lag2",
+      "dxy_ret_lag5",
+      "us10y_ret_lag2",
+      "us10y_ret_lag5",
+      "us13w_ret_lag2",
+      "us13w_ret_lag5",
+      "etf_006201_ret_lag2",
+      "etf_006201_ret_lag5",
+      "etf_0050_ret_lag2",
+      "etf_0050_ret_lag5",
+      "etf_0052_ret_lag2",
+      "etf_0052_ret_lag5",
+      "etf_0055_ret_lag2",
+      "etf_0055_ret_lag5",
+      "dji_ret_lag2",
+      "dji_ret_lag5",
+      "n225_ret_lag2",
+      "n225_ret_lag5",
+      "hsi_ret_lag2",
+      "hsi_ret_lag5",
+      "sse_ret_lag2",
+      "sse_ret_lag5",
+      "stoxx50e_ret_lag2",
+      "stoxx50e_ret_lag5",
+      "gdaxi_ret_lag2",
+      "gdaxi_ret_lag5",
+      "wti_ret_lag2",
+      "wti_ret_lag5",
+      "gold_ret_lag2",
+      "gold_ret_lag5",
+      "teacher_vix_ret_lag2",
+      "teacher_vix_ret_lag5",
+      "teacher_ixic_ret_lag2",
+      "teacher_ixic_ret_lag5",
+      "teacher_gspc_ret_lag2",
+      "teacher_gspc_ret_lag5",
+      "teacher_twii_ret_lag2",
+      "teacher_twii_ret_lag5",
+      "teacher_ks11_ret_lag2",
+      "teacher_ks11_ret_lag5",
+      "label_y",
+      "label_intraday_return"
+    ],
+    "columns": {
+      "date": {
+        "role": "key",
+        "description": "台股交易日 t（老師個股檔日期聯集）"
+      },
+      "stock_id": {
+        "role": "key",
+        "description": "股票代號（4 位數字串；讀取時用 dtype={\"stock_id\": str}）"
+      },
+      "is_top50": {
+        "role": "flag",
+        "description": "1＝官方預測目標（info.json Top50@Y）；提交只用這 50 股"
+      },
+      "has_teacher_row": {
+        "role": "flag",
+        "description": "1＝老師該股該日有資料；0 的格子 label 為空白"
+      },
+      "stock_ret_lag2": {
+        "role": "feature",
+        "description": "該列股票自己的 lag2（＝transform/lag2/stock_<stock_id>.csv）",
+        "formula": "(close_i − close_(i−2)) / close_(i−2)，i＝t 的前一個台股交易日，用 etl:adj_close"
+      },
+      "stock_ret_lag5": {
+        "role": "feature",
+        "description": "該列股票自己的 lag5（＝transform/lag5/stock_<stock_id>.csv）",
+        "formula": "(close_i − close_(i−5)) / close_(i−5)，i＝t 的前一個台股交易日，用 etl:adj_close"
+      },
+      "sox_ret_lag2": {
+        "role": "feature",
+        "description": "費城半導體指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/sox.csv"
+      },
+      "sox_ret_lag5": {
+        "role": "feature",
+        "description": "費城半導體指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/sox.csv"
+      },
+      "tsm_adr_ret_lag2": {
+        "role": "feature",
+        "description": "台積電ADR lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/tsm_adr.csv"
+      },
+      "tsm_adr_ret_lag5": {
+        "role": "feature",
+        "description": "台積電ADR lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/tsm_adr.csv"
+      },
+      "nvda_ret_lag2": {
+        "role": "feature",
+        "description": "輝達 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/nvda.csv"
+      },
+      "nvda_ret_lag5": {
+        "role": "feature",
+        "description": "輝達 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/nvda.csv"
+      },
+      "usd_twd_ret_lag2": {
+        "role": "feature",
+        "description": "美元兌新台幣匯率 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/usd_twd.csv"
+      },
+      "usd_twd_ret_lag5": {
+        "role": "feature",
+        "description": "美元兌新台幣匯率 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/usd_twd.csv"
+      },
+      "dxy_ret_lag2": {
+        "role": "feature",
+        "description": "美元指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/dxy.csv"
+      },
+      "dxy_ret_lag5": {
+        "role": "feature",
+        "description": "美元指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/dxy.csv"
+      },
+      "us10y_ret_lag2": {
+        "role": "feature",
+        "description": "美國10年期公債殖利率 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/us10y.csv"
+      },
+      "us10y_ret_lag5": {
+        "role": "feature",
+        "description": "美國10年期公債殖利率 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/us10y.csv"
+      },
+      "us13w_ret_lag2": {
+        "role": "feature",
+        "description": "美國13週國庫券殖利率 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/us13w.csv"
+      },
+      "us13w_ret_lag5": {
+        "role": "feature",
+        "description": "美國13週國庫券殖利率 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/us13w.csv"
+      },
+      "etf_006201_ret_lag2": {
+        "role": "feature",
+        "description": "元大富櫃50（櫃買市場代理） lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/etf_006201.csv"
+      },
+      "etf_006201_ret_lag5": {
+        "role": "feature",
+        "description": "元大富櫃50（櫃買市場代理） lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/etf_006201.csv"
+      },
+      "etf_0050_ret_lag2": {
+        "role": "feature",
+        "description": "元大台灣50（台灣50指數代理） lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/etf_0050.csv"
+      },
+      "etf_0050_ret_lag5": {
+        "role": "feature",
+        "description": "元大台灣50（台灣50指數代理） lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/etf_0050.csv"
+      },
+      "etf_0052_ret_lag2": {
+        "role": "feature",
+        "description": "富邦科技（電子類代理） lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/etf_0052.csv"
+      },
+      "etf_0052_ret_lag5": {
+        "role": "feature",
+        "description": "富邦科技（電子類代理） lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/etf_0052.csv"
+      },
+      "etf_0055_ret_lag2": {
+        "role": "feature",
+        "description": "元大MSCI金融（金融類代理） lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/etf_0055.csv"
+      },
+      "etf_0055_ret_lag5": {
+        "role": "feature",
+        "description": "元大MSCI金融（金融類代理） lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/etf_0055.csv"
+      },
+      "dji_ret_lag2": {
+        "role": "feature",
+        "description": "道瓊工業指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/dji.csv"
+      },
+      "dji_ret_lag5": {
+        "role": "feature",
+        "description": "道瓊工業指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/dji.csv"
+      },
+      "n225_ret_lag2": {
+        "role": "feature",
+        "description": "日經225指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/n225.csv"
+      },
+      "n225_ret_lag5": {
+        "role": "feature",
+        "description": "日經225指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/n225.csv"
+      },
+      "hsi_ret_lag2": {
+        "role": "feature",
+        "description": "恒生指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/hsi.csv"
+      },
+      "hsi_ret_lag5": {
+        "role": "feature",
+        "description": "恒生指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/hsi.csv"
+      },
+      "sse_ret_lag2": {
+        "role": "feature",
+        "description": "上證綜合指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/sse.csv"
+      },
+      "sse_ret_lag5": {
+        "role": "feature",
+        "description": "上證綜合指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/sse.csv"
+      },
+      "stoxx50e_ret_lag2": {
+        "role": "feature",
+        "description": "歐洲斯托克50指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/stoxx50e.csv"
+      },
+      "stoxx50e_ret_lag5": {
+        "role": "feature",
+        "description": "歐洲斯托克50指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/stoxx50e.csv"
+      },
+      "gdaxi_ret_lag2": {
+        "role": "feature",
+        "description": "德國DAX指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/gdaxi.csv"
+      },
+      "gdaxi_ret_lag5": {
+        "role": "feature",
+        "description": "德國DAX指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/gdaxi.csv"
+      },
+      "wti_ret_lag2": {
+        "role": "feature",
+        "description": "WTI原油期貨 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/wti.csv"
+      },
+      "wti_ret_lag5": {
+        "role": "feature",
+        "description": "WTI原油期貨 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/wti.csv"
+      },
+      "gold_ret_lag2": {
+        "role": "feature",
+        "description": "黃金期貨 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/gold.csv"
+      },
+      "gold_ret_lag5": {
+        "role": "feature",
+        "description": "黃金期貨 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/gold.csv"
+      },
+      "teacher_vix_ret_lag2": {
+        "role": "feature",
+        "description": "CBOE VIX 波動率指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/teacher_vix.csv"
+      },
+      "teacher_vix_ret_lag5": {
+        "role": "feature",
+        "description": "CBOE VIX 波動率指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/teacher_vix.csv"
+      },
+      "teacher_ixic_ret_lag2": {
+        "role": "feature",
+        "description": "Nasdaq Composite 那斯達克綜合指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/teacher_ixic.csv"
+      },
+      "teacher_ixic_ret_lag5": {
+        "role": "feature",
+        "description": "Nasdaq Composite 那斯達克綜合指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/teacher_ixic.csv"
+      },
+      "teacher_gspc_ret_lag2": {
+        "role": "feature",
+        "description": "S&P 500 標普500指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/teacher_gspc.csv"
+      },
+      "teacher_gspc_ret_lag5": {
+        "role": "feature",
+        "description": "S&P 500 標普500指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/teacher_gspc.csv"
+      },
+      "teacher_twii_ret_lag2": {
+        "role": "feature",
+        "description": "台灣加權股價指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/teacher_twii.csv"
+      },
+      "teacher_twii_ret_lag5": {
+        "role": "feature",
+        "description": "台灣加權股價指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/teacher_twii.csv"
+      },
+      "teacher_ks11_ret_lag2": {
+        "role": "feature",
+        "description": "KOSPI 韓國綜合指數 lag2；同一天所有股票相同",
+        "same_as": "data/transform/lag2/teacher_ks11.csv"
+      },
+      "teacher_ks11_ret_lag5": {
+        "role": "feature",
+        "description": "KOSPI 韓國綜合指數 lag5；同一天所有股票相同",
+        "same_as": "data/transform/lag5/teacher_ks11.csv"
+      },
+      "label_y": {
+        "role": "label",
+        "description": "答案：老師 y＝1{etl:adj_close_t > etl:adj_open_t}；絕不可當輸入"
+      },
+      "label_intraday_return": {
+        "role": "label",
+        "description": "答案：etl:adj_close_t / etl:adj_open_t − 1（官方分數用）；絕不可當輸入"
+      }
+    },
+    "usage": "df = pd.read_csv(path, dtype={\"stock_id\": str}, parse_dates=[\"date\"]); X = df[feature_columns]; y = df[\"label_y\"]；驗證請按日期切分"
   },
   "project_derived_reference": {
     "note": "專案既有、由老師資料衍生的研究特徵；定義見 live-data 分支 features/schema.json，不在本資料夾重複存放",

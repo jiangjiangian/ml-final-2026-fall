@@ -67,6 +67,15 @@
 - teacher_* 只在 i 是 global 日期時有值：lag2 1,503 列、lag5 1,500 列非空白。
 - 老師美股欄已被老師位移一次，所以 `teacher_vix／ixic／gspc` 的值實際比名稱更舊一天。
 
+## 長表 panel_lag.csv.gz（使用者 2026-11-04 選擇）
+- 形狀：長表，每列＝一股 × 一個台股交易日；**全部 100 股**（`is_top50` 標記官方 50 檔），100 × 1,618＝161,800 列的完整格子，依 date、stock_id 排序。
+- 欄位（56）：`date, stock_id, is_top50, has_teacher_row`＋`stock_ret_lag2/5`（該股自己的）＋48 個市場特徵（19 額外＋5 老師指數 × lag2/5，同日各股相同）＋`label_y, label_intraday_return`。
+- 答案放**同一檔**、欄名加 `label_` 前綴（使用者選擇）；README 示範用 `"_ret_lag" in c` 選特徵，自然排除答案。
+- 格式：CSV.gz（使用者選擇；gzip mtime=0、壓縮等級 9，可重現），7 MB。schema 記 `sha256_csv_uncompressed`（跨環境比對用）與 `sha256_gz`。
+- 數值和 lag 檔完全相同（同一份計算結果寫兩次），已獨立逐格核對：特徵、label_y、盤中報酬皆 0 不一致。
+- 老師缺列的 54 格：`has_teacher_row=0`，答案空白，特徵照常計算。
+- 特徵缺值比例 3.67%。
+
 ## 其他格式決定
 - CSV 浮點數用完整精度（`repr`）；空白＝缺值。
 - sha256 以 LF 行尾計算；`.gitattributes` 對 `data/**`、`schema.json`、`.agents/skills/**` 設 `-text`，避免 Windows 換行轉換造成 hash 不符。

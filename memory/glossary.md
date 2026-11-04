@@ -6,14 +6,15 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | 詞 | 意思 | 備註 |
 |---|---|---|
 | 老師資料／Training ZIP | 課程提供的歷史包：100 股 CSV＋`global_data.csv`＋`info.json` | sha256 `7433b271…`，存在 `live-data:objects/` |
-| Live ZIP | 9/1 之後的老師新資料（`y=-1`＝pending） | 不在本分支範圍內 |
+| Live ZIP | 9/1 之後的老師新資料（`y=-1`＝pending） | 本分支放在 `data/teacher_live/`，只用 9/1～9/30 |
 | template | 官方預測模板（股票／日期／欄位順序） | 不在本分支 |
 | Top50@Y／Top100@Y | `info.json` 的預測目標 50 股／全部 100 股 | |
 | global_data | 老師全球表：`date, ^VIX, ^IXIC, ^GSPC, ^TWII, ^KS11, TX_OI` | 五個老師 Yahoo 序列同日都有資料才有列（1,506 列，缺 112 個台股日；缺列不代表休市） |
-| TX_OI | 台指期外資淨未平倉口數（多減空，可負） | 單位是口數，不算 return；疑似含當日資訊（role＝suspected_same_day），不可當輸入 |
+| TX_OI | 台指期外資淨未平倉口數（多減空，可負） | 單位是口數，不算 return；疑似含當日資訊（role＝suspected_same_day），同日值不可當輸入；market_features 用 `TX_OI_prev_row` |
 | 老師 index | global_data 的五個指數欄 | 使用者說的「除了老師以外的 index」＝排除這五個 |
 | 額外指標 | crawler.py 用 yfinance 抓的 19 個序列 | 清單見 data-decisions.md |
-| live-data | 共用資料分支：catalog／manifests／objects／features／labels | 老師 ZIP 由 `git show origin/live-data:...` 取得 |
+| live-data | 共用資料分支：catalog／manifests／objects／features／labels | 老師 Training／Live ZIP 都由 `git show origin/live-data:...` 取得 |
+| 接縫 | Training 最後一天（8/31）與 Live 第一天（9/1）之間 | 已驗證還原價基準相同 |
 | yfinance | https://github.com/ranaroussi/yfinance，呼叫 Yahoo chart API | 釘選 1.7.0 |
 
 ## 欄位與特徵
@@ -27,8 +28,8 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | `<id>_ret_{k}s` | market_features 的 k 交易日累積報酬 `P[s]/P[s−k] − 1` |
 | `<id>_level`／`_level_pct` | FX／美元指數水準；殖利率水準（百分比） |
 | `<id>_change_bp_{k}s` | 殖利率 k 期基點變化 `100 × (Y[s] − Y[s−k])` |
-| `^TWII_prev_row`／`^KS11_prev_row` | 最後一個日期 < t 的老師 global 列之值（避開當日收盤） |
-| panel／長表 | `data/transform/panel_lag.csv.gz`：每列＝一股 × 一個台股交易日（100 × 1,618），56 欄 |
+| `^TWII_prev_row`／`^KS11_prev_row`／`TX_OI_prev_row` | 最後一個日期 < t 的老師 global 列之值（避開當日收盤／疑似當日的 TX_OI） |
+| panel／長表 | `data/transform/panel_lag.csv.gz`：每列＝一股 × 一個台股交易日（100 × 1,638，到 2026-09-30），56 欄 |
 | `stock_ret_lag{k}` | 長表中該列股票自己的 lag（＝`transform/lag{k}/stock_<代號>.csv`） |
 | `label_y`／`label_intraday_return` | 長表的答案欄（老師 y、adj_close/adj_open−1）；只用於訓練與評分 |
 | is_top50／has_teacher_row | 長表旗標：官方 50 檔預測目標／老師該股該日有資料（54 格為 0） |

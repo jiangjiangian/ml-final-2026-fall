@@ -1,6 +1,7 @@
 # 台股盤中方向預測：資料整合分支
 
 本分支 `claude/peaceful-babbage-09xeie` 只放**資料**：老師資料、yfinance 額外指標、lag 轉換特徵，以及整合好、可直接訓練的長表。
+資料範圍 **2020-01-02～2026-09-30**：老師 Training ZIP 到 8/31，9/1～9/30 接老師 Live ZIP。
 完整的模型與每日提交程式在預設分支 `system-completion`。
 
 預測目標：台股日 t 的 `y = 1{adj_close_t > adj_open_t}`（盤中上漲）；官方分數＝`mean((2p − 1) × 盤中報酬)`。
@@ -24,13 +25,16 @@
 │   │   ├── info.json                 #   Top50@Y（50 檔預測目標）／Top100@Y（100 檔）
 │   │   ├── global/global_data.csv    #   ^VIX ^IXIC ^GSPC ^TWII ^KS11 TX_OI；1,506 列
 │   │   └── market/<stock_id>.csv     #   100 檔個股，各 21 欄（還原價、量、法人、技術指標、y）
+│   ├── teacher_live/                 # 老師 Live ZIP 原樣（9/1～11/4；本分支只用 9/1～9/30 的 20 個台股日）
+│   │   ├── global/global_data.csv    #   和 Training 同欄位；每個台股日都有一列
+│   │   └── market/<stock_id>.csv     #   100 檔，和 Training 同 21 欄
 │   ├── extra/
 │   │   ├── manifest.json             #   爬蟲紀錄：取得時間、限流設定、重試、清理、hash
 │   │   └── yfinance/<series_id>.csv  #   19 個額外指標日K（date, open, high, low, close, adj_close, volume）
 │   ├── features/
-│   │   └── market_features.csv       #   as-of 市場特徵：1,618 天 × 104 欄（1／5／20 日累積報酬、匯率、殖利率…）
+│   │   └── market_features.csv       #   as-of 市場特徵：1,638 天 × 104 欄（1／5／20 日累積報酬、匯率、殖利率…）
 │   └── transform/
-│       ├── panel_lag.csv.gz          # ★ 組員直接用這個：100 股 × 1,618 天 ＝ 161,800 列 × 56 欄（7 MB）
+│       ├── panel_lag.csv.gz          # ★ 組員直接用這個：100 股 × 1,638 天 ＝ 163,800 列 × 56 欄（7 MB）
 │       ├── lag2/<feature>.csv        #   124 檔，每檔兩欄：date, <feature>_ret_lag2
 │       └── lag5/<feature>.csv        #   124 檔，每檔兩欄：date, <feature>_ret_lag5
 ├── .agents/skills/                   # 既有 skills（gh-fix-ci、graphify、markitdown、rtk、security-best-practices）
@@ -38,7 +42,7 @@
 └── .gitignore
 ```
 
-19 個額外指標（全部經 yfinance，範圍 2020-01-01～2026-08-31）：
+19 個額外指標（全部經 yfinance，範圍 2020-01-01～2026-09-30）：
 
 | 類別 | series_id（ticker） |
 |---|---|
@@ -86,7 +90,7 @@ X, y = train[feature_cols], train["label_y"]
 
 - **按日期切訓練／驗證**（例如 `date < "2025-01-01"` 訓練、之後驗證）。同一天的市場特徵 100 股都一樣，隨機拆列會把同一天同時放進訓練和驗證。
 - 訓練可用全部 100 股；**提交只預測 `is_top50 == 1` 的 50 股**。
-- Phase 1 要預測 2026-06-01～09-30，訓練時要排除 `date >= "2026-06-01"` 的答案。
+- Phase 1 要預測 2026-06-01～09-30（長表已涵蓋到 9/30），訓練時要排除 `date >= "2026-06-01"` 的答案。
 - 空白＝缺值（`NaN`），佔全部特徵約 3.7%。可用能處理 NaN 的模型（如 `HistGradientBoostingClassifier`），或只用訓練期的資料做補值。
 - 評分：`score = ((2 * pred - 1) * df["label_intraday_return"]).mean()`。
 
@@ -124,14 +128,14 @@ i−k ＝ 該序列往回第 k 個「自己的」交易日
 - 老師個股的其他欄位（成交量、法人、RSI…）都是**收盤後才知道**。要先在每檔股票內往前移一列（`groupby("stock_id").shift(1)`），再用 `(stock_id, date)` 和長表合併。
 - 老師 `^TWII`、`^KS11` 是當日收盤，不能直接當輸入。`^VIX`、`^IXIC`、`^GSPC` 已被老師移到前一個 global 列的日期。
 - `data/features/market_features.csv` 另有 1／5／20 日累積報酬、匯率水準、殖利率基點變化，用 `date` 合併。
-  **不要用其中的 `TX_OI`**：它照抄老師同日期的值，逐年相關性顯示疑似含當天收盤後才公布的資訊。要用就先往前一列。
+  其中的 `TX_OI_prev_row` 已經是前一個 global 列的值（老師原始 `TX_OI` 疑似含當天收盤後才公布的資訊，不要直接用老師檔的同日值）。
 
 ## 重建資料
 
 ```bash
 pip install yfinance==1.7.0      # 環境要能連 finance.yahoo.com
 git fetch origin live-data       # 老師 ZIP 的來源
-python crawler.py                # 下載＋整合＋transform＋panel＋schema，約 1 分鐘
+python crawler.py                # 下載＋取老師 Training／Live＋整合＋transform＋panel＋schema，約 1～2 分鐘
 python crawler.py --skip-download --keep-teacher   # 不連網，只用現有檔案重算
 ```
 
@@ -145,7 +149,11 @@ python crawler.py --skip-download --keep-teacher   # 不連網，只用現有檔
   - 老師的 `^GSPC`、`^IXIC`、`^VIX` 是前一個 global 列的收盤；`^TWII`、`^KS11` 是同日收盤。
   - Yahoo 實際何時上架（發布延遲）沒辦法驗證；DXY、^TNX、^IRX、CL=F、GC=F 在 2025-11 以前的日期慣例也只是假設。所以仍算研究假設。
 - **TWD=X 比名稱舊約一天**：日期 d 的 close 是台北 d 日早上（倫敦午夜前後）的報價；每一年都在美股 d 日開盤前定下。
-- **`TX_OI` 疑似含當天資訊**：`market_features.csv` 照抄老師同日期的值，不要當輸入。長表與 lag 檔沒有 TX_OI。
+- **`TX_OI` 疑似含當天資訊**：`market_features.csv` 已改成 `TX_OI_prev_row`（日期 < t 的最後一個 global 列）；長表與 lag 檔本來就沒有 TX_OI。
+- **9 月接老師 Live ZIP**：
+  - 8/31→9/1 的還原價基準，100 檔都和 Yahoo 逐值核對過，完全相同，所以跨接縫的報酬是連續的。
+  - Live 的 global 表每個台股日都有一列：美股或韓股休市時沿用前一筆值，美股欄是「日期 < d 的最後一個美股收盤」。Training 則只有五個序列同日都有資料才有列。
+  - 所以 9 月的 `teacher_*` lag 往回數的是 Live 的列。值都在開盤前已知。
 - **資料清理**（每筆都記在 `data/extra/manifest.json`）：
   - 0052 的分割與股利調整已修正。
   - 刪掉台灣 ETF 的佔位K棒、TWD=X 的 2 筆壞報價、殖利率在美國債市休市日的平盤K棒。

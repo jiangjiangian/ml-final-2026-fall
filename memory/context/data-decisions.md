@@ -3,10 +3,18 @@
 每條都附理由與證據；改動前先讀，改動後更新本檔與 `schema.json`。
 
 ## 範圍與來源
-- 日期：**2020-01-01～2026-08-31**（含）。yfinance 的 `end` 不含當天，所以請求送 `2026-09-01`。
+- 日期：**2020-01-01～2026-09-30**（含；使用者 2026-11-04 從 8/31 延長）。yfinance 的 `end` 不含當天，所以請求送 `2026-10-01`。
 - 額外指標**全部**經 yfinance 1.7.0 `Ticker.history(interval='1d', auto_adjust=False, actions=False, repair=False)`。
 - 老師 index（`^VIX ^IXIC ^GSPC ^TWII ^KS11`）不重抓，因為老師 global_data 已有。
 - 老師資料來自 `origin/live-data` 的 `catalog/latest.json` → catalog → `course-training.latest_sha256` → `objects/<sha>.zip`，每層都核對 sha256，再**逐位元組**解到 `data/teacher/`。schema 另存 `teacher.members_sha256`（所有成員檔 hash 的摘要），`--keep-teacher` 會核對它，不符就拒絕。
+- **9 月接老師 Live ZIP**（`course-live.latest_sha256`＝`7f4c759a…`，11/04 取得，內容 9/1～11/4）：
+  - 逐位元組放到 `data/teacher_live/`（沒有 info.json）。schema 的 `teacher_live` 記 hash、`members_sha256`、使用範圍，`--keep-teacher` 一樣會核對。
+  - 只取 **Training 最後日期（8/31）之後、<= 9/30** 的列，接在 Training 後面：20 個台股日、2,000 個個股列、20 個 global 列，9 月沒有待定值。
+  - Live 用 `-1` 標示待定：`y=-1` → 答案空白；指數欄 `-1` → 空白。
+  - 10/27～11/04 的 5 個 Live 版本裡，9 月的列完全相同（沒有被重算）。
+  - 接縫驗證：100 檔在 8/31 與 9/1 的「老師 adj_close ÷ Yahoo 原始 close」完全相同 → 還原價基準一致、跨接縫報酬連續。Live 9 月 2,000 列的盤中比與 Yahoo 同日 100% 一致（錯一天約 2.3%），y 2000/2000。
+  - Live global 的慣例和 Training 不同：每個台股日都有一列，休市市場沿用前一筆；美股欄＝日期 < d 的最後一個美股收盤（9 月 ^IXIC／^GSPC 20/20、^VIX 19/20），^TWII 20/20 同日、^KS11 19/20 同日（1 列韓國休市沿用）。值都在開盤前已知；9 月的 teacher_* lag 往回數的是 Live 的列。
+  - 延長後 8/31 以前的值：老師相關欄完全相同；ETF／美股的 adj_close 因 Yahoo 重算有 <1e-6 的浮動（報酬絕對差 ≤ 9e-7）。
 
 ## 19 個額外指標
 | id | ticker | 類型 | 備註 |
@@ -51,8 +59,8 @@
   - `^GSPC／^IXIC／^VIX`：列 d 的值＝**前一個 global 列日期**的美股收盤（`^GSPC` 對 DJI：前一 global 列 0.87、同日 −0.18）。長假後可能落後多個美股交易日。
   - `^TWII`：列 d＝**d 當日收盤**（對 0050 同日 0.94、前一日 0.08）。
   - `^KS11`：列 d＝**d 當日收盤**（對日經225 同日 0.65、前一日 0.01）。
-  - → market_features 改放 `^TWII_prev_row`、`^KS11_prev_row`（最後一個日期 < t 的 global 列）。
-  - `TX_OI`：早先差分對同日／前一日 TWII 報酬相關都弱。2026-11-04 逐年 Spearman 改判為**疑似同日**（role＝suspected_same_day）：ΔTX_OI 對同日盤中報酬 2023 年 +0.37（其他 1 日變化欄逐年最大 0.18），對同日開盤跳空 2022／2023／2025 年 +0.21／+0.24／+0.38；各年正負不一，只能說疑似。market_features 照抄同日期，README／CLAUDE.md 已警告不要用；改資料（刪除或改前一列）要先問使用者。
+  - → market_features 改放 `^TWII_prev_row`、`^KS11_prev_row`、`TX_OI_prev_row`（最後一個日期 < t 的 global 列；TX_OI 是使用者 2026-11-04 同意改的）。
+  - `TX_OI`：早先差分對同日／前一日 TWII 報酬相關都弱。2026-11-04 逐年 Spearman 改判為**疑似同日**（role＝suspected_same_day）：ΔTX_OI 對同日盤中報酬 2023 年 +0.37（其他 1 日變化欄逐年最大 0.18），對同日開盤跳空 2022／2023／2025 年 +0.21／+0.24／+0.38；各年正負不一，只能說疑似。使用者 2026-11-04 決定：market_features 改成 `TX_OI_prev_row`（已做）；長表與 lag 檔本來就沒有 TX_OI，不受影響。
 - global_data 只有「五個老師 Yahoo 序列同日都有資料」才有列（1,506 列，缺 112 個台股日；大致是台／美／韓交集，但例如 2021-04-06 三地都有交易仍缺），缺列不代表休市。
 
 ## 時間對齊驗證（2026-11-04，用 Yahoo 原始資料逐值比對；結論：沒有對齊錯誤、沒有洩漏）
@@ -93,7 +101,7 @@
 - **i＝t 的前一個台股交易日**，所以只用 t 開盤前已知的收盤；該序列在 i 那天沒有資料 → 空白。
 - **i−k＝同一序列往回第 k 個自己的交易日**（不是台股列）。老師 global 指數＝往回 k 個 global 列；老師個股＝該股往回 k 列。
 - 例：SOX close 01-16=100、01-17=102、01-21=99（01-20 美股休市）。列 01-22 用 i＝01-21 → lag2＝99/100−1＝−1.00%；列 01-21 用 i＝01-20 → 空白。
-- 每個 CSV 兩欄：`date` 與 `<id>_ret_lag{k}`（只有一個特徵欄）；1,618 列。
+- 每個 CSV 兩欄：`date` 與 `<id>_ret_lag{k}`（只有一個特徵欄）；1,638 列（2020-01-02～2026-09-30）。
 - 範圍：19 個額外指標＋老師 5 指數（`teacher_*`，不含 TX_OI）＋老師 100 股（`stock_<代號>`，用 `etl:adj_close`）＝124 個特徵 × 2 個資料夾。
 - 價格：股票／ETF 用 adj_close，其他用 close。殖利率也用百分比報酬（使用者選擇）；us13w 在 2020-03 與 2021-02～2022-02 會有 ±100% 以上的值。
 - 空白：i 那天沒資料、往回不足 k 個交易日、或 close_i／close_{i−k} 缺值或 <= 0（只看這兩個端點）。
@@ -101,13 +109,13 @@
 - 老師美股欄已被老師位移一列，所以 `teacher_vix／ixic／gspc` 的值比名稱再舊一個 global 列（長假後可能落後多個美股日）。
 
 ## 長表 panel_lag.csv.gz（使用者 2026-11-04 選擇）
-- 形狀：長表，每列＝一股 × 一個台股交易日；**全部 100 股**（`is_top50` 標記官方 50 檔），100 × 1,618＝161,800 列的完整格子，依 date、stock_id 排序。
+- 形狀：長表，每列＝一股 × 一個台股交易日；**全部 100 股**（`is_top50` 標記官方 50 檔），100 × 1,638＝163,800 列的完整格子，依 date、stock_id 排序。
 - 欄位（56）：`date, stock_id, is_top50, has_teacher_row`＋`stock_ret_lag2/5`（該股自己的）＋48 個市場特徵（19 額外＋5 老師指數 × lag2/5，同日各股相同）＋`label_y, label_intraday_return`。
 - 答案放**同一檔**、欄名加 `label_` 前綴（使用者選擇）；README 示範用 `"_ret_lag" in c` 選特徵，自然排除答案。
 - 格式：CSV.gz（使用者選擇；gzip mtime=0、壓縮等級 9，可重現），7 MB。schema 記 `sha256_csv_uncompressed`（跨環境比對用）與 `sha256_gz`。
 - 數值和 lag 檔完全相同（同一份計算結果寫兩次），已獨立逐格核對：特徵、label_y、盤中報酬皆 0 不一致。
 - 老師缺列的 54 格：`has_teacher_row=0`，答案空白，特徵照常計算。
-- 特徵缺值比例 3.67%。
+- 特徵缺值比例 3.65%（延長到 9/30 後）。
 
 ## 其他格式決定
 - CSV 浮點數用完整精度（`repr`）；空白＝缺值。

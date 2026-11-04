@@ -3,29 +3,31 @@
   "generated_by": "crawler.py",
   "date_range": {
     "start": "2020-01-01",
-    "end_inclusive": "2026-08-31"
+    "end_inclusive": "2026-09-30"
   },
   "readiness": "research_assumption",
   "historical_vintage_verified": false,
   "timing_verification": {
     "verified_on": "2026-11-04",
-    "conclusion": "日期語意驗證通過：老師 5 個指數與老師個股的日期都沒有錯位；19 個額外指標在小時K期間（2025-11-10～2026-08-31）也沒有錯位，較早年份見 method。transform 與 panel 用到的每根K棒都在 t 日台北 07:00 以前收完（市場時間）；market_features 也是如此，但 TX_OI 例外（照抄老師同日期的值，疑似含當日資訊，不可當輸入）。資料不需修改。Yahoo 實際何時上架（發布延遲）無法驗證，所以 readiness 仍是 research_assumption。",
-    "method": "另用 yfinance（同一套限流）抓 Yahoo 原始資料，只用來比對、不存進 data/：老師 5 個指數與 5 檔老師個股（2330、2317、2454、2881、1101）的日K（2019-12～2026-09），以及 19 個額外指標的小時K。小時K本次只抓2025-11-10～2026-08-31（約 10 個月，涵蓋冬令與夏令）；Yahoo 1h 最多回溯 730 天（約到 2024-11），更早的年份無法用小時K驗證。較早年份改用逐年開盤跳空測試：SOX、TSM、NVDA、DJI、4 檔台灣 ETF、N225 每年都有鑑別力，確認慣例不變；HSI、SSE、STOXX50E、GDAXI、TWD=X 方向一致但部分年份鑑別力弱；DXY、^TNX、^IRX、CL=F、GC=F沒有鑑別力，2025-11-10 以前的日期慣例是假設（交易所以當地交易日標示日K）。",
+    "conclusion": "日期語意驗證通過：老師 5 個指數與老師個股的日期都沒有錯位；19 個額外指標在小時K期間（2025-11-10～2026-08-31）也沒有錯位，較早年份見 method；Live（9 月）的個股日期與 global 慣例也逐值核對過。transform 與 panel 用到的每根K棒都在 t 日台北 07:00 以前收完（市場時間）；market_features 也是如此（TX_OI 已改成前一列 TX_OI_prev_row）。Yahoo 實際何時上架（發布延遲）無法驗證，所以 readiness 仍是 research_assumption。",
+    "method": "另用 yfinance（同一套限流）抓 Yahoo 原始資料，只用來比對、不存進 data/：老師 5 個指數與 5 檔老師個股（2330、2317、2454、2881、1101）的日K（2019-12～2026-09），以及 19 個額外指標的小時K。小時K本次只抓2025-11-10～2026-08-31（約 10 個月，涵蓋冬令與夏令）；Yahoo 1h 最多回溯 730 天（約到 2024-11），更早的年份無法用小時K驗證。延長到 9/30 時，另抓老師 5 個指數與 100 檔老師個股 2026-07～10 的日K，核對 Live 與接縫。較早年份改用逐年開盤跳空測試：SOX、TSM、NVDA、DJI、4 檔台灣 ETF、N225 每年都有鑑別力，確認慣例不變；HSI、SSE、STOXX50E、GDAXI、TWD=X 方向一致但部分年份鑑別力弱；DXY、^TNX、^IRX、CL=F、GC=F沒有鑑別力，2025-11-10 以前的日期慣例是假設（交易所以當地交易日標示日K）。",
     "verified_against": {
       "teacher_members_sha256": "31bbdc99c3bfd28f9df8b671160fba7030408d9eea18694c3cec9f94ccb73ea0",
-      "market_features_sha256": "dde04c747c584980e092d0aeb2dd9bf6d790fff6f28e653bd33c93efb5501e50",
-      "panel_sha256_csv_uncompressed": "97bcd835392d130253a39022b27b902cf192bd63b23ab51331e0bc6f356bb448"
+      "teacher_live_members_sha256": "fe7607e1e880f002cfc903691b60a6a9067f68da12121b340528f857997bf565",
+      "market_features_sha256": "59860b37ae802bcae0822fe78c974d5cfefa4c535a31ceaaf9f6a87a32867802",
+      "panel_sha256_csv_uncompressed": "2242cfb129abea331382ffbc3e998a1e36226ef87d9f03d436201ea9259d7f2c"
     },
     "teacher_global": {
       "^VIX/^IXIC/^GSPC": "第 j 列＝第 j−1 列日期的 Yahoo 收盤，1505/1505；第一列＝2020-01-02 收盤；以 ^GSPC／^IXIC 的美股日曆計 88 列落後超過一個美股日（^VIX 依 Yahoo 自己的日曆是 89，因為 Yahoo 在 2026-05-25 美國假日有一根 VIX K棒）",
       "^TWII/^KS11": "同日收盤，各 1506/1506 → 不能當 t 的輸入。transform 只用 i＝前一個台股日（i 不是 global 列就空白）；market_features 用日期 < t 的最後一個 global 列（111 天比前一個台股日更舊）",
-      "TX_OI": "沒有可逐值比對的來源；逐年相關性顯示疑似含當日資訊，不可當輸入（見 teacher.global_columns.TX_OI.timing）"
+      "TX_OI": "沒有可逐值比對的來源；逐年相關性顯示疑似含當日資訊，不可直接當輸入（見 teacher.global_columns.TX_OI.timing）；market_features 已改放前一列",
+      "live_2026_09": "2026-11-04 與 Yahoo 原始收盤逐值比對 Live 用到的 20 列（2026-09-01～09-30）：^IXIC／^GSPC 20/20＝日期 < d 的最後一個美股收盤；^VIX 19/20 同上，9/08 那列＝9/04 收盤（Yahoo 在 9/07 美國假日另有一根 VIX K棒）；^TWII 20/20＝同日收盤；^KS11 19/20＝同日收盤，1 列（韓國休市）＝前一個韓股收盤。和 Training 的差別：Training 只有五個序列同日都有資料才有列，美股欄＝前一個 global 列日期的收盤；Live 每個台股日都有一列，美股或韓股休市時沿用前一筆值（9 月 ^VIX／^IXIC／^GSPC／^KS11 各有 1 列和前一列相同）。兩者的值都在 t 開盤前已知；teacher_* 的 lag 在 9 月往回數的是 Live 的列。"
     },
-    "teacher_stocks": "日期＝台股交易日。盤中比 adj_close/adj_open 與 Yahoo 同日 close/open 一致 99.8%～99.9%（分母＝Yahoo 同日有成交量的K棒，絕對差 < 1e-4；含零量K棒為 99.7%～99.8%），錯一天只有 1.5%～7.0%，所以排除日期位移；y＝1{adj_close > adj_open} 同列 100%。不一致日都是 Yahoo 的資料問題，前後一天也對不上：2022-08-22（5/5 檔）、2024-03-29（4/5 檔）Yahoo 是不完整的盤中K棒（open 相同、高低在老師區間內、成交量只有老師的約 4～8 成）；2020-02-04 Yahoo 的 open 錯（超出 ±10% 漲跌幅）；2024-11-20 Yahoo 平盤K棒；2021-08-17 Yahoo 零量佔位K棒；Yahoo 缺 2021-04-06、2025-08-01。",
+    "teacher_stocks": "日期＝台股交易日。盤中比 adj_close/adj_open 與 Yahoo 同日 close/open 一致 99.8%～99.9%（分母＝Yahoo 同日有成交量的K棒，絕對差 < 1e-4；含零量K棒為 99.7%～99.8%），錯一天只有 1.5%～7.0%，所以排除日期位移；y＝1{adj_close > adj_open} 同列 100%。不一致日都是 Yahoo 的資料問題，前後一天也對不上：2022-08-22（5/5 檔）、2024-03-29（4/5 檔）Yahoo 是不完整的盤中K棒（open 相同、高低在老師區間內、成交量只有老師的約 4～8 成）；2020-02-04 Yahoo 的 open 錯（超出 ±10% 漲跌幅）；2024-11-20 Yahoo 平盤K棒；2021-08-17 Yahoo 零量佔位K棒；Yahoo 缺 2021-04-06、2025-08-01。Live（2026-09-01～09-30）100 檔 2,000 列：盤中比與 Yahoo 同日一致 100%，錯一天約 2.3%；y 同列 2000/2000。Training／Live 接縫（8/31→9/1）：100 檔的還原價基準（老師 adj_close ÷ Yahoo 原始 close）完全相同，所以跨接縫的報酬連續；9 月除息日（例：2330 9/16）只在 Live 內部造成正常的除息調整。",
     "extra_bars": "每個序列的結果見 extra.series.<series_id>.timing。除 TWD=X 外，所有日K最晚在 d+1 07:00（台北）收完（保守上界）；TWD=X 只驗證了 close 的時點：每一年都在美股 d 日開盤前（台北 d 日 22:30 前）",
     "outputs": {
-      "market_features": "19 個額外序列的 source_date 全部 <= t−1 日曆天；老師欄 ^VIX／^IXIC／^GSPC 照抄同日期（已驗證是前一個 global 列的收盤）、^TWII_prev_row／^KS11_prev_row 取日期 < t 的列；TX_OI 照抄同日期、疑似含當日資訊，不可當輸入",
-      "transform_and_panel": "i＝t 的前一個台股交易日；t−i（日曆天）分布 1 天 1,262 列、2 天 10、3 天 296、4 天 29、5 天 12、6 天 1、10 天 2、12 天 4、13 天 1；不含 TX_OI",
+      "market_features": "19 個額外序列的 source_date 全部 <= t−1 日曆天；老師欄 ^VIX／^IXIC／^GSPC 照抄同日期（已驗證是前一個 global 列的收盤）、^TWII_prev_row／^KS11_prev_row／TX_OI_prev_row 取日期 < t 的最後一個 global 列",
+      "transform_and_panel": "i＝t 的前一個台股交易日；t−i（日曆天）分布 1 天 1,278 列、2 天 10、3 天 299、4 天 29、5 天 13、6 天 1、10 天 2、12 天 4、13 天 1；不含 TX_OI",
       "implication": "用到的每根K棒都在 t 日台北 07:00 以前收完（市場時間；專案截止 08:10、老師截止 09:00）；Yahoo 實際上架時間未驗證"
     },
     "open_gap_test": {
@@ -36,9 +38,9 @@
     },
     "leakage_placebo": {
       "definition": "24 個市場特徵（19 額外＋5 老師指數）的 lag2 與當日 Top50 平均盤中報酬的相關係數；對照組刻意改用日期＝t 的K棒",
-      "this_branch_lag2_max_abs_corr": 0.163,
-      "deliberately_leaky_max_abs_corr": 0.395,
-      "note": "最大值 0.163 是 teacher_gspc，不是洩漏：GSPC 單日報酬與盤中報酬的相關，最新一晚 −0.130、第 2、3 晚 +0.100／+0.095（隔夜跳空後盤中反轉），teacher_gspc lag2 剛好落在第 2～3 晚。"
+      "this_branch_lag2_max_abs_corr": 0.159,
+      "deliberately_leaky_max_abs_corr": 0.388,
+      "note": "最大值 0.159 是 teacher_gspc，不是洩漏：GSPC 單日報酬與盤中報酬的相關，最新一晚 −0.130、第 2、3 晚 +0.096／+0.094（隔夜跳空後盤中反轉），teacher_gspc lag2 剛好落在第 2～3 晚。期間 2020-01～2026-09。"
     },
     "not_verified": [
       "Yahoo 歷史上幾點真的抓得到某根日K（發布延遲）",
@@ -53,6 +55,7 @@
     "data/teacher/info.json": "Top50@Y（預測目標50股）／Top100@Y 名單",
     "data/teacher/global/global_data.csv": "老師全球指標；只有台／美／韓同日都交易的日期才有列（1506 列，缺 112 個台股交易日）",
     "data/teacher/market/<stock_id>.csv": "老師個股資料（每股一檔，21欄含 y）",
+    "data/teacher_live/": "老師 Live ZIP 原樣（逐位元組，sha256 見 teacher_live）：global/global_data.csv＋market/<stock_id>.csv；本分支只用 Training 最後一天之後、<= date_range.end_inclusive 的列",
     "data/extra/yfinance/<series_id>.csv": "yfinance 額外指標日K（已清理，見 extra.series.*.cleaning）",
     "data/extra/manifest.json": "爬蟲紀錄：取得時間、限流設定、重試、清理、hash、失敗原因",
     "data/features/market_features.csv": "每台股交易日一列：老師市場欄（^TWII／^KS11 已改前一列；TX_OI 照抄同日期，疑似含當日資訊，不要當輸入）＋已對齊的額外特徵",
@@ -77,6 +80,7 @@
     "source": {
       "live_data_ref": "origin/live-data",
       "catalog_sha256": "8615bd636d6043d9ce9d90dcc891bec225e8a1869229627ad9c00a0be70026a5",
+      "catalog_source": "course-training",
       "object": "live-data:objects/7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2.zip",
       "source_fetched_at": "2026-11-04T05:18:59.376329+00:00"
     },
@@ -145,7 +149,7 @@
         "unit": "contracts",
         "role_note": "發布時點未驗證，逐年相關性顯示疑似含目標日當日資訊；不可當 t 的輸入，至少往前一列",
         "file": "data/teacher/global/global_data.csv",
-        "timing": "疑似含列日期 d 當日的資訊（期交所約 15:00 盤後才公布），不可當 t 的輸入。沒有可逐值比對的來源；2026-11-04 逐年 Spearman：差分 ΔTX_OI（第 j 列 − 第 j−1 列）對同日盤中報酬 2023 年 +0.37（market_features 其他 1 日變化欄逐年最大 0.18），對同日開盤跳空 2022／2023／2025 年 +0.21／+0.24／+0.38（t−1 日盤收盤時的部位無法預測美股隔夜造成的跳空）；各年正負不一，所以只能說「疑似」。market_features.csv 照抄同日期的值，建模時不要用；要用就先往前一列。"
+        "timing": "疑似含列日期 d 當日的資訊（期交所約 15:00 盤後才公布），不可當 t 的輸入。沒有可逐值比對的來源；2026-11-04 逐年 Spearman：差分 ΔTX_OI（第 j 列 − 第 j−1 列）對同日盤中報酬 2023 年 +0.37（market_features 其他 1 日變化欄逐年最大 0.18），對同日開盤跳空 2022／2023／2025 年 +0.21／+0.24／+0.38（t−1 日盤收盤時的部位無法預測美股隔夜造成的跳空）；各年正負不一，所以只能說「疑似」。market_features.csv 已改放 TX_OI_prev_row（日期 < t 的最後一個 global 列），老師原始檔的同日值不要直接當輸入。"
       }
     },
     "stock_columns": {
@@ -306,6 +310,35 @@
     ],
     "label_definition": "y＝1{etl:adj_close > etl:adj_open}；盤中報酬＝adj_close/adj_open−1；官方分數 mean((2p−1)×盤中報酬)"
   },
+  "teacher_live": {
+    "source": {
+      "live_data_ref": "origin/live-data",
+      "catalog_sha256": "8615bd636d6043d9ce9d90dcc891bec225e8a1869229627ad9c00a0be70026a5",
+      "catalog_source": "course-live",
+      "object": "live-data:objects/7f4c759af6df64e3a1b5e42330cfa5a56fe1f6a4644ca56a052d3a6297dc096b.zip",
+      "source_fetched_at": "2026-11-04T05:19:04.731133+00:00"
+    },
+    "archive_sha256": "7f4c759af6df64e3a1b5e42330cfa5a56fe1f6a4644ca56a052d3a6297dc096b",
+    "members_sha256": "fe7607e1e880f002cfc903691b60a6a9067f68da12121b340528f857997bf565",
+    "stock_count": 100,
+    "stock_date_min": "2026-09-01",
+    "stock_date_max": "2026-11-04",
+    "global_rows": 43,
+    "global_date_min": "2026-09-01",
+    "global_date_max": "2026-11-04",
+    "used_range": {
+      "after": "2026-08-31",
+      "end_inclusive": "2026-09-30"
+    },
+    "used_taiwan_trading_days": 20,
+    "used_stock_rows": 2000,
+    "used_global_rows": 20,
+    "used_pending_label_rows": 0,
+    "used_global_rows_with_pending_marker": 0,
+    "file": "data/teacher_live/",
+    "how_used": "個股檔與 global 表接在 Training 之後：只取 Training 最後日期之後、<= date_range.end_inclusive 的列；欄位與 Training 相同；-1 是 Live 的待定標記（y＝-1 → 答案空白；指數欄 -1 → 空白）",
+    "global_convention": "2026-11-04 與 Yahoo 原始收盤逐值比對 Live 用到的 20 列（2026-09-01～09-30）：^IXIC／^GSPC 20/20＝日期 < d 的最後一個美股收盤；^VIX 19/20 同上，9/08 那列＝9/04 收盤（Yahoo 在 9/07 美國假日另有一根 VIX K棒）；^TWII 20/20＝同日收盤；^KS11 19/20＝同日收盤，1 列（韓國休市）＝前一個韓股收盤。和 Training 的差別：Training 只有五個序列同日都有資料才有列，美股欄＝前一個 global 列日期的收盤；Live 每個台股日都有一列，美股或韓股休市時沿用前一筆值（9 月 ^VIX／^IXIC／^GSPC／^KS11 各有 1 列和前一列相同）。兩者的值都在 t 開盤前已知；teacher_* 的 lag 在 9 月往回數的是 Live 的列。"
+  },
   "extra": {
     "api": "yfinance（Yahoo Finance chart API：query1/query2.finance.yahoo.com/v8/finance/chart）；19 個序列全部經 yfinance",
     "library_version": "1.7.0",
@@ -337,7 +370,7 @@
         "circuit_breaker": "序列因限流放棄後冷卻 backoff_max 秒；連續 3 個序列被限流即中止"
       },
       "last_run": {
-        "run_started_at": "2026-11-04T09:11:59+00:00",
+        "run_started_at": "2026-11-04T13:04:26+00:00",
         "series_requested": [
           "sox",
           "tsm_adr",
@@ -360,7 +393,7 @@
           "gold"
         ],
         "http_requests": 20,
-        "paced_sleep_seconds": 45.21,
+        "paced_sleep_seconds": 48.124,
         "circuit_breaker_cooldown_seconds": 0.0
       }
     },
@@ -390,11 +423,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/sox.csv",
-        "rows": 1674,
+        "rows": 1695,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "839fb5b9e7b10dd8523e05fa5929644444a9a282dde72cc44996adadd1af088f",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "3a875108c8b061f9a364d287787b74f6bc357bbe4ea03070a182f678dfdc56c4",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -409,9 +442,9 @@
           "bar_covers": "美東當地日 d 的正規盤（09:30–16:00 ET），在台股 d 日收盤之後",
           "complete_by_taipei": "d+1 05:30",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.658,
-            "bar_dated_t": -0.03
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.657,
+            "bar_dated_t": -0.024
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -427,11 +460,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/tsm_adr.csv",
-        "rows": 1674,
+        "rows": 1695,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "5c56567572e3824d8cdd6617c690650a916b9e484796a05061a813bfca434c67",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "a64d7ac7fd130611c7010cb6857434fed32ded1d85b8d53c53795ae9ac0f7595",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -446,9 +479,9 @@
           "bar_covers": "美東當地日 d 的正規盤（09:30–16:00 ET），在台股 d 日收盤之後",
           "complete_by_taipei": "d+1 05:30",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
+            "period": "2020-01～2026-09 全期（Pearson）",
             "latest_bar_before_t": 0.521,
-            "bar_dated_t": 0.034
+            "bar_dated_t": 0.036
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -464,11 +497,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/nvda.csv",
-        "rows": 1674,
+        "rows": 1695,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "da3e81b4db847e6b877951066aa07fd35073812b3bd07e018d869081307829e1",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "d9ae2c20d53d23d46bec904c4dfc8b25707b8193f7e605c580f0df34fe7bfc4d",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -483,9 +516,9 @@
           "bar_covers": "美東當地日 d 的正規盤（09:30–16:00 ET），在台股 d 日收盤之後",
           "complete_by_taipei": "d+1 05:30",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
+            "period": "2020-01～2026-09 全期（Pearson）",
             "latest_bar_before_t": 0.508,
-            "bar_dated_t": 0.01
+            "bar_dated_t": 0.012
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -501,11 +534,11 @@
         "note": "報價＝1美元兌多少台幣；報酬為正＝台幣貶值。Yahoo FX 日K依倫敦日界，不是台北收盤或定盤。約 68% 的列 close＝open（2023–2024 幾乎 100%，各年比例不同）。2026-11-04 驗證：日期 d 的 close≈倫敦 d 日 00:00～01:00 的報價（台北 d 日早上），所以報酬比名稱舊約一天（安全，但較不新鮮）；見 timing。",
         "status": "ok",
         "file": "data/extra/yfinance/usd_twd.csv",
-        "rows": 1732,
+        "rows": 1754,
         "date_min": "2020-01-01",
-        "date_max": "2026-08-31",
-        "sha256": "14f91653776424bd5e98b68eebd2e83f37b848377c3f2b671bc9c7f31a4db40c",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "233cda3a19740010c5e4c69384b1708f6e1c034710a10fea9ac6d4a624c1e748",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [
             {
@@ -541,12 +574,12 @@
           "bar_covers": "日期依倫敦日標示；本分支只用 close。小時K期間 close≈倫敦 d 日 00:00～01:00 的報價（中位差約 1bp；同日 23:00 為 17bp）。日K的 high／low 和任何小時K區間都對不上，所以整根K棒涵蓋的區間沒有驗證",
           "complete_by_taipei": "close：小時K期間約台北 d 日 08:00；跨年證據顯示每一年都在美股 d 日開盤前（台北 d 日 22:30 前）",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.002,
-            "bar_dated_t": -0.198
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.001,
+            "bar_dated_t": -0.199
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）",
-          "note": "跨年 Spearman（2020–2026 每一年）：日期 d 的報酬對最新一個 < d 的 DJI 報酬 −0.16～−0.42、對 DJI d 日 −0.07～+0.08 → close 在美股 d−1 收盤之後、美股 d 開盤之前；日期＝t 對 t 日盤中報酬 2020–2025 為 −0.03～+0.04（2026 為 −0.15），下一根對 t 日盤中 −0.10～−0.26。所以 usd_twd 比名稱舊約一天。"
+          "note": "跨年 Spearman（2020–2026 每一年；2026 到 9/30）：日期 d 的報酬對最新一個 < d 的 DJI 報酬 −0.16～−0.42、對 DJI d 日 −0.07～+0.09 → close 在美股 d−1 收盤之後、美股 d 開盤之前；日期＝t 對 t 日盤中報酬 2020–2025 為 −0.03～+0.04（2026 為 −0.08），下一根對 t 日盤中 −0.07～−0.26。所以 usd_twd 比名稱舊約一天。"
         }
       },
       "dxy": {
@@ -560,11 +593,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/dxy.csv",
-        "rows": 1676,
+        "rows": 1697,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "76e6e88517a5b0fff15fed22cb7422987ff7f52dd5dc85621d360e665c1c1bd0",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "f480371620314e2905f9eecd39d4abc80cb8fc05ba12ef4582ada2971d484034",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -579,9 +612,9 @@
           "bar_covers": "約前一日 19:00 ET → d 日 18:00 ET（結束在 d；日K open≈前一日 19:00 ET 的報價，含 17:00–18:00 ET 那根小時K）；高低點與「結束在 d」的分組相符約 87%、與「從 d 開始」約 3%（相對容差 2e-4）；close≈15:00 ET 的報價（14:00–15:00 小時K的收盤，中位差 0.31bp）；DX-Y.NYB 是指數，不是結算價",
           "complete_by_taipei": "d+1 07:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
+            "period": "2020-01～2026-09 全期（Pearson）",
             "latest_bar_before_t": -0.209,
-            "bar_dated_t": -0.117
+            "bar_dated_t": -0.116
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -597,11 +630,11 @@
         "note": "以百分比報價（4.25＝4.25%）。",
         "status": "ok",
         "file": "data/extra/yfinance/us10y.csv",
-        "rows": 1663,
+        "rows": 1684,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "5a1bf4dce06a5511c0f0f34c9b7e736f9e8c5fd0a8b391b6335e27ec09004c3b",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "8a22b1ddd86257872feb3b02593c10b1a7f42ae6bf1d590c0181d45b8df11347",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [
@@ -727,8 +760,8 @@
           "bar_covers": "芝加哥時區當地日 d（CBOE 殖利率指數）",
           "complete_by_taipei": "d+1 04:20",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.032,
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.03,
             "bar_dated_t": -0.004
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
@@ -745,11 +778,11 @@
         "note": "2020–2021 接近 0 且偶有負值；百分比報酬在此期間會非常大。",
         "status": "ok",
         "file": "data/extra/yfinance/us13w.csv",
-        "rows": 1663,
+        "rows": 1684,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "41c2b8611f7d28d838685ac0e21cdf9865b377614e253f0f405ab8dc52fd2501",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "ab0599a657d224c1aaf2668ab362b21a8c573cb26fdf25704b3ec635e4223b53",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [
@@ -875,9 +908,9 @@
           "bar_covers": "芝加哥時區當地日 d（CBOE 殖利率指數）",
           "complete_by_taipei": "d+1 04:20",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
+            "period": "2020-01～2026-09 全期（Pearson）",
             "latest_bar_before_t": -0.028,
-            "bar_dated_t": 0.088
+            "bar_dated_t": 0.087
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -893,11 +926,11 @@
         "note": "Yahoo 沒有櫃買指數本身（^TWOII／^TWO／^TPEX 皆查無）；以追蹤富櫃50指數的 ETF 代理櫃買市場。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_006201.csv",
-        "rows": 1608,
+        "rows": 1628,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "df39d2f5e35dad4ee307418227b46f421fa7dee01ea65a8b09d9e959d0b5ecd4",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "a41a4498a49b8f60639e757c0d677ad70eb96828dd650fce5ab0be9ee873e468",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -918,7 +951,7 @@
               "high": 12.170000076293945,
               "low": 12.170000076293945,
               "close": 12.170000076293945,
-              "adj_close": 10.08587646484375,
+              "adj_close": 10.085875511169434,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
             },
@@ -928,7 +961,7 @@
               "high": 10.720000267028809,
               "low": 10.720000267028809,
               "close": 10.720000267028809,
-              "adj_close": 8.88418960571289,
+              "adj_close": 8.884191513061523,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
             },
@@ -1003,9 +1036,9 @@
           "bar_covers": "台股日 d（09:00–13:30），與老師個股同一天",
           "complete_by_taipei": "d 當天 14:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.001,
-            "bar_dated_t": 0.605
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.002,
+            "bar_dated_t": 0.604
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         },
@@ -1033,11 +1066,11 @@
         "note": "ETF 代理，不是台灣50指數本身。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_0050.csv",
-        "rows": 1610,
+        "rows": 1630,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "85534f83dcfe1c71b2d4606692a874e582ff0293667722939b0a82194d50b2de",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "a5399cc1cb8e5a7fafb743bac5aa76e35c1780db8c0644cfefc2d0d0166765af",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1123,8 +1156,8 @@
           "bar_covers": "台股日 d（09:00–13:30），與老師個股同一天",
           "complete_by_taipei": "d 當天 14:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": -0.001,
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.001,
             "bar_dated_t": 0.744
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
@@ -1151,11 +1184,11 @@
         "note": "電子類股代理，不是證交所電子類指數。2025 年 11 月一拆七（11-19～25 停牌、11-26 復牌）；Yahoo 只把 11-17 起的K棒÷7、更早的沒調整，且分割前的股利調整只做約 1/7，兩者都由 crawler 修正（見 cleaning）。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_0052.csv",
-        "rows": 1610,
+        "rows": 1630,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "a45f2c0fcc3f16c880f57f7ee0f50e1c67ad3fd24a5f798529b89577cf4de606",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "6fb4f54801a605f707ddfedae23be9ee6a2ce521062a2d05887f827c139cf6c4",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1243,18 +1276,18 @@
           "dividend_adjustments_rescaled": [
             {
               "ex_date": "2020-04-22",
-              "yahoo_fraction": 0.004235112839486299,
-              "rescaled_fraction": 0.029645789876404094
+              "yahoo_fraction": 0.004235238745861181,
+              "rescaled_fraction": 0.029646671221028265
             },
             {
               "ex_date": "2021-04-20",
-              "yahoo_fraction": 0.0011495333563315002,
-              "rescaled_fraction": 0.008046733494320502
+              "yahoo_fraction": 0.001149470289483645,
+              "rescaled_fraction": 0.008046292026385515
             },
             {
               "ex_date": "2022-04-20",
-              "yahoo_fraction": 0.012085657522357462,
-              "rescaled_fraction": 0.08459960265650224
+              "yahoo_fraction": 0.01208559170223622,
+              "rescaled_fraction": 0.08459914191565354
             },
             {
               "ex_date": "2023-04-21",
@@ -1280,8 +1313,8 @@
           "bar_covers": "台股日 d（09:00–13:30），與老師個股同一天",
           "complete_by_taipei": "d 當天 14:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.004,
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.006,
             "bar_dated_t": 0.698
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
@@ -1308,11 +1341,11 @@
         "note": "金融類股代理，不是證交所金融保險類指數。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_0055.csv",
-        "rows": 1615,
+        "rows": 1635,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "938eb18374a224a0a4e843c244f2aecb866e4481581a1db34c2c4c202a7c0b55",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "9db6a49c58cc36c81ccf761751534a73d86fcd8d062e03b6eb66dccd18b82a51",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1348,9 +1381,9 @@
           "bar_covers": "台股日 d（09:00–13:30），與老師個股同一天",
           "complete_by_taipei": "d 當天 14:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": -0.041,
-            "bar_dated_t": 0.64
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": -0.037,
+            "bar_dated_t": 0.63
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         },
@@ -1371,11 +1404,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/dji.csv",
-        "rows": 1674,
+        "rows": 1695,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "1f8e9047a07fbff8eaea6e15fa1c20072b46ca3dfb0fdb27a26d75bd5c9cd503",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "ff928fa7ef69a52e1191499b78f39e085e55fbb3b5d811604cda7ce4899f2ba1",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1390,9 +1423,9 @@
           "bar_covers": "美東當地日 d 的正規盤（09:30–16:00 ET），在台股 d 日收盤之後",
           "complete_by_taipei": "d+1 05:30",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.568,
-            "bar_dated_t": 0.017
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.566,
+            "bar_dated_t": 0.016
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -1408,11 +1441,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/n225.csv",
-        "rows": 1626,
+        "rows": 1645,
         "date_min": "2020-01-06",
-        "date_max": "2026-08-31",
-        "sha256": "ab83c55c694503ff0c28b332c4afdce4de0b0fe60df48bb1240352e3193024c6",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "d6d619bd698e5b2c3ed5bbdef061e198ce8813de731885fbbe632890731ecac9",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1427,9 +1460,9 @@
           "bar_covers": "東京當地日 d；比台股早 1 小時開盤，與台股 d 日同時交易",
           "complete_by_taipei": "d 當天 15:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.079,
-            "bar_dated_t": 0.628
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.081,
+            "bar_dated_t": 0.629
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -1445,11 +1478,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/hsi.csv",
-        "rows": 1638,
+        "rows": 1660,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "b639e1f495f2266613e250944f6bfb5e727a53e8279d1a7561c93a8e4607668c",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "fc3d8241e1141a1f681cf3956133a928cef9632204ae929cc488198a8b608920",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1464,9 +1497,9 @@
           "bar_covers": "香港當地日 d；與台股 d 日同時交易",
           "complete_by_taipei": "d 當天 16:30",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.13,
-            "bar_dated_t": 0.377
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.132,
+            "bar_dated_t": 0.376
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -1482,11 +1515,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/sse.csv",
-        "rows": 1615,
+        "rows": 1636,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "db89c5337f33bb02cddcefc6b5ff39122d915a1cb702832a068961516a2c9c1a",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "03b38937c56e9cba75d8f242f4c7065f4fd98844c7fd5f7e15906d1358a439a2",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1501,9 +1534,9 @@
           "bar_covers": "上海當地日 d；與台股 d 日同時交易",
           "complete_by_taipei": "d 當天 15:30",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.093,
-            "bar_dated_t": 0.284
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.095,
+            "bar_dated_t": 0.285
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -1519,11 +1552,11 @@
         "note": "Yahoo 依瑞士假日缺 21 個 Eurex 交易日（1/2、耶穌升天日、聖靈降臨節翌日、8/1），因此 1 期報酬偶爾跨 2 個交易日。",
         "status": "ok",
         "file": "data/extra/yfinance/stoxx50e.csv",
-        "rows": 1676,
+        "rows": 1698,
         "date_min": "2020-01-03",
-        "date_max": "2026-08-31",
-        "sha256": "9fca8d19dea36766f9545c0da3168f9b3a144964c461c73e3089b6f1e5d80825",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "85fa0c86a56f5166b3e9195ad7e511cbc1b2a7adf96df72caed324a2e414adf3",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1538,9 +1571,9 @@
           "bar_covers": "蘇黎世時區當地日 d，在台股 d 日收盤之後",
           "complete_by_taipei": "d+1 01:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
+            "period": "2020-01～2026-09 全期（Pearson）",
             "latest_bar_before_t": 0.391,
-            "bar_dated_t": 0.247
+            "bar_dated_t": 0.245
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）",
           "note": "t 日的K棒在台北 t+1 00:00～01:00 才收完，晚於 t 開盤，不能用；它和 t 日跳空也正相關（約 0.25），是因為 close 對 close 的報酬涵蓋歐股 t−1 收盤後的美股時段與亞洲 t 日"
@@ -1557,11 +1590,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/gdaxi.csv",
-        "rows": 1697,
+        "rows": 1719,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "d63fd6c8e02ea9d4b4c5d8fd513f942a46476f0090896f8561e6f8677d33bcd4",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "677bab35a74aea68ac178990e40901579a7af1ee8a18c45d6b85e9e3c099ccb9",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1576,9 +1609,9 @@
           "bar_covers": "柏林時區當地日 d，在台股 d 日收盤之後",
           "complete_by_taipei": "d+1 01:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
+            "period": "2020-01～2026-09 全期（Pearson）",
             "latest_bar_before_t": 0.372,
-            "bar_dated_t": 0.245
+            "bar_dated_t": 0.243
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）",
           "note": "t 日的K棒在台北 t+1 00:00～01:00 才收完，晚於 t 開盤，不能用；它和 t 日跳空也正相關（約 0.25），是因為 close 對 close 的報酬涵蓋歐股 t−1 收盤後的美股時段與亞洲 t 日"
@@ -1595,11 +1628,11 @@
         "note": "連續近月合約；2020-04-20 結算價 −37.63，碰到非正價格的報酬保持空值。",
         "status": "ok",
         "file": "data/extra/yfinance/wti.csv",
-        "rows": 1676,
+        "rows": 1697,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "f5a4ceb558d0ca8e1105776a8c0ca6a93af53170ecdd352004f5b5813e8610c2",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "0036c7af351cf806cd02732c4e8bf01c7cec7aba87eb1527d4ce84b8ace56ad3",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1614,9 +1647,9 @@
           "bar_covers": "前一日 18:00 ET → d 日 17:00 ET（結束在 d）；高低點與「結束在 d」相符 72%、與「從 d 開始」0%；close 推定為 CME 結算價（約 14:30 ET；日K close 落在 14:00–15:00 ET 小時K高低區間內約 90%，無法精確驗證）",
           "complete_by_taipei": "d+1 06:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.074,
-            "bar_dated_t": 0.005
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.072,
+            "bar_dated_t": 0.004
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -1632,11 +1665,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/gold.csv",
-        "rows": 1677,
+        "rows": 1698,
         "date_min": "2020-01-02",
-        "date_max": "2026-08-31",
-        "sha256": "fb78601517ec3fb7b169c0f5153920f92bd1fa9ad0a403c59247c2bdd822f8eb",
-        "fetched_at": "2026-11-04T09:11:59+00:00",
+        "date_max": "2026-09-30",
+        "sha256": "746b48f48d2849676f5dd6e1d30e89fdd9a17b996e9cf41a5c097befba0c2570",
+        "fetched_at": "2026-11-04T13:04:26+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1651,9 +1684,9 @@
           "bar_covers": "前一日 18:00 ET → d 日 17:00 ET（結束在 d）；高低點與「結束在 d」相符 81%、與「從 d 開始」0%；close 推定為 CME 結算價（約 13:30 ET；日K close 落在 13:00–14:00 ET 小時K高低區間內約 95%，無法精確驗證）",
           "complete_by_taipei": "d+1 06:00",
           "open_gap_corr": {
-            "period": "2020-01～2026-08 全期（Pearson）",
-            "latest_bar_before_t": 0.182,
-            "bar_dated_t": 0.05
+            "period": "2020-01～2026-09 全期（Pearson）",
+            "latest_bar_before_t": 0.184,
+            "bar_dated_t": 0.051
           },
           "usable_for_target_t": "只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）"
         }
@@ -1662,11 +1695,11 @@
   },
   "market_features": {
     "file": "data/features/market_features.csv",
-    "sha256": "dde04c747c584980e092d0aeb2dd9bf6d790fff6f28e653bd33c93efb5501e50",
-    "rows": 1618,
+    "sha256": "59860b37ae802bcae0822fe78c974d5cfefa4c535a31ceaaf9f6a87a32867802",
+    "rows": 1638,
     "date_min": "2020-01-02",
-    "date_max": "2026-08-31",
-    "date_definition": "老師個股檔所有台股交易日（聯集），比老師 global 表多",
+    "date_max": "2026-09-30",
+    "date_definition": "老師個股檔所有台股交易日（Training＋Live 到 date_range.end_inclusive 的聯集），比老師 global 表多",
     "alignment_rule": "額外特徵：對每個台股目標日 t，取來源交易日 s <= t − 1 日曆天的最後一筆；報酬先在完整原生序列計算再對齊，不先做多市場日期交集。日期語意已驗證（見 timing_verification）：除 TWD=X 外，每根日K最晚在 d+1 07:00（台北）收完，TWD=X 的 close 在 d 日就定下，所以 s <= t−1 的K棒都在 t 日 07:00 以前收完（市場時間）；Yahoo 實際上架時間未驗證。",
     "teacher_columns": [
       "^VIX",
@@ -1674,12 +1707,11 @@
       "^GSPC",
       "^TWII_prev_row",
       "^KS11_prev_row",
-      "TX_OI"
+      "TX_OI_prev_row"
     ],
     "teacher_columns_definition": {
       "^VIX/^IXIC/^GSPC": "老師 global 同日期原值照抄（老師表缺該日則空白）；已驗證是前一個 global 列的收盤，可當輸入",
-      "TX_OI": "老師 global 同日期原值照抄；疑似含當日資訊（見 teacher.global_columns.TX_OI），不可當輸入",
-      "^TWII_prev_row/^KS11_prev_row": "最後一個日期 < t 的老師 global 列之 ^TWII／^KS11（避免當日收盤洩漏）"
+      "^TWII_prev_row/^KS11_prev_row/TX_OI_prev_row": "最後一個日期 < t 的老師 global 列之 ^TWII／^KS11／TX_OI（前兩者是當日收盤、TX_OI 疑似含當日資訊，所以都往前一列）"
     },
     "extra_columns": [
       "sox_ret_1s",
@@ -1787,7 +1819,7 @@
       "^GSPC",
       "^TWII_prev_row",
       "^KS11_prev_row",
-      "TX_OI",
+      "TX_OI_prev_row",
       "sox_ret_1s",
       "sox_ret_5s",
       "sox_ret_20s",
@@ -2981,103 +3013,103 @@
     }
   },
   "extra_feature_non_missing_rows": {
-    "sox_ret_1s": 1616,
-    "sox_ret_5s": 1612,
-    "sox_ret_20s": 1603,
-    "sox_age_days": 1617,
-    "sox_source_date": 1617,
-    "tsm_adr_ret_1s": 1616,
-    "tsm_adr_ret_5s": 1612,
-    "tsm_adr_ret_20s": 1603,
-    "tsm_adr_age_days": 1617,
-    "tsm_adr_source_date": 1617,
-    "nvda_ret_1s": 1616,
-    "nvda_ret_5s": 1612,
-    "nvda_ret_20s": 1603,
-    "nvda_age_days": 1617,
-    "nvda_source_date": 1617,
-    "usd_twd_level": 1618,
-    "usd_twd_ret_1s": 1617,
-    "usd_twd_ret_5s": 1613,
-    "usd_twd_ret_20s": 1605,
-    "usd_twd_age_days": 1618,
-    "usd_twd_source_date": 1618,
-    "dxy_level": 1617,
-    "dxy_ret_1s": 1616,
-    "dxy_ret_5s": 1612,
-    "dxy_ret_20s": 1603,
-    "dxy_age_days": 1617,
-    "dxy_source_date": 1617,
-    "us10y_level_pct": 1617,
-    "us10y_change_bp_1s": 1616,
-    "us10y_change_bp_5s": 1612,
-    "us10y_age_days": 1617,
-    "us10y_source_date": 1617,
-    "us13w_level_pct": 1617,
-    "us13w_change_bp_1s": 1616,
-    "us13w_change_bp_5s": 1612,
-    "us13w_age_days": 1617,
-    "us13w_source_date": 1617,
-    "etf_006201_ret_1s": 1616,
-    "etf_006201_ret_5s": 1612,
-    "etf_006201_ret_20s": 1597,
-    "etf_006201_age_days": 1617,
-    "etf_006201_source_date": 1617,
-    "etf_0050_ret_1s": 1616,
-    "etf_0050_ret_5s": 1612,
-    "etf_0050_ret_20s": 1597,
-    "etf_0050_age_days": 1617,
-    "etf_0050_source_date": 1617,
-    "etf_0052_ret_1s": 1616,
-    "etf_0052_ret_5s": 1612,
-    "etf_0052_ret_20s": 1597,
-    "etf_0052_age_days": 1617,
-    "etf_0052_source_date": 1617,
-    "etf_0055_ret_1s": 1616,
-    "etf_0055_ret_5s": 1612,
-    "etf_0055_ret_20s": 1597,
-    "etf_0055_age_days": 1617,
-    "etf_0055_source_date": 1617,
-    "dji_ret_1s": 1616,
-    "dji_ret_5s": 1612,
-    "dji_ret_20s": 1603,
-    "dji_age_days": 1617,
-    "dji_source_date": 1617,
-    "n225_ret_1s": 1614,
-    "n225_ret_5s": 1609,
-    "n225_ret_20s": 1601,
-    "n225_age_days": 1615,
-    "n225_source_date": 1615,
-    "hsi_ret_1s": 1616,
-    "hsi_ret_5s": 1612,
-    "hsi_ret_20s": 1602,
-    "hsi_age_days": 1617,
-    "hsi_source_date": 1617,
-    "sse_ret_1s": 1616,
-    "sse_ret_5s": 1612,
-    "sse_ret_20s": 1598,
-    "sse_age_days": 1617,
-    "sse_source_date": 1617,
-    "stoxx50e_ret_1s": 1615,
-    "stoxx50e_ret_5s": 1611,
-    "stoxx50e_ret_20s": 1603,
-    "stoxx50e_age_days": 1616,
-    "stoxx50e_source_date": 1616,
-    "gdaxi_ret_1s": 1616,
-    "gdaxi_ret_5s": 1612,
-    "gdaxi_ret_20s": 1604,
-    "gdaxi_age_days": 1617,
-    "gdaxi_source_date": 1617,
-    "wti_ret_1s": 1614,
-    "wti_ret_5s": 1610,
-    "wti_ret_20s": 1601,
-    "wti_age_days": 1617,
-    "wti_source_date": 1617,
-    "gold_ret_1s": 1616,
-    "gold_ret_5s": 1612,
-    "gold_ret_20s": 1603,
-    "gold_age_days": 1617,
-    "gold_source_date": 1617
+    "sox_ret_1s": 1636,
+    "sox_ret_5s": 1632,
+    "sox_ret_20s": 1623,
+    "sox_age_days": 1637,
+    "sox_source_date": 1637,
+    "tsm_adr_ret_1s": 1636,
+    "tsm_adr_ret_5s": 1632,
+    "tsm_adr_ret_20s": 1623,
+    "tsm_adr_age_days": 1637,
+    "tsm_adr_source_date": 1637,
+    "nvda_ret_1s": 1636,
+    "nvda_ret_5s": 1632,
+    "nvda_ret_20s": 1623,
+    "nvda_age_days": 1637,
+    "nvda_source_date": 1637,
+    "usd_twd_level": 1638,
+    "usd_twd_ret_1s": 1637,
+    "usd_twd_ret_5s": 1633,
+    "usd_twd_ret_20s": 1625,
+    "usd_twd_age_days": 1638,
+    "usd_twd_source_date": 1638,
+    "dxy_level": 1637,
+    "dxy_ret_1s": 1636,
+    "dxy_ret_5s": 1632,
+    "dxy_ret_20s": 1623,
+    "dxy_age_days": 1637,
+    "dxy_source_date": 1637,
+    "us10y_level_pct": 1637,
+    "us10y_change_bp_1s": 1636,
+    "us10y_change_bp_5s": 1632,
+    "us10y_age_days": 1637,
+    "us10y_source_date": 1637,
+    "us13w_level_pct": 1637,
+    "us13w_change_bp_1s": 1636,
+    "us13w_change_bp_5s": 1632,
+    "us13w_age_days": 1637,
+    "us13w_source_date": 1637,
+    "etf_006201_ret_1s": 1636,
+    "etf_006201_ret_5s": 1632,
+    "etf_006201_ret_20s": 1617,
+    "etf_006201_age_days": 1637,
+    "etf_006201_source_date": 1637,
+    "etf_0050_ret_1s": 1636,
+    "etf_0050_ret_5s": 1632,
+    "etf_0050_ret_20s": 1617,
+    "etf_0050_age_days": 1637,
+    "etf_0050_source_date": 1637,
+    "etf_0052_ret_1s": 1636,
+    "etf_0052_ret_5s": 1632,
+    "etf_0052_ret_20s": 1617,
+    "etf_0052_age_days": 1637,
+    "etf_0052_source_date": 1637,
+    "etf_0055_ret_1s": 1636,
+    "etf_0055_ret_5s": 1632,
+    "etf_0055_ret_20s": 1617,
+    "etf_0055_age_days": 1637,
+    "etf_0055_source_date": 1637,
+    "dji_ret_1s": 1636,
+    "dji_ret_5s": 1632,
+    "dji_ret_20s": 1623,
+    "dji_age_days": 1637,
+    "dji_source_date": 1637,
+    "n225_ret_1s": 1634,
+    "n225_ret_5s": 1629,
+    "n225_ret_20s": 1621,
+    "n225_age_days": 1635,
+    "n225_source_date": 1635,
+    "hsi_ret_1s": 1636,
+    "hsi_ret_5s": 1632,
+    "hsi_ret_20s": 1622,
+    "hsi_age_days": 1637,
+    "hsi_source_date": 1637,
+    "sse_ret_1s": 1636,
+    "sse_ret_5s": 1632,
+    "sse_ret_20s": 1618,
+    "sse_age_days": 1637,
+    "sse_source_date": 1637,
+    "stoxx50e_ret_1s": 1635,
+    "stoxx50e_ret_5s": 1631,
+    "stoxx50e_ret_20s": 1623,
+    "stoxx50e_age_days": 1636,
+    "stoxx50e_source_date": 1636,
+    "gdaxi_ret_1s": 1636,
+    "gdaxi_ret_5s": 1632,
+    "gdaxi_ret_20s": 1624,
+    "gdaxi_age_days": 1637,
+    "gdaxi_source_date": 1637,
+    "wti_ret_1s": 1634,
+    "wti_ret_5s": 1630,
+    "wti_ret_20s": 1621,
+    "wti_age_days": 1637,
+    "wti_source_date": 1637,
+    "gold_ret_1s": 1636,
+    "gold_ret_5s": 1632,
+    "gold_ret_20s": 1623,
+    "gold_age_days": 1637,
+    "gold_source_date": 1637
   },
   "transform": {
     "definition": {
@@ -3095,9 +3127,9 @@
       2,
       5
     ],
-    "rows_per_file": 1618,
+    "rows_per_file": 1638,
     "date_min": "2020-01-02",
-    "date_max": "2026-08-31",
+    "date_max": "2026-09-30",
     "feature_count": 124,
     "files_per_lag": 124,
     "features": {
@@ -3111,14 +3143,14 @@
           "lag2": {
             "file": "data/transform/lag2/sox.csv",
             "column": "sox_ret_lag2",
-            "sha256": "0d8fa6be5d5fd3cc27aa4b69f9415ae825539a0fa1fe37ad62b88731df6ff530",
-            "non_missing_rows": 1562
+            "sha256": "4837ff7f4e78c0323afea7e66769fb4df2a41a08c84a5b6136cd4bc8eff457ee",
+            "non_missing_rows": 1581
           },
           "lag5": {
             "file": "data/transform/lag5/sox.csv",
             "column": "sox_ret_lag5",
-            "sha256": "c5fe2be0163ea4e73ea7314e35ee575815eb159347f55e2ee3b2cc2f4467e5c5",
-            "non_missing_rows": 1559
+            "sha256": "bb2b1ffd3a0f7ece4ce9cd35069ff00eb582432184f00c6cb6ced37ee13ba1db",
+            "non_missing_rows": 1578
           }
         }
       },
@@ -3132,14 +3164,14 @@
           "lag2": {
             "file": "data/transform/lag2/tsm_adr.csv",
             "column": "tsm_adr_ret_lag2",
-            "sha256": "e9852b1e498b6e4dc5e7ad16ed3603f27a894038019b1794efdb0d5e1ef890ea",
-            "non_missing_rows": 1562
+            "sha256": "69fec44939dade9f639e06b996a7030e4d472396304117da8849b665c53db2cf",
+            "non_missing_rows": 1581
           },
           "lag5": {
             "file": "data/transform/lag5/tsm_adr.csv",
             "column": "tsm_adr_ret_lag5",
-            "sha256": "21e41b01fc5eec6b22133be2893913780aec1958fd53c219684e12f8ebfa0382",
-            "non_missing_rows": 1559
+            "sha256": "87ce7df1fa510c187f5ec355f963e14dd256b4e3fe359ae036f975ef7f4d5742",
+            "non_missing_rows": 1578
           }
         }
       },
@@ -3153,14 +3185,14 @@
           "lag2": {
             "file": "data/transform/lag2/nvda.csv",
             "column": "nvda_ret_lag2",
-            "sha256": "071861de5c6e9bc95c63cba75fd605e02b00d99b69c0996dea0819e805db876b",
-            "non_missing_rows": 1562
+            "sha256": "145c8d636858431c6557a2eb96fcc1bb8461838815a1cdd696419d5e1a7c0c1a",
+            "non_missing_rows": 1581
           },
           "lag5": {
             "file": "data/transform/lag5/nvda.csv",
             "column": "nvda_ret_lag5",
-            "sha256": "6052fb1501a969df02e4b376d3a42402639505f7bc630e8b1dc9846185563be2",
-            "non_missing_rows": 1559
+            "sha256": "780d184594a7ac3d89d9324e5c3968a16de71f822cc744c09043384f7e0e9251",
+            "non_missing_rows": 1578
           }
         }
       },
@@ -3174,14 +3206,14 @@
           "lag2": {
             "file": "data/transform/lag2/usd_twd.csv",
             "column": "usd_twd_ret_lag2",
-            "sha256": "429be44c30769c5d11e230b98f2fadefa91439f4b0c09f6e3ea3fbd86c7c7730",
-            "non_missing_rows": 1612
+            "sha256": "d37c9a49b79adf2d53546bd083e9d9468d63ed1484fe1897efc79c305396ecbf",
+            "non_missing_rows": 1632
           },
           "lag5": {
             "file": "data/transform/lag5/usd_twd.csv",
             "column": "usd_twd_ret_lag5",
-            "sha256": "3068427a4f6657300f26152238aecdaec29f90f0787c8e2bf97769c379d3f7f7",
-            "non_missing_rows": 1609
+            "sha256": "fdd97f011e0ecf908cacb442adb3522d828de7212173d11a1fcf86a8cee4d0c7",
+            "non_missing_rows": 1629
           }
         }
       },
@@ -3195,14 +3227,14 @@
           "lag2": {
             "file": "data/transform/lag2/dxy.csv",
             "column": "dxy_ret_lag2",
-            "sha256": "bb432fedcca1eb83fb8beb4f8ee3241d33dd59e61e310e0c918a231c43d9b1cc",
-            "non_missing_rows": 1564
+            "sha256": "2bcdcd1a2f900fb32dbfd113fbf002b1d14ec5f730ae5b20de7701f289aee182",
+            "non_missing_rows": 1583
           },
           "lag5": {
             "file": "data/transform/lag5/dxy.csv",
             "column": "dxy_ret_lag5",
-            "sha256": "735c515beb1fda6aff6e7dd47ef3f57c171d5dfca07d3f261da8f856089ff8ec",
-            "non_missing_rows": 1561
+            "sha256": "995d6f42d5c04b561826f4a1ddd4e95bb7a8dcef275cbe8d767c5a53e2c340ea",
+            "non_missing_rows": 1580
           }
         }
       },
@@ -3216,14 +3248,14 @@
           "lag2": {
             "file": "data/transform/lag2/us10y.csv",
             "column": "us10y_ret_lag2",
-            "sha256": "a71bd7a8160bcb0e76f99351450012480f6b969bd52df553be677e7280b242c8",
-            "non_missing_rows": 1554
+            "sha256": "3ddb7bc94eac0ce2e81184cb391e91a9dcbdee4a26d34c688a67df8c71e9925f",
+            "non_missing_rows": 1573
           },
           "lag5": {
             "file": "data/transform/lag5/us10y.csv",
             "column": "us10y_ret_lag5",
-            "sha256": "22d700f364e3825eb5333f0197b2128203451c769df3ddb81a96f996e44ad2be",
-            "non_missing_rows": 1551
+            "sha256": "7b19090f77b864c4145f13d9d9dad5146326a1263f6049f989ddd143cd9ffdc0",
+            "non_missing_rows": 1570
           }
         }
       },
@@ -3237,14 +3269,14 @@
           "lag2": {
             "file": "data/transform/lag2/us13w.csv",
             "column": "us13w_ret_lag2",
-            "sha256": "cc559e647442671a2bb6cfd752a79601a3ad8d8886d47a3c6b295054aa5996ac",
-            "non_missing_rows": 1545
+            "sha256": "64c6913e7240c8523e87d5313e454eb74c3efe21f10a6b124ec02379770d2821",
+            "non_missing_rows": 1564
           },
           "lag5": {
             "file": "data/transform/lag5/us13w.csv",
             "column": "us13w_ret_lag5",
-            "sha256": "afb11bc18bfc23d59e5967756c6e1ddeffd1eed18704ed331f1413e1fda21546",
-            "non_missing_rows": 1541
+            "sha256": "17815837480dab9aeb0b012d62ad8ecc7a83021435afb888754d7ae01c23baa5",
+            "non_missing_rows": 1560
           }
         }
       },
@@ -3258,14 +3290,14 @@
           "lag2": {
             "file": "data/transform/lag2/etf_006201.csv",
             "column": "etf_006201_ret_lag2",
-            "sha256": "e8bcba9a619e3ec0b4b986619891c55439c6762af8d489c94eaf56171d58dd97",
-            "non_missing_rows": 1605
+            "sha256": "e67043ec3976c5ba66efc7c92f098c161aa633df51748de578181a36491a75b0",
+            "non_missing_rows": 1625
           },
           "lag5": {
             "file": "data/transform/lag5/etf_006201.csv",
             "column": "etf_006201_ret_lag5",
-            "sha256": "2aaaff1a7e46d75074a303beb469c908f2e7069ed59ec4edec9ae7cc0645cc77",
-            "non_missing_rows": 1602
+            "sha256": "faddb5d9dad34e021e4f41e74169236983d5cd73d0bf1d446faea6c8bec6e07f",
+            "non_missing_rows": 1622
           }
         }
       },
@@ -3279,14 +3311,14 @@
           "lag2": {
             "file": "data/transform/lag2/etf_0050.csv",
             "column": "etf_0050_ret_lag2",
-            "sha256": "5eb6ebbbc254c960dfe618127dac4fae2986fc5c0373b8641504e6a204fd87c6",
-            "non_missing_rows": 1607
+            "sha256": "734c1786eaccb7e16ba177df70648730e80ae68b3ca1062302cf657e263424d9",
+            "non_missing_rows": 1627
           },
           "lag5": {
             "file": "data/transform/lag5/etf_0050.csv",
             "column": "etf_0050_ret_lag5",
-            "sha256": "81ae7a686439a73ebe9cf5350ddf7a766324b700e0fe8c7ec978dd6a4d192eec",
-            "non_missing_rows": 1604
+            "sha256": "3e791855bdf54a3dc26b8149af8e9c01da5ca77da2d214e36537aeec9f548568",
+            "non_missing_rows": 1624
           }
         }
       },
@@ -3300,14 +3332,14 @@
           "lag2": {
             "file": "data/transform/lag2/etf_0052.csv",
             "column": "etf_0052_ret_lag2",
-            "sha256": "41aac387581d2d1b39f792735c7779c422842aaa484b0d137647e31a7af3b49e",
-            "non_missing_rows": 1607
+            "sha256": "010f60cc93d11fbd7034d2c722e31e90c7bdbbc5820b936ebbc0fba78f4f5cc3",
+            "non_missing_rows": 1627
           },
           "lag5": {
             "file": "data/transform/lag5/etf_0052.csv",
             "column": "etf_0052_ret_lag5",
-            "sha256": "c0278a03fc93081e28b170ff68ac7d6395fdbc8c4444ac6d015e6e57645c80e4",
-            "non_missing_rows": 1604
+            "sha256": "86eafa5f37864519935d31a6694cb0b660995533e8b4417bf2f25a83c3f249b3",
+            "non_missing_rows": 1624
           }
         }
       },
@@ -3321,14 +3353,14 @@
           "lag2": {
             "file": "data/transform/lag2/etf_0055.csv",
             "column": "etf_0055_ret_lag2",
-            "sha256": "b01c806e17b3e20d38cd7a1d82885d5f71ba2c3d32e59c768cd8275a6516081f",
-            "non_missing_rows": 1612
+            "sha256": "957405d20d4417271529a85cd9cdd2fd3ced46a3436d520ef6b11cdd42430181",
+            "non_missing_rows": 1632
           },
           "lag5": {
             "file": "data/transform/lag5/etf_0055.csv",
             "column": "etf_0055_ret_lag5",
-            "sha256": "21fde6be423957d22d8e72a4cad8a2dd5f512e21d577b4c386605af2ccb4dad6",
-            "non_missing_rows": 1609
+            "sha256": "05f9613fea2d95941bde0e4212a85098fb48a6ac97cb641bc87aa657d1216291",
+            "non_missing_rows": 1629
           }
         }
       },
@@ -3342,14 +3374,14 @@
           "lag2": {
             "file": "data/transform/lag2/dji.csv",
             "column": "dji_ret_lag2",
-            "sha256": "e57642986064f063feaa23967059da223f6ddeab22eee58456d3c62a31cbefc5",
-            "non_missing_rows": 1562
+            "sha256": "c1477d54870f8c6fafdc01d0fc6174720ff4f022832d93d8e0db2cabfedaa922",
+            "non_missing_rows": 1581
           },
           "lag5": {
             "file": "data/transform/lag5/dji.csv",
             "column": "dji_ret_lag5",
-            "sha256": "658e62143ab5fa4950600c0fb8fea6161e22f3a386dd0416f3f2a479c37d728c",
-            "non_missing_rows": 1559
+            "sha256": "07888f5591ea8024211c4e91c06aeee052cd7c65790d52e88e6c76f5d3f8fd86",
+            "non_missing_rows": 1578
           }
         }
       },
@@ -3363,14 +3395,14 @@
           "lag2": {
             "file": "data/transform/lag2/n225.csv",
             "column": "n225_ret_lag2",
-            "sha256": "8f2b113a1c4c8ef41dddb010636287a1bf882a3247b33475a7f015f779049fa8",
-            "non_missing_rows": 1515
+            "sha256": "0d22222d3288bee36ccf4558ae078b1bef3463e423a142182b0ddf82ee8beba6",
+            "non_missing_rows": 1532
           },
           "lag5": {
             "file": "data/transform/lag5/n225.csv",
             "column": "n225_ret_lag5",
-            "sha256": "ab6d20edbcfe1b9a1e9a22799bb81d47df9b77d37778d6cd55e8b8b4f4cb6c0a",
-            "non_missing_rows": 1512
+            "sha256": "a2481bdbea57fd73cffcf106a921b20658ca2f0706e7f43b466a033efb8cd324",
+            "non_missing_rows": 1529
           }
         }
       },
@@ -3384,14 +3416,14 @@
           "lag2": {
             "file": "data/transform/lag2/hsi.csv",
             "column": "hsi_ret_lag2",
-            "sha256": "84c51bb4e6bbc8c98dc5427071eef9907f1220c767343d34bbe526ba8bdb7314",
-            "non_missing_rows": 1561
+            "sha256": "e3ff7800c2965dba7f96363c38877f902e2d36c183cd13031277c6d0787b10b5",
+            "non_missing_rows": 1581
           },
           "lag5": {
             "file": "data/transform/lag5/hsi.csv",
             "column": "hsi_ret_lag5",
-            "sha256": "f5d0732743b0e7a4fa08bc875651b75338f01de55865890e5ebc02fc0e8e7e7e",
-            "non_missing_rows": 1558
+            "sha256": "9d2d385befe843803830d816049f6bb85388d58fe43d02efc7705dd07c840847",
+            "non_missing_rows": 1578
           }
         }
       },
@@ -3405,14 +3437,14 @@
           "lag2": {
             "file": "data/transform/lag2/sse.csv",
             "column": "sse_ret_lag2",
-            "sha256": "7eac97243fc65f5006b0800be53ab5ed43e87854491d33a8815e5a36610292c8",
-            "non_missing_rows": 1559
+            "sha256": "57d7f7dfd3568f0d6e56b635d8f27664e15ca52ee6dee1773e09bb4134f438a2",
+            "non_missing_rows": 1579
           },
           "lag5": {
             "file": "data/transform/lag5/sse.csv",
             "column": "sse_ret_lag5",
-            "sha256": "ee6ce041ba8c6f8ba3d64c29eed5479a7ca39de1c4715e6e15a99830182f21fd",
-            "non_missing_rows": 1556
+            "sha256": "3b8b5b25c2d21ea343b70192d76cebea77125865a90e203d793ef23505d270e9",
+            "non_missing_rows": 1576
           }
         }
       },
@@ -3426,14 +3458,14 @@
           "lag2": {
             "file": "data/transform/lag2/stoxx50e.csv",
             "column": "stoxx50e_ret_lag2",
-            "sha256": "a80da2c9cd16e2ce7d2455e2e7605604589850e8aa414479f84ee9c819de29e1",
-            "non_missing_rows": 1569
+            "sha256": "b4d59b2fdfb0c1c287f5bb19654f59138c7bdccabd589c552ca8d6008db78483",
+            "non_missing_rows": 1589
           },
           "lag5": {
             "file": "data/transform/lag5/stoxx50e.csv",
             "column": "stoxx50e_ret_lag5",
-            "sha256": "97d1ba002835fef714652ffc578f1e38b1b8bf5552f4f345f3014c4e8ec572c9",
-            "non_missing_rows": 1566
+            "sha256": "4f345e48a39ce054d11ca31bd7ccfe77e7dd7cb425c09be3686343421f4b81fd",
+            "non_missing_rows": 1586
           }
         }
       },
@@ -3447,14 +3479,14 @@
           "lag2": {
             "file": "data/transform/lag2/gdaxi.csv",
             "column": "gdaxi_ret_lag2",
-            "sha256": "3d58cffe842d3d28846370543939e0050bf3a6eb7b3cce4d20e058b408a5370d",
-            "non_missing_rows": 1589
+            "sha256": "c11e886deef454a70cbb0213274ede9025646a0823e4b47eb56b608922e36295",
+            "non_missing_rows": 1609
           },
           "lag5": {
             "file": "data/transform/lag5/gdaxi.csv",
             "column": "gdaxi_ret_lag5",
-            "sha256": "63f56b6fd13779957daf19109e69d30e4d8de68fbd72c16e794eb9ebed7d6ad2",
-            "non_missing_rows": 1586
+            "sha256": "0cab8621b8a61aa5066db96823d268915daab0982a448411579e85702bb5ec38",
+            "non_missing_rows": 1606
           }
         }
       },
@@ -3468,14 +3500,14 @@
           "lag2": {
             "file": "data/transform/lag2/wti.csv",
             "column": "wti_ret_lag2",
-            "sha256": "d395e553cc05dff8e97321ac0abceb0d4ead8fad6d7cd5e651f1f46444deacd0",
-            "non_missing_rows": 1562
+            "sha256": "d468d71d0a86d38d2b5447bca8b02f16aca8c1a018e67e3fd19c8df8641bcd7d",
+            "non_missing_rows": 1581
           },
           "lag5": {
             "file": "data/transform/lag5/wti.csv",
             "column": "wti_ret_lag5",
-            "sha256": "fb63e1df50a33b6afcaac902957b58d1a8081a58a2035f18f40172995660a716",
-            "non_missing_rows": 1559
+            "sha256": "145926df6a9ac784935ea4a1750cf2b8d23eec4b3f2936a16cd0038148f13392",
+            "non_missing_rows": 1578
           }
         }
       },
@@ -3489,14 +3521,14 @@
           "lag2": {
             "file": "data/transform/lag2/gold.csv",
             "column": "gold_ret_lag2",
-            "sha256": "3d38c3340255431d62c645e1c093f038d0be1b8c440aa3e723ee09f9cc5a09b8",
-            "non_missing_rows": 1565
+            "sha256": "a87e638ce4f30577566dc44b16be073c92ded579e486b06d7935f15d527f6ada",
+            "non_missing_rows": 1584
           },
           "lag5": {
             "file": "data/transform/lag5/gold.csv",
             "column": "gold_ret_lag5",
-            "sha256": "002bbf005215f517736652c5e6c62073fdad37031d6d40c6684aff89ca691044",
-            "non_missing_rows": 1562
+            "sha256": "662f5f3223cf524811586d188e6506f0a17625a09a7bfaf99b6359468ef4e868",
+            "non_missing_rows": 1581
           }
         }
       },
@@ -3505,20 +3537,20 @@
         "name_zh": "CBOE VIX 波動率指數",
         "group": "teacher_global",
         "price_column": "^VIX",
-        "previous_trading_day": "老師 global 表的前 k 列（global 表只有五個序列同日都有資料才有列）",
+        "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
         "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_vix.csv",
             "column": "teacher_vix_ret_lag2",
-            "sha256": "965e02840022288d1b8ddd73591c419d27a70014724ff0f1c066ce0708cb03b3",
-            "non_missing_rows": 1503
+            "sha256": "7b53da07431c532eab1561b629b561307c7d04f840e35771aad4969918f5fe0c",
+            "non_missing_rows": 1523
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_vix.csv",
             "column": "teacher_vix_ret_lag5",
-            "sha256": "389c03bf6904fbb02d24c4cad6ee007bd758954be5da65e2c883a046635f6e11",
-            "non_missing_rows": 1500
+            "sha256": "6e6963819decdeaaa9261c724091c7a031c2f21ed5566279130c91518b59b6cc",
+            "non_missing_rows": 1520
           }
         }
       },
@@ -3527,20 +3559,20 @@
         "name_zh": "Nasdaq Composite 那斯達克綜合指數",
         "group": "teacher_global",
         "price_column": "^IXIC",
-        "previous_trading_day": "老師 global 表的前 k 列（global 表只有五個序列同日都有資料才有列）",
+        "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
         "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_ixic.csv",
             "column": "teacher_ixic_ret_lag2",
-            "sha256": "a568931ff6dc7d5bf53353a1af221e3fb5dca2956d3c39f7a48e12ad6c3c9e40",
-            "non_missing_rows": 1503
+            "sha256": "cbf1502a54264e3d6a5f40a111cc9780077a027b50204983a30a1148d426a957",
+            "non_missing_rows": 1523
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_ixic.csv",
             "column": "teacher_ixic_ret_lag5",
-            "sha256": "2057ff360e6ddf440d93b033bfad30bb6f3f092255a266fd958cdc83cbd3ef48",
-            "non_missing_rows": 1500
+            "sha256": "33b3c13d7c508b518ba013a28d83e0f1885bd193c647730f11a38bd52c1b0c62",
+            "non_missing_rows": 1520
           }
         }
       },
@@ -3549,20 +3581,20 @@
         "name_zh": "S&P 500 標普500指數",
         "group": "teacher_global",
         "price_column": "^GSPC",
-        "previous_trading_day": "老師 global 表的前 k 列（global 表只有五個序列同日都有資料才有列）",
+        "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
         "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_gspc.csv",
             "column": "teacher_gspc_ret_lag2",
-            "sha256": "decefeef22b6318d1145b6087080e0d28bcb750e04afeb83047f6920c7e52bef",
-            "non_missing_rows": 1503
+            "sha256": "ba6410a2478d107e3fcc7ad424254749f07741448aa95ec5bc161a0a328b1c55",
+            "non_missing_rows": 1523
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_gspc.csv",
             "column": "teacher_gspc_ret_lag5",
-            "sha256": "3fa9e2ca021aa0c7323201674c9a7079946dc1f2eb672e0230d0e78068a4b4a1",
-            "non_missing_rows": 1500
+            "sha256": "2fd7368a23d2ce72d7332550c845c7e4b979cb8b7b27798e2b1168f3f57a0d3d",
+            "non_missing_rows": 1520
           }
         }
       },
@@ -3571,20 +3603,20 @@
         "name_zh": "台灣加權股價指數",
         "group": "teacher_global",
         "price_column": "^TWII",
-        "previous_trading_day": "老師 global 表的前 k 列（global 表只有五個序列同日都有資料才有列）",
+        "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
         "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^TWII 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與 0050 同日 0.94、前一交易日 0.08）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_twii.csv",
             "column": "teacher_twii_ret_lag2",
-            "sha256": "09045c38c7ae7b9dfee3f4c231ce6c7b510f6a72ef5ac0ad4a4836bc5b81993e",
-            "non_missing_rows": 1503
+            "sha256": "7e996b72d1b7ff97fef5277d99d4914d59f21af93b18b52703f335f90ac554d2",
+            "non_missing_rows": 1523
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_twii.csv",
             "column": "teacher_twii_ret_lag5",
-            "sha256": "d4166c027a0833dc6e52788e9a94370c1b8180cc263a37ea89aa6c99a06d2605",
-            "non_missing_rows": 1500
+            "sha256": "c5f1682bf4b152c41056059d0b4b74fa363a82f689b2125a7100ca78df9016f8",
+            "non_missing_rows": 1520
           }
         }
       },
@@ -3593,25 +3625,25 @@
         "name_zh": "KOSPI 韓國綜合指數",
         "group": "teacher_global",
         "price_column": "^KS11",
-        "previous_trading_day": "老師 global 表的前 k 列（global 表只有五個序列同日都有資料才有列）",
+        "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
         "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^KS11 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與日經225同日 0.65、前一交易日 0.01）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_ks11.csv",
             "column": "teacher_ks11_ret_lag2",
-            "sha256": "7a4e61e36a2f9ef3f3902d37c4996db4b88d4943d2d27b5f6d13b33869784e77",
-            "non_missing_rows": 1503
+            "sha256": "53cf053421c66a3b4acda438799ebc0d0025d86d89fb466090fd9da3669551c9",
+            "non_missing_rows": 1523
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_ks11.csv",
             "column": "teacher_ks11_ret_lag5",
-            "sha256": "9332f549aeb64c452ad4477b2532d181b11a00534b4429f770d412f9735a3801",
-            "non_missing_rows": 1500
+            "sha256": "dce5e834ceb3591f8aa0b5f4ea1c839eaea3a544215458fed8d90911c7e57e15",
+            "non_missing_rows": 1520
           }
         }
       },
       "stock_1101": {
-        "source": "teacher market/1101.csv etl:adj_close",
+        "source": "teacher market/1101.csv＋teacher_live/market/1101.csv etl:adj_close",
         "name_zh": "個股 1101",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3620,19 +3652,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1101.csv",
             "column": "stock_1101_ret_lag2",
-            "sha256": "d749011669cac56978b0002dd1b6404b941b168a48584eed37e7856d3816309b",
-            "non_missing_rows": 1614
+            "sha256": "ecbd8255ae6d9ab3724f942efad5cc5de98345022b64b52dc38d48b6dae740d2",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1101.csv",
             "column": "stock_1101_ret_lag5",
-            "sha256": "3c0abfeeecd081f17863162993825a4779dd3c475f05cb30c8822051d9299bf9",
-            "non_missing_rows": 1611
+            "sha256": "e18ad008ff041014b38b70874977a7d7408c2601f5eaf112776e11f3b17bbc10",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_1102": {
-        "source": "teacher market/1102.csv etl:adj_close",
+        "source": "teacher market/1102.csv＋teacher_live/market/1102.csv etl:adj_close",
         "name_zh": "個股 1102",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3641,19 +3673,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1102.csv",
             "column": "stock_1102_ret_lag2",
-            "sha256": "87afa6397f9eae2378f3ff28be45576d2e81ab1ac1c7dc583949dd4e1e9c644a",
-            "non_missing_rows": 1614
+            "sha256": "44963c3c6b5352f5d009c920d66ce1e763ee464e227500c68a9534aa9b1f29b2",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1102.csv",
             "column": "stock_1102_ret_lag5",
-            "sha256": "c7c492f4742b8e5adca38704f0527e7404fd52bf025e9aba4aa393e0a54dca3e",
-            "non_missing_rows": 1611
+            "sha256": "9a80a579760f9aa8cb0e06607753089b965dc01d7b8fa5eeff4cee4be266c519",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_1216": {
-        "source": "teacher market/1216.csv etl:adj_close",
+        "source": "teacher market/1216.csv＋teacher_live/market/1216.csv etl:adj_close",
         "name_zh": "個股 1216",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3662,19 +3694,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1216.csv",
             "column": "stock_1216_ret_lag2",
-            "sha256": "0ebd9158920e60feb7256644e6f84702e9179f88d89aed287bf27f1ca8e361df",
-            "non_missing_rows": 1615
+            "sha256": "c1ff2d006409c5b91ca8e7a4990c1e9cdd9e66d10f807fc3b40180f66cc7f22d",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1216.csv",
             "column": "stock_1216_ret_lag5",
-            "sha256": "8aa1b03c8a67c3d52f552b030e87263be7d7c0b6668f83416558183e8c1ca1f1",
-            "non_missing_rows": 1612
+            "sha256": "76e28860d92e9aa8789c96be363e0e6fef0acb83f61f5568d00ae76c7eb6a3f7",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_1301": {
-        "source": "teacher market/1301.csv etl:adj_close",
+        "source": "teacher market/1301.csv＋teacher_live/market/1301.csv etl:adj_close",
         "name_zh": "個股 1301",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3683,19 +3715,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1301.csv",
             "column": "stock_1301_ret_lag2",
-            "sha256": "092b8939d4693ddbde487580bf8a510b8a8ded683b4c1ec451263f75ff6e93f8",
-            "non_missing_rows": 1615
+            "sha256": "af36b8f8181731394ea1708f587b79a281e2d05190c111952c28ef05033db128",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1301.csv",
             "column": "stock_1301_ret_lag5",
-            "sha256": "95aae1e9c211acb76fb3d1dda5cea8f47dfadd58e198e5d0f5dfd254f09a933f",
-            "non_missing_rows": 1612
+            "sha256": "1d5282c85fb7aa8d9d2a201c0c82e97bebb1de36d824bc61249e755b8ec18d12",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_1303": {
-        "source": "teacher market/1303.csv etl:adj_close",
+        "source": "teacher market/1303.csv＋teacher_live/market/1303.csv etl:adj_close",
         "name_zh": "個股 1303",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3704,19 +3736,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1303.csv",
             "column": "stock_1303_ret_lag2",
-            "sha256": "24b0f6ce12aca8694389636c8db8d2dd8301e808164a64e15e88cfbd1f04f5a1",
-            "non_missing_rows": 1615
+            "sha256": "609a7a6276546db819f36e13f702271770aee466808709cd5596b5ff01c5ba6b",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1303.csv",
             "column": "stock_1303_ret_lag5",
-            "sha256": "f3aa99bc5e7114c505de9e27fde72ba9881095cb6bc8b6638f1fd5eed98888a8",
-            "non_missing_rows": 1612
+            "sha256": "f5cc0dfd1ac2404d9ad80948467e0faa2eb468fcf162861509c02f1236d95ed6",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_1326": {
-        "source": "teacher market/1326.csv etl:adj_close",
+        "source": "teacher market/1326.csv＋teacher_live/market/1326.csv etl:adj_close",
         "name_zh": "個股 1326",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3725,19 +3757,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1326.csv",
             "column": "stock_1326_ret_lag2",
-            "sha256": "5d8d4df81e9d9406b50ee4d75597db53dacb8fd1b03de2ed546b3467342f1238",
-            "non_missing_rows": 1615
+            "sha256": "c0d28798fd7f750c680c7f55895360245b358d99b8fa8235ee0e1e9475dd3b67",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1326.csv",
             "column": "stock_1326_ret_lag5",
-            "sha256": "62eb567bd65993be07dfa5eac7eb52afa8bae190848ea09cd7f3203f5659076a",
-            "non_missing_rows": 1612
+            "sha256": "451507042d5ba4608d0331410a2d52508ce11f1b17d02be1617fd129037e8197",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_1402": {
-        "source": "teacher market/1402.csv etl:adj_close",
+        "source": "teacher market/1402.csv＋teacher_live/market/1402.csv etl:adj_close",
         "name_zh": "個股 1402",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3746,19 +3778,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1402.csv",
             "column": "stock_1402_ret_lag2",
-            "sha256": "71b7f49423231141478b3919a297a7647e98e1d455c62e33cc525e2b8c3b04a6",
-            "non_missing_rows": 1615
+            "sha256": "2843a48e7efcd758bedd4f4dccaa3b84beeebb13de5ebd4386533474f63fcfb6",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1402.csv",
             "column": "stock_1402_ret_lag5",
-            "sha256": "b7bc489fa8fdc4882c0d4a2dfc1e15ecd495d8ec8f7b5012cf5d46b05368f39d",
-            "non_missing_rows": 1612
+            "sha256": "4bcafcddea88c0e9ff262780ef3ce6dd9846b3be062ee0c6303332a2ae9bd842",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_1476": {
-        "source": "teacher market/1476.csv etl:adj_close",
+        "source": "teacher market/1476.csv＋teacher_live/market/1476.csv etl:adj_close",
         "name_zh": "個股 1476",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3767,19 +3799,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1476.csv",
             "column": "stock_1476_ret_lag2",
-            "sha256": "2d64a84d35bcbeea5f027e2eed474690e11c2d8b91bc6c2d046055a381983bc6",
-            "non_missing_rows": 1615
+            "sha256": "9311d70eae1196cf7c8f4dad8b79b0a2eb248526eb341806e1b672d4a34634af",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1476.csv",
             "column": "stock_1476_ret_lag5",
-            "sha256": "710c10d5409e465b51b1e4375f3cfc6de172fe693466c780cfefeac48addfcf1",
-            "non_missing_rows": 1612
+            "sha256": "1131f5288aa6690483aef1846efcfc977a1870e9b5cb713599276dd09ac18a69",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_1504": {
-        "source": "teacher market/1504.csv etl:adj_close",
+        "source": "teacher market/1504.csv＋teacher_live/market/1504.csv etl:adj_close",
         "name_zh": "個股 1504",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3788,19 +3820,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1504.csv",
             "column": "stock_1504_ret_lag2",
-            "sha256": "bcd069ea4cd31b219b8770cc4f59e74c31ab9f53faa81cc24e78a932fdfe17bd",
-            "non_missing_rows": 1614
+            "sha256": "d1761f2175edf0545679d7f1b5d6257ba165b6e028fcf8a171c2ad126954742c",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1504.csv",
             "column": "stock_1504_ret_lag5",
-            "sha256": "06e565bcb2866d1eae17be8e5794bd807ff2f08c3bbda756653c1d7d5a552c62",
-            "non_missing_rows": 1611
+            "sha256": "3d3e651bc10f0f490b6f1be07e0194da44ca67f7e93843f4a3dbb38446147fea",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_1519": {
-        "source": "teacher market/1519.csv etl:adj_close",
+        "source": "teacher market/1519.csv＋teacher_live/market/1519.csv etl:adj_close",
         "name_zh": "個股 1519",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3809,19 +3841,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1519.csv",
             "column": "stock_1519_ret_lag2",
-            "sha256": "babffbce982491c9aa859dddb1f416e93c1ca2458caf452e70c4eb4d35ede727",
-            "non_missing_rows": 1615
+            "sha256": "b517ae1c47c2c5638538937759b5e1f284ef9dc65ea26001add1702e72962067",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1519.csv",
             "column": "stock_1519_ret_lag5",
-            "sha256": "ed8682724b03d273b6ad9a1896592e53d8dbd897daf247caedfb2d3d2c99812e",
-            "non_missing_rows": 1612
+            "sha256": "523c140c7b90e03eb716bd8dc8d7c209631f04216c0a2745fb59f3918c0497d7",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_1590": {
-        "source": "teacher market/1590.csv etl:adj_close",
+        "source": "teacher market/1590.csv＋teacher_live/market/1590.csv etl:adj_close",
         "name_zh": "個股 1590",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3830,19 +3862,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1590.csv",
             "column": "stock_1590_ret_lag2",
-            "sha256": "ad3156778f987ad7d4646871a117e6b0f6b0d13dcfd90116816a75bf81b07760",
-            "non_missing_rows": 1615
+            "sha256": "60a4aea5eba94fc802f705e3fac0d6aae65791e02861052f87e36eda0cfd09af",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1590.csv",
             "column": "stock_1590_ret_lag5",
-            "sha256": "8f41854033b5e3e0ee9ebf2f7761a09a353a685d47c7ae070de9d35ac4a20d84",
-            "non_missing_rows": 1612
+            "sha256": "7aea928d7fd3a978c5e3361c77848a1894298172f8287e8f99babd02898416e1",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2002": {
-        "source": "teacher market/2002.csv etl:adj_close",
+        "source": "teacher market/2002.csv＋teacher_live/market/2002.csv etl:adj_close",
         "name_zh": "個股 2002",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3851,19 +3883,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2002.csv",
             "column": "stock_2002_ret_lag2",
-            "sha256": "8206c9fbee0d776e062641e2e0ad713eea4d2590cd88caa0c451c7002178ccb3",
-            "non_missing_rows": 1615
+            "sha256": "8d1eeff729fe9d85f07113c0ccaac4169f813a6cea1dd74199909ec2db9629df",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2002.csv",
             "column": "stock_2002_ret_lag5",
-            "sha256": "c0c867d8dd6a06003578d0db3c97114efc25a38e9ef0b04dcc0d0a092f626300",
-            "non_missing_rows": 1612
+            "sha256": "21256d0ed01a09f36b46463d27c5e4cd3741ff96625a025e89fff40511dd52fc",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2059": {
-        "source": "teacher market/2059.csv etl:adj_close",
+        "source": "teacher market/2059.csv＋teacher_live/market/2059.csv etl:adj_close",
         "name_zh": "個股 2059",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3872,19 +3904,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2059.csv",
             "column": "stock_2059_ret_lag2",
-            "sha256": "10ccd658a73356cf55fcdc2e48fbb23d7fe5d446d02361e568e626ef2440099d",
-            "non_missing_rows": 1615
+            "sha256": "42afb0d2646f4ada73960f4c7b6bc72e5e50111fef80ef746db83926cc1c013d",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2059.csv",
             "column": "stock_2059_ret_lag5",
-            "sha256": "f48b9e8982cec9394ae48c3d5cb87c2bb02060fc909509c96b7bd06377dbb862",
-            "non_missing_rows": 1612
+            "sha256": "0ac5b20d6da543a6d4ead7f902dbf5f10b979f589329802957f3d4640b5fe2f7",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2105": {
-        "source": "teacher market/2105.csv etl:adj_close",
+        "source": "teacher market/2105.csv＋teacher_live/market/2105.csv etl:adj_close",
         "name_zh": "個股 2105",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3893,19 +3925,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2105.csv",
             "column": "stock_2105_ret_lag2",
-            "sha256": "192e9d91561373c69d811f3b0642e89c7bf6eff7b38dadc4e68cba5d2f606a41",
-            "non_missing_rows": 1615
+            "sha256": "72c9ab41f5c8350c113a27d15f5712c444f5fbd4a3a3c4fb03dc4ecd128d5070",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2105.csv",
             "column": "stock_2105_ret_lag5",
-            "sha256": "6736b61078e0514b98bd21f593e2d111f08f95391ac84fdfb93e44216e1172dc",
-            "non_missing_rows": 1612
+            "sha256": "c4236a6123602d38fa2c4a5ce1d9621dbd8dae906331adbe8d10d992c46bf6ec",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2207": {
-        "source": "teacher market/2207.csv etl:adj_close",
+        "source": "teacher market/2207.csv＋teacher_live/market/2207.csv etl:adj_close",
         "name_zh": "個股 2207",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3914,19 +3946,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2207.csv",
             "column": "stock_2207_ret_lag2",
-            "sha256": "113f7c48defa5aa09e088576234eb3d0dbc7df61a47ee5e107389f3c4a614684",
-            "non_missing_rows": 1614
+            "sha256": "aa606597d501468b1089c38a06865070c5bb4f4a7e391a31858beaf6e1e8c31f",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2207.csv",
             "column": "stock_2207_ret_lag5",
-            "sha256": "2ccf1d5a11651c947a033011d561c523ffb352ff4245e06d1d48409d2a745b97",
-            "non_missing_rows": 1611
+            "sha256": "f8e8ccd64f3e2947c9fde0783116def6a0cfa73fd0862711d65b79b7a49036b7",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_2301": {
-        "source": "teacher market/2301.csv etl:adj_close",
+        "source": "teacher market/2301.csv＋teacher_live/market/2301.csv etl:adj_close",
         "name_zh": "個股 2301",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3935,19 +3967,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2301.csv",
             "column": "stock_2301_ret_lag2",
-            "sha256": "3c67af90602c05d14ea6e3c4fb22602fc1590d953fee8c7e65181ba318f0ec8b",
-            "non_missing_rows": 1615
+            "sha256": "5df1972ec62c40d3a84b3c581913aa52c62ee94c5fd8bf6386fbe5d9378008d3",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2301.csv",
             "column": "stock_2301_ret_lag5",
-            "sha256": "4925b802dbf9b096abd7e398eb0357c3cee6fd5fa844c623d794eba8563beb9c",
-            "non_missing_rows": 1612
+            "sha256": "67f380855aba8a8301ee2031cc13f7be968990156dccc9e9ca1aaf722bdcca12",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2303": {
-        "source": "teacher market/2303.csv etl:adj_close",
+        "source": "teacher market/2303.csv＋teacher_live/market/2303.csv etl:adj_close",
         "name_zh": "個股 2303",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3956,19 +3988,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2303.csv",
             "column": "stock_2303_ret_lag2",
-            "sha256": "e1aea01021ae5f72bfebe8ad9819f604933d6a84575e43e30cc4b77ddd69e56d",
-            "non_missing_rows": 1615
+            "sha256": "947953b89bcbb93da4df347e79398c2f23832d37d6b0077bae33ebcca5baa721",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2303.csv",
             "column": "stock_2303_ret_lag5",
-            "sha256": "3675d54df659e7d8afa458ed33e2a9ec3644f8767cd9a35d9f60cf4450e4d14d",
-            "non_missing_rows": 1612
+            "sha256": "7e2bca0c99b583f2015a21d09ebf15b73946f516dec596e7a8186f57832fc289",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2308": {
-        "source": "teacher market/2308.csv etl:adj_close",
+        "source": "teacher market/2308.csv＋teacher_live/market/2308.csv etl:adj_close",
         "name_zh": "個股 2308",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3977,19 +4009,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2308.csv",
             "column": "stock_2308_ret_lag2",
-            "sha256": "60f746e82b44198cfbd767056d10f9083dbd85a4469ff0df093a85eed279e96b",
-            "non_missing_rows": 1615
+            "sha256": "f25c360207d7412c281396c4d35ea3b5b2657897932860c4c0294d4b5ff7a8c1",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2308.csv",
             "column": "stock_2308_ret_lag5",
-            "sha256": "d4f89115525f6858f5a7465a2197c7e9b9e86962ddb67c352c9b84bc2bc6176e",
-            "non_missing_rows": 1612
+            "sha256": "421d539277b5911793c548ead8657f813699fe36373946b7f6f4aad7c3ad1116",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2317": {
-        "source": "teacher market/2317.csv etl:adj_close",
+        "source": "teacher market/2317.csv＋teacher_live/market/2317.csv etl:adj_close",
         "name_zh": "個股 2317",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -3998,19 +4030,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2317.csv",
             "column": "stock_2317_ret_lag2",
-            "sha256": "ce071d3bf3f4f6696bab379484843facbd98560690e6cc769cd0fb64bc17b265",
-            "non_missing_rows": 1614
+            "sha256": "f6e5f22f50336f5ea72310b50e26359fed02a1b65083368225559b470696f9b7",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2317.csv",
             "column": "stock_2317_ret_lag5",
-            "sha256": "eb34a492ae5807804b549812a9c14ef9b5f0cc29af5af50423ac499090bced6b",
-            "non_missing_rows": 1611
+            "sha256": "3754733d743018fd7259a4306041e2dfeb62b327ef09fc992a61bfb98b0c7df8",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_2324": {
-        "source": "teacher market/2324.csv etl:adj_close",
+        "source": "teacher market/2324.csv＋teacher_live/market/2324.csv etl:adj_close",
         "name_zh": "個股 2324",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4019,19 +4051,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2324.csv",
             "column": "stock_2324_ret_lag2",
-            "sha256": "9f4e463e648555650dc7df19cb1c55e79351823328e0fd23000edc0d0e0a9005",
-            "non_missing_rows": 1615
+            "sha256": "66d7852d1282e5c5293ee615a67a90e3ecbddec4b472adb553222eded575f88d",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2324.csv",
             "column": "stock_2324_ret_lag5",
-            "sha256": "0987b01868dd60213d23d0ded1248b85f6ae889377c8e5897800924fffe32d52",
-            "non_missing_rows": 1612
+            "sha256": "3b5d379de447a52a708619f740cb4f2741d2f233b861558fb23fa6e62a3cccdf",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2327": {
-        "source": "teacher market/2327.csv etl:adj_close",
+        "source": "teacher market/2327.csv＋teacher_live/market/2327.csv etl:adj_close",
         "name_zh": "個股 2327",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4040,19 +4072,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2327.csv",
             "column": "stock_2327_ret_lag2",
-            "sha256": "3c4bdb52089446d2b4b677b6eb43d3717fe92a31bd0dc42250888217ce063367",
-            "non_missing_rows": 1600
+            "sha256": "f23c1a04faffbc0b18fc50c5a792facdec489dc2b8f1de440d89ce7ab3a4e15b",
+            "non_missing_rows": 1620
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2327.csv",
             "column": "stock_2327_ret_lag5",
-            "sha256": "c0205fe8111a69eacd33abe3c5ec6c3d3155f5821a45367e96f10188c315df89",
-            "non_missing_rows": 1597
+            "sha256": "ea864c21c21df977010c2fe7b6a45da42562b8fe952ae1873495762aba940040",
+            "non_missing_rows": 1617
           }
         }
       },
       "stock_2330": {
-        "source": "teacher market/2330.csv etl:adj_close",
+        "source": "teacher market/2330.csv＋teacher_live/market/2330.csv etl:adj_close",
         "name_zh": "個股 2330",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4061,19 +4093,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2330.csv",
             "column": "stock_2330_ret_lag2",
-            "sha256": "cfb392c3a02e4714f74707ee754a557c13028a6fec1fbdb74eb00b7c765933ba",
-            "non_missing_rows": 1615
+            "sha256": "44862f039cea75f6c2b516401583a1bc7af0eea67ae3fe02e09d6821ce67b5b8",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2330.csv",
             "column": "stock_2330_ret_lag5",
-            "sha256": "39605259e10995772b478ff15e79f9a9551cd417e911510b398cc7ab5fb10ea5",
-            "non_missing_rows": 1612
+            "sha256": "7c448e0d01aab630ab7bbd31e25f94aa204a00ad087b62ee2f439209f3e4c8f0",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2344": {
-        "source": "teacher market/2344.csv etl:adj_close",
+        "source": "teacher market/2344.csv＋teacher_live/market/2344.csv etl:adj_close",
         "name_zh": "個股 2344",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4082,19 +4114,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2344.csv",
             "column": "stock_2344_ret_lag2",
-            "sha256": "36ba37b6918bc0543124a5f8a6281663a8b3759f4784c447fa1cbec7f60f4d22",
-            "non_missing_rows": 1615
+            "sha256": "257a8e4a839d11bf18d11ae49707a94a255e91c46480074d33c4a50cb1ce8426",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2344.csv",
             "column": "stock_2344_ret_lag5",
-            "sha256": "c4c5269db6ad94a8705a98cbb43917137a8bc9f067c185593244389585ca26e8",
-            "non_missing_rows": 1612
+            "sha256": "83e71fe274973889325a70f0786b22d3386c5b65a41c0b2268172ec89a0eea28",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2345": {
-        "source": "teacher market/2345.csv etl:adj_close",
+        "source": "teacher market/2345.csv＋teacher_live/market/2345.csv etl:adj_close",
         "name_zh": "個股 2345",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4103,19 +4135,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2345.csv",
             "column": "stock_2345_ret_lag2",
-            "sha256": "b711c0f9c4eb85dfa853c7cde1136ede0ead519f2f8a4a82538737dd1a84dbfb",
-            "non_missing_rows": 1615
+            "sha256": "ed49fa5001aeafa781fedc9195eaf3601b9e9fbeeb36ce03d0635a5dde511755",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2345.csv",
             "column": "stock_2345_ret_lag5",
-            "sha256": "d4b1dff7898f84e123a1f4cd43ce5cce7b7f31c1c186ecb53857603345cc3489",
-            "non_missing_rows": 1612
+            "sha256": "1024e750888f33e476b764a60184721d9ff35e7684eba56b8fad2025d7ac115d",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2356": {
-        "source": "teacher market/2356.csv etl:adj_close",
+        "source": "teacher market/2356.csv＋teacher_live/market/2356.csv etl:adj_close",
         "name_zh": "個股 2356",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4124,19 +4156,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2356.csv",
             "column": "stock_2356_ret_lag2",
-            "sha256": "f293232a023866fe8af6e2ab9d80ec55cb7e31673fe5eb035a78a2dff6cae6a8",
-            "non_missing_rows": 1615
+            "sha256": "e4b5d628a569c49ba88f5d162c0c791b87f69d9a4cfb96f8c6e41ce893fd80a2",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2356.csv",
             "column": "stock_2356_ret_lag5",
-            "sha256": "7a9c06098fcd920943cdb68b570ec1c9712bc6dbe23a3fce370a9511ce0d481d",
-            "non_missing_rows": 1612
+            "sha256": "359ac9293d803d6a742df7600c0af9afe9bcd9e0724fe4cfd1c595207dbc2443",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2357": {
-        "source": "teacher market/2357.csv etl:adj_close",
+        "source": "teacher market/2357.csv＋teacher_live/market/2357.csv etl:adj_close",
         "name_zh": "個股 2357",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4145,19 +4177,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2357.csv",
             "column": "stock_2357_ret_lag2",
-            "sha256": "6dd4b00407f66cfafd5b8e1a9802a2d754f711d32dcbadde98bfe193b841cac7",
-            "non_missing_rows": 1615
+            "sha256": "3e30643da32c00651ce02bfd8beb470b5cc2edd0e61a0844ede595cc7be7ef83",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2357.csv",
             "column": "stock_2357_ret_lag5",
-            "sha256": "595e62671b7dc7c0624d1d4d9a7c13ecd6ce1ecdd58f60458b5e41ddd095a91d",
-            "non_missing_rows": 1612
+            "sha256": "63d2a9f333dcf4223ffdce918f1efcb8df9101dd52e35002f6b972c5cbffb9ee",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2360": {
-        "source": "teacher market/2360.csv etl:adj_close",
+        "source": "teacher market/2360.csv＋teacher_live/market/2360.csv etl:adj_close",
         "name_zh": "個股 2360",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4166,19 +4198,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2360.csv",
             "column": "stock_2360_ret_lag2",
-            "sha256": "f4086e291915e3dd78a39497c9c8ddb697bd6587d96aa88f96499a29ec916749",
-            "non_missing_rows": 1615
+            "sha256": "348ecb011d44644f8d4d2b7958dc2fe3ed5a718042524924d045f7b923982b14",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2360.csv",
             "column": "stock_2360_ret_lag5",
-            "sha256": "fa4f634e5e28bd4cf2fb6d436a7bbe5dd0cb6ce776b0827f9ced9ef69be890d9",
-            "non_missing_rows": 1612
+            "sha256": "4a46db1c26d577c9819a743c57b34b448002619d1da28a7c748d01c56e3a9104",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2368": {
-        "source": "teacher market/2368.csv etl:adj_close",
+        "source": "teacher market/2368.csv＋teacher_live/market/2368.csv etl:adj_close",
         "name_zh": "個股 2368",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4187,19 +4219,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2368.csv",
             "column": "stock_2368_ret_lag2",
-            "sha256": "dad9227ca758a0ae358134be3160a900aa9b87bdc3cb1fa1d49f818a9e304caf",
-            "non_missing_rows": 1608
+            "sha256": "4ab6a94fa83261e69d3572920f93892e54ab9c0b11d71576e6c17e323de50666",
+            "non_missing_rows": 1628
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2368.csv",
             "column": "stock_2368_ret_lag5",
-            "sha256": "f5f0ac18b612656ae37b042e108446d0d60b2a8ecd0b6b297859b2ef62b4e8b2",
-            "non_missing_rows": 1605
+            "sha256": "7161cb3859f0b3e93a7a3ecd0bdc70b572d9f8034c67ac4bedf81b6bef4472ac",
+            "non_missing_rows": 1625
           }
         }
       },
       "stock_2376": {
-        "source": "teacher market/2376.csv etl:adj_close",
+        "source": "teacher market/2376.csv＋teacher_live/market/2376.csv etl:adj_close",
         "name_zh": "個股 2376",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4208,19 +4240,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2376.csv",
             "column": "stock_2376_ret_lag2",
-            "sha256": "6b55cb3c39d161a8819b9d5c95d267d698561e73410e419021dd2d5e332ebb6e",
-            "non_missing_rows": 1615
+            "sha256": "ad9d7c7e8c75c6e346fff0d2693cbb751b6e01d65221bed9b37601ab640038de",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2376.csv",
             "column": "stock_2376_ret_lag5",
-            "sha256": "8353846b72014d19ddd77021acc8aefb9aa8a078c074b91197b8eb519496cbe9",
-            "non_missing_rows": 1612
+            "sha256": "b39705095c4055fbb828d591c91abbd8e938118a603245637ac6c6d87a58ade4",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2377": {
-        "source": "teacher market/2377.csv etl:adj_close",
+        "source": "teacher market/2377.csv＋teacher_live/market/2377.csv etl:adj_close",
         "name_zh": "個股 2377",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4229,19 +4261,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2377.csv",
             "column": "stock_2377_ret_lag2",
-            "sha256": "6bc29b327b73a2fd4efcbb137837e9dcc617b8ac1b82d895920bb91b87194a7c",
-            "non_missing_rows": 1615
+            "sha256": "7e15a7c185766014515864f0ba5519d1ac496ee6f6b4122c0141940ec1a1405c",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2377.csv",
             "column": "stock_2377_ret_lag5",
-            "sha256": "f713500bd53fc536b24769f2a8abfbf477ea90989ae08e45e9ec0815a40e4cb8",
-            "non_missing_rows": 1612
+            "sha256": "c5c5e42446be3e16576b71876cd3d77454b592380656d0d21513c6a959b04ff5",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2379": {
-        "source": "teacher market/2379.csv etl:adj_close",
+        "source": "teacher market/2379.csv＋teacher_live/market/2379.csv etl:adj_close",
         "name_zh": "個股 2379",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4250,19 +4282,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2379.csv",
             "column": "stock_2379_ret_lag2",
-            "sha256": "aed6184f3bd9b085dfe83a54f57482f86c986d7b3adf51d0e7420661062999d2",
-            "non_missing_rows": 1615
+            "sha256": "0b6091ed10d7bd230bcfaa2036ffc13fcac1db2fae6d8f732e6c7e978aef3683",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2379.csv",
             "column": "stock_2379_ret_lag5",
-            "sha256": "084bd8bd8611132a7afafc4b0022a2e5ce6ec7585c2beb48b3a555d45fa3cc71",
-            "non_missing_rows": 1612
+            "sha256": "a84da53bcf2fcf575a88062878378776741928f050f1af17610c2c435b2766fd",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2382": {
-        "source": "teacher market/2382.csv etl:adj_close",
+        "source": "teacher market/2382.csv＋teacher_live/market/2382.csv etl:adj_close",
         "name_zh": "個股 2382",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4271,19 +4303,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2382.csv",
             "column": "stock_2382_ret_lag2",
-            "sha256": "689e8c81e1875d64d9f0856039a5e4eb1b77c497d9872da76f034a06f1a65a24",
-            "non_missing_rows": 1615
+            "sha256": "a5625160ccc74100b897238967f2020450abd1d7af48dde0480954a768fcc220",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2382.csv",
             "column": "stock_2382_ret_lag5",
-            "sha256": "5ac3fb808aac9a3cb0ce9367bcfe9736d67f4b87e4945597c9e19f36e09d9ee5",
-            "non_missing_rows": 1612
+            "sha256": "52352defc5f267017b828d120815e270f7a3135786ab249aebdc76dbcd9f6473",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2383": {
-        "source": "teacher market/2383.csv etl:adj_close",
+        "source": "teacher market/2383.csv＋teacher_live/market/2383.csv etl:adj_close",
         "name_zh": "個股 2383",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4292,19 +4324,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2383.csv",
             "column": "stock_2383_ret_lag2",
-            "sha256": "5ebe7400f484fac65f324f3bfe14e07cbfa3b01e5bf4238f7f528c85f56c4e79",
-            "non_missing_rows": 1615
+            "sha256": "9fa7bc290a017d639f360cef614bdc908e0a51872c54ce2f4482d87deb8ba996",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2383.csv",
             "column": "stock_2383_ret_lag5",
-            "sha256": "c21998e0114c05140676ddf92b5a763b8608fb28fe73d2354fabc4f7030522a0",
-            "non_missing_rows": 1612
+            "sha256": "3d0ae743f95a8ee5124a00c11e55eb535eade76434c6190806b9e341375ce90c",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2395": {
-        "source": "teacher market/2395.csv etl:adj_close",
+        "source": "teacher market/2395.csv＋teacher_live/market/2395.csv etl:adj_close",
         "name_zh": "個股 2395",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4313,19 +4345,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2395.csv",
             "column": "stock_2395_ret_lag2",
-            "sha256": "f6b9e38ba93deb1847ab77d25b9154127e0d275f0d132762716899438d873aae",
-            "non_missing_rows": 1615
+            "sha256": "ebf05e1dd9e9fbee728f00399b393d3ebe1a89778e94421844368bb911745c5d",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2395.csv",
             "column": "stock_2395_ret_lag5",
-            "sha256": "7c592fc1177b8638b6ba474952f607857496d21fc2635f56bec4d98fff7a0411",
-            "non_missing_rows": 1612
+            "sha256": "e277e626e197af4493f0a6e1e900ba0950f10b9c25b959302ed860a9762787bb",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2404": {
-        "source": "teacher market/2404.csv etl:adj_close",
+        "source": "teacher market/2404.csv＋teacher_live/market/2404.csv etl:adj_close",
         "name_zh": "個股 2404",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4334,19 +4366,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2404.csv",
             "column": "stock_2404_ret_lag2",
-            "sha256": "048812ff239eec7c61acd8cf174c0fb9c783c9dc09659e1ae4b5e42de0fdb858",
-            "non_missing_rows": 1615
+            "sha256": "94cee43399cf22d7e7baeb9b9d22b8aed0637dc4b29177b519f368ebb13334c8",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2404.csv",
             "column": "stock_2404_ret_lag5",
-            "sha256": "f4f0ce78386cbc4d898d8883df5febd51de6479cbe7c1b6e68e90acc49da7272",
-            "non_missing_rows": 1612
+            "sha256": "dafab5f0f06c69ad3f5d339eef2fa1fb28d4a827630cc67fa753da9e7ac6d44d",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2408": {
-        "source": "teacher market/2408.csv etl:adj_close",
+        "source": "teacher market/2408.csv＋teacher_live/market/2408.csv etl:adj_close",
         "name_zh": "個股 2408",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4355,19 +4387,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2408.csv",
             "column": "stock_2408_ret_lag2",
-            "sha256": "e06369032fc7f4f534aa8043244429d543492b1082fdb0b15b836c8e7c67d404",
-            "non_missing_rows": 1615
+            "sha256": "94fdea1a3c33d02e679ae63b6a1c4cf2eb01bb8de976fb4c8088e77a7e3e5442",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2408.csv",
             "column": "stock_2408_ret_lag5",
-            "sha256": "1acade0ce9fbe90c76d9b152ccfc83d77d250de99e19a4a5a3387a52f1218d5c",
-            "non_missing_rows": 1612
+            "sha256": "8be626e27e946a42d279469f1b9b867deb0fe560ca08787821186e62179618fc",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2412": {
-        "source": "teacher market/2412.csv etl:adj_close",
+        "source": "teacher market/2412.csv＋teacher_live/market/2412.csv etl:adj_close",
         "name_zh": "個股 2412",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4376,19 +4408,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2412.csv",
             "column": "stock_2412_ret_lag2",
-            "sha256": "d93798a65fb9e930b58acb3e41b65db95008260621e3e0307c69130a4da102c2",
-            "non_missing_rows": 1615
+            "sha256": "fc137dd2750f173970fc140542e902b23eb8f152132801beab494302a7ca06e6",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2412.csv",
             "column": "stock_2412_ret_lag5",
-            "sha256": "33c03b9aa1652f27f735c31ebaf4b36ccbd0a6737fdb2460fd044242d999c5ab",
-            "non_missing_rows": 1612
+            "sha256": "3413532d44d3331ef64c5d6048cc4b6342fde5dd7c4fd833203d4aa7cd30f6f5",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2449": {
-        "source": "teacher market/2449.csv etl:adj_close",
+        "source": "teacher market/2449.csv＋teacher_live/market/2449.csv etl:adj_close",
         "name_zh": "個股 2449",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4397,19 +4429,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2449.csv",
             "column": "stock_2449_ret_lag2",
-            "sha256": "96bc90612d67d3825382a6c599eb70f918d0488a835062118613fde466b2e80a",
-            "non_missing_rows": 1614
+            "sha256": "eae083fdba1425492b886eb215285db4c6e2f206b58e359c3f4706d4009a98b1",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2449.csv",
             "column": "stock_2449_ret_lag5",
-            "sha256": "b733762453d52e31c287b7a5d425d53c049399f91faef182c74113bfa9a25b3c",
-            "non_missing_rows": 1611
+            "sha256": "049b53dd317b71a9174c3aab90aad78df18995c88073230b971bd562a4157422",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_2454": {
-        "source": "teacher market/2454.csv etl:adj_close",
+        "source": "teacher market/2454.csv＋teacher_live/market/2454.csv etl:adj_close",
         "name_zh": "個股 2454",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4418,19 +4450,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2454.csv",
             "column": "stock_2454_ret_lag2",
-            "sha256": "3caff5ef5c677973d769499a6a175e0380ddf212d40a874613ef9d4f9bf3c1f8",
-            "non_missing_rows": 1615
+            "sha256": "0426788ccaa12d99df6afbba1218a0ea637ec9ec609e2d546adae26ac656c277",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2454.csv",
             "column": "stock_2454_ret_lag5",
-            "sha256": "27391db6beaf4b3c2c2188b2f00f3009210eacf5ae80c22157f0bf88fad6914e",
-            "non_missing_rows": 1612
+            "sha256": "8358b48b181ba44dafa8412484889540c38e5fc453ef2aa9319cbaf4c63ccdad",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2474": {
-        "source": "teacher market/2474.csv etl:adj_close",
+        "source": "teacher market/2474.csv＋teacher_live/market/2474.csv etl:adj_close",
         "name_zh": "個股 2474",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4439,19 +4471,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2474.csv",
             "column": "stock_2474_ret_lag2",
-            "sha256": "3ecc6a1895d1c663166bc2e7ed8436f23394b921ea21c1ccec70a48a04be86eb",
-            "non_missing_rows": 1614
+            "sha256": "650f503355023b37f0b15435bb2312eb51d516e4b325e1737496a9123751617f",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2474.csv",
             "column": "stock_2474_ret_lag5",
-            "sha256": "baf07d85d478516807bfd84246c32e6339f10bfd5c55bbb448fb0a60185dcf95",
-            "non_missing_rows": 1611
+            "sha256": "8536b6c5e650cb64a157a5451b6953a27f93711ed901b22ccdf80422ac9bb994",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_2603": {
-        "source": "teacher market/2603.csv etl:adj_close",
+        "source": "teacher market/2603.csv＋teacher_live/market/2603.csv etl:adj_close",
         "name_zh": "個股 2603",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4460,19 +4492,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2603.csv",
             "column": "stock_2603_ret_lag2",
-            "sha256": "bc3d7aa11e57e7a38ec5d21c716a20bbe6f834ad34f07e070b827b420f7a74b3",
-            "non_missing_rows": 1608
+            "sha256": "6341c941993b709668be8903f08475cf27794e0d3b7e70031e051590bdf63939",
+            "non_missing_rows": 1628
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2603.csv",
             "column": "stock_2603_ret_lag5",
-            "sha256": "8f7f5d6481664b48caef6413aa2bd2e0bbe9a7b7474f23abf0929e4b994101dd",
-            "non_missing_rows": 1605
+            "sha256": "d2f92d8cfa583a968715a4a7bf8dead7274fd112d4631834cc7847be60322f97",
+            "non_missing_rows": 1625
           }
         }
       },
       "stock_2609": {
-        "source": "teacher market/2609.csv etl:adj_close",
+        "source": "teacher market/2609.csv＋teacher_live/market/2609.csv etl:adj_close",
         "name_zh": "個股 2609",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4481,19 +4513,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2609.csv",
             "column": "stock_2609_ret_lag2",
-            "sha256": "66f4a0bd0be3e71683fa78d194c826fbe1d94b0286968f42b84ed9007acdf4fa",
-            "non_missing_rows": 1615
+            "sha256": "b79906b8e87f7b16997f8b16b5633d0631d53ffa1eb68e4adf150ed70d7ad0b1",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2609.csv",
             "column": "stock_2609_ret_lag5",
-            "sha256": "0a5f22bde34a907d74cf1515555e2f23a45eb95a13db982193777c24f5854724",
-            "non_missing_rows": 1612
+            "sha256": "490e5570ef0c8e4cd2bec20cca630f82a84cd41737eafccee53f2cdf21bba4d3",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2610": {
-        "source": "teacher market/2610.csv etl:adj_close",
+        "source": "teacher market/2610.csv＋teacher_live/market/2610.csv etl:adj_close",
         "name_zh": "個股 2610",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4502,19 +4534,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2610.csv",
             "column": "stock_2610_ret_lag2",
-            "sha256": "9376d9cb5de589aded700420e1eb9adb9717534c538278ed0150c4cb66a80e06",
-            "non_missing_rows": 1615
+            "sha256": "c662b83e8fa58e33f4410c4d042b4ef0ac16503a03276906ba36999cd531db9b",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2610.csv",
             "column": "stock_2610_ret_lag5",
-            "sha256": "ca1fcf0e58e775d74445b13bfc84c47978d03b206eb4afc1ed2813905484d744",
-            "non_missing_rows": 1612
+            "sha256": "8d38f9881d414ba256eab528a2f87ba547ca35534557756d5efc2c3e52b4295b",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2615": {
-        "source": "teacher market/2615.csv etl:adj_close",
+        "source": "teacher market/2615.csv＋teacher_live/market/2615.csv etl:adj_close",
         "name_zh": "個股 2615",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4523,19 +4555,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2615.csv",
             "column": "stock_2615_ret_lag2",
-            "sha256": "0c1cad48f2ad20ca6a07455797c5e73ea6b9cc57cf855d25ba64b808be966c07",
-            "non_missing_rows": 1615
+            "sha256": "e343663630ab0c08ef10e175d9e648f350721e248e19ffa3d87eb8b43db7383c",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2615.csv",
             "column": "stock_2615_ret_lag5",
-            "sha256": "32ae1b5ea566cc80b11a01d3b8a5662acdc17e8477ae13442f6264d5799b83a8",
-            "non_missing_rows": 1612
+            "sha256": "b089831f5e193e2a744dc2a4c7be04633998935b43884b534eff7d07de656a16",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2618": {
-        "source": "teacher market/2618.csv etl:adj_close",
+        "source": "teacher market/2618.csv＋teacher_live/market/2618.csv etl:adj_close",
         "name_zh": "個股 2618",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4544,19 +4576,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2618.csv",
             "column": "stock_2618_ret_lag2",
-            "sha256": "747661ccb087cde27b440ed6596e5803fbc85c8442379cfd695fbea41e4820d5",
-            "non_missing_rows": 1615
+            "sha256": "dfe492159b198eee4105fd3f6eb326b62c7156d77aa6aaed00b56a5f4100e561",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2618.csv",
             "column": "stock_2618_ret_lag5",
-            "sha256": "56f0b42146399691f7c8bde0083827a29c588c57c9eeb4dd308466a98413a468",
-            "non_missing_rows": 1612
+            "sha256": "fbe5574687632898dea4d5308f9d331b7a7aac7102f0efadbe71dfba63457263",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2633": {
-        "source": "teacher market/2633.csv etl:adj_close",
+        "source": "teacher market/2633.csv＋teacher_live/market/2633.csv etl:adj_close",
         "name_zh": "個股 2633",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4565,19 +4597,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2633.csv",
             "column": "stock_2633_ret_lag2",
-            "sha256": "9dc2e529872dc62629399e860e3f8787eaf528945e0845bf04a9ad3072abdc6d",
-            "non_missing_rows": 1615
+            "sha256": "6dde2faf04883e8128929ae4a519b4ae536d1f3ff68aaa2c61c961463ace48d8",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2633.csv",
             "column": "stock_2633_ret_lag5",
-            "sha256": "b9a803cdd51c05b952badb10351d680b854005f94c1fa3dfb6fa71477afe5be4",
-            "non_missing_rows": 1612
+            "sha256": "1e6007d463270ddb886a996fb3bffaf0fbf8bdde2f3811bb9b5ddac7f7e13b7f",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2801": {
-        "source": "teacher market/2801.csv etl:adj_close",
+        "source": "teacher market/2801.csv＋teacher_live/market/2801.csv etl:adj_close",
         "name_zh": "個股 2801",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4586,19 +4618,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2801.csv",
             "column": "stock_2801_ret_lag2",
-            "sha256": "b7d72865c33c51a17f2a30d70ca0c9441f94dd6f9ddd6d854e214ea5b70f61ff",
-            "non_missing_rows": 1615
+            "sha256": "ecfba7a7101f64199df8317c480b55c33039364f908735b191e2d200650ce4cc",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2801.csv",
             "column": "stock_2801_ret_lag5",
-            "sha256": "69bb4bf735bd5a67175bd1d1311c97d82589ed01e18b7888c2c90be01491af2c",
-            "non_missing_rows": 1612
+            "sha256": "55708b88dff8bc503b625ed2432aa982b415b4adc669d774a283ab03298e8a0b",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2812": {
-        "source": "teacher market/2812.csv etl:adj_close",
+        "source": "teacher market/2812.csv＋teacher_live/market/2812.csv etl:adj_close",
         "name_zh": "個股 2812",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4607,19 +4639,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2812.csv",
             "column": "stock_2812_ret_lag2",
-            "sha256": "be3523b60dab5a1696ad2511917fbe3ea6befcc464c5895037a57c8ec2baaa98",
-            "non_missing_rows": 1615
+            "sha256": "adf674d2af746a773afe008afb16d23062e9a880999552d7c002a2a37334dcaf",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2812.csv",
             "column": "stock_2812_ret_lag5",
-            "sha256": "d85bd59c028402e178d61540506855f4951dc3bf1a2108dd7f9220ae3d63c2e2",
-            "non_missing_rows": 1612
+            "sha256": "5fac8d9f92ca6cb3e4e1202357c0f9d6c073e8cf5e33a521a7afe24a2855c590",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2834": {
-        "source": "teacher market/2834.csv etl:adj_close",
+        "source": "teacher market/2834.csv＋teacher_live/market/2834.csv etl:adj_close",
         "name_zh": "個股 2834",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4628,19 +4660,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2834.csv",
             "column": "stock_2834_ret_lag2",
-            "sha256": "6eb216dba0d8f2ae693865f9d9b2ffc6510adf1f09c48ce92ceee8e338db09a0",
-            "non_missing_rows": 1615
+            "sha256": "a0b1470bae96a6a5fbb321d434fe25edead13475ebc4ceed93ded6071a1ceb9b",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2834.csv",
             "column": "stock_2834_ret_lag5",
-            "sha256": "1f7b5cbbbec2dcbcfc10ce6ec558df783dceb3a4e70e3ae08561d13ae2af90d7",
-            "non_missing_rows": 1612
+            "sha256": "93b72e57e768236532640823b4454a95951f3de729e96aeb6847bafc0ff67bad",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2880": {
-        "source": "teacher market/2880.csv etl:adj_close",
+        "source": "teacher market/2880.csv＋teacher_live/market/2880.csv etl:adj_close",
         "name_zh": "個股 2880",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4649,19 +4681,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2880.csv",
             "column": "stock_2880_ret_lag2",
-            "sha256": "752d3b1480ea7932d1a20063e5066b438dd7c3503363955ea5ef482806d8fd85",
-            "non_missing_rows": 1615
+            "sha256": "0c9420da04ed5cf963b90df4b6fc9fc6a3e432b8b8510fbc1b894982cebb5892",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2880.csv",
             "column": "stock_2880_ret_lag5",
-            "sha256": "fb1aec4cf80a5550f0a0f372e17778b79f38659ea470ee069f5a17cc3a7289f3",
-            "non_missing_rows": 1612
+            "sha256": "425ffaa5c19b3ba291ae66b0d3f998223ebde5fc816c5111a5d57928a11f2985",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2881": {
-        "source": "teacher market/2881.csv etl:adj_close",
+        "source": "teacher market/2881.csv＋teacher_live/market/2881.csv etl:adj_close",
         "name_zh": "個股 2881",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4670,19 +4702,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2881.csv",
             "column": "stock_2881_ret_lag2",
-            "sha256": "4faf758ab0999aad313a8be89024c6b7ca3206c2f81414435d5f3e3de21ddc46",
-            "non_missing_rows": 1615
+            "sha256": "79d67f7188b9d9d6ed62118b6a79aa4624c5a5e18ab2ae4a9fe556a2774aec80",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2881.csv",
             "column": "stock_2881_ret_lag5",
-            "sha256": "aa3be035ed44c08cde7b920b4dce28c909e54b67cd477bd94fca1382a57c9890",
-            "non_missing_rows": 1612
+            "sha256": "146137ada28c8c7227271d9e046aa9ddb07dd21c4d6c745079a6c6aef542b6d4",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2882": {
-        "source": "teacher market/2882.csv etl:adj_close",
+        "source": "teacher market/2882.csv＋teacher_live/market/2882.csv etl:adj_close",
         "name_zh": "個股 2882",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4691,19 +4723,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2882.csv",
             "column": "stock_2882_ret_lag2",
-            "sha256": "73a7c5965bfe3f1a9749e7e3a7bfeb6b89f088c173b90cb256c380c122e1cf7b",
-            "non_missing_rows": 1615
+            "sha256": "da4e6b1a12a82e08e19f91356ce7c424169937ce0e41e129d7e9cd15b6f365b3",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2882.csv",
             "column": "stock_2882_ret_lag5",
-            "sha256": "61d06bf0752d59bfb4c99221d8f69feaac6fcb2139159c9790c8fb4f2c389969",
-            "non_missing_rows": 1612
+            "sha256": "85184717db014777e0f0530e310d3acd2eda7430f8a285132d6eaa6e8723a30f",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2883": {
-        "source": "teacher market/2883.csv etl:adj_close",
+        "source": "teacher market/2883.csv＋teacher_live/market/2883.csv etl:adj_close",
         "name_zh": "個股 2883",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4712,19 +4744,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2883.csv",
             "column": "stock_2883_ret_lag2",
-            "sha256": "350a090b15273bfff6fdca61dbf96515b78d4f36d684c676a5e07c92b741ac8e",
-            "non_missing_rows": 1615
+            "sha256": "5017084d8a003f4dd75882541a294d2b63e538b4d48d0305332de8a34118c03e",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2883.csv",
             "column": "stock_2883_ret_lag5",
-            "sha256": "398d36f0373560408a37516d1f3659d7ab428387d51a475e94e056bb48ecf7bc",
-            "non_missing_rows": 1612
+            "sha256": "c6c1ae713d10d09432fd86e9e9b987a3bba4c4be6cab899208bf8d0204d23409",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2884": {
-        "source": "teacher market/2884.csv etl:adj_close",
+        "source": "teacher market/2884.csv＋teacher_live/market/2884.csv etl:adj_close",
         "name_zh": "個股 2884",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4733,19 +4765,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2884.csv",
             "column": "stock_2884_ret_lag2",
-            "sha256": "cbcfd861082d42523ef94b2012530457c9ca593bcc3b9003ef0f02019caf78be",
-            "non_missing_rows": 1614
+            "sha256": "2270cfb97cc73adc61e5eafe9a9ee0059bafc6c553107645cc97ebc688009dfe",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2884.csv",
             "column": "stock_2884_ret_lag5",
-            "sha256": "edcb05f5ead7f5db12d3c576b59dbfe82b0560eb080f3d83881b3d033c1636ad",
-            "non_missing_rows": 1611
+            "sha256": "3aea5f7ae0933c552543695b5ed9b9503e57040c140ac37ce160ebabc991a97d",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_2885": {
-        "source": "teacher market/2885.csv etl:adj_close",
+        "source": "teacher market/2885.csv＋teacher_live/market/2885.csv etl:adj_close",
         "name_zh": "個股 2885",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4754,19 +4786,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2885.csv",
             "column": "stock_2885_ret_lag2",
-            "sha256": "6bbb3790c49893341d263e437c25b390135bce45180c586d4e4733e090e4631d",
-            "non_missing_rows": 1615
+            "sha256": "8048c367240afeef7715cd02d749dec44f59f2ebd7eab9e2032a2bc742de531b",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2885.csv",
             "column": "stock_2885_ret_lag5",
-            "sha256": "37e813363bc68650e7ff7cffa5be3e2cf858d748082804e47614a80510f41952",
-            "non_missing_rows": 1612
+            "sha256": "86938925a198233f32f9ee66b126c65ddd4b34896b3d66b961d2c01b53983f29",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2886": {
-        "source": "teacher market/2886.csv etl:adj_close",
+        "source": "teacher market/2886.csv＋teacher_live/market/2886.csv etl:adj_close",
         "name_zh": "個股 2886",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4775,19 +4807,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2886.csv",
             "column": "stock_2886_ret_lag2",
-            "sha256": "b8b3a832b06bbc8149cd7e422118a0bf9942896d99760531d7f8feec2d0a42d3",
-            "non_missing_rows": 1615
+            "sha256": "952c45226b63b1c0f6f81731d38339c2c3095dba67e8428c1d1a0b15a9915d32",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2886.csv",
             "column": "stock_2886_ret_lag5",
-            "sha256": "1279c1889e494bce316c12853415db16f4dbcacb297a34c5c52cbe06dc63c6ad",
-            "non_missing_rows": 1612
+            "sha256": "5bc2427af9db5a8a675c77167da9c6ae1f0de2c198805ab3021d30c8c4033a6f",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2887": {
-        "source": "teacher market/2887.csv etl:adj_close",
+        "source": "teacher market/2887.csv＋teacher_live/market/2887.csv etl:adj_close",
         "name_zh": "個股 2887",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4796,19 +4828,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2887.csv",
             "column": "stock_2887_ret_lag2",
-            "sha256": "e771f23e0ffaf84cd0abf66c05ca850d125e53d0a36ce09f163b66836f0a2a4d",
-            "non_missing_rows": 1614
+            "sha256": "bb6b6bfb603ad0a562c479174ae7fa7afff376166662b8982bb1248edaec8ebf",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2887.csv",
             "column": "stock_2887_ret_lag5",
-            "sha256": "f8b3384300f49171025b646f962eb7005d4b4f6747f43d17851101df3dc96271",
-            "non_missing_rows": 1611
+            "sha256": "6219bffb60d87be13076e23b669b6efa8ab719ca70a6bd768b1c1e55a9c3ac7d",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_2890": {
-        "source": "teacher market/2890.csv etl:adj_close",
+        "source": "teacher market/2890.csv＋teacher_live/market/2890.csv etl:adj_close",
         "name_zh": "個股 2890",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4817,19 +4849,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2890.csv",
             "column": "stock_2890_ret_lag2",
-            "sha256": "b6a1ddb2a653b4ffaf1dfc50c1a97a4bb3e0c7b26489008d669dccf7c535b8c3",
-            "non_missing_rows": 1615
+            "sha256": "dc3088d27f55da14254466a5f21a10f39bf43b678b65a357fe4281c4692df2a4",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2890.csv",
             "column": "stock_2890_ret_lag5",
-            "sha256": "d84552e12cc27512d985f9350c8bd7adb2333f3d54e04a5cd37d3a730fb7002a",
-            "non_missing_rows": 1612
+            "sha256": "7b4679a60336dbf8fd420cb1f2e06acec0fcc90a1d7b46f92bb973ba1ec73514",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2891": {
-        "source": "teacher market/2891.csv etl:adj_close",
+        "source": "teacher market/2891.csv＋teacher_live/market/2891.csv etl:adj_close",
         "name_zh": "個股 2891",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4838,19 +4870,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2891.csv",
             "column": "stock_2891_ret_lag2",
-            "sha256": "950dc31571a94b9d7f81217cd3746256a317ce418c843ac1f35262172e45533d",
-            "non_missing_rows": 1615
+            "sha256": "a7378d37acffc216d3efdce66fa63caabee18f5c1d0019ec33ee37c8e623c62b",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2891.csv",
             "column": "stock_2891_ret_lag5",
-            "sha256": "f5fde68ac556856d09095958eb84d4db8bf6f5310477116ff569400bc3975209",
-            "non_missing_rows": 1612
+            "sha256": "1879923449d4a5211a3e243a225c3addcdbbe9cddd0f5661cb8bb9acf6728787",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2892": {
-        "source": "teacher market/2892.csv etl:adj_close",
+        "source": "teacher market/2892.csv＋teacher_live/market/2892.csv etl:adj_close",
         "name_zh": "個股 2892",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4859,19 +4891,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2892.csv",
             "column": "stock_2892_ret_lag2",
-            "sha256": "f8a791774db644dd7db75c109747962487615d59c0e32c8edea6057d99e46d64",
-            "non_missing_rows": 1615
+            "sha256": "d53cbcd2a4cabdf42752049b9b08d77a4448c72d019e62069ab936a46dc10a67",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2892.csv",
             "column": "stock_2892_ret_lag5",
-            "sha256": "58f957616222cd598d4aecce0dcaa02d396ac247ac1d1cda7499de8312bc1012",
-            "non_missing_rows": 1612
+            "sha256": "76a926868630860e975210e98ba373eeca01eeb84b1e6a3d5e3a7cfda8c9a72e",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_2912": {
-        "source": "teacher market/2912.csv etl:adj_close",
+        "source": "teacher market/2912.csv＋teacher_live/market/2912.csv etl:adj_close",
         "name_zh": "個股 2912",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4880,19 +4912,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2912.csv",
             "column": "stock_2912_ret_lag2",
-            "sha256": "625a291a5945b196419e0f6701f2246427c379592aed6f5723af1ccc1ceafe48",
-            "non_missing_rows": 1615
+            "sha256": "ab8796bf8cd42d73d46a6eb799ac4e4a333e85843a484354a46f44c23f447ba1",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2912.csv",
             "column": "stock_2912_ret_lag5",
-            "sha256": "9c30fa22c52d643f7d62d3cb0c686ab83e3932054fcfbe8a24457f176ed3e9b5",
-            "non_missing_rows": 1612
+            "sha256": "3878fbe880fa0880d700f2e3461b05a38efcbea364ccbdcf7789171af9a5f918",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3008": {
-        "source": "teacher market/3008.csv etl:adj_close",
+        "source": "teacher market/3008.csv＋teacher_live/market/3008.csv etl:adj_close",
         "name_zh": "個股 3008",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4901,19 +4933,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3008.csv",
             "column": "stock_3008_ret_lag2",
-            "sha256": "add0e98eabeacfc2abd842d8c4c1536dd5f70264cdc7b19f2187996bf32d12c2",
-            "non_missing_rows": 1615
+            "sha256": "8ec138f4d9e243d56c6ad87b0e20e704a5b4fc0437d199cee467bfa9b5583392",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3008.csv",
             "column": "stock_3008_ret_lag5",
-            "sha256": "12692a6d893142fa947dde3f8acd82ef086aac7501e83c11ef977763d1d5d27f",
-            "non_missing_rows": 1612
+            "sha256": "21805ac5093cb1909b3cd519c9cb64e76c555d20c07cfa5b4811389035577e68",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3017": {
-        "source": "teacher market/3017.csv etl:adj_close",
+        "source": "teacher market/3017.csv＋teacher_live/market/3017.csv etl:adj_close",
         "name_zh": "個股 3017",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4922,19 +4954,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3017.csv",
             "column": "stock_3017_ret_lag2",
-            "sha256": "dd2587105c6232c50293505718a8e1482bb44da9138d542ecb6ad46b9fbbfe1c",
-            "non_missing_rows": 1615
+            "sha256": "5c38f3f023915ab9b369ed9fc35ac73bdc7fa395beceb221365c55c315ef7188",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3017.csv",
             "column": "stock_3017_ret_lag5",
-            "sha256": "f7b923a2e807a485a32aff74333d301b2bb6ff53c2020753d2389d4e63a17d8d",
-            "non_missing_rows": 1612
+            "sha256": "5632084224c315907f83e8d1700fd569645d32dfbd4687df10c3fa95fd8929f6",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3034": {
-        "source": "teacher market/3034.csv etl:adj_close",
+        "source": "teacher market/3034.csv＋teacher_live/market/3034.csv etl:adj_close",
         "name_zh": "個股 3034",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4943,19 +4975,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3034.csv",
             "column": "stock_3034_ret_lag2",
-            "sha256": "2a9b8413d016dc97da53099c97f772e843bf3eafd150a6dee3e69b5ba03cfd27",
-            "non_missing_rows": 1615
+            "sha256": "821b21f4c340d1baf8bb660540272baf0fb8251eaec0f9e346ca1402ac474c0d",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3034.csv",
             "column": "stock_3034_ret_lag5",
-            "sha256": "6ef399374a1cb0bd86e141837bc82c85474711b7d1c0e1e1cd9694a4a71f28e4",
-            "non_missing_rows": 1612
+            "sha256": "47d45e7e9b8335e3ac8facf683c06aa0dbd1b185c00805d1cfba7862ec65c8ca",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3036": {
-        "source": "teacher market/3036.csv etl:adj_close",
+        "source": "teacher market/3036.csv＋teacher_live/market/3036.csv etl:adj_close",
         "name_zh": "個股 3036",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4964,19 +4996,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3036.csv",
             "column": "stock_3036_ret_lag2",
-            "sha256": "5b9e7bcf20a17d829a36fd694adad8b17e24e9700387ffcef132dad54368d84b",
-            "non_missing_rows": 1611
+            "sha256": "ea8404ca0167fc1510d1a6791f0f7a806ed9e63661201534949b00afc6f65129",
+            "non_missing_rows": 1631
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3036.csv",
             "column": "stock_3036_ret_lag5",
-            "sha256": "fe7eed51e211d66b05be8a796316a35611022c74858ec1eb0c5bafb78dc74f09",
-            "non_missing_rows": 1608
+            "sha256": "02294a9d5d1027c36a83b843a660407ca2e90519a3ad15cb14ee031a6a2e9271",
+            "non_missing_rows": 1628
           }
         }
       },
       "stock_3037": {
-        "source": "teacher market/3037.csv etl:adj_close",
+        "source": "teacher market/3037.csv＋teacher_live/market/3037.csv etl:adj_close",
         "name_zh": "個股 3037",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -4985,19 +5017,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3037.csv",
             "column": "stock_3037_ret_lag2",
-            "sha256": "18817bc2bed14e8dbeee38b8b41361f294b2693e40ae8670162db9fb3373123f",
-            "non_missing_rows": 1614
+            "sha256": "1d8b48c781f40938758479bee4b0af344f61109ebca4bc0bb1244e7a609c47f3",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3037.csv",
             "column": "stock_3037_ret_lag5",
-            "sha256": "1d3c44518af6315fd454e15a746d13787fd86b13a4149a8329bf66c03813ae63",
-            "non_missing_rows": 1611
+            "sha256": "f92ec2eead058c9161a40af92e6b90e2cc306a9ffd3d50e729e5c6a0f105a5e9",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_3044": {
-        "source": "teacher market/3044.csv etl:adj_close",
+        "source": "teacher market/3044.csv＋teacher_live/market/3044.csv etl:adj_close",
         "name_zh": "個股 3044",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5006,19 +5038,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3044.csv",
             "column": "stock_3044_ret_lag2",
-            "sha256": "4b681ad83c17a849657811c48d261b0e735b9a3b1c308b93e50af6ec2edca013",
-            "non_missing_rows": 1615
+            "sha256": "47f67e11f99994ec18b7ea1903e45c31251cbaef99f5cbc6f690d15311d9dd3d",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3044.csv",
             "column": "stock_3044_ret_lag5",
-            "sha256": "648fcb1625406d43f43f2ef5dd7048368ed7a2e2d47cacde187003b6b38ded81",
-            "non_missing_rows": 1612
+            "sha256": "d94a1917d66a31315ea9b1ff1262013960d513a05a6518d6112e617b94a43267",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3045": {
-        "source": "teacher market/3045.csv etl:adj_close",
+        "source": "teacher market/3045.csv＋teacher_live/market/3045.csv etl:adj_close",
         "name_zh": "個股 3045",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5027,19 +5059,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3045.csv",
             "column": "stock_3045_ret_lag2",
-            "sha256": "60b37048a9decda9e9207d2665d524de390a4e616735bb7849887c1650e04190",
-            "non_missing_rows": 1615
+            "sha256": "92dc2be18b28181d0b1401d1300da85aa7df6dc3f539c555f630ccb301c76475",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3045.csv",
             "column": "stock_3045_ret_lag5",
-            "sha256": "f19b14037376da051cac95187863853b6de56dca5730b80dacc2e1d68a4a9b68",
-            "non_missing_rows": 1612
+            "sha256": "00b5f6d961e1099947069471d4a76b104d7b0f77a166b1a369da04adc48503e9",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3231": {
-        "source": "teacher market/3231.csv etl:adj_close",
+        "source": "teacher market/3231.csv＋teacher_live/market/3231.csv etl:adj_close",
         "name_zh": "個股 3231",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5048,19 +5080,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3231.csv",
             "column": "stock_3231_ret_lag2",
-            "sha256": "febd7988dcb27702b59f2be931644b38d5dfeec326637525910ffda5b8a825de",
-            "non_missing_rows": 1615
+            "sha256": "28ec1cbfbbf6defce8c8ba32f01b67aaa8231f4d11b339061c763d8b0f80e742",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3231.csv",
             "column": "stock_3231_ret_lag5",
-            "sha256": "dd677801fdccc0d95de094972ccf3a337eb1cdda26cb30f83fcc529e67477ede",
-            "non_missing_rows": 1612
+            "sha256": "dbf464be93f11c1deb8e6c11bab8b890d2fbe2ceb7a23296d32a8c78e9a8ae50",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3293": {
-        "source": "teacher market/3293.csv etl:adj_close",
+        "source": "teacher market/3293.csv＋teacher_live/market/3293.csv etl:adj_close",
         "name_zh": "個股 3293",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5069,19 +5101,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3293.csv",
             "column": "stock_3293_ret_lag2",
-            "sha256": "804089226a79c4e1e1a5278c129b33bb476c926dd7ee6498231391ead1cb6db6",
-            "non_missing_rows": 1615
+            "sha256": "a7d6e6703528e8d589814edd14c2c6dc2168a3eebaad8ba47513b45eb80eee9e",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3293.csv",
             "column": "stock_3293_ret_lag5",
-            "sha256": "cad34bbad34a4ef6202501eb642f46717a954ae081ceff0f92f62e07e225858a",
-            "non_missing_rows": 1612
+            "sha256": "d8878c4bcad1730da114bd1fb1551d63b149f4e184e259622fc4cf495955617f",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3443": {
-        "source": "teacher market/3443.csv etl:adj_close",
+        "source": "teacher market/3443.csv＋teacher_live/market/3443.csv etl:adj_close",
         "name_zh": "個股 3443",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5090,19 +5122,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3443.csv",
             "column": "stock_3443_ret_lag2",
-            "sha256": "a5f5c5975904a44bf59310d7b9156cca0032b7b01c6854087a563efc4d214e0f",
-            "non_missing_rows": 1615
+            "sha256": "05e27c279fb0d13c93a7d9120bb8e11e8f313417def6f21ea0766abc233c6cfa",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3443.csv",
             "column": "stock_3443_ret_lag5",
-            "sha256": "d13fbf4aed5a3818e1771bbdb5ed6f4a74afb12d3cf4564b6fad0f595b69dd00",
-            "non_missing_rows": 1612
+            "sha256": "ef94e31c3a9858a09ea28bd6d15213172905a28d57d276b92f24fd1e28dce244",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3529": {
-        "source": "teacher market/3529.csv etl:adj_close",
+        "source": "teacher market/3529.csv＋teacher_live/market/3529.csv etl:adj_close",
         "name_zh": "個股 3529",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5111,19 +5143,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3529.csv",
             "column": "stock_3529_ret_lag2",
-            "sha256": "9085cd314417f73de91c2f91d699935fc923e16bd96dff4f6f1d4ecba9022a4d",
-            "non_missing_rows": 1615
+            "sha256": "a961b4b4801fcb2bf79b34f10c0a8bb8f939841ce66cbe9f51d072629ed6115b",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3529.csv",
             "column": "stock_3529_ret_lag5",
-            "sha256": "8db95dd35368385920737d30de26cd2fcdc436ee8673b539110263c3589e8404",
-            "non_missing_rows": 1612
+            "sha256": "86d60b0b7839631538f9a5024a69de8a2ed1bbf6f03e531c1314f02dec305a82",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3533": {
-        "source": "teacher market/3533.csv etl:adj_close",
+        "source": "teacher market/3533.csv＋teacher_live/market/3533.csv etl:adj_close",
         "name_zh": "個股 3533",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5132,19 +5164,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3533.csv",
             "column": "stock_3533_ret_lag2",
-            "sha256": "be610f007991d88e1cf168c3e1a9266a3692ad70bdd0d16c2253c5a9409f7e79",
-            "non_missing_rows": 1615
+            "sha256": "27287358b7a2ab881c621d7d2a26f42df105811f618cf07948b2c4ce216412b0",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3533.csv",
             "column": "stock_3533_ret_lag5",
-            "sha256": "74f090303637f05213a99c9d29de3603009966a7e384ddbacb06661dbf1a637f",
-            "non_missing_rows": 1612
+            "sha256": "e1c0ab6279df3bc791b79170611d5fdc928bb9c26c6169b84960889bb49eb587",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3653": {
-        "source": "teacher market/3653.csv etl:adj_close",
+        "source": "teacher market/3653.csv＋teacher_live/market/3653.csv etl:adj_close",
         "name_zh": "個股 3653",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5153,19 +5185,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3653.csv",
             "column": "stock_3653_ret_lag2",
-            "sha256": "7d61ed9a797fcb88f01fbaf9ebb56e0e9e19bccbfbf3613428b47fa200ff6a88",
-            "non_missing_rows": 1615
+            "sha256": "ea106c754a454f689b1604d65378ac85d42e23c38d7dc15d4927b6da5a5a35d9",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3653.csv",
             "column": "stock_3653_ret_lag5",
-            "sha256": "2f7cdfb8287a1cbf1994c4daf5db7deb105f3afcab89fac37480b667272ae3bf",
-            "non_missing_rows": 1612
+            "sha256": "7c866758b3221fe769d561619b3a3661da911f4c5dfda8f1c9b38538f99ac69c",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3661": {
-        "source": "teacher market/3661.csv etl:adj_close",
+        "source": "teacher market/3661.csv＋teacher_live/market/3661.csv etl:adj_close",
         "name_zh": "個股 3661",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5174,19 +5206,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3661.csv",
             "column": "stock_3661_ret_lag2",
-            "sha256": "24691570a86ea36e5a6d1b68ac484d6367ea67bd4c8232aa5ec758c2a3d24877",
-            "non_missing_rows": 1615
+            "sha256": "b042911ada3e3be57eff97216fdbbe33d1fdf27aa809ffabacb32b94bf918ae1",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3661.csv",
             "column": "stock_3661_ret_lag5",
-            "sha256": "0b76b1359034426822f05d052ce4c2833553815bd51d0a186a4265011ca125a5",
-            "non_missing_rows": 1612
+            "sha256": "260e1f444af5a85818456c6a673a26d1bdeb71657fb5d68eddaebbf778f8ca9d",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3665": {
-        "source": "teacher market/3665.csv etl:adj_close",
+        "source": "teacher market/3665.csv＋teacher_live/market/3665.csv etl:adj_close",
         "name_zh": "個股 3665",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5195,19 +5227,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3665.csv",
             "column": "stock_3665_ret_lag2",
-            "sha256": "91404f167e2ef1df1b571bf37d6e4de0fbcc70d462c7e935398e392fdacb52d1",
-            "non_missing_rows": 1613
+            "sha256": "6875059586a609133b0f0169ac2387663f0afda710a5073f548e0d506f4a1607",
+            "non_missing_rows": 1633
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3665.csv",
             "column": "stock_3665_ret_lag5",
-            "sha256": "f94de4c680c0e8b28cf7f4993867834202782d69ad4cf62eb082b7f43ec71e79",
-            "non_missing_rows": 1610
+            "sha256": "5386082817431e328813b10eaab50e5fa337768461d5ddac315f7e2cc9d91439",
+            "non_missing_rows": 1630
           }
         }
       },
       "stock_3702": {
-        "source": "teacher market/3702.csv etl:adj_close",
+        "source": "teacher market/3702.csv＋teacher_live/market/3702.csv etl:adj_close",
         "name_zh": "個股 3702",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5216,19 +5248,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3702.csv",
             "column": "stock_3702_ret_lag2",
-            "sha256": "a9577ad046f9f6306798212f8154f590bc86df0b3b5858b63cd6c4517e60f84f",
-            "non_missing_rows": 1615
+            "sha256": "cd0069f8f552357688a55272de90175445bb50080fbe959763d7f267d4d9ca24",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3702.csv",
             "column": "stock_3702_ret_lag5",
-            "sha256": "8aa9208f1a314cf7c07d3969fc9d33a34e731a09a4877c251f875736458d4d81",
-            "non_missing_rows": 1612
+            "sha256": "ee40f200063a6dc63731bd6b9c24d63df1cab13b5abbea47b69ace84690c381a",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_3711": {
-        "source": "teacher market/3711.csv etl:adj_close",
+        "source": "teacher market/3711.csv＋teacher_live/market/3711.csv etl:adj_close",
         "name_zh": "個股 3711",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5237,19 +5269,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3711.csv",
             "column": "stock_3711_ret_lag2",
-            "sha256": "6c1a58b9b89c586224f4594fd4a9c71b762c122a4f5d613e0d8989d07bcc2f44",
-            "non_missing_rows": 1615
+            "sha256": "20b6b6d7f9cf219e7e1c03194ae56e68bde674dd62cb08279beac49fa4e5ad41",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3711.csv",
             "column": "stock_3711_ret_lag5",
-            "sha256": "f377a997f2a8948eea01dd4d84f1bcfbad14197a05abc7748da40854407e1923",
-            "non_missing_rows": 1612
+            "sha256": "5b2de9202ead3fc4ee172e46844746cff126c1213c02c0a7520522b59401ac99",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_4904": {
-        "source": "teacher market/4904.csv etl:adj_close",
+        "source": "teacher market/4904.csv＋teacher_live/market/4904.csv etl:adj_close",
         "name_zh": "個股 4904",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5258,19 +5290,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_4904.csv",
             "column": "stock_4904_ret_lag2",
-            "sha256": "5cfafe7d5b3b375b04182fd833687c223b1b58331200aebbceae874232b2bd28",
-            "non_missing_rows": 1615
+            "sha256": "511d5645236373ff9edda7c935b6f8f81356f96c79f29cd771e27425c68bc147",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_4904.csv",
             "column": "stock_4904_ret_lag5",
-            "sha256": "ae2f755c9f1b4d7d8ac39fe1f1e84f778b235cf222caed94f6480540d79e2f9a",
-            "non_missing_rows": 1612
+            "sha256": "f5af33aa6beedc267d6d7ab2f51cb0beefd1dd00129108c08995a7132965374c",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_4938": {
-        "source": "teacher market/4938.csv etl:adj_close",
+        "source": "teacher market/4938.csv＋teacher_live/market/4938.csv etl:adj_close",
         "name_zh": "個股 4938",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5279,19 +5311,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_4938.csv",
             "column": "stock_4938_ret_lag2",
-            "sha256": "e0ad1cf1afbd4d95712c7356a46ed052e1542e4cbcde23e198ac78d75193f195",
-            "non_missing_rows": 1614
+            "sha256": "6871e3d7853afd6cc3331a7cfc3fc1cd796cf409a577216fccd2891f099a1d07",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_4938.csv",
             "column": "stock_4938_ret_lag5",
-            "sha256": "b90f11a26306501958f14a6ac0bfc41b5fb88b0e5ac356bfee630c413672d8f5",
-            "non_missing_rows": 1611
+            "sha256": "3abf38aff52f3e34021464cbff76f90705c754e0985428c41361ba3dc53b1b0b",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_4958": {
-        "source": "teacher market/4958.csv etl:adj_close",
+        "source": "teacher market/4958.csv＋teacher_live/market/4958.csv etl:adj_close",
         "name_zh": "個股 4958",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5300,19 +5332,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_4958.csv",
             "column": "stock_4958_ret_lag2",
-            "sha256": "1810b9966004ea59ddca5be457291154525dbdf936b668b6018a2733c963553e",
-            "non_missing_rows": 1614
+            "sha256": "b3faf23c12c70f35ba960df8e5c2f911d40dd24fbc6eb0dc13fee42130ab4ce6",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_4958.csv",
             "column": "stock_4958_ret_lag5",
-            "sha256": "09bdb5eee58f6418092b6913ac089ece8db255df5c2b43c3e5a7041850b22097",
-            "non_missing_rows": 1611
+            "sha256": "bb965aae625053191f030271d30ce26f4d4a4d39cc23f42d73e8ff6638876fa6",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_5269": {
-        "source": "teacher market/5269.csv etl:adj_close",
+        "source": "teacher market/5269.csv＋teacher_live/market/5269.csv etl:adj_close",
         "name_zh": "個股 5269",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5321,19 +5353,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5269.csv",
             "column": "stock_5269_ret_lag2",
-            "sha256": "32923d6bcd2476a868c11122e17292041ec0e896c88ed4058599de64da288bc9",
-            "non_missing_rows": 1614
+            "sha256": "211ac6e9a9fa1e0609db94e49f6d739624983c5236c3b658e1430371b8d6d700",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5269.csv",
             "column": "stock_5269_ret_lag5",
-            "sha256": "6783a622c27e3e541d153e59d6fa03ceb2d8a4fbac062972aab62aced4332b65",
-            "non_missing_rows": 1611
+            "sha256": "814b16b1df9950b52495e2ed244638245db857a3a0aae6ce84f8fd71dfb14ade",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_5274": {
-        "source": "teacher market/5274.csv etl:adj_close",
+        "source": "teacher market/5274.csv＋teacher_live/market/5274.csv etl:adj_close",
         "name_zh": "個股 5274",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5342,19 +5374,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5274.csv",
             "column": "stock_5274_ret_lag2",
-            "sha256": "991aa4ce09d647dceaa360134b6fac02622ea49984d29c096bb414190e5b9a28",
-            "non_missing_rows": 1615
+            "sha256": "75968cbcd2c6807fa4dae837a4c6077ebc0fcfbc6c4388fb977f22f0dd30ce79",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5274.csv",
             "column": "stock_5274_ret_lag5",
-            "sha256": "54538a7a4f1ff015a8e02781b1fa5f87ddcf8d58e9c5a63fcf46cba32b24c0cd",
-            "non_missing_rows": 1612
+            "sha256": "b894983cad4a6f371fd9622768d8542ef0552aa9da7d6337c7b3b39789e94800",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_5347": {
-        "source": "teacher market/5347.csv etl:adj_close",
+        "source": "teacher market/5347.csv＋teacher_live/market/5347.csv etl:adj_close",
         "name_zh": "個股 5347",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5363,19 +5395,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5347.csv",
             "column": "stock_5347_ret_lag2",
-            "sha256": "bf89408f1f570579a196d3e3a0ce658f1e625fcad4c184e604507941e71bb105",
-            "non_missing_rows": 1614
+            "sha256": "954ad2aa3310ad240aeb072c7b30065e75b1a7305bd85800392d479c2f8cf9ba",
+            "non_missing_rows": 1634
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5347.csv",
             "column": "stock_5347_ret_lag5",
-            "sha256": "3859ff185035210f50e036cb04e436add1aab79fde312479ab73853a77def565",
-            "non_missing_rows": 1611
+            "sha256": "fcaf8a28d43e6ec6d43e86bb443e464b1671662947da798a388f1ee6e21ecd90",
+            "non_missing_rows": 1631
           }
         }
       },
       "stock_5871": {
-        "source": "teacher market/5871.csv etl:adj_close",
+        "source": "teacher market/5871.csv＋teacher_live/market/5871.csv etl:adj_close",
         "name_zh": "個股 5871",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5384,19 +5416,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5871.csv",
             "column": "stock_5871_ret_lag2",
-            "sha256": "167a046e28798550388c7446f0a6a33ddcc725ec448c7c3f314a8a740e0b95ac",
-            "non_missing_rows": 1615
+            "sha256": "8389fc142bd49257ef79d47441b952eeb504d36ab1825d25211f2d45498fcae3",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5871.csv",
             "column": "stock_5871_ret_lag5",
-            "sha256": "3e75909cf5eff6a115ecd32bfb3c948df18a84a0b3a307633618456f1c8e4d3e",
-            "non_missing_rows": 1612
+            "sha256": "f79418ddf4195f265cdfe54cd2622478955eb6c3049072b6319409b7c814ce82",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_5876": {
-        "source": "teacher market/5876.csv etl:adj_close",
+        "source": "teacher market/5876.csv＋teacher_live/market/5876.csv etl:adj_close",
         "name_zh": "個股 5876",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5405,19 +5437,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5876.csv",
             "column": "stock_5876_ret_lag2",
-            "sha256": "d5ec4217ee71d5482e1f95c44ecf68af2634fb08771d08d78b2e04103b4130a3",
-            "non_missing_rows": 1615
+            "sha256": "2fd14d696a25f089c11da85a9ffca67121f8ec455712ef9ea8b2ee7f0fc555e5",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5876.csv",
             "column": "stock_5876_ret_lag5",
-            "sha256": "80391b8588b66cfb0e3768004580ff3b75d11f2cf90641e82c9b31d13274f901",
-            "non_missing_rows": 1612
+            "sha256": "0887c7cb70672ff9bd26ec3b0f8c6c39c4cc41cb196a195efef41b975c216582",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_5880": {
-        "source": "teacher market/5880.csv etl:adj_close",
+        "source": "teacher market/5880.csv＋teacher_live/market/5880.csv etl:adj_close",
         "name_zh": "個股 5880",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5426,19 +5458,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5880.csv",
             "column": "stock_5880_ret_lag2",
-            "sha256": "9fb99196254fa56fb4e9fc305c80960554ffa4b005a2b7ea503802b30bc0df94",
-            "non_missing_rows": 1615
+            "sha256": "1bcd9ba0c9b537677224a01f47d8eb0a37ac816787eb7f529fc4e45a6141f7c9",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5880.csv",
             "column": "stock_5880_ret_lag5",
-            "sha256": "402b4a35e38f8dc34b74e5d350c8fe62780a8957e51c72e1c3b1ba5674c19d14",
-            "non_missing_rows": 1612
+            "sha256": "4dcf7a270d7b0d65260badc23427b8cf3304b2006f66de117036bde41e85bc0e",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_6223": {
-        "source": "teacher market/6223.csv etl:adj_close",
+        "source": "teacher market/6223.csv＋teacher_live/market/6223.csv etl:adj_close",
         "name_zh": "個股 6223",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5447,19 +5479,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6223.csv",
             "column": "stock_6223_ret_lag2",
-            "sha256": "51ad39edd173d5532c4a1bd0fc527c33d82c669a70da3807bf49dafdc6b34e8c",
-            "non_missing_rows": 1615
+            "sha256": "196c7582e9e281f84769ecace20e9f48042931d811896beaec102c9c4b6e77d1",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6223.csv",
             "column": "stock_6223_ret_lag5",
-            "sha256": "b92964c8b8754256e9c894237a0d69c93dd3a4f80254196aa3f5502df11ae66e",
-            "non_missing_rows": 1612
+            "sha256": "e2da8b3a364d76ef273812410a7910387f12f3db696da3c9a587913fff245f6e",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_6274": {
-        "source": "teacher market/6274.csv etl:adj_close",
+        "source": "teacher market/6274.csv＋teacher_live/market/6274.csv etl:adj_close",
         "name_zh": "個股 6274",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5468,19 +5500,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6274.csv",
             "column": "stock_6274_ret_lag2",
-            "sha256": "edb2acfd49ffac653285bd5be2a7e1eae43e68e2170ca3aeae6c498b729a85fc",
-            "non_missing_rows": 1615
+            "sha256": "9898a113f3d61b61a9bde18ff6336203def766fa19d10d64018a02b6c9037963",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6274.csv",
             "column": "stock_6274_ret_lag5",
-            "sha256": "4cae2e4b5107d3468db9d11fda2715122c206b778f2879e4cb543f7f95e8727a",
-            "non_missing_rows": 1612
+            "sha256": "703ec06d3f6f11cf6fc387b98f57959013821d555d2194da5a85eb2c8e9b8127",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_6409": {
-        "source": "teacher market/6409.csv etl:adj_close",
+        "source": "teacher market/6409.csv＋teacher_live/market/6409.csv etl:adj_close",
         "name_zh": "個股 6409",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5489,19 +5521,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6409.csv",
             "column": "stock_6409_ret_lag2",
-            "sha256": "1ae44970271e49947360bd0bc7b7e102c42b4dafb271622ab9644dad4cf0bfa5",
-            "non_missing_rows": 1615
+            "sha256": "0d55b1626b54f4d3f7f67e3d1b9ac99b0f90806b99694bc4dddb1d6c0d536176",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6409.csv",
             "column": "stock_6409_ret_lag5",
-            "sha256": "c1703ea8fa74bf6b3c5c6738b416faab7887f414ae394b992061fb0f1b23b27b",
-            "non_missing_rows": 1612
+            "sha256": "90ad7673d7c7ab14519b2f407e0e3c15b8ba7f9a765cd62ecb9dfbb9a8ffcb8b",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_6415": {
-        "source": "teacher market/6415.csv etl:adj_close",
+        "source": "teacher market/6415.csv＋teacher_live/market/6415.csv etl:adj_close",
         "name_zh": "個股 6415",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5510,19 +5542,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6415.csv",
             "column": "stock_6415_ret_lag2",
-            "sha256": "578d5ce16cb42672ef46ddf59f86135a4071013618ccd86b56361620b4ff2979",
-            "non_missing_rows": 1610
+            "sha256": "975c7e31e5c0ca0a0352023f0fa8ab2e37a8cda79e5640c8e91bec4c92797892",
+            "non_missing_rows": 1630
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6415.csv",
             "column": "stock_6415_ret_lag5",
-            "sha256": "2c38aac63e2421d7f251ee13f786890a4f1e24ce66f1824a9a3341f23e05abef",
-            "non_missing_rows": 1607
+            "sha256": "e70e908790b0892bcca67b6329a3f9cd4a1e0eb7f3cc34ae353269009309d6d0",
+            "non_missing_rows": 1627
           }
         }
       },
       "stock_6446": {
-        "source": "teacher market/6446.csv etl:adj_close",
+        "source": "teacher market/6446.csv＋teacher_live/market/6446.csv etl:adj_close",
         "name_zh": "個股 6446",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5531,19 +5563,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6446.csv",
             "column": "stock_6446_ret_lag2",
-            "sha256": "b6b94cde2cd57545bd0d5b75ed1377f36277c9e66e25287285869fb30fa8d737",
-            "non_missing_rows": 1615
+            "sha256": "2f58aba9780feb3f88adf7c1df13eb6ea044abd5105f340d8fb448dc225bf6d0",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6446.csv",
             "column": "stock_6446_ret_lag5",
-            "sha256": "07b8a1ed072707ef1b552ba5fe46408bfac893fb22c22706ed523e8636cf91ed",
-            "non_missing_rows": 1612
+            "sha256": "1a03261eedc7eff629ad98f25847f3a594700556b6155409bb0bc0aac87322bd",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_6488": {
-        "source": "teacher market/6488.csv etl:adj_close",
+        "source": "teacher market/6488.csv＋teacher_live/market/6488.csv etl:adj_close",
         "name_zh": "個股 6488",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5552,19 +5584,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6488.csv",
             "column": "stock_6488_ret_lag2",
-            "sha256": "520079909694257f380ef0546380261fe059d9ba7d280a8a0a176e35d3b2fa27",
-            "non_missing_rows": 1615
+            "sha256": "43d8f38a225199822f6b36b5c3c0384960d81f241a1ed5f9a95e5647bf9ed6f9",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6488.csv",
             "column": "stock_6488_ret_lag5",
-            "sha256": "f5b16a2d386cee25449ef487492fa7b9aebda3ba64bd25b0aee3100757f7cfaa",
-            "non_missing_rows": 1612
+            "sha256": "310498a5c9cdc439d145718baf974e423996c8eeb2e4de1e574144c2dca032f1",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_6505": {
-        "source": "teacher market/6505.csv etl:adj_close",
+        "source": "teacher market/6505.csv＋teacher_live/market/6505.csv etl:adj_close",
         "name_zh": "個股 6505",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5573,19 +5605,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6505.csv",
             "column": "stock_6505_ret_lag2",
-            "sha256": "18c1297669770592c82131cd10a37418098644232d56c87e5cbd240235c981fe",
-            "non_missing_rows": 1615
+            "sha256": "e9fdcc2333ffcf45089a5883cca2c3e665a0a2b0247e773b0664b1b04ba814cb",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6505.csv",
             "column": "stock_6505_ret_lag5",
-            "sha256": "6619fa5ddca358ce362b0d76b94ece9587cc6100530a2d38d964adaac21b76a9",
-            "non_missing_rows": 1612
+            "sha256": "8537d33aa2de4fecdbca0bf559d15f9e6fbd8f35e4d946b5156fc0dbec3daa60",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_6669": {
-        "source": "teacher market/6669.csv etl:adj_close",
+        "source": "teacher market/6669.csv＋teacher_live/market/6669.csv etl:adj_close",
         "name_zh": "個股 6669",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5594,19 +5626,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6669.csv",
             "column": "stock_6669_ret_lag2",
-            "sha256": "818763f7abb1fa262d2999d9aa4440e43d278c922a1ef43bc99a21951d2f8e84",
-            "non_missing_rows": 1615
+            "sha256": "1c3bfb874ceea6d5cd64d1f140cfce7416ec341d2e2069a33e0d9fcbd8d170ca",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6669.csv",
             "column": "stock_6669_ret_lag5",
-            "sha256": "28c8cc9073784cddc7b8e7ebb48052a89a0cca686f8ed17c847ec38d0b4cbbd2",
-            "non_missing_rows": 1612
+            "sha256": "973164e3c421556e5fe2faac42ae4cf0c83b0e6f8b3c4dc4c8e53941d40436d7",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_8046": {
-        "source": "teacher market/8046.csv etl:adj_close",
+        "source": "teacher market/8046.csv＋teacher_live/market/8046.csv etl:adj_close",
         "name_zh": "個股 8046",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5615,19 +5647,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_8046.csv",
             "column": "stock_8046_ret_lag2",
-            "sha256": "d975481ae9fb02ebb2e4a0cdcc818807a5ab4b051c850dd37059c779a626b214",
-            "non_missing_rows": 1615
+            "sha256": "bf16e99b24c7f5f7f1ccc68502dc33f81e4ee6d19084ec9f5f5915c1cc780d62",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_8046.csv",
             "column": "stock_8046_ret_lag5",
-            "sha256": "8622e3b34c737247d27a7856a76d2fc865eee0bf07fb2b616233de85092555f9",
-            "non_missing_rows": 1612
+            "sha256": "24e7a6ba4d3a0c2b5344a54eecbf031d73708dd21dfb7e491728b4e9463d156a",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_8069": {
-        "source": "teacher market/8069.csv etl:adj_close",
+        "source": "teacher market/8069.csv＋teacher_live/market/8069.csv etl:adj_close",
         "name_zh": "個股 8069",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5636,19 +5668,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_8069.csv",
             "column": "stock_8069_ret_lag2",
-            "sha256": "4e387fa1fd90f72c551fc54a66d508b377ae55cd6389e7717617ff13745ea1dd",
-            "non_missing_rows": 1615
+            "sha256": "32f3f75ef6985887c7b898aeab29c02145c77752e34df04166ceda83fe680ebf",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_8069.csv",
             "column": "stock_8069_ret_lag5",
-            "sha256": "176d50aa1b989e5a0c17ba6d183005895562c0de1f690387317934a7696534f8",
-            "non_missing_rows": 1612
+            "sha256": "538042d4dd88a5f0f2a8fe7b3532677425bebb9918a25aac69a92dd9674e7eff",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_8299": {
-        "source": "teacher market/8299.csv etl:adj_close",
+        "source": "teacher market/8299.csv＋teacher_live/market/8299.csv etl:adj_close",
         "name_zh": "個股 8299",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5657,19 +5689,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_8299.csv",
             "column": "stock_8299_ret_lag2",
-            "sha256": "14655b0a6d6f0732390c4394733d758fe4778d683ba66d2383cd9956affef40f",
-            "non_missing_rows": 1615
+            "sha256": "c37ea81456c0fc97e729bf0367272476859ac9be453c6dca166f02e95981529b",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_8299.csv",
             "column": "stock_8299_ret_lag5",
-            "sha256": "0fc53131a0255872e3e8aca7036571ff24195b97b2ecf2ec8cfe24885ebddf8c",
-            "non_missing_rows": 1612
+            "sha256": "d0f52ab8495e0a334ba33adbbfcd4490519be5d274cd0b700c5207545353d29b",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_8464": {
-        "source": "teacher market/8464.csv etl:adj_close",
+        "source": "teacher market/8464.csv＋teacher_live/market/8464.csv etl:adj_close",
         "name_zh": "個股 8464",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5678,19 +5710,19 @@
           "lag2": {
             "file": "data/transform/lag2/stock_8464.csv",
             "column": "stock_8464_ret_lag2",
-            "sha256": "b74415f42dcee18663f903d70c211f18e56a9d9f019e180ec7314fcc49c1993d",
-            "non_missing_rows": 1615
+            "sha256": "fc0ac04335fe96f92f749c97509f509beb25db5d978aff98d97d9eecbe9d8b0c",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_8464.csv",
             "column": "stock_8464_ret_lag5",
-            "sha256": "973f57e81cb8f6f2701a42a630d47b2bff7ffe3533cce00a57daa3310a49aee1",
-            "non_missing_rows": 1612
+            "sha256": "0d19192f1d98834f65dfac40517976e806d5f93dc56f73e968f03a856b886e4b",
+            "non_missing_rows": 1632
           }
         }
       },
       "stock_9910": {
-        "source": "teacher market/9910.csv etl:adj_close",
+        "source": "teacher market/9910.csv＋teacher_live/market/9910.csv etl:adj_close",
         "name_zh": "個股 9910",
         "group": "teacher_stock",
         "price_column": "etl:adj_close",
@@ -5699,14 +5731,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_9910.csv",
             "column": "stock_9910_ret_lag2",
-            "sha256": "c2543772dc634226467d869c95af26feb670eec186a2a29abced26044e9e55c8",
-            "non_missing_rows": 1615
+            "sha256": "8c6f6460aa545ad22b1efa80be0003f335f4f8630060a6c026d76616daf296fb",
+            "non_missing_rows": 1635
           },
           "lag5": {
             "file": "data/transform/lag5/stock_9910.csv",
             "column": "stock_9910_ret_lag5",
-            "sha256": "b280223edcc0c5d1c2621e9a3a1ebcbf7cfa737fd412c3e3eeb06a3f09f56204",
-            "non_missing_rows": 1612
+            "sha256": "ecb938bd5c12206ca9af0d99a7621705cab7f6c4ccf567826f2e74e95670a4e4",
+            "non_missing_rows": 1632
           }
         }
       }
@@ -5715,14 +5747,14 @@
   "panel": {
     "file": "data/transform/panel_lag.csv.gz",
     "format": "gzip 壓縮的 UTF-8 CSV（LF）；pandas 可直接 read_csv",
-    "sha256_csv_uncompressed": "97bcd835392d130253a39022b27b902cf192bd63b23ab51331e0bc6f356bb448",
-    "sha256_gz": "1fd0d88aa8d91c6a36c8475f9bc31bed4e96246d52db75c3833def8fe0840847",
-    "row_definition": "每列＝一股 × 一個台股交易日；100 股 × 1618 天的完整格子，依 date、stock_id 排序",
+    "sha256_csv_uncompressed": "2242cfb129abea331382ffbc3e998a1e36226ef87d9f03d436201ea9259d7f2c",
+    "sha256_gz": "4cf389facb1a65fbb8da57de2738df63c9c6c5f7625112897dc8d463070e01a3",
+    "row_definition": "每列＝一股 × 一個台股交易日；100 股 × 1638 天的完整格子，依 date、stock_id 排序",
     "stocks": 100,
-    "dates": 1618,
-    "rows": 161800,
-    "rows_with_label": 161746,
-    "top50_rows": 80900,
+    "dates": 1638,
+    "rows": 163800,
+    "rows_with_label": 163746,
+    "top50_rows": 81900,
     "key_columns": [
       "date",
       "stock_id",
@@ -5846,7 +5878,7 @@
     "columns": {
       "date": {
         "role": "key",
-        "description": "台股交易日 t（老師個股檔日期聯集）"
+        "description": "台股交易日 t（老師個股檔日期聯集：Training＋Live 到 END_INCLUSIVE）"
       },
       "stock_id": {
         "role": "key",

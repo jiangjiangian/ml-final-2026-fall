@@ -22,6 +22,8 @@
 16. 驗證老師與額外指標的時間對齊 → 用 Yahoo 原始日K、小時K逐值比對，沒有對齊錯誤或洩漏，資料不需修改（證據見 `data-decisions.md` 的「時間對齊驗證」）。
 17. 更新 schema → `timing_verification`（含 verified_against 資料指紋、applies_to_current_data）與 `extra.series.<id>.timing`；第三輪審查（3 審查者＋3 反駁者）的發現已修：TX_OI 改判疑似同日並在文件警告、DXY 時段與 15:00 ET close、老師個股不一致日的標籤、小時K範圍的措辭、跳空測試鑑別力分類、TWD=X 跨年證據、「08:00 前」改成「07:00 以前收完」。資料檔沒變。
 18. deep-research：Phase 2 自動流程怎麼準時 → `deploy/README.md`（推薦 GCP Cloud Scheduler＋Cloud Run Job 為主、GitHub dispatch／Claude 雲端排程任務為備援、Healthchecks 監控；11/04 GitHub schedule 延遲 3h42m～6h17m 全被時鐘擋下）。待使用者決定：開不開 GCP、實作分支、能否建 Claude 排程任務、告警通道。
+19. TX_OI 改前一列 → market_features 的 `TX_OI` 換成 `TX_OI_prev_row`；長表與 lag 檔本來就沒有 TX_OI，不受影響。
+20. 資料範圍延長到 2026-09-30 → yfinance 19 序列限流重抓；9/1～9/30 的老師資料接 Live ZIP（`data/teacher_live/`）；接縫與 Live 慣例逐值驗證；timing_verification 的數字與資料指紋全部重算。Phase 2 自動化使用者說「等下再問」。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。
@@ -48,8 +50,8 @@
 - 授權：老師 ZIP 與 Yahoo 資料的公開再散布授權未核實。
 
 ## 數字
-- 老師：100 股、161,746 列、個股日期 2020-01-02～2026-08-31；global 1,506 列、缺 112 個台股日。
-- market_features：1,618 列 × 104 欄（date＋6 個老師市場欄＋97 個額外特徵）。
+- 老師：Training 100 股、161,746 列、2020-01-02～2026-08-31；global 1,506 列、缺 112 個台股日。Live（只用 9 月）2,000 列、global 20 列。
+- market_features：1,638 列 × 104 欄（date＋6 個老師市場欄＋97 個額外特徵）。
 - transform：124 個特徵 × lag2／lag5 ＝ 248 個 CSV。
-- panel：161,800 列 × 56 欄（50 個特徵），有答案 161,746 列，top50 80,900 列，7 MB。
+- panel：163,800 列 × 56 欄（50 個特徵），有答案 163,746 列，top50 81,900 列，7 MB；老師缺列仍是 54 格。
 - data/ 約 71 MB：teacher 45M、transform 20M（含 panel 7M）、extra 3.2M、features 2.5M。

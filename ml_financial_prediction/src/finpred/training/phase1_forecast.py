@@ -10,6 +10,7 @@ from datetime import date, datetime, time, timezone
 import hashlib
 from importlib.metadata import version
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -21,6 +22,7 @@ import numpy as np
 from finpred.data.snapshots import _exclusive_write
 from finpred.data.training_table import build_research_table, read_course_archives
 from finpred.features.stock import STOCK_FEATURES, number, stock_lags
+from finpred.features.market import FEATURE_COLUMNS as MARKET_FEATURES
 from finpred.models.temporal import TemporalRegressor
 from finpred.submission.phase1 import read_input_bytes, template_contract, write_phase1_predictions
 from finpred.training.architecture_comparison import PanelPreprocessor, build_sequence_panel, digest
@@ -39,6 +41,7 @@ CODE_FILES = (
     'src/finpred/labels/intraday.py', 'src/finpred/submission/phase1.py',
 )
 FEATURE_INPUT_FIELDS = ('date', 'etl:adj_open', 'etl:adj_close', 'price:成交股數', 'RSI', 'ATR', 'SMA')
+PHASE1_FEATURES = tuple(STOCK_FEATURES) + tuple(MARKET_FEATURES)
 
 
 def _sha(payload):
@@ -110,7 +113,10 @@ def selection_reference(report_payload):
     fixed = selected.get('fixed_design', {})
     if (report.get('schema_version') != 'architecture-comparison-v1'
             or report.get('completed_fit_count') != 48 or report.get('holdout_evaluated') is not False
-            or report.get('feature_columns') != list(STOCK_FEATURES)
+            or report.get('feature_columns') != list(PHASE1_FEATURES)
+            or report.get('feature_metadata', {}).get('market_feature_columns') != list(MARKET_FEATURES)
+            or not isinstance(report.get('feature_metadata', {}).get('feature_document_sha256'), str)
+            or len(report['feature_metadata']['feature_document_sha256']) != 64
             or selected.get('config_id') != 'M3-2' or selected.get('model_id') != 'M3'
             or selected.get('value') != RECIPE['dropout']
             or fixed.get('lookback') != RECIPE['lookback']
@@ -122,7 +128,61 @@ def selection_reference(report_payload):
     return {'report_sha256': _sha(report_payload), 'recipe_id': 'M3-2',
             'selection_scope': 'completed_2025_exploration_only',
             'phase1_selection_or_scoring': False, 'completed_prior_fits': 48,
+            'feature_columns': list(PHASE1_FEATURES),
+            'market_feature_document_sha256': report['feature_metadata']['feature_document_sha256'],
             'historical_validation_score': report['configuration_scores']['M3-2']}
+
+
+def frozen_market_features(payload, report_payload, stock_ids):
+    """Reuse only R2's bound M0 vectors; never reuse its old stock input rows."""
+    reference = selection_reference(report_payload)
+    document = json.loads(payload)
+    if (document.get('schema_version') != 'sequence-feature-table-v1'
+            or document.get('readiness') != 'research_assumption'
+            or document.get('production_eligible') is not False
+            or document.get('feature_columns') != list(PHASE1_FEATURES)
+            or document.get('market_feature_columns') != list(MARKET_FEATURES)
+            or document.get('stock_ids') != sorted(stock_ids)
+            or digest(document) != reference['market_feature_document_sha256']):
+        raise ValueError('original R2 feature document with matching universe and canonical hash required')
+    days = document.get('target_dates')
+    if (not isinstance(days, list) or not days or days != sorted(set(days))
+            or any(date.fromisoformat(day).isoformat() != day for day in days)):
+        raise ValueError('frozen market dates must be canonical and unique')
+    rows, seen, market = document.get('rows'), set(), {}
+    allowed = {'stock_id', 'target_date', 'feature_cutoff', 'feature_present', *PHASE1_FEATURES}
+    if not isinstance(rows, list) or len(rows) != len(stock_ids) * len(days):
+        raise ValueError('complete frozen stock/date feature universe required')
+    valid_days, valid_stocks = set(days), set(stock_ids)
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != allowed:
+            raise ValueError('frozen feature rows must contain only the exact outcome-free feature schema')
+        stock, day = row.get('stock_id'), row.get('target_date')
+        key = stock, day
+        if stock not in valid_stocks or day not in valid_days or key in seen:
+            raise ValueError('duplicate or unexpected frozen feature keys')
+        seen.add(key)
+        expected_cutoff = datetime.combine(date.fromisoformat(day), time(8, 10), ZoneInfo('Asia/Taipei'))
+        cutoff = datetime.fromisoformat(row['feature_cutoff'].replace('Z', '+00:00'))
+        if cutoff.utcoffset() is None or cutoff != expected_cutoff or type(row.get('feature_present')) is not bool:
+            raise ValueError('frozen market vector must have the exact aware 08:10 target cutoff')
+        values = [row[column] for column in MARKET_FEATURES]
+        if any(value is not None and (type(value) not in (int, float) or not math.isfinite(value))
+               for value in values):
+            raise ValueError('frozen market values must be finite numbers or explicit missing values')
+        vector = {'target_date': day, 'feature_cutoff': expected_cutoff.isoformat(),
+                  **dict(zip(MARKET_FEATURES, values))}
+        if day in market and market[day] != vector:
+            raise ValueError('one target date must have the same frozen market vector for all stocks')
+        market[day] = vector
+    binding = {'schema_version': 'phase1-frozen-r2-market-binding-v1',
+               'selection_report_sha256': reference['report_sha256'],
+               'market_feature_rows_sha256': _sha(payload),
+               'market_feature_document_sha256': reference['market_feature_document_sha256'],
+               'market_feature_columns': list(MARKET_FEATURES),
+               'reused_stock_columns': False, 'historical_availability_verified': False,
+               'availability_scope': 'unchanged R2 retrospective M0 vectors; original research assumptions retained'}
+    return market, binding
 
 
 def _previous_features(rows, day):
@@ -132,7 +192,8 @@ def _previous_features(rows, day):
     return stock_lags(previous, day)
 
 
-def prepare_phase1_inputs(stock_rows, template_payload, provenance, *,
+def prepare_phase1_inputs(stock_rows, template_payload, provenance, *, market_feature_rows_payload,
+                          selection_report_payload,
                           expected_stock_count=50, expected_date_count=84):
     contract = template_contract(template_payload, expected_stock_count=expected_stock_count,
                                  expected_date_count=expected_date_count)
@@ -150,10 +211,14 @@ def prepare_phase1_inputs(stock_rows, template_payload, provenance, *,
     prefix = {stock: [row for row in rows if row['date'] < begin] for stock, rows in ordered.items()}
     # Do not build a target-outcome table and filter it later: Phase 1 outcomes
     # never enter this function's training/selection/scoring path at all.
-    training = build_research_table(prefix, provenance=provenance)
+    market, market_binding = frozen_market_features(market_feature_rows_payload, selection_report_payload, stocks)
+    training = build_research_table(prefix, provenance=provenance, market_rows=list(market.values()),
+                                   market_report=market_binding, market_features=MARKET_FEATURES)
     if any(row['target_date'] >= begin for row in training['rows']):
         raise ValueError('Phase 1 target labels cannot enter training')
     calendar = sorted({row['date'] for rows in ordered.values() for row in rows} | set(targets))
+    if set(calendar) - set(market):
+        raise ValueError('bound R2 market vectors must cover every fresh stock input and target date')
     features, evidence = [], []
     for stock in stocks:
         rows = ordered[stock]
@@ -166,29 +231,32 @@ def prepare_phase1_inputs(stock_rows, template_payload, provenance, *,
                                                       ZoneInfo('Asia/Taipei')).isoformat(),
                    'feature_present': index > 0}
             row.update(_previous_features(previous, day))
+            row.update({column: market[day][column] for column in MARKET_FEATURES})
             features.append(row)
             if day in targets:
                 evidence.append({'stock_id': stock, 'target_date': day,
                                  'source_observation_dates': [item['date'] for item in previous]})
     document = {'schema_version': 'sequence-feature-table-v1', 'readiness': 'research_assumption',
-                'production_eligible': False, 'feature_columns': list(STOCK_FEATURES),
+                'production_eligible': False, 'feature_columns': list(PHASE1_FEATURES),
                 'feature_version': training['feature_version'], 'stock_ids': sorted(stocks),
-                'target_dates': calendar, 'rows': features, 'market_feature_columns': [],
+                'target_dates': calendar, 'rows': features, 'market_feature_columns': list(MARKET_FEATURES),
                 'calendar_basis': 'union_of_observed_course_dates_plus_exact_template_not_certified_native_sessions',
-                'availability_evidence': training['availability_evidence'], 'provenance': provenance}
+                'availability_evidence': training['availability_evidence'], 'provenance': provenance,
+                'frozen_market_feature_binding': market_binding}
     panel = build_sequence_panel(training, feature_rows=document, allow_research=True,
                                  expected_stocks=expected_stock_count)
     return training, document, panel, contract, evidence
 
 
 def forecast_fixed_phase1(stock_rows, template_payload, output_dir, *, source_snapshots,
-                          archive_provenance, selection_report_payload,
+                          archive_provenance, selection_report_payload, market_feature_rows_payload,
                           expected_stock_count=50, expected_date_count=84,
                           _model_factory=TemporalRegressor):
     """Freeze all inputs, fit exactly once, emit unscored independent predictions."""
     reference = selection_reference(selection_report_payload)
     training, features, panel, contract, evidence = prepare_phase1_inputs(
         stock_rows, template_payload, archive_provenance,
+        market_feature_rows_payload=market_feature_rows_payload, selection_report_payload=selection_report_payload,
         expected_stock_count=expected_stock_count, expected_date_count=expected_date_count)
     first = contract['target_dates'][0]
     train = np.array([i for i, day in enumerate(panel.dates) if day < first], dtype=int)
@@ -205,6 +273,7 @@ def forecast_fixed_phase1(stock_rows, template_payload, output_dir, *, source_sn
     _exclusive_write(out / 'feature-rows.json', feature_bytes)
     _exclusive_write(out / 'template.csv', template_payload)
     _exclusive_write(out / 'selection-report.json', selection_report_payload)
+    _exclusive_write(out / 'market-feature-rows.json', market_feature_rows_payload)
     _write_json(out / 'feature-evidence.json', evidence)
     code_hashes = _code_hashes()
     packages = {name: version(name) for name in ('numpy', 'scikit-learn', 'joblib', 'torch')}
@@ -222,6 +291,9 @@ def forecast_fixed_phase1(stock_rows, template_payload, output_dir, *, source_sn
                     'training_label_end_date': max(row['target_date'] for row in training['rows']),
                     'training_table_sha256': digest(training), 'training_table_file_sha256': _sha(training_bytes),
                     'feature_rows_sha256': digest(features), 'feature_rows_file_sha256': _sha(feature_bytes),
+                    'market_feature_rows_sha256': _sha(market_feature_rows_payload),
+                    'market_feature_document_sha256': reference['market_feature_document_sha256'],
+                    'market_feature_binding': features['frozen_market_feature_binding'],
                     'source_snapshots': source_snapshots, 'code_sha256': code_hashes,
                     'code_git_revision_at_registration': revision, 'package_versions': packages,
                     'readiness': 'research_assumption', 'historical_availability_verified': False,
@@ -279,6 +351,8 @@ def forecast_fixed_phase1(stock_rows, template_payload, output_dir, *, source_sn
                 'prediction_count': len(predictions), 'training_label_end_date': registration['training_label_end_date'],
                 'no_phase1_labels_used': True, 'model_fit_count': 1, 'phase1_targets_scored': False,
                 'source_snapshots': source_snapshots, 'code_sha256': code_hashes,
+                'market_feature_rows_sha256': _sha(market_feature_rows_payload),
+                'market_feature_document_sha256': reference['market_feature_document_sha256'],
                 'readiness': 'research_assumption', 'historical_availability_verified': False,
                 'production_eligible': False, 'submitted': False, 'artifact_sha256': artifacts}
     _write_json(out / 'manifest.json', manifest)

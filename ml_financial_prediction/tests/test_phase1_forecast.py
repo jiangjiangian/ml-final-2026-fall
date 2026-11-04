@@ -10,9 +10,31 @@ import unittest
 from unittest.mock import patch
 
 from finpred.features.stock import STOCK_FEATURES
+from finpred.features.market import FEATURE_COLUMNS as MARKET_FEATURES
+from finpred.training.architecture_comparison import digest
 from finpred.training.phase1_forecast import (
-    RECIPE, forecast_fixed_phase1, prepare_phase1_inputs, selection_reference,
+    PHASE1_FEATURES, RECIPE, forecast_fixed_phase1, frozen_market_features,
+    prepare_phase1_inputs, selection_reference,
 )
+
+
+def market_fixture(stocks, template):
+    from finpred.submission.phase1 import template_contract
+
+    contract = template_contract(template, expected_stock_count=len(stocks),
+                                 expected_date_count=len(template.decode().splitlines()[0].split(',')) - 1)
+    days = sorted({row['date'] for rows in stocks.values() for row in rows} | set(contract['target_dates']))
+    rows = []
+    for stock in sorted(stocks):
+        for index, day in enumerate(days):
+            rows.append({'stock_id': stock, 'target_date': day,
+                         'feature_cutoff': day + 'T08:10:00+08:00', 'feature_present': index > 0,
+                         **dict.fromkeys(STOCK_FEATURES),
+                         **{name: index / 1000 for name in MARKET_FEATURES}})
+    return json.dumps({'schema_version': 'sequence-feature-table-v1', 'readiness': 'research_assumption',
+                       'production_eligible': False, 'feature_columns': list(PHASE1_FEATURES),
+                       'market_feature_columns': list(MARKET_FEATURES), 'stock_ids': sorted(stocks),
+                       'target_dates': days, 'rows': rows}).encode()
 
 
 def fixture():
@@ -26,7 +48,9 @@ def fixture():
                         'ATR': 1, 'SMA': 100} for i, day in enumerate(dates)]
     template = ('id,2026-06-01,2026-06-02\n' + ''.join(stock + ',0,0\n' for stock in stocks)).encode()
     report = {'schema_version': 'architecture-comparison-v1', 'completed_fit_count': 48,
-              'holdout_evaluated': False, 'feature_columns': list(STOCK_FEATURES),
+              'holdout_evaluated': False, 'feature_columns': list(PHASE1_FEATURES),
+              'feature_metadata': {'market_feature_columns': list(MARKET_FEATURES),
+                                   'feature_document_sha256': digest(json.loads(market_fixture(rows, template)))},
               'validation_selected_configuration': {'config_id': 'M3-2', 'model_id': 'M3', 'value': .1,
                     'fixed_design': {'lookback': 20, 'hidden_channels': 32, 'epochs': 20}},
               'folds': [{'end': '2025-04-01'}, {'end': '2025-07-01'},
@@ -36,7 +60,12 @@ def fixture():
 
 
 def prepare(rows, template):
-    return prepare_phase1_inputs(rows, template, [], expected_stock_count=3, expected_date_count=2)
+    report = json.loads(fixture()[2])
+    market = market_fixture(rows, template)
+    report['feature_metadata']['feature_document_sha256'] = digest(json.loads(market))
+    return prepare_phase1_inputs(rows, template, [], market_feature_rows_payload=market,
+                                 selection_report_payload=json.dumps(report).encode(),
+                                 expected_stock_count=3, expected_date_count=2)
 
 
 class Phase1ForecastTests(unittest.TestCase):
@@ -103,6 +132,38 @@ class Phase1ForecastTests(unittest.TestCase):
             with self.subTest(mutation=mutation), self.assertRaises(ValueError):
                 selection_reference(json.dumps(report).encode())
 
+    def test_frozen_market_binding_rejects_changed_cutoff_outcomes_and_stock_specific_vectors(self):
+        stocks, template, report_payload = fixture()
+        payload = market_fixture(stocks, template)
+        market, binding = frozen_market_features(payload, report_payload, stocks)
+        self.assertEqual(binding['market_feature_columns'], list(MARKET_FEATURES))
+        self.assertEqual(len(market), 33)
+        for mutation in ('hash', 'cutoff', 'outcome', 'stock_vector', 'duplicate'):
+            with self.subTest(mutation=mutation):
+                document, report = json.loads(payload), json.loads(report_payload)
+                if mutation == 'cutoff':
+                    document['rows'][0]['feature_cutoff'] = '2026-05-01T09:10:00+08:00'
+                elif mutation == 'outcome':
+                    document['rows'][0]['y'] = 1
+                elif mutation in {'hash', 'stock_vector'}:
+                    document['rows'][0][MARKET_FEATURES[0]] = 99
+                else:
+                    document['rows'][0] = document['rows'][1]
+                if mutation != 'hash':
+                    report['feature_metadata']['feature_document_sha256'] = digest(document)
+                with self.assertRaises(ValueError):
+                    frozen_market_features(json.dumps(document).encode(), json.dumps(report).encode(), stocks)
+
+    def test_missing_frozen_market_date_cannot_silently_change_the_winner_feature_configuration(self):
+        stocks, template, report_payload = fixture()
+        document, report = json.loads(market_fixture(stocks, template)), json.loads(report_payload)
+        document['target_dates'].remove('2026-05-01')
+        document['rows'] = [row for row in document['rows'] if row['target_date'] != '2026-05-01']
+        report['feature_metadata']['feature_document_sha256'] = digest(document)
+        with self.assertRaisesRegex(ValueError, 'cover every'):
+            prepare_phase1_inputs(stocks, template, [], market_feature_rows_payload=json.dumps(document).encode(),
+                selection_report_payload=json.dumps(report).encode(), expected_stock_count=3, expected_date_count=2)
+
     @unittest.skipUnless(importlib.util.find_spec('torch'), 'optional neural extra absent')
     def test_exact_one_frozen_fit_produces_complete_immutable_formatter_artifacts(self):
         from finpred.models.temporal import TemporalRegressor
@@ -126,6 +187,7 @@ class Phase1ForecastTests(unittest.TestCase):
             with patch('requests.sessions.Session.request', side_effect=AssertionError('network forbidden')):
                 result = forecast_fixed_phase1(rows, template, output, source_snapshots=[],
                         archive_provenance=[], selection_report_payload=report,
+                        market_feature_rows_payload=market_fixture(rows, template),
                         expected_stock_count=3, expected_date_count=2, _model_factory=CountedModel)
             self.assertEqual([name for name, _ in calls].count('fit'), 1)
             self.assertEqual(calls[0], ('configuration', RECIPE))
@@ -141,11 +203,12 @@ class Phase1ForecastTests(unittest.TestCase):
             self.assertEqual([row.split(',')[0] for row in csv[1:]], ['0003', '0001', '0002'])
             self.assertTrue((output / 'registration.json').is_file())
             self.assertTrue((output / 'model/weights.npz').is_file())
-            self.assertEqual(len(result['artifact_sha256']), 12)
+            self.assertEqual(len(result['artifact_sha256']), 13)
             self.assertEqual((output / 'selection-report.json').read_bytes(), report)
             with self.assertRaises(FileExistsError):
                 forecast_fixed_phase1(rows, template, output, source_snapshots=[],
                         archive_provenance=[], selection_report_payload=report,
+                        market_feature_rows_payload=market_fixture(rows, template),
                         expected_stock_count=3, expected_date_count=2, _model_factory=CountedModel)
 
 

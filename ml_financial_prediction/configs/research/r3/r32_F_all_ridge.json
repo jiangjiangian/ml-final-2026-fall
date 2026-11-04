@@ -1,0 +1,17 @@
+{
+ "name": "r32_F_all_ridge",
+ "stage": "R3-2",
+ "hypothesis": "all groups",
+ "feature_groups": [
+  "panel",
+  "stock_hist",
+  "market_1s",
+  "beta",
+  "xs_rank",
+  "calendar"
+ ],
+ "family": "ridge",
+ "params": {
+  "alpha": 1.0
+ }
+}

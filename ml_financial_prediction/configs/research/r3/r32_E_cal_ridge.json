@@ -1,0 +1,13 @@
+{
+ "name": "r32_E_cal_ridge",
+ "stage": "R3-2",
+ "hypothesis": "H7 calendar effects",
+ "feature_groups": [
+  "panel",
+  "calendar"
+ ],
+ "family": "ridge",
+ "params": {
+  "alpha": 1.0
+ }
+}

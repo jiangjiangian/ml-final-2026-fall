@@ -1,0 +1,21 @@
+{
+ "name": "r32_B_mkt1s_lgbm",
+ "stage": "R3-2",
+ "hypothesis": "H2 latest one-session overseas returns (gap reversal)",
+ "feature_groups": [
+  "panel",
+  "market_1s"
+ ],
+ "family": "lightgbm",
+ "objective": "regression",
+ "params": {
+  "n_estimators": 300,
+  "learning_rate": 0.03,
+  "num_leaves": 15,
+  "min_child_samples": 200,
+  "subsample": 0.8,
+  "subsample_freq": 1,
+  "colsample_bytree": 0.8,
+  "reg_lambda": 1.0
+ }
+}

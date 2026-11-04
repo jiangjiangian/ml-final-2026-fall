@@ -1,0 +1,13 @@
+{
+ "name": "r32_B_mkt1s_ridge",
+ "stage": "R3-2",
+ "hypothesis": "H2 latest one-session overseas returns (gap reversal)",
+ "feature_groups": [
+  "panel",
+  "market_1s"
+ ],
+ "family": "ridge",
+ "params": {
+  "alpha": 1.0
+ }
+}

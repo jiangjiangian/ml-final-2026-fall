@@ -1,0 +1,13 @@
+{
+ "name": "r32_A_hist_ridge",
+ "stage": "R3-2",
+ "hypothesis": "H3 stock intraday/overnight persistence and liquidity/flow history",
+ "feature_groups": [
+  "panel",
+  "stock_hist"
+ ],
+ "family": "ridge",
+ "params": {
+  "alpha": 1.0
+ }
+}

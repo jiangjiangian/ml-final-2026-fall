@@ -1,0 +1,14 @@
+{
+ "name": "r32_C_beta_ridge",
+ "stage": "R3-2",
+ "hypothesis": "H2b stock-specific gap response x latest US session",
+ "feature_groups": [
+  "panel",
+  "market_1s",
+  "beta"
+ ],
+ "family": "ridge",
+ "params": {
+  "alpha": 1.0
+ }
+}

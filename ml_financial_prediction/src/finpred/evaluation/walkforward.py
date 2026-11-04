@@ -170,7 +170,9 @@ def summarize(daily: pd.DataFrame, *, block=5, reps=2000, seed=20261104) -> dict
     worst_key = monthly_scores.idxmin()
     sub = {}
     for name, mask in (("2022_2024", (idx.year >= 2022) & (idx.year <= 2024)),
-                       ("2025", idx.year == 2025)):
+                       ("2025", idx.year == 2025),
+                       ("2022_2023", (idx.year >= 2022) & (idx.year <= 2023)),
+                       ("2024_2025", (idx.year >= 2024) & (idx.year <= 2025))):
         part = daily[mask]
         if len(part):
             sub[name] = float(part["sum_c"].sum() / part["n"].sum())

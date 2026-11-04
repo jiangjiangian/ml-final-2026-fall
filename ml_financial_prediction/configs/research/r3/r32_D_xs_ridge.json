@@ -1,0 +1,14 @@
+{
+ "name": "r32_D_xs_ridge",
+ "stage": "R3-2",
+ "hypothesis": "H4 cross-sectional ranks of stock history",
+ "feature_groups": [
+  "panel",
+  "stock_hist",
+  "xs_rank"
+ ],
+ "family": "ridge",
+ "params": {
+  "alpha": 1.0
+ }
+}

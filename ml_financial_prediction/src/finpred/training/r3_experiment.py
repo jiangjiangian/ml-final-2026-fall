@@ -34,6 +34,7 @@ CODE_FILES = (
     "src/finpred/evaluation/official_score.py",
     "src/finpred/models/r3_estimators.py",
     "src/finpred/training/r3_experiment.py",
+    "src/finpred/training/r3_tune.py",
 )
 PACKAGES = ("numpy", "pandas", "scikit-learn", "lightgbm", "catboost", "xgboost", "torch")
 
@@ -66,10 +67,15 @@ def canonical(value) -> bytes:
     return json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()
 
 
+# Hash the source at import time: the hashes must describe the code this
+# process actually runs, even if files are edited while a long batch runs.
+_IMPORT_FILE_HASHES = {rel: _sha_bytes((PROJECT / rel).read_bytes()) for rel in CODE_FILES}
+
+
 def code_state() -> dict:
-    files = {}
-    for rel in CODE_FILES:
-        files[rel] = _sha_bytes((PROJECT / rel).read_bytes())
+    files = dict(_IMPORT_FILE_HASHES)
+    changed = sorted(rel for rel in CODE_FILES
+                     if _sha_bytes((PROJECT / rel).read_bytes()) != files[rel])
     try:
         head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=PROJECT, capture_output=True,
                               text=True, check=True).stdout.strip()
@@ -78,7 +84,8 @@ def code_state() -> dict:
                                     check=True).stdout.strip())
     except (OSError, subprocess.CalledProcessError):
         head, dirty = None, None
-    return {"git_head": head, "dirty_r3_files": dirty, "files_sha256": files}
+    return {"git_head": head, "dirty_r3_files": dirty, "files_sha256": files,
+            "hash_basis": "import_time", "edited_since_import": changed}
 
 
 def package_versions() -> dict:
@@ -128,7 +135,11 @@ def _key_hash(pred: pd.DataFrame) -> str:
 
 def run_predictions(cfg: dict, ff: rf.FeatureFrame, *, threads=4):
     """Walk-forward predictions for every scored test key of the configuration."""
-    model_spec = {k: cfg[k] for k in ("family", "rule", "params", "objective") if k in cfg}
+    model_spec = {k: cfg[k] for k in ("family", "rule", "params", "objective", "market_columns",
+                                      "stock_model") if k in cfg}
+    if model_spec.get("family") == "two_head" and isinstance(model_spec.get("market_columns"), str):
+        model_spec["market_columns"] = ff.columns([model_spec["market_columns"]]) if \
+            model_spec["market_columns"] in ff.groups else None
     columns = ff.columns(cfg.get("feature_groups", []), exclude=cfg["feature_exclude"])
     probe = build_model(model_spec, threads=threads)
     needed = list(dict.fromkeys([*columns, *probe.needs]))
@@ -154,8 +165,13 @@ def run_predictions(cfg: dict, ff: rf.FeatureFrame, *, threads=4):
         decision = np.zeros(len(test))
         for seed in cfg["seeds"]:
             model = build_model(model_spec, threads=threads)
-            model.fit(train[needed], train["r"].to_numpy(), train["y"].to_numpy(), seed=seed)
-            decision += model.decision(test[needed])
+            if getattr(model, "uses_dates", False):
+                model.fit(train[needed], train["r"].to_numpy(), train["y"].to_numpy(), seed=seed,
+                          dates=train["date"].to_numpy())
+                decision += model.decision(test[needed], dates=test["date"].to_numpy())
+            else:
+                model.fit(train[needed], train["r"].to_numpy(), train["y"].to_numpy(), seed=seed)
+                decision += model.decision(test[needed])
         decision /= len(cfg["seeds"])
         if not np.all(np.isfinite(decision)):
             raise ValueError("model produced non-finite decisions")

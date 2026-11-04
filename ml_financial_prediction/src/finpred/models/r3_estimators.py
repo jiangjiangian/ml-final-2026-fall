@@ -156,4 +156,57 @@ def build_model(spec: dict, *, threads=4):
         return LinearModel("weighted_classification", **params)
     if family in ("lightgbm", "catboost", "xgboost"):
         return GBDTModel(family, objective, params, threads=threads)
+    if family == "two_head":
+        return TwoHeadModel(spec["market_columns"], spec["stock_model"],
+                            threads=threads, **params)
     raise ValueError(f"unknown model family {family!r}")
+
+
+class TwoHeadModel:
+    """H9: day-level market head + stock-level head on market-demeaned returns.
+
+    The market head is a Ridge on one row per training date (columns that are
+    identical across stocks) predicting m_t, the mean training-universe return of
+    that date. The stock head is a GBDT predicting r - m_t. Both targets use only
+    training-fold labels; the decision is ``shrink * m_hat_t + e_hat_it``.
+    """
+
+    uses_dates = True
+
+    def __init__(self, market_columns, stock_spec, market_alpha=10.0, shrink=1.0, threads=4):
+        self.market_columns = list(market_columns)
+        self.stock_spec = dict(stock_spec)
+        self.market_alpha, self.shrink, self.threads = market_alpha, shrink, threads
+        self.needs = []
+
+    def _day_frame(self, X, dates):
+        cols = [c for c in self.market_columns if c in X.columns]
+        frame = X[cols].copy()
+        frame["_date"] = np.asarray(dates)
+        return frame.groupby("_date", sort=True)[cols].first()
+
+    def fit(self, X, r, y, *, seed=42, dates=None):
+        from sklearn.linear_model import Ridge
+
+        if dates is None:
+            raise ValueError("two-head model needs training dates")
+        r = np.asarray(r, dtype=float)
+        dates = np.asarray(dates)
+        m = pd.Series(r).groupby(dates).transform("mean").to_numpy()
+        day = self._day_frame(X, dates)
+        m_day = pd.Series(r).groupby(dates).mean().reindex(day.index).to_numpy()
+        self.pre = TrainOnlyPreprocessor().fit(day)
+        self.market = Ridge(alpha=self.market_alpha).fit(self.pre.transform(day), m_day)
+        self.stock = build_model(self.stock_spec, threads=self.threads)
+        resid = r - m
+        self.stock.fit(X, resid, (resid > 0).astype(int), seed=seed)
+        return self
+
+    def decision(self, X, dates=None):
+        if dates is None:
+            raise ValueError("two-head model needs prediction dates")
+        dates = np.asarray(dates)
+        day = self._day_frame(X, dates)
+        m_hat = pd.Series(self.market.predict(self.pre.transform(day)), index=day.index)
+        market = m_hat.reindex(dates).to_numpy()
+        return self.shrink * market + self.stock.decision(X)

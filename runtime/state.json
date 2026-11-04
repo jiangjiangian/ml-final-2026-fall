@@ -16,7 +16,7 @@
     }
   ],
   "total_bytes": 49405938,
-  "created_at": "2026-11-04T05:15:46.682022+00:00",
+  "created_at": "2026-11-04T05:18:21.715815+00:00",
   "trust_scope": "internally_created_finpred_state_in_verified_repository",
   "excluded": [
     "raw",
@@ -28,7 +28,7 @@
   ],
   "retention": {
     "policy": "published_unreferenced_large_tables_only-v1",
-    "archived_commit": null,
+    "archived_commit": "39399946328aad8669820eb1625af8fcd8cf7d26",
     "pruned_paths": []
   }
 }

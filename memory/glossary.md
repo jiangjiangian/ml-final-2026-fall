@@ -10,7 +10,7 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | template | 官方預測模板（股票／日期／欄位順序） | 不在本分支 |
 | Top50@Y／Top100@Y | `info.json` 的預測目標 50 股／全部 100 股 | |
 | global_data | 老師全球表：`date, ^VIX, ^IXIC, ^GSPC, ^TWII, ^KS11, TX_OI` | 五個老師 Yahoo 序列同日都有資料才有列（1,506 列，缺 112 個台股日；缺列不代表休市） |
-| TX_OI | 台指期外資淨未平倉口數（多減空，可負） | 單位是口數，不算 return；發布時點未驗證 |
+| TX_OI | 台指期外資淨未平倉口數（多減空，可負） | 單位是口數，不算 return；疑似含當日資訊（role＝suspected_same_day），不可當輸入 |
 | 老師 index | global_data 的五個指數欄 | 使用者說的「除了老師以外的 index」＝排除這五個 |
 | 額外指標 | crawler.py 用 yfinance 抓的 19 個序列 | 清單見 data-decisions.md |
 | live-data | 共用資料分支：catalog／manifests／objects／features／labels | 老師 ZIP 由 `git show origin/live-data:...` 取得 |

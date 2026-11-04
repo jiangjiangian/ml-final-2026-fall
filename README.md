@@ -123,6 +123,7 @@ i−k ＝ 該序列往回第 k 個「自己的」交易日
 - 老師個股的其他欄位（成交量、法人、RSI…）都是**收盤後才知道**。要先在每檔股票內往前移一列（`groupby("stock_id").shift(1)`），再用 `(stock_id, date)` 和長表合併。
 - 老師 `^TWII`、`^KS11` 是當日收盤，不能直接當輸入。`^VIX`、`^IXIC`、`^GSPC` 已被老師移到前一個 global 列的日期。
 - `data/features/market_features.csv` 另有 1／5／20 日累積報酬、匯率水準、殖利率基點變化，用 `date` 合併。
+  **不要用其中的 `TX_OI`**：它照抄老師同日期的值，逐年相關性顯示疑似含當天收盤後才公布的資訊。要用就先往前一列。
 
 ## 重建資料
 
@@ -137,11 +138,13 @@ python crawler.py --skip-download --keep-teacher   # 不連網，只用現有檔
 
 ## 注意事項
 
-- **時間對齊已驗證日期語意**（2026-11-04，用 Yahoo 原始日K與小時K逐值比對；方法與數字見 `memory/context/data-decisions.md`）：
-  - 每個額外指標的日K最晚在隔天台北 08:00 完成。lag 只用 t 之前的台股日，所以都在 t 開盤前可得。
+- **時間對齊已驗證日期語意**（2026-11-04，用 Yahoo 原始日K與小時K逐值比對）：
+  - 機器可讀的完整紀錄在 `schema.json` 的 `timing_verification` 與 `extra.series.<id>.timing`；說明在 `memory/context/data-decisions.md`。
+  - 除 TWD=X 外，每個額外指標的日K最晚在隔天台北 07:00 收完。lag 只用 t 之前的台股日，所以用到的K棒都在 t 開盤前收完。
   - 老師的 `^GSPC`、`^IXIC`、`^VIX` 是前一個 global 列的收盤；`^TWII`、`^KS11` 是同日收盤。
-  - 歷史上 Yahoo 的實際發布延遲沒辦法驗證，所以仍算研究假設。
-- **TWD=X 比名稱舊約一天**：日期 d 的 close 其實是台北 d 日早上（倫敦午夜）的報價。
+  - Yahoo 實際何時上架（發布延遲）沒辦法驗證；DXY、^TNX、^IRX、CL=F、GC=F 在 2025-11 以前的日期慣例也只是假設。所以仍算研究假設。
+- **TWD=X 比名稱舊約一天**：日期 d 的 close 是台北 d 日早上（倫敦午夜前後）的報價；每一年都在美股 d 日開盤前定下。
+- **`TX_OI` 疑似含當天資訊**：`market_features.csv` 照抄老師同日期的值，不要當輸入。長表與 lag 檔沒有 TX_OI。
 - **資料清理**（每筆都記在 `data/extra/manifest.json`）：
   - 0052 的分割與股利調整已修正。
   - 刪掉台灣 ETF 的佔位K棒、TWD=X 的 2 筆壞報價、殖利率在美國債市休市日的平盤K棒。

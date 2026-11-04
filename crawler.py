@@ -134,87 +134,127 @@ TIMING_VERIFIED_ON = '2026-11-04'
 US_TIMING = ('列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。'
              f'{TIMING_VERIFIED_ON} 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，'
              '第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股'
-             '交易日（88 列的前一列不是前一個美股日，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。')
+             '交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。')
 SAME_DAY_NOTE = '09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。'
 TWII_TIMING = (f'列日期 d 的值＝d 當日收盤（{TIMING_VERIFIED_ON} 與 Yahoo ^TWII 原始收盤逐值比對：同日相同 1506/1506；'
                '早先的相關性檢查：與 0050 同日 0.94、前一交易日 0.08）；' + SAME_DAY_NOTE)
 KS11_TIMING = (f'列日期 d 的值＝d 當日收盤（{TIMING_VERIFIED_ON} 與 Yahoo ^KS11 原始收盤逐值比對：同日相同 1506/1506；'
                '早先的相關性檢查：與日經225同日 0.65、前一交易日 0.01）；' + SAME_DAY_NOTE)
-OI_TIMING = '發布時點未驗證（相關性檢查無定論，Yahoo 也沒有可比對的來源）；專案在取得證據前不把它當正式特徵。'
+OI_TIMING = ('疑似含列日期 d 當日的資訊（期交所約 15:00 盤後才公布），不可當 t 的輸入。沒有可逐值比對的來源；'
+             f'{TIMING_VERIFIED_ON} 逐年 Spearman：差分 ΔTX_OI（第 j 列 − 第 j−1 列）對同日盤中報酬 2023 年 +0.37'
+             '（market_features 其他 1 日變化欄逐年最大 0.18），對同日開盤跳空 2022／2023／2025 年 +0.21／+0.24／+0.38'
+             '（t−1 日盤收盤時的部位無法預測美股隔夜造成的跳空）；各年正負不一，所以只能說「疑似」。'
+             'market_features.csv 照抄同日期的值，建模時不要用；要用就先往前一列。')
 
-# 額外指標的時間語意：TIMING_VERIFIED_ON 用 Yahoo 小時K（2025-11-10～2026-08-31）與開盤跳空測試驗證。
+# 額外指標的時間語意：TIMING_VERIFIED_ON 用 Yahoo 小時K（只抓了 2025-11-10～2026-08-31）與逐年開盤跳空測試驗證。
 # complete_by_taipei＝該日K最後一根小時K開始＋1 小時，換成台北時間，取冬令／夏令中最晚者（保守上界）。
-# open_gap_corr＝與台股 t 日開盤跳空（Top50 平均 adj_open_t / adj_close_{t−1} − 1）的相關，2020–2026 全期。
+# open_gap_corr＝序列單日報酬（價格欄同 transform）與台股 t 日開盤跳空的 Pearson 相關，2020-01～2026-08 全期。
 _US_SESSION = '美東當地日 d 的正規盤（09:30–16:00 ET），在台股 d 日收盤之後'
 _FUTURES_SESSION = '前一日 18:00 ET → d 日 17:00 ET（結束在 d）'
 _TW_SESSION = '台股日 d（09:00–13:30），與老師個股同一天'
+_EU_NOTE = ('t 日的K棒在台北 t+1 00:00～01:00 才收完，晚於 t 開盤，不能用；它和 t 日跳空也正相關（約 0.25），是因為'
+            ' close 對 close 的報酬涵蓋歐股 t−1 收盤後的美股時段與亞洲 t 日')
+# (bar_covers, complete_by_taipei, 跳空相關：最新 < t, 跳空相關：日期＝t, 附註)
 EXTRA_TIMING = {
-    'sox': (_US_SESSION, 'd+1 05:30', 0.658, -0.030),
-    'tsm_adr': (_US_SESSION, 'd+1 05:30', 0.521, 0.034),
-    'nvda': (_US_SESSION, 'd+1 05:30', 0.508, 0.010),
-    'dji': (_US_SESSION, 'd+1 05:30', 0.568, 0.017),
-    'usd_twd': ('倫敦當地日 d；close≈倫敦 d 日 00:00～01:00 的報價（與日K close 的中位差 1.05bp；同日 23:00 為 17bp），'
-                '也就是台北 d 日 07:00～09:00', 'd 當天早上；保守上界 d+1 08:00', 0.002, -0.198),
-    'dxy': (_FUTURES_SESSION + '；高低點與「結束在 d」的分組相符 87%、與「從 d 開始」3%；close≈14:00 ET 報價',
-            'd+1 07:00', -0.209, -0.117),
-    'us10y': ('芝加哥時區當地日 d（CBOE 殖利率指數）', 'd+1 04:20', 0.032, -0.004),
-    'us13w': ('芝加哥時區當地日 d（CBOE 殖利率指數）', 'd+1 04:20', -0.028, 0.088),
-    'etf_006201': (_TW_SESSION, 'd 當天 14:00', 0.001, 0.605),
-    'etf_0050': (_TW_SESSION, 'd 當天 14:00', -0.001, 0.744),
-    'etf_0052': (_TW_SESSION, 'd 當天 14:00', 0.004, 0.698),
-    'etf_0055': (_TW_SESSION, 'd 當天 14:00', -0.041, 0.640),
-    'n225': ('東京當地日 d；比台股早 1 小時開盤，與台股 d 日同時交易', 'd 當天 15:00', 0.079, 0.628),
-    'hsi': ('香港當地日 d；與台股 d 日同時交易', 'd 當天 16:30', 0.130, 0.377),
-    'sse': ('上海當地日 d；與台股 d 日同時交易', 'd 當天 15:30', 0.093, 0.284),
-    'stoxx50e': ('蘇黎世時區當地日 d，在台股 d 日收盤之後；日期＝t 與跳空也正相關，因為歐股 t 日才反映美股 t−1 午後與亞洲 t 日'
-                 '的消息，所以 t 日的K棒不能用', 'd+1 01:00', 0.391, 0.247),
-    'gdaxi': ('柏林時區當地日 d，在台股 d 日收盤之後；同 stoxx50e，t 日的K棒不能用', 'd+1 01:00', 0.372, 0.245),
-    'wti': (_FUTURES_SESSION + '；高低點與「結束在 d」相符 72%、與「從 d 開始」0%；close≈結算價（約 14:00–14:30 ET）',
-            'd+1 06:00', 0.074, 0.005),
-    'gold': (_FUTURES_SESSION + '；高低點與「結束在 d」相符 81%、與「從 d 開始」0%；close≈結算價（約 13:00–13:30 ET）',
-             'd+1 06:00', 0.182, 0.050),
+    'sox': (_US_SESSION, 'd+1 05:30', 0.658, -0.030, None),
+    'tsm_adr': (_US_SESSION, 'd+1 05:30', 0.521, 0.034, None),
+    'nvda': (_US_SESSION, 'd+1 05:30', 0.508, 0.010, None),
+    'dji': (_US_SESSION, 'd+1 05:30', 0.568, 0.017, None),
+    'usd_twd': ('日期依倫敦日標示；本分支只用 close。小時K期間 close≈倫敦 d 日 00:00～01:00 的報價（中位差約 1bp；'
+                '同日 23:00 為 17bp）。日K的 high／low 和任何小時K區間都對不上，所以整根K棒涵蓋的區間沒有驗證',
+                'close：小時K期間約台北 d 日 08:00；跨年證據顯示每一年都在美股 d 日開盤前（台北 d 日 22:30 前）',
+                0.002, -0.198,
+                ('跨年 Spearman（2020–2026 每一年）：日期 d 的報酬對最新一個 < d 的 DJI 報酬 −0.16～−0.42、對 DJI d 日'
+                 ' −0.07～+0.08 → close 在美股 d−1 收盤之後、美股 d 開盤之前；日期＝t 對 t 日盤中報酬 2020–2025 為'
+                 ' −0.03～+0.04（2026 為 −0.15），下一根對 t 日盤中 −0.10～−0.26。所以 usd_twd 比名稱舊約一天。')),
+    'dxy': ('約前一日 19:00 ET → d 日 18:00 ET（結束在 d；日K open≈前一日 19:00 ET 的報價，含 17:00–18:00 ET 那根'
+            '小時K）；高低點與「結束在 d」的分組相符約 87%、與「從 d 開始」約 3%（相對容差 2e-4）；close≈15:00 ET 的報價'
+            '（14:00–15:00 小時K的收盤，中位差 0.31bp）；DX-Y.NYB 是指數，不是結算價',
+            'd+1 07:00', -0.209, -0.117, None),
+    'us10y': ('芝加哥時區當地日 d（CBOE 殖利率指數）', 'd+1 04:20', 0.032, -0.004, None),
+    'us13w': ('芝加哥時區當地日 d（CBOE 殖利率指數）', 'd+1 04:20', -0.028, 0.088, None),
+    'etf_006201': (_TW_SESSION, 'd 當天 14:00', 0.001, 0.605, None),
+    'etf_0050': (_TW_SESSION, 'd 當天 14:00', -0.001, 0.744, None),
+    'etf_0052': (_TW_SESSION, 'd 當天 14:00', 0.004, 0.698, None),
+    'etf_0055': (_TW_SESSION, 'd 當天 14:00', -0.041, 0.640, None),
+    'n225': ('東京當地日 d；比台股早 1 小時開盤，與台股 d 日同時交易', 'd 當天 15:00', 0.079, 0.628, None),
+    'hsi': ('香港當地日 d；與台股 d 日同時交易', 'd 當天 16:30', 0.130, 0.377, None),
+    'sse': ('上海當地日 d；與台股 d 日同時交易', 'd 當天 15:30', 0.093, 0.284, None),
+    'stoxx50e': ('蘇黎世時區當地日 d，在台股 d 日收盤之後', 'd+1 01:00', 0.391, 0.247, _EU_NOTE),
+    'gdaxi': ('柏林時區當地日 d，在台股 d 日收盤之後', 'd+1 01:00', 0.372, 0.245, _EU_NOTE),
+    'wti': (_FUTURES_SESSION + '；高低點與「結束在 d」相符 72%、與「從 d 開始」0%；close 推定為 CME 結算價（約 14:30 ET；'
+            '日K close 落在 14:00–15:00 ET 小時K高低區間內約 90%，無法精確驗證）', 'd+1 06:00', 0.074, 0.005, None),
+    'gold': (_FUTURES_SESSION + '；高低點與「結束在 d」相符 81%、與「從 d 開始」0%；close 推定為 CME 結算價（約 13:30 ET；'
+             '日K close 落在 13:00–14:00 ET 小時K高低區間內約 95%，無法精確驗證）', 'd+1 06:00', 0.182, 0.050, None),
 }
 
 
 def extra_timing(series_id):
     if series_id not in EXTRA_TIMING:
         return None
-    covers, complete_by, gap_prev, gap_same = EXTRA_TIMING[series_id]
-    return {'verified_on': TIMING_VERIFIED_ON, 'bar_covers': covers, 'complete_by_taipei': complete_by,
-            'open_gap_corr': {'latest_bar_before_t': gap_prev, 'bar_dated_t': gap_same},
-            'usable_for_target_t': '只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）'}
+    covers, complete_by, gap_prev, gap_same, note = EXTRA_TIMING[series_id]
+    out = {'verified_on': TIMING_VERIFIED_ON, 'bar_covers': covers, 'complete_by_taipei': complete_by,
+           'open_gap_corr': {'period': '2020-01～2026-08 全期（Pearson）', 'latest_bar_before_t': gap_prev,
+                             'bar_dated_t': gap_same},
+           'usable_for_target_t': '只能用日期 <= t−1 的K棒（本分支的 market_features 與 transform 都是如此）'}
+    if note:
+        out['note'] = note
+    return out
 
 
+# 驗證當時的資料指紋；build_schema 會拿目前的值比對，不同就表示資料改過、要重跑驗證。
+TIMING_VERIFIED_AGAINST = {
+    'teacher_members_sha256': '31bbdc99c3bfd28f9df8b671160fba7030408d9eea18694c3cec9f94ccb73ea0',
+    'market_features_sha256': 'dde04c747c584980e092d0aeb2dd9bf6d790fff6f28e653bd33c93efb5501e50',
+    'panel_sha256_csv_uncompressed': '97bcd835392d130253a39022b27b902cf192bd63b23ab51331e0bc6f356bb448',
+}
 TIMING_VERIFICATION = {
     'verified_on': TIMING_VERIFIED_ON,
-    'conclusion': ('日期語意驗證通過：老師 5 個指數、老師個股與 19 個額外指標的日期都沒有錯位；transform 與 panel 用到的'
-                   '每個值都在 t 日開盤前可得，market_features 除了 TX_OI（照抄老師同日期的值，時點未驗證）也是如此；'
-                   '資料不需修改。Yahoo 歷史上的實際發布延遲無法驗證，所以 readiness 仍是 research_assumption。'),
+    'conclusion': ('日期語意驗證通過：老師 5 個指數與老師個股的日期都沒有錯位；19 個額外指標在小時K期間'
+                   '（2025-11-10～2026-08-31）也沒有錯位，較早年份見 method。transform 與 panel 用到的每根K棒都在 t 日台北'
+                   ' 07:00 以前收完（市場時間）；market_features 也是如此，但 TX_OI 例外（照抄老師同日期的值，疑似含當日資訊，'
+                   '不可當輸入）。資料不需修改。Yahoo 實際何時上架（發布延遲）無法驗證，所以 readiness 仍是 research_assumption。'),
     'method': ('另用 yfinance（同一套限流）抓 Yahoo 原始資料，只用來比對、不存進 data/：老師 5 個指數與 5 檔老師個股'
-               '（2330、2317、2454、2881、1101）的日K（2019-12～2026-09），以及 19 個額外指標的小時K'
-               '（2025-11-10～2026-08-31；Yahoo 1h 只保留 730 天，較早年份靠逐年的開盤跳空測試確認慣例不變）。'),
+               '（2330、2317、2454、2881、1101）的日K（2019-12～2026-09），以及 19 個額外指標的小時K。小時K本次只抓'
+               '2025-11-10～2026-08-31（約 10 個月，涵蓋冬令與夏令）；Yahoo 1h 最多回溯 730 天（約到 2024-11），更早的年份'
+               '無法用小時K驗證。較早年份改用逐年開盤跳空測試：SOX、TSM、NVDA、DJI、4 檔台灣 ETF、N225 每年都有鑑別力，'
+               '確認慣例不變；HSI、SSE、STOXX50E、GDAXI、TWD=X 方向一致但部分年份鑑別力弱；DXY、^TNX、^IRX、CL=F、GC=F'
+               '沒有鑑別力，2025-11-10 以前的日期慣例是假設（交易所以當地交易日標示日K）。'),
+    'verified_against': TIMING_VERIFIED_AGAINST,
     'teacher_global': {
-        '^VIX/^IXIC/^GSPC': '第 j 列＝第 j−1 列日期的 Yahoo 收盤，1505/1505；第一列＝2020-01-02 收盤；88 列落後超過一個美股日',
-        '^TWII/^KS11': '同日收盤，各 1506/1506 → 不能當 t 的輸入；本分支只用前一個台股日的值',
-        'TX_OI': '沒有可比對的來源，未驗證',
+        '^VIX/^IXIC/^GSPC': ('第 j 列＝第 j−1 列日期的 Yahoo 收盤，1505/1505；第一列＝2020-01-02 收盤；以 ^GSPC／^IXIC'
+                             ' 的美股日曆計 88 列落後超過一個美股日（^VIX 依 Yahoo 自己的日曆是 89，因為 Yahoo 在 2026-05-25'
+                             ' 美國假日有一根 VIX K棒）'),
+        '^TWII/^KS11': ('同日收盤，各 1506/1506 → 不能當 t 的輸入。transform 只用 i＝前一個台股日（i 不是 global 列就空白）；'
+                        'market_features 用日期 < t 的最後一個 global 列（111 天比前一個台股日更舊）'),
+        'TX_OI': '沒有可逐值比對的來源；逐年相關性顯示疑似含當日資訊，不可當輸入（見 teacher.global_columns.TX_OI.timing）',
     },
-    'teacher_stocks': ('日期＝台股交易日：盤中比 adj_close/adj_open 與 Yahoo 同日 close/open 一致 99.8%～99.9%'
-                       '（錯一天只有 1.5%～7.0%）；y＝1{adj_close > adj_open} 同列 100%。少數不一致是 Yahoo 自己的資料問題'
-                       '（例：2020-02-04、2024-11-20 佔位K棒；Yahoo 缺 2021-04-06、2021-08-17、2025-08-01），不是日期位移。'),
-    'extra_bars': '每個序列的結果見 extra.series.<series_id>.timing；所有日K最晚在 d+1 08:00（台北）完成（保守上界）',
+    'teacher_stocks': ('日期＝台股交易日。盤中比 adj_close/adj_open 與 Yahoo 同日 close/open 一致 99.8%～99.9%（分母＝Yahoo'
+                       ' 同日有成交量的K棒，絕對差 < 1e-4；含零量K棒為 99.7%～99.8%），錯一天只有 1.5%～7.0%，所以排除日期'
+                       '位移；y＝1{adj_close > adj_open} 同列 100%。不一致日都是 Yahoo 的資料問題，前後一天也對不上：'
+                       '2022-08-22（5/5 檔）、2024-03-29（4/5 檔）Yahoo 是不完整的盤中K棒（open 相同、高低在老師區間內、'
+                       '成交量只有老師的約 4～8 成）；2020-02-04 Yahoo 的 open 錯（超出 ±10% 漲跌幅）；2024-11-20 Yahoo'
+                       ' 平盤K棒；2021-08-17 Yahoo 零量佔位K棒；Yahoo 缺 2021-04-06、2025-08-01。'),
+    'extra_bars': ('每個序列的結果見 extra.series.<series_id>.timing。除 TWD=X 外，所有日K最晚在 d+1 07:00（台北）收完'
+                   '（保守上界）；TWD=X 只驗證了 close 的時點：每一年都在美股 d 日開盤前（台北 d 日 22:30 前）'),
     'outputs': {
         'market_features': ('19 個額外序列的 source_date 全部 <= t−1 日曆天；老師欄 ^VIX／^IXIC／^GSPC 照抄同日期（已驗證是'
                             '前一個 global 列的收盤）、^TWII_prev_row／^KS11_prev_row 取日期 < t 的列；TX_OI 照抄同日期、'
-                            '時點未驗證，不建議當輸入'),
+                            '疑似含當日資訊，不可當輸入'),
         'transform_and_panel': ('i＝t 的前一個台股交易日；t−i（日曆天）分布 1 天 1,262 列、2 天 10、3 天 296、4 天 29、'
-                                '5 天 12、6 天 1、10 天 2、12 天 4、13 天 1'),
-        'implication': '用到的每根K棒都在 t 日台北 08:00 前完成（專案截止 08:10、老師截止 09:00）',
+                                '5 天 12、6 天 1、10 天 2、12 天 4、13 天 1；不含 TX_OI'),
+        'implication': ('用到的每根K棒都在 t 日台北 07:00 以前收完（市場時間；專案截止 08:10、老師截止 09:00）；'
+                        'Yahoo 實際上架時間未驗證'),
     },
     'open_gap_test': {
-        'definition': '序列單日報酬 vs 台股 t 日開盤跳空（Top50 平均），比較「日期 < t 的最新一根」與「日期＝t 的那根」',
-        'us_series': '2020–2026 每一年：最新 < t 為 0.35～0.74、日期＝t 為 −0.15～+0.17 → 美股 d 日在台股 d 日收盤之後',
+        'definition': ('序列單日報酬（該序列自己交易日上的報酬，價格欄同 transform：股票／ETF 用 adj_close，其他用 close）'
+                       'vs 台股 t 日開盤跳空（Top50@Y 各股 adj_open_t / adj_close_{該股前一列} − 1 的平均），比較「日期 < t'
+                       ' 的最新一根」與「日期＝t 的那根」；逐年 Pearson'),
+        'us_equity_series': ('SOX、TSM、NVDA、DJI，2020–2026 每一年：最新 < t 為 0.35～0.74、日期＝t 為 −0.15～+0.17'
+                             ' → 美股 d 日在台股 d 日收盤之後'),
         'taiwan_etfs': '每一年：日期＝t 為 0.46～0.83、最新 < t 為 −0.12～+0.09 → 與老師個股同一個台股日',
-        'usd_twd': '每一年：日期＝t 為 −0.12～−0.43 → d 的 close 是台北 d 日早上的報價（已含前一晚美股的消息）',
+        'usd_twd': ('每一年：日期＝t 為 −0.12～−0.43 → d 的 close 在台股 d 日開盤前定下（已含前一晚美股的消息）；'
+                    '更多跨年證據見 extra.series.usd_twd.timing.note'),
     },
     'leakage_placebo': {
         'definition': '24 個市場特徵（19 額外＋5 老師指數）的 lag2 與當日 Top50 平均盤中報酬的相關係數；對照組刻意改用日期＝t 的K棒',
@@ -224,9 +264,22 @@ TIMING_VERIFICATION = {
                  ' +0.100／+0.095（隔夜跳空後盤中反轉），teacher_gspc lag2 剛好落在第 2～3 晚。'),
     },
     'not_verified': ['Yahoo 歷史上幾點真的抓得到某根日K（發布延遲）',
-                     '小時K驗證期間以前（2025-11-10 以前）的盤中時點；只用日K層級的跳空測試確認',
-                     'TX_OI 的發布時點'],
+                     '2025-11-10 以前的盤中時點：只用日K層級的逐年跳空測試；DXY、^TNX、^IRX、CL=F、GC=F 沒有鑑別力，是假設'
+                     '（2024-11～2025-11 的小時K理論上還能補抓）',
+                     'TWD=X 日K high／low 涵蓋的區間（本分支只用 close）',
+                     'TX_OI 的發布時點（逐年相關性顯示疑似同日）'],
 }
+def timing_verification(teacher_info, features_sha, panel):
+    """驗證紀錄＋目前資料是否仍是驗證時那一版（不同就表示要重跑驗證）。"""
+    current = {'teacher_members_sha256': teacher_info.get('members_sha256'), 'market_features_sha256': features_sha,
+               'panel_sha256_csv_uncompressed': (panel or {}).get('sha256_csv_uncompressed')}
+    changed = [k for k, v in TIMING_VERIFIED_AGAINST.items() if current.get(k) != v]
+    out = {**TIMING_VERIFICATION, 'applies_to_current_data': not changed, 'changed_since_verification': changed}
+    if changed:
+        out['stale_note'] = '資料已和驗證時不同（見 changed_since_verification），上面的數字可能過期；請重跑時間對齊驗證'
+    return out
+
+
 TEACHER_GLOBAL = {
     'date': ('key', '老師 global 表的列日期：五個老師 Yahoo 序列同日都有資料才有列（大致是台／美／韓交易日交集，'
                     '但例如 2021-04-06 三地都有交易仍缺列）；缺列不代表休市', 'ISO date', None),
@@ -235,7 +288,7 @@ TEACHER_GLOBAL = {
     '^GSPC': ('market_lagged_by_teacher', 'S&P 500 標普500指數', 'index_point', US_TIMING),
     '^TWII': ('raw_same_day', '台灣加權股價指數', 'index_point', TWII_TIMING),
     '^KS11': ('raw_same_day', 'KOSPI 韓國綜合指數', 'index_point', KS11_TIMING),
-    'TX_OI': ('timing_unverified', '台指期外資淨未平倉口數（多方減空方，可為負）', 'contracts', OI_TIMING),
+    'TX_OI': ('suspected_same_day', '台指期外資淨未平倉口數（多方減空方，可為負）', 'contracts', OI_TIMING),
 }
 TEACHER_STOCK = {
     'date': ('key', '台股交易日（已用 Yahoo 原始日K驗證，見 timing_verification.teacher_stocks）', 'ISO date'),
@@ -267,7 +320,7 @@ ROLE_NOTES = {
     'key': '索引鍵，不是數值特徵',
     'market_lagged_by_teacher': '全市場共用；老師已位移到前一列日期，可直接作輸入',
     'raw_same_day': '目標日收盤後才知道；只能用前一列（lag）',
-    'timing_unverified': '發布時點未驗證；使用前自行確認',
+    'suspected_same_day': '發布時點未驗證，逐年相關性顯示疑似含目標日當日資訊；不可當 t 的輸入，至少往前一列',
     'outcome_same_day': '目標日當日價格＝答案的一部分；只能用前一觀測（lag）',
     'label': '只用於訓練／評分，絕不放入輸入',
 }
@@ -1164,7 +1217,7 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
         'date_range': {'start': START, 'end_inclusive': END_INCLUSIVE},
         'readiness': 'research_assumption',
         'historical_vintage_verified': False,
-        'timing_verification': TIMING_VERIFICATION,
+        'timing_verification': timing_verification(teacher_info, features_sha, panel),
         'layout': {
             f'{data_prefix}/teacher/info.json': 'Top50@Y（預測目標50股）／Top100@Y 名單',
             f'{data_prefix}/teacher/global/global_data.csv':
@@ -1173,7 +1226,8 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
             f'{data_prefix}/teacher/market/<stock_id>.csv': '老師個股資料（每股一檔，21欄含 y）',
             f'{data_prefix}/extra/yfinance/<series_id>.csv': 'yfinance 額外指標日K（已清理，見 extra.series.*.cleaning）',
             f'{data_prefix}/extra/manifest.json': '爬蟲紀錄：取得時間、限流設定、重試、清理、hash、失敗原因',
-            f'{data_prefix}/{FEATURES_FILE}': '每台股交易日一列：老師市場欄（已處理當日收盤）＋已對齊的額外特徵',
+            f'{data_prefix}/{FEATURES_FILE}': ('每台股交易日一列：老師市場欄（^TWII／^KS11 已改前一列；TX_OI 照抄同日期，疑似含當日資訊，不要當輸入）'
+                '＋已對齊的額外特徵'),
             f'{data_prefix}/{TRANSFORM_DIR}/lag2/<feature>.csv': '每個特徵一檔：date＋第 2 期收盤報酬',
             f'{data_prefix}/{TRANSFORM_DIR}/lag5/<feature>.csv': '每個特徵一檔：date＋第 5 期收盤報酬',
             f'{data_prefix}/{PANEL_FILE}': '整合好的長表：100 股 × 台股交易日，lag2／lag5 特徵＋label_ 答案欄',
@@ -1217,11 +1271,12 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
             'date_definition': '老師個股檔所有台股交易日（聯集），比老師 global 表多',
             'alignment_rule': (f'額外特徵：對每個台股目標日 t，取來源交易日 s <= t − {min_lag_days} 日曆天的最後一筆；'
                                '報酬先在完整原生序列計算再對齊，不先做多市場日期交集。日期語意已驗證（見 '
-                               'timing_verification）：每根日K最晚在 d+1 08:00（台北）完成，所以 s <= t−1 的K棒都在 t 日 '
-                               '08:00 前可得；歷史發布延遲未驗證。'),
+                               'timing_verification）：除 TWD=X 外，每根日K最晚在 d+1 07:00（台北）收完，TWD=X 的 close '
+                               '在 d 日就定下，所以 s <= t−1 的K棒都在 t 日 07:00 以前收完（市場時間）；Yahoo 實際上架時間未驗證。'),
             'teacher_columns': teacher_market,
             'teacher_columns_definition': {
-                '^VIX/^IXIC/^GSPC/TX_OI': '老師 global 同日期原值照抄（老師表缺該日則空白）；時間語意見 teacher.global_columns',
+                '^VIX/^IXIC/^GSPC': '老師 global 同日期原值照抄（老師表缺該日則空白）；已驗證是前一個 global 列的收盤，可當輸入',
+                'TX_OI': '老師 global 同日期原值照抄；疑似含當日資訊（見 teacher.global_columns.TX_OI），不可當輸入',
                 '^TWII_prev_row/^KS11_prev_row': '最後一個日期 < t 的老師 global 列之 ^TWII／^KS11（避免當日收盤洩漏）',
             },
             'extra_columns': [c for c in header if c not in teacher_market and c != 'date'],
@@ -1242,7 +1297,7 @@ def build_schema(specs, manifest, teacher_info, targets, header, definitions, co
                 'yields': ('殖利率（us10y、us13w）也一律用百分比報酬（使用者選擇）；us13w 在 2020-03 與 2021-02～2022-02 '
                            '接近 0，報酬會到 ±100% 以上，建模時可考慮 winsorize 或穩健縮放'),
                 'missing': '空白＝缺值：序列在 i 沒有資料、往回不足 k 個交易日、或 close_i／close_{i−k} 缺值或 <= 0；不補值',
-                'leakage': ('i 一定早於 t，所以用到的K棒都在 t 日台北 08:00 前完成（見 timing_verification）；'
+                'leakage': ('i 一定早於 t，所以用到的K棒都在 t 日台北 07:00 以前收完（市場時間，見 timing_verification）；'
                             '老師美股欄已被老師位移一列，所以 teacher_vix／ixic／gspc 的值比名稱再舊一列（長假後可能落後'
                             '多個美股日）；teacher_twii／ks11 在 i 列是 i 當日收盤，t 開盤前已知'),
             },

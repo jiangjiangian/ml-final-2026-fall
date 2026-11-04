@@ -11,7 +11,7 @@
 |---|---|
 | `README.md` | 給組員：檔案樹、取得方式、X/y 切法、lag 定義、注意事項 |
 | `crawler.py` | 唯一程式：yfinance 限流爬蟲 → 清理 → 老師資料 → features → transform → panel → schema |
-| `schema.json` | **所有特徵**（老師＋額外＋transform）的公式、單位、lag 規則、清理紀錄、hash |
+| `schema.json` | **所有特徵**（老師＋額外＋transform）的公式、單位、lag 規則、清理紀錄、hash；`timing_verification` 是時間對齊驗證紀錄 |
 | `data/teacher/` | 老師 Training ZIP 原樣（100 股、`global/global_data.csv`、`info.json`） |
 | `data/extra/` | 19 個 yfinance 額外指標日K（已清理）＋ `manifest.json`（限流、重試、清理紀錄） |
 | `data/features/market_features.csv` | 1,618 個台股日 × 104 欄：老師市場欄＋as-of 對齊的額外特徵（`_ret_1s/5s/20s` 等） |
@@ -60,6 +60,7 @@ python crawler.py --skip-download --keep-teacher   # 不連網，只重算 featu
 **目前沒有存放測試**：測試只在當時 session 的暫存區，使用者要求分支不放其他檔案，所以已隨 session 消失；改動 crawler.py 前請先補測試（不要 commit，除非使用者同意）。
 
 ## 絕對不要
-- 把 `y`、當日 `etl:adj_*`、當日成交量／法人／技術指標，或老師 `^TWII`／`^KS11` 的**當日值**當輸入（兩者已實證是當日收盤）。
+- 把 `y`、當日 `etl:adj_*`、當日成交量／法人／技術指標，或老師 `^TWII`／`^KS11` 的**當日值**當輸入（兩者已逐值驗證是當日收盤）。
+- 把 market_features 的 `TX_OI`（照抄老師同日期）當輸入：逐年相關性顯示疑似含當日資訊。
 - 隨機拆股票列做驗證（同日市場特徵 50 股共用，要按日期切）。
 - 把 yfinance 快取、`graphify-out/`、`tools/` 或其他非允許檔案 commit 到本分支。

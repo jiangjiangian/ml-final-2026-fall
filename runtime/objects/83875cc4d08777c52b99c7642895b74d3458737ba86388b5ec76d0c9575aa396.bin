@@ -1,0 +1,58 @@
+{
+  "schema_version": "course-approved-v1",
+  "deployment_policy": "course-benchmark-v1",
+  "deployment_eligible": true,
+  "historical_vintage_verified": false,
+  "validation_scope": "retrospective_latest_vintage_time_split",
+  "recipe": {
+    "family": "linear",
+    "objective": "weighted_classification",
+    "seed": 42,
+    "epochs": 8
+  },
+  "selected_model": "linear",
+  "selected_model_recipe": {
+    "family": "linear",
+    "objective": "weighted_classification",
+    "seed": 42,
+    "epochs": 8
+  },
+  "model_path": "/tmp/finpred-hosted-runtime/candidates/course-benchmark-v1/runs/5463c68fc985e0c211da2651d1bfc29d46740678acb2199ee1e040a6e2efdc8c/model",
+  "model_manifest_sha256": "596267286d72bd56e5804269ce74fc630c365d2470b9d69326b5a30a6ab4b0bb",
+  "registration_sha256": "8f3bf5856d636c411187009f4d9ef8d723a35e6a4424d8dcad44eaf6b4c6ad3a",
+  "report_sha256": "e3385595ba89084bd4aac2882c54a902ad1318a1a5de3f189ed597ef7e7d9c88",
+  "source_snapshots": [
+    {
+      "source": "course-training",
+      "source_url": "https://final.html2026.csie.org/downloads/fin_pred_data.zip",
+      "manifest_path": "/tmp/finpred-hosted-runtime/raw/course-training/manifests/20261104T051859.376329Z_91653f00acfd4619a504d84b496bccf1.json",
+      "manifest_sha256": "fc267843d8f132d1eb427e342b4ab99dbce9674081a7e453d8e44751ecde3146",
+      "payload_path": "/tmp/finpred-hosted-runtime/raw/course-training/objects/7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2.zip",
+      "payload_sha256": "7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2",
+      "fetched_at": "2026-11-04T05:18:59.376329+00:00"
+    },
+    {
+      "source": "course-live",
+      "source_url": "https://fin-pred-daily.jiangxuehaokeai.chatgpt.site/data.zip",
+      "manifest_path": "/tmp/finpred-hosted-runtime/raw/course-live/manifests/20261104T051904.731133Z_0a0ac732dbae4437b7c987181f6a2f80.json",
+      "manifest_sha256": "249200c5e57e569f18946b0301b4476d16a36aed7334f0caecf843c6b85534c9",
+      "payload_path": "/tmp/finpred-hosted-runtime/raw/course-live/objects/7f4c759af6df64e3a1b5e42330cfa5a56fe1f6a4644ca56a052d3a6297dc096b.zip",
+      "payload_sha256": "7f4c759af6df64e3a1b5e42330cfa5a56fe1f6a4644ca56a052d3a6297dc096b",
+      "fetched_at": "2026-11-04T05:19:04.731133+00:00"
+    }
+  ],
+  "code_sha256": {
+    "pipelines/course_benchmark.py": "8e1eca5b5a6837824cf4dfe23fd3468a1d00b1ddd7bc82796b157ba83228282a",
+    "pipelines/daily.py": "d71d8cdf4c4d1e82764c1fbcad5a75865310c9be2bd69d7554789e1dfd9970d4",
+    "data/daily_tables.py": "e88a37ccdfa8df3358b8c95bd37493ea9aa6799be2123e35afffd523d344db1f",
+    "data/training_table.py": "483715ef26948ff84c228602f09ea593a104742bcdc47418e350f5a98ceb69aa",
+    "features/stock.py": "6bc0eb1565accf917ffed5af79136d4eb2212a13b2f58532a1ca378cd2a9c647",
+    "training/fit.py": "aef4f88039ea376079de360aaf4736bfeedbc7215e527a516ab5bc3c2286b1f6",
+    "inference/predict.py": "4b26cea845bb025954b6831d7986aa77142e65065d5077ee6296ced6bc698dad",
+    "models/estimators.py": "c903ae5f950b655bc9a502be4b5a2d03d76c910adfc5c0d4b19a951d7878c605",
+    "evaluation/official_score.py": "98eb7e986a8da71f73f05aad243652e7e42c46a225cdf964d99e7c9ae16dc263",
+    "labels/intraday.py": "7aec8e1c4ebb008b4d859925bd43daf435dcb99d389700e4edf7134e73955b84"
+  },
+  "fit_completed_at": "2026-11-04T05:19:37.763741+00:00",
+  "approved_at": "2026-11-04T05:19:37.765760+00:00"
+}

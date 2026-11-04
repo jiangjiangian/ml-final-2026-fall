@@ -3,6 +3,36 @@
   "runtime_root": "/tmp/finpred-hosted-runtime",
   "files": [
     {
+      "path": "candidates/course-benchmark-v1/approved.json",
+      "object_key": "runtime/objects/83875cc4d08777c52b99c7642895b74d3458737ba86388b5ec76d0c9575aa396.bin",
+      "sha256": "83875cc4d08777c52b99c7642895b74d3458737ba86388b5ec76d0c9575aa396",
+      "size_bytes": 3391
+    },
+    {
+      "path": "candidates/course-benchmark-v1/runs/5463c68fc985e0c211da2651d1bfc29d46740678acb2199ee1e040a6e2efdc8c/candidate_report.json",
+      "object_key": "runtime/objects/e3385595ba89084bd4aac2882c54a902ad1318a1a5de3f189ed597ef7e7d9c88.bin",
+      "sha256": "e3385595ba89084bd4aac2882c54a902ad1318a1a5de3f189ed597ef7e7d9c88",
+      "size_bytes": 138984
+    },
+    {
+      "path": "candidates/course-benchmark-v1/runs/5463c68fc985e0c211da2651d1bfc29d46740678acb2199ee1e040a6e2efdc8c/model/manifest.json",
+      "object_key": "runtime/objects/596267286d72bd56e5804269ce74fc630c365d2470b9d69326b5a30a6ab4b0bb.bin",
+      "sha256": "596267286d72bd56e5804269ce74fc630c365d2470b9d69326b5a30a6ab4b0bb",
+      "size_bytes": 1686
+    },
+    {
+      "path": "candidates/course-benchmark-v1/runs/5463c68fc985e0c211da2651d1bfc29d46740678acb2199ee1e040a6e2efdc8c/model/model.joblib",
+      "object_key": "runtime/objects/549ebe47d21f70ee5bdebc44d39f1bb1ca5e46c3dd5beb0e969507c4b794e092.bin",
+      "sha256": "549ebe47d21f70ee5bdebc44d39f1bb1ca5e46c3dd5beb0e969507c4b794e092",
+      "size_bytes": 3898
+    },
+    {
+      "path": "candidates/course-benchmark-v1/runs/5463c68fc985e0c211da2651d1bfc29d46740678acb2199ee1e040a6e2efdc8c/registration.json",
+      "object_key": "runtime/objects/8f3bf5856d636c411187009f4d9ef8d723a35e6a4424d8dcad44eaf6b4c6ad3a.bin",
+      "sha256": "8f3bf5856d636c411187009f4d9ef8d723a35e6a4424d8dcad44eaf6b4c6ad3a",
+      "size_bytes": 3285
+    },
+    {
       "path": "candidates/phase1-static-v1/artifacts.zip",
       "object_key": "runtime/objects/0e5401ee9957fabd55e1e4cb031326abe35326f6b171d67e4dfc321f2db95f2d.bin",
       "sha256": "0e5401ee9957fabd55e1e4cb031326abe35326f6b171d67e4dfc321f2db95f2d",
@@ -13,10 +43,28 @@
       "object_key": "runtime/objects/6c6a7fcef9e02ba118031acc367a81b60d9615e985baa1c33ea818df17890145.bin",
       "sha256": "6c6a7fcef9e02ba118031acc367a81b60d9615e985baa1c33ea818df17890145",
       "size_bytes": 4693
+    },
+    {
+      "path": "runs/course-benchmark-v1/2026-11-04/train-56013273e41943c9b3fcfede6ef17329.json",
+      "object_key": "runtime/objects/dc8f1b69d7e417ec55d16fdaf893a7497ac81bcc36e8cb7942c60efe0db96613.bin",
+      "sha256": "dc8f1b69d7e417ec55d16fdaf893a7497ac81bcc36e8cb7942c60efe0db96613",
+      "size_bytes": 677
+    },
+    {
+      "path": "runs/course-benchmark-v1/2026-11-04/train.json",
+      "object_key": "runtime/objects/dc8f1b69d7e417ec55d16fdaf893a7497ac81bcc36e8cb7942c60efe0db96613.bin",
+      "sha256": "dc8f1b69d7e417ec55d16fdaf893a7497ac81bcc36e8cb7942c60efe0db96613",
+      "size_bytes": 677
+    },
+    {
+      "path": "tables/2026-11-04/course-benchmark-training/33f90db61ef5a2212460cfc9b4b2b8d09b27aa1a1e1532f9129bfe9c6df4eb1b.json",
+      "object_key": "runtime/objects/33f90db61ef5a2212460cfc9b4b2b8d09b27aa1a1e1532f9129bfe9c6df4eb1b.bin",
+      "sha256": "33f90db61ef5a2212460cfc9b4b2b8d09b27aa1a1e1532f9129bfe9c6df4eb1b",
+      "size_bytes": 49758862
     }
   ],
-  "total_bytes": 49405938,
-  "created_at": "2026-11-04T05:18:21.715815+00:00",
+  "total_bytes": 99317398,
+  "created_at": "2026-11-04T05:19:42.833562+00:00",
   "trust_scope": "internally_created_finpred_state_in_verified_repository",
   "excluded": [
     "raw",
@@ -28,7 +76,7 @@
   ],
   "retention": {
     "policy": "published_unreferenced_large_tables_only-v1",
-    "archived_commit": "39399946328aad8669820eb1625af8fcd8cf7d26",
+    "archived_commit": "15ca16b75b5318402673bc4093b4c119b7ac9f2b",
     "pruned_paths": []
   }
 }

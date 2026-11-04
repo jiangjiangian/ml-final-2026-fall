@@ -4,6 +4,10 @@
 
 使用者要求完成Phase 1並上傳，沿用既有競賽提交授權。正式final.pdf第2、4頁確認：Phase 1是50股×84指定日期的靜態回測，截止2026-12-24 23:59台北時間；Phase 2的09:00、approved模型及五日前瞻驗收不適用Phase 1。以已凍結R2研究選定的M3-2配方單次fit，所有訓練標籤必須早於2026-06-01，逐日特徵只讀該日以前觀測，不重用Phase 1答案選模或評分。保留research_assumption與歷史vintage未核實標記；這種明示限制的靜態提交不等於Phase 2正式模型升級。下方較早「研究模型不得提交」是Phase 2服務政策，不能誤擋本項已授權的靜態提交。先驗CSV與fresh官方state，再只POST一次並下載目前有效CSV逐格核對。
 
+## 2026-11-04 課程每日部署與嚴格歷史重播分開
+
+依使用者「完成正確運作的Phase 2自動流程」目標及final.pdf第1～2頁，新增明示的`course-benchmark-v1`政策；原strict PIT模式保留不改。歷史時間切分使用最新vintage且標記`research_assumption`、歷史vintage未核實；不能將今天取得時間回填為過去發布時間。實際fit時間另記，全部來源須此前真實取得，排除當日／未來／pending標籤，只fit訓練集前處理。固定配方、預定驗證及獨立`course-approved`描述檔綁定資料／模型／程式雜湊，表示可供未來課程session部署，不表示通過strict歷史認證。專用推論adapter仍須驗證真實盤前取得、來源前一官方session覆蓋、模板50股、08:10凍結、09:00截止及逐股回執。五日前瞻紀錄是完整服務的持續運行驗收，不是老師的首次ordinary提交前提。不得將此政策實作為把readiness改成verified、production_eligible改成true，或讓任意研究模型略過全部審查；下方舊的單一路徑限制依此明確範圍更新。
+
 ## 2026-11-03最新使用者決定
 
 使用者明確選擇「目前暫時決定全部公開」：程式與live-data均公開，取代較早的private-only／另設私人資料repo偏好。2026-11-03已實查repository為Public、default branch為`system-completion`，使用者設定的Actions課程帳密已由完整採集驗證生效。發布公開資料仍須程式顯式opt-in（CLI `--allow-public-data`、hosted `FINPRED_ALLOW_PUBLIC_DATA=true`），保留來源、hash、檔案安全、CAS／lease、deadline及正式模型門檻；任何地方不放帳密、cookie或token。教師ZIP／Yahoo原始資料再散布授權尚未核實，不冒稱老師已禁止或已授權。

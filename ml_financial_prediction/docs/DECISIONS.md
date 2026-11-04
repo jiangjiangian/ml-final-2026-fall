@@ -1,5 +1,15 @@
 # 決策與待確認事項
 
+## 2026-11-04：本輪執行範圍與部署政策
+
+| ID | 狀態 | 決策與理由 | 證據與影響 |
+|---|---|---|---|
+| D040 | accepted | 完成並提交Phase 1靜態50×84預測；既有競賽提交授權適用 | 官方final.pdf pp.1–2,4、SHA256 `e102f4c225193aea2ab9234ede0d2a80d856a093353437898649a5d7dbbf4810`；截止12/24 23:59台北，不適用Phase 2的09:00、approved或五日前瞻要求。訓練標籤全部早於6/1，固定R2勝出配方，不以目標期答案或排行榜反覆選模。 |
+| D041 | accepted design; implementation separately verified | 課程未來部署採明示`course-benchmark-v1`；嚴格歷史PIT模式保留 | 使用者要求完整可運作的Phase 2，final.pdf要求防偷看未來與時間順序驗證，未要求取得全部歷史vintage。獨立ML系統審查指出：今天可取得的歷史資料能供今天fit並預測未來，不能因此宣稱可重現當年即時資料。保留research_assumption、historical_vintage_verified=false與原production_eligible=false，另以course-approved描述檔審查未來部署；不改strict `_approved`、不把來源改標verified。真實盤前來源／值重建、前一官方session覆蓋、50股、配額、09:00與逐股回執仍適用。五日前瞻是服務驗收，並非老師首次ordinary上傳前提。 |
+| D042 | verified operational finding | 11/04清晨沒有任何event=schedule run；手動補抓不冒充定時成功 | 08:05查核後手動dispatch `41744213672`，08:06:11～08:06:20取得全16來源、failures=[]，發布`fcd6810b132ac1c06f27daf5e880d36bd8386c50`。三個workflow均active且default正確，重新enable API成功仍不足以證明cron恢復。 |
+
+下方各決策保留當時背景；D040／D041只在明定範圍內更新D010／D022／D027／D036的單一正式路徑限制，沒有把研究回測改稱歷史PIT認證。D039的停止公開政策已由後續使用者明確全部公開授權取代。
+
 更新：2026-10-31，Asia/Taipei。accepted代表有明確規範、授權或已驗證事實；proposed代表建議，不代表已部署。資料／程式實測不等於歷史可用性認證。
 
 | ID | 狀態 | 內容 | 證據 / 影響 |

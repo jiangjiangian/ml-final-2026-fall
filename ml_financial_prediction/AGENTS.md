@@ -1,5 +1,9 @@
 # Codex 專案工作指引
 
+## 2026-11-04 Phase 1任務範圍
+
+使用者要求完成Phase 1並上傳，沿用既有競賽提交授權。正式final.pdf第2、4頁確認：Phase 1是50股×84指定日期的靜態回測，截止2026-12-24 23:59台北時間；Phase 2的09:00、approved模型及五日前瞻驗收不適用Phase 1。以已凍結R2研究選定的M3-2配方單次fit，所有訓練標籤必須早於2026-06-01，逐日特徵只讀該日以前觀測，不重用Phase 1答案選模或評分。保留research_assumption與歷史vintage未核實標記；這種明示限制的靜態提交不等於Phase 2正式模型升級。下方較早「研究模型不得提交」是Phase 2服務政策，不能誤擋本項已授權的靜態提交。先驗CSV與fresh官方state，再只POST一次並下載目前有效CSV逐格核對。
+
 ## 2026-11-03最新使用者決定
 
 使用者明確選擇「目前暫時決定全部公開」：程式與live-data均公開，取代較早的private-only／另設私人資料repo偏好。2026-11-03已實查repository為Public、default branch為`system-completion`，使用者設定的Actions課程帳密已由完整採集驗證生效。發布公開資料仍須程式顯式opt-in（CLI `--allow-public-data`、hosted `FINPRED_ALLOW_PUBLIC_DATA=true`），保留來源、hash、檔案安全、CAS／lease、deadline及正式模型門檻；任何地方不放帳密、cookie或token。教師ZIP／Yahoo原始資料再散布授權尚未核實，不冒稱老師已禁止或已授權。

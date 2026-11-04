@@ -17,6 +17,7 @@
 | `data/features/market_features.csv` | 1,618 個台股日 × 104 欄：老師市場欄＋as-of 對齊的額外特徵（`_ret_1s/5s/20s` 等） |
 | `data/transform/panel_lag.csv.gz` | **組員直接用**：100 股 × 1,618 天＝161,800 列 × 56 欄（鍵、旗標、50 個 lag 特徵、`label_y`、`label_intraday_return`），7 MB |
 | `data/transform/lag2/`、`lag5/` | 124 個特徵各一檔：`date, <id>_ret_lag{k}` |
+| `deploy/README.md` | Phase 2 每日自動提交的部署設計：GitHub schedule 為何延遲、推薦 GCP Cloud Scheduler＋Cloud Run Job 為主、備援與監控、時間表、實作清單 |
 | `.agents/skills/` | 既有 Codex 格式 skills（Claude Code 不會自動載入，需要時直接讀 SKILL.md） |
 
 ## 人
@@ -41,7 +42,7 @@
 
 ## 偏好與規則（使用者明確要求）
 - 回覆用**繁體中文**；先講清楚定義讓使用者確認，再實作。
-- 這個分支只放：`crawler.py`、`schema.json`、`data/`、`.agents/skills/`、`README.md`、本檔與 `memory/`（加 `.gitignore`、`.gitattributes`）。**其他東西先不要放到 GitHub。** `crawler.py` 由使用者明確要求保留（2026-11-04）。
+- 這個分支只放：`crawler.py`、`schema.json`、`data/`、`.agents/skills/`、`README.md`、`deploy/`（使用者 2026-11-04 要求放 Phase 2 部署設計）、本檔與 `memory/`（加 `.gitignore`、`.gitattributes`）。**其他東西先不要放到 GitHub。** `crawler.py` 由使用者明確要求保留（2026-11-04）。
 - 額外指標一律用 **yfinance**；範圍固定 **2020-01-01～2026-08-31**；要含**台幣匯率** TWD=X。
 - 爬蟲**必須限流**（每個 HTTP 請求都過限流器，見 `memory/context/data-decisions.md`）。
 - 殖利率也用百分比報酬（使用者選擇，即使接近 0 時數值很大）。

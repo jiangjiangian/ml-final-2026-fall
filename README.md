@@ -18,6 +18,7 @@
 │   └── projects/data-folder.md       #   本分支的需求歷程、兩輪審查、已知限制
 ├── crawler.py                        # 唯一程式：yfinance 限流爬蟲 → 清理 → 整合 → lag 轉換 → 長表 → schema
 ├── schema.json                       # 所有欄位的定義、單位、lag 規則、清理紀錄、hash（老師＋額外＋transform＋panel）
+├── deploy/README.md                  # Phase 2 每日自動提交的部署設計（為何 GitHub 排程延遲、推薦架構、時間表、實作清單）
 ├── data/
 │   ├── teacher/                      # 老師 Training ZIP 原樣（逐位元組，sha256 已核對）
 │   │   ├── info.json                 #   Top50@Y（50 檔預測目標）／Top100@Y（100 檔）

@@ -21,6 +21,7 @@
 15. 整合 lag2、lag5 成可直接用的 dataframe → `data/transform/panel_lag.csv.gz`（長表、100 股＋is_top50、label_ 前綴、CSV.gz）。
 16. 驗證老師與額外指標的時間對齊 → 用 Yahoo 原始日K、小時K逐值比對，沒有對齊錯誤或洩漏，資料不需修改（證據見 `data-decisions.md` 的「時間對齊驗證」）。
 17. 更新 schema → `timing_verification`（含 verified_against 資料指紋、applies_to_current_data）與 `extra.series.<id>.timing`；第三輪審查（3 審查者＋3 反駁者）的發現已修：TX_OI 改判疑似同日並在文件警告、DXY 時段與 15:00 ET close、老師個股不一致日的標籤、小時K範圍的措辭、跳空測試鑑別力分類、TWD=X 跨年證據、「08:00 前」改成「07:00 以前收完」。資料檔沒變。
+18. deep-research：Phase 2 自動流程怎麼準時 → `deploy/README.md`（推薦 GCP Cloud Scheduler＋Cloud Run Job 為主、GitHub dispatch／Claude 雲端排程任務為備援、Healthchecks 監控；11/04 GitHub schedule 延遲 3h42m～6h17m 全被時鐘擋下）。待使用者決定：開不開 GCP、實作分支、能否建 Claude 排程任務、告警通道。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。

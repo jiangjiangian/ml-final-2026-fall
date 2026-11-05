@@ -3,7 +3,7 @@
 ## 狀態
 
 - 2026-11-05：已實作（commit `f50e5a3`），實作審查（四個角度、28 個成立的發現）修完，離線測試全部通過。第一次連網試跑前要先問使用者，試跑時不上傳。
-- 審查裡有兩條會改到使用者決定過的規則，等使用者回答：個別股票停牌時「i 那天填好」怎麼判斷；期貨最後一根成交量的防線要不要只記錄不丟。
+- 審查裡會改到使用者決定的兩條，使用者 2026-11-05 都回答了：「有 t 那列」「i 那天填好」改成 100 檔裡至少 90 檔（`crawler.min_stocks_filled`）；期貨成交量的防線只記錄不丟。
 - 查證紀錄（本機暫存，session 結束會消失）：yfinance 1.7.0 原始碼、老師 ZIP 結構、各序列日期、舊爬蟲、兩輪審查。結論都整理在下面。
 
 ## 使用者的決定
@@ -14,6 +14,8 @@
 - 2026-11-05：成交量要 > 0 只檢查個股和 ETF（TSM、NVDA、四檔台灣 ETF），和舊分支清理規則用成交量的範圍一樣。其他序列只查日期。
 - 2026-11-05：爬蟲存 Yahoo 給的原樣，清理（壞報價、佔位K棒、0052 分割、殖利率假日K棒）放在 `features.py`，規則照舊分支。
 - 2026-11-05：t 當天早上 i 那列還是 `-1`（像 10-23）時，改用早於 t 最後一個填好的交易日當 i，照常預測上傳，manifest 記 `prev_day`（實際用的那天）和 `prev_day_never_filled: true`，通知組員。`features.py` 照同一條規則。
+- 2026-11-05：個別股票停牌不擋流程。「有 t 那列」「i 那天填好」看 100 檔裡有沒有 90 檔（`crawler.min_stocks_filled`）做到；停牌那幾檔自己的特徵當天空白（missing value），其他檔和市場特徵照常，和舊分支 panel 的規則一樣。審查發現 Training 有 44 天少 1～2 檔（例如 2327 連停 7～8 天）。
+- 2026-11-05：期貨最後一根成交量太小的防線只記錄不丟（`low_volume_last_bar_kept`）。回測時這條會誤丟換月日、量 0 的真結算K棒（黃金 19 天、原油 7 天）。
 
 ## 查到的事實
 
@@ -58,7 +60,7 @@
 
 `main(argv)` 依序做：
 
-1. 讀 `/api/state`，把 `phase2Days` 的 `tradingDate`、`enabled`、`isCompetition` 存成 `data/raw/phase2_days.json`。`uploadQuota`、`mySubmissions` 不存。i 取 `phase2Days` 裡早於 t 的最後一天，不篩 `enabled`：舊紀錄只看到「當天開放提交的 slot 是 enabled=1」（`../ml-final-archive/archive/system-completion/ml_financial_prediction/docs/research/AUTOMATION.md` 第 18 行），看起來像提交窗口，不一定代表交易日。第一次真的讀到 `/api/state` 時要確認過去的日子 `enabled` 是多少。`phase2Days` 裡沒有早於 t 的日子時（Phase 2 第一天，或研究用的舊 t），取 Live 裡早於 t、已經填好的最後一天（100 檔的 `y` 都是 0 或 1，還原開盤價、收盤價都 > 0）。
+1. 讀 `/api/state`，把 `phase2Days` 的 `tradingDate`、`enabled`、`isCompetition` 存成 `data/raw/phase2_days.json`。`uploadQuota`、`mySubmissions` 不存。i 取 `phase2Days` 裡早於 t 的最後一天，不篩 `enabled`：舊紀錄只看到「當天開放提交的 slot 是 enabled=1」（`../ml-final-archive/archive/system-completion/ml_financial_prediction/docs/research/AUTOMATION.md` 第 18 行），看起來像提交窗口，不一定代表交易日。第一次真的讀到 `/api/state` 時要確認過去的日子 `enabled` 是多少。`phase2Days` 裡沒有早於 t 的日子時（Phase 2 第一天，或研究用的舊 t），取 Live 裡早於 t、已經填好的最後一天（至少 90 檔的 `y` 是 0 或 1，還原開盤價、收盤價都 > 0）。
 2. 老師 Training。
 3. 老師 Live。
 4. yfinance 19 個序列。
@@ -88,7 +90,7 @@
 
 ### Live 有沒有更新到 t（每日模式）
 
-- 要有 t 的列，而且 i 那列已經填好：100 檔的 `y` 都是 0 或 1，`etl:adj_open`、`etl:adj_close` 都 > 0。法人欄的 `-1` 不看。
+- 要有 t 的列，而且 i 那列已經填好：至少 90 檔有 t 那列；i 那天至少 90 檔的 `y` 是 0 或 1，`etl:adj_open`、`etl:adj_close` 都 > 0。法人欄的 `-1` 不看。沒填好的代號（多半是停牌）記在 `prev_day_missing_stocks`。
 - 沒有 t 的列，或下載遇到逾時、連不上、5xx：等 3 分鐘重抓，最多 3 次，也受爬蟲截止限制。還是不行就丟錯誤，舊的 `teacher_live/` 留著。
 - 有 t 的列，但 i 那列還是 `-1`（像 10-23）：不等，改用早於 t 最後一個填好的交易日當 i，回傳 3（使用者 2026-11-05 決定）。
 - `COURSE_LIVE_KEY` 是空的：每日模式丟錯誤；研究模式跳過 Live，記在 manifest。
@@ -106,8 +108,8 @@
 - CL=F、GC=F 的 `end` 改用帶時區的時間：「t 那天台北 00:00」換算成紐約的日期，再取那天紐約 17:30。這在下一段交易（18:00 ET）開始之前，yfinance 會先丟掉時間戳 ≥ end 的列，再做同日合併，所以盤中那列進不來（離線 probe 驗證過；Yahoo 那邊怎麼處理沒驗證）。
 - 抓回來之後：
   - 丟掉日期 ≥ t 的K棒，也丟掉日期是週六、週日的K棒。
-  - CL=F、GC=F 第二道：最後一根的成交量低於前 21 根中位數的 10%，就丟掉那一根。
-  - 丟了幾根、哪一道防線動作了，記在 manifest 那個序列的 `dropped` 欄：`on_or_after_t`、`weekend`、`low_volume_last_bar`。
+  - CL=F、GC=F 第二道：最後一根的成交量低於前 21 根中位數的 10%，只在 manifest 記 `low_volume_last_bar_kept`，不丟（使用者 2026-11-05 決定：回測時這條會誤丟換月日、量 0 的真結算K棒，黃金 19 天、原油 7 天）。第一次實際跑確認 Yahoo 怎麼標盤中列後，再決定要不要真的丟。
+  - 丟了幾根、第二道有沒有動作，記在 manifest 那個序列的 `dropped` 欄：`on_or_after_t`、`weekend`、`low_volume_last_bar_kept`。
   - 寫檔前檢查：至少剩 1 列；第一個日期不晚於舊檔的第一個日期；最後一天不早於舊檔裡早於 t 的最後一天（歷史被截短）。不符合就當這個序列失敗，舊檔留著。
 - 重試：只分兩類，不看錯誤訊息的文字。
   - `YFRateLimitError`：等 15、30、60 秒。連續 2 個序列因為限流放棄，就停掉剩下的。
@@ -140,7 +142,7 @@
                    "prev_day_never_filled": false},
   "yfinance": {
     "sox": {"ticker": "^SOX", "status": "ok", "file": "yfinance/sox.csv", "attempts": 1, "error": null,
-            "dropped": {"on_or_after_t": 0, "weekend": 0, "low_volume_last_bar": false},
+            "dropped": {"on_or_after_t": 0, "weekend": 0, "low_volume_last_bar_kept": false},
             "rows": 1730, "date_max": "2026-11-16", "sha256": "…"},
     "wti": {"ticker": "CL=F", "status": "failed", "file": "yfinance/wti.csv", "attempts": 4,
             "error": "JSONDecodeError", "kept_previous_file": true, "rows": 1729, "date_max": "2026-11-13",
@@ -192,7 +194,7 @@
 
 ### 第一次實際跑要確認的事
 
-- 台北 07:10～13:00 之間跑一次（`submit.enabled` 還是 false），確認 wti、gold 有 i 那根，`dropped.low_volume_last_bar` 有沒有動作。
+- 台北 07:10～13:00 之間跑一次（`submit.enabled` 還是 false），確認 wti、gold 有 i 那根，`dropped.low_volume_last_bar_kept` 有沒有動作。
 - `/api/state` 的 `phase2Days` 裡，過去的日子 `enabled` 是多少；10-23 在不在裡面。
 - 轉址實際有沒有發生（manifest 的 `run.redirects`）。
 

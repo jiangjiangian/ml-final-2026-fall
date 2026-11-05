@@ -407,15 +407,29 @@ def days(*dates):
 
 def test_live_check_normal_morning():
     stocks = live_stocks(LIVE_DATES, pending={"2026-11-17"})
-    check = crawler.live_check(stocks, "2026-11-17", days("2026-11-13", "2026-11-16", "2026-11-17"))
+    check = crawler.live_check(stocks, "2026-11-17", days("2026-11-13", "2026-11-16", "2026-11-17"), 90)
     assert check == {"has_t_row": True, "prev_day": "2026-11-16", "prev_day_planned": "2026-11-16",
-                     "prev_day_never_filled": False}
+                     "prev_day_never_filled": False, "prev_day_missing_stocks": []}
+
+
+def test_live_check_suspended_stocks():
+    stocks = live_stocks(LIVE_DATES, pending={"2026-11-17"})
+    calendar = days("2026-11-13", "2026-11-16", "2026-11-17")
+    for code in STOCKS[60:62]:  # 兩檔從 11-16 起停牌：沒有列
+        del stocks[code]["2026-11-16"], stocks[code]["2026-11-17"]
+    check = crawler.live_check(stocks, "2026-11-17", calendar, 90)
+    assert check["has_t_row"] is True and check["prev_day"] == "2026-11-16"
+    assert check["prev_day_never_filled"] is False and check["prev_day_missing_stocks"] == STOCKS[60:62]
+    for code in STOCKS[62:71]:  # 停牌的變成 11 檔：只剩 89 檔，不算數
+        del stocks[code]["2026-11-16"], stocks[code]["2026-11-17"]
+    check = crawler.live_check(stocks, "2026-11-17", calendar, 90)
+    assert check["has_t_row"] is False and check["prev_day"] == "2026-11-13" and check["prev_day_never_filled"] is True
 
 
 def test_live_check_never_filled_day_falls_back():
     # 10-23 整列一直是 -1，10-26 放假沒有列
     stocks = live_stocks(["2026-10-21", "2026-10-22", "2026-10-23", "2026-10-27"], pending={"2026-10-23", "2026-10-27"})
-    check = crawler.live_check(stocks, "2026-10-27", days("2026-10-22", "2026-10-23", "2026-10-27"))
+    check = crawler.live_check(stocks, "2026-10-27", days("2026-10-22", "2026-10-23", "2026-10-27"), 90)
     assert check["prev_day"] == "2026-10-22"
     assert check["prev_day_planned"] == "2026-10-23"
     assert check["prev_day_never_filled"] is True
@@ -425,14 +439,14 @@ def test_live_check_does_not_filter_enabled():
     stocks = live_stocks(LIVE_DATES, pending={"2026-11-17"})
     calendar = days("2026-11-13", "2026-11-16", "2026-11-17")
     calendar[1]["enabled"] = 0
-    check = crawler.live_check(stocks, "2026-11-17", calendar)
+    check = crawler.live_check(stocks, "2026-11-17", calendar, 90)
     assert check["prev_day"] == check["prev_day_planned"] == "2026-11-16"
     assert check["prev_day_never_filled"] is False
 
 
 def test_live_check_without_t_row():
     stocks = live_stocks(LIVE_DATES[:-1])
-    assert crawler.live_check(stocks, "2026-11-17", days("2026-11-16"))["has_t_row"] is False
+    assert crawler.live_check(stocks, "2026-11-17", days("2026-11-16"), 90)["has_t_row"] is False
 
 
 # ================================================================ yfinance 的日期和檢查
@@ -454,7 +468,7 @@ def test_filter_rows_drops_t_and_weekend(cfg):
     rows = [row("2026-11-13"), row("2026-11-14"), row("2026-11-16"), row("2026-11-17")]
     kept, dropped = crawler.filter_rows(rows, "^SOX", "2026-11-17", cfg)
     assert [r[0] for r in kept] == ["2026-11-13", "2026-11-16"]
-    assert dropped == {"on_or_after_t": 1, "weekend": 1, "low_volume_last_bar": False}
+    assert dropped == {"on_or_after_t": 1, "weekend": 1, "low_volume_last_bar_kept": False}
 
 
 def test_filter_rows_futures_low_volume_last_bar(cfg):
@@ -462,7 +476,7 @@ def test_filter_rows_futures_low_volume_last_bar(cfg):
     rows = [row(d, "300000") for d in dates if datetime.fromisoformat(d).weekday() < 5]
     rows.append(row("2026-11-16", "4200"))
     kept, dropped = crawler.filter_rows(rows, "CL=F", "2026-11-17", cfg)
-    assert kept[-1][0] != "2026-11-16" and dropped["low_volume_last_bar"] is True
+    assert kept[-1][0] == "2026-11-16" and dropped["low_volume_last_bar_kept"] is True  # 只記錄，不丟
 
 
 def test_filter_rows_empty_or_shorter(cfg):

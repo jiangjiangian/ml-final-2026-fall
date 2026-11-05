@@ -21,7 +21,9 @@
     - Training 不會再變。data/raw/teacher/ 的檔案指紋和上次的 manifest 一樣，就不下載 ZIP。
     - Live 每次都下載。t 那列在 t 當天 00:00 新增、先填 -1，^IXIC、^GSPC 約 05:05 前填好，其他欄和 y 在
       t 當天 22:05 前陸續填完。所以早上的 Live 已經有 t 那列，i 那列也填好了。
-    - 每日模式要求 Live 有 t 那列；i 那列還沒填（例如 10-23 那種一直是 -1 的日子），就改用早於 t 最後一個
+    - 「有 t 那列」「i 那天填好」都是看 100 檔裡有沒有 crawler.min_stocks_filled（90）檔做到。個別股票停牌
+      不會擋住流程，manifest 記 prev_day_missing_stocks，那幾檔自己的特徵當天空白。
+    - 每日模式要求 Live 有 t 那列；i 那天沒填好（例如 10-23 颱風假，整天 -1），就改用早於 t 最後一個
       填好的日子當 i，manifest 記 prev_day_never_filled。
     - -1 不處理。只有 Live 待定格的 -1 是「還沒有」，Training 法人欄有真的 -1。清理留給 features.py。
 
@@ -30,8 +32,8 @@ yfinance：
       都要經過：上一個請求結束後至少等 min_interval_seconds，再加 0～jitter_seconds 的隨機。
     - auto_adjust=False，每天重抓 data.start 到 t 前一天的完整歷史（除息後 adj_close 會整欄重算）。
     - 只留日期 < t 的K棒（一天的開高低收和成交量），也丟掉週末日期的K棒。end 只限制請求的範圍，擋不住 Yahoo 附在最後的盤中資料。
-    - 期貨（CL=F、GC=F）台北 07:00 後已經開始下一段交易：end 截在紐約 17:30；最後一根成交量低於前 21 根
-      中位數的 10% 也丟掉。
+    - 期貨（CL=F、GC=F）台北 07:00 後已經開始下一段交易：end 截在紐約 17:30。最後一根成交量低於前 21 根
+      中位數的 10% 時只在 manifest 記 low_volume_last_bar_kept，不丟（換月日、Yahoo 量 0 的真結算K棒也會這樣）。
     - 抓完檢查每個序列有沒有 i 那根（個股和 ETF 另外要成交量 > 0）。沒有的一起等一下重抓一次，還是沒有就標
       no_bar_i，那個特徵當天空白。
 
@@ -428,32 +430,42 @@ def stock_rows(parsed: dict) -> dict:
             for rel, rows in parsed.items() if rel.startswith("market/")}
 
 
-def day_filled(stocks: dict, d: str) -> bool:
-    """d 那天每一檔都有列，y 是 0 或 1，還原開盤價、收盤價都 > 0。法人欄的 -1 不看。"""
-    for rows in stocks.values():
+def unfilled_stocks(stocks: dict, d: str) -> list:
+    """d 那天沒填好的代號：沒有那列、y 不是 0 或 1、或還原開盤價、收盤價不是 > 0。法人欄的 -1 不看。"""
+    out = []
+    for code, rows in stocks.items():
         row = rows.get(d)
-        if row is None:
-            return False
-        y, open_, close = to_float(row[COL_Y]), to_float(row[COL_OPEN]), to_float(row[COL_CLOSE])
+        y, open_, close = ((to_float(row[COL_Y]), to_float(row[COL_OPEN]), to_float(row[COL_CLOSE]))
+                           if row else (None, None, None))
         if y not in (0.0, 1.0) or not open_ or open_ <= 0 or not close or close <= 0:
-            return False
-    return True
+            out.append(code)
+    return sorted(out)
 
 
-def live_check(stocks: dict, t: str, phase2_days) -> dict:
-    """回傳 has_t_row、prev_day（實際用的 i）、prev_day_planned、prev_day_never_filled。"""
-    has_t = bool(stocks) and all(t in rows for rows in stocks.values())
+def day_filled(stocks: dict, d: str, min_stocks: int) -> bool:
+    """d 那天至少 min_stocks 檔填好。個別股票停牌（沒有列）不會讓整天算沒填；10-23 那種整天 -1 會。"""
+    return bool(stocks) and len(stocks) - len(unfilled_stocks(stocks, d)) >= min_stocks
+
+
+def live_check(stocks: dict, t: str, phase2_days, min_stocks: int) -> dict:
+    """回傳 has_t_row、prev_day（實際用的 i）、prev_day_planned、prev_day_never_filled、prev_day_missing_stocks。
+
+    has_t_row：至少 min_stocks 檔有 t 那列。prev_day_missing_stocks：i 那天沒填好的代號（多半是停牌），
+    這幾檔自己的特徵當天會是空白。
+    """
+    has_t = sum(t in rows for rows in stocks.values()) >= min_stocks
     planned = None
     if phase2_days:
         earlier = [d["tradingDate"] for d in phase2_days if d["tradingDate"] < t]
         planned = earlier[-1] if earlier else None
-    if planned and day_filled(stocks, planned):
-        return {"has_t_row": has_t, "prev_day": planned, "prev_day_planned": planned, "prev_day_never_filled": False}
-    dates = sorted({d for rows in stocks.values() for d in rows if d < t})
-    filled = [d for d in dates if day_filled(stocks, d)]
-    prev = filled[-1] if filled else None
-    return {"has_t_row": has_t, "prev_day": prev, "prev_day_planned": planned,
-            "prev_day_never_filled": planned is not None}
+    if planned and day_filled(stocks, planned, min_stocks):
+        prev, never_filled = planned, False
+    else:
+        dates = sorted({d for rows in stocks.values() for d in rows if d < t})
+        filled = [d for d in dates if day_filled(stocks, d, min_stocks)]
+        prev, never_filled = (filled[-1] if filled else None), planned is not None
+    return {"has_t_row": has_t, "prev_day": prev, "prev_day_planned": planned, "prev_day_never_filled": never_filled,
+            "prev_day_missing_stocks": unfilled_stocks(stocks, prev) if prev else []}
 
 
 # ---------------------------------------------------------------- 老師資料
@@ -502,7 +514,7 @@ def download_teacher(run: Run, secrets: dict, course: SiteClient, live: SiteClie
         try:
             live_blob = live_download(live, cfg, secrets["COURSE_LIVE_KEY"])
             live_files, live_parsed = unpack_zip(live_blob, "live", stock_ids, max_bytes, max_unzipped)
-            check = live_check(stock_rows(live_parsed), run.t, run.phase2_days)
+            check = live_check(stock_rows(live_parsed), run.t, run.phase2_days, cfg["crawler"]["min_stocks_filled"])
             if run.daily and not check["has_t_row"]:
                 raise TransientError(f"Live 還沒有 {run.t} 那列")
             break
@@ -524,6 +536,9 @@ def download_teacher(run: Run, secrets: dict, course: SiteClient, live: SiteClie
     if check["prev_day_never_filled"]:
         run.stale = True
         run.log.warning("前一個交易日 %s 在 Live 裡還沒填，改用 %s", check["prev_day_planned"], check["prev_day"])
+    if check["prev_day_missing_stocks"]:
+        run.log.warning("%s 這天 %s 沒有資料（多半是停牌），這幾檔自己的特徵會是空白",
+                        check["prev_day"], check["prev_day_missing_stocks"])
     run.save()
 
 
@@ -645,11 +660,11 @@ def old_span(old: list, t: str):
 
 
 def filter_rows(rows: list, ticker: str, t: str, cfg, span=None):
-    """丟掉日期 ≥ t、週末日期的K棒；期貨最後一根量太小也丟。回傳 (rows, dropped)。
+    """丟掉日期 ≥ t、週末日期的K棒；期貨最後一根量太小只記下來，不丟。回傳 (rows, dropped)。
 
     span 是 old_span() 的結果。過濾後是空的、開頭比舊檔晚、或最後一天比舊檔早，丟 EmptyResult。
     """
-    dropped = {"on_or_after_t": 0, "weekend": 0, "low_volume_last_bar": False}
+    dropped = {"on_or_after_t": 0, "weekend": 0, "low_volume_last_bar_kept": False}
     kept = []
     for row in rows:
         if row[0] >= t:
@@ -663,8 +678,8 @@ def filter_rows(rows: list, ticker: str, t: str, cfg, span=None):
         volumes = [v for v in volumes if v is not None]
         last = to_float(kept[-1][6]) or 0.0
         if volumes and last < 0.1 * statistics.median(volumes):
-            kept.pop()
-            dropped["low_volume_last_bar"] = True
+            # 使用者 2026-11-05：只記錄。回測時這條會誤丟換月日、量 0 的真結算K棒；盤中那段已經由 end 擋掉
+            dropped["low_volume_last_bar_kept"] = True
     if not kept:
         raise EmptyResult("過濾後沒有資料")
     if span and kept[0][0] > span[0]:

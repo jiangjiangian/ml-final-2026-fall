@@ -29,6 +29,7 @@ crawler:
   deadline: "08:30"              # 每日模式過了這個時間就不再等待或重試：yfinance 沒抓到的序列沿用舊檔；Live 還沒好就停下報錯
   live_wait_seconds: 180         # Live 還沒有 t 那列，或逾時、連不上、429、5xx、ZIP 不完整時，等多久再抓
   live_attempts: 3               # Live 最多抓幾次
+  min_stocks_filled: 90          # 100 檔裡有幾檔有 t 那列、i 那天填好就算數；個別停牌的那幾檔自己的特徵空白
 
 data:
   start: "2020-01-01"

@@ -20,4 +20,9 @@ data/processed/*
 .idea/
 .DS_Store
 
-# data/raw/、data/submission/、models/ 都要進 Git（見 README「資料為什麼也放在這個分支」）
+# Claude Code：skill 只裝在本機，不上傳；個人設定不上傳
+.claude/skills/
+.claude/settings.local.json
+graphify-out/
+
+# data/raw/、data/submission/、models/ 都要進 Git（原因見 memory/context/data-rules.md「資料放在這個分支」）

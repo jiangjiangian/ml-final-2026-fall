@@ -33,7 +33,7 @@ def download_teacher(cfg: dict, secrets: dict):
     """登入課程網站，下載 Training ZIP 和最新的 Live ZIP，解開到 data/raw/。
 
     登入：POST cfg["course_site"]["login"]，JSON 帶 email、password。
-    Live ZIP 在另一台伺服器，網址和金鑰還沒決定（見 README「還沒決定的事」）；
+    Live ZIP 在另一台伺服器，網址和金鑰還沒決定（見 memory/context/open-questions.md）；
     COURSE_LIVE_KEY 是空的就跳過 Live，在 manifest 記下原因。
     回傳寫入的檔案清單。
     """

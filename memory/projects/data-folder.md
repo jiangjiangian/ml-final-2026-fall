@@ -1,6 +1,6 @@
 # 專案：data 資料夾整合（本分支）
 
-**狀態**：完成，已推送到 `claude/peaceful-babbage-09xeie`
+**狀態**：完成，已推送到 `claude/data-collection`
 **也叫**：yfinance 爬蟲、額外指標、data folder、schema、transform
 
 ## 使用者的要求（依時間）

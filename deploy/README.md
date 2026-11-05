@@ -121,11 +121,11 @@ flowchart TD
 - 所以 `financial-daily.yml` 每天停在訓練和預測，不產生預測檔，上傳和核對沒有東西可做。真上傳的開關 `FINPRED_SUBMISSION_RELEASED` 沒設定時是 `false`；repo 變數實際設成什麼，我們沒查。
 - `course-benchmark.yml` 是另一個會真的上傳的 workflow，開關寫死成 `'true'`。特徵一樣是那 7 個，核准走自己的規則。11/05 11:39 的狀態快照裡，核准的是 11/04 13:19 用 initialize 模式訓練的線性模型；它每天 07:20 和 07:35 會重訓、換上新模型。到快照時還沒交出任何每日預測，原因從檔案看不出來。
 - Phase 1 的 84 天靜態預測在 2026-11-04 13:07 上傳，4,200 格逐格核對一致，官方分數 0.000968。程式裡的官方分數算法是每格填 1 得當天盤中報酬、填 0 得負的報酬，再取平均。
-- 每日模型還沒用到 `claude/peaceful-babbage-09xeie` 的 `data/transform/panel_lag.csv.gz` 和市場特徵。
+- 每日模型還沒用到 `claude/data-collection` 的 `data/transform/panel_lag.csv.gz` 和市場特徵。
 
 ## 刪分支和換預設分支會怎樣
 
-刪掉分支只會移除那個名字，commit 只要還有別的分支或 tag 指到就不會消失。現在的打算是只留 `claude/hopeful-brahmagupta-wikys1`、`claude/peaceful-babbage-09xeie` 和空的 `main`，其他分支的檔案已經原樣放進 `archive/`。`system-completion`、`dev`、`deep-research`、`main` 的 commit 都還在兩個 claude 分支的歷史裡。`live-data` 的 12 個 commit 只有它自己有，想留就在刪之前打 tag（給 commit 一個固定的名字）。指令和每個分支的 SHA（commit 的編號）記在 `archive/README.md`。沒開過 PR 的分支刪掉後能不能從網頁還原，GitHub 文件沒寫，我們也沒查證，所以先當作只能用 SHA 推回去：`git push origin <SHA>:refs/heads/<分支名>`。
+刪掉分支只會移除那個名字，commit 只要還有別的分支或 tag 指到就不會消失。現在的打算是只留 `claude/hopeful-brahmagupta-wikys1`、`claude/data-collection` 和空的 `main`，其他分支的檔案已經原樣放進 `archive/`。`system-completion`、`dev`、`deep-research`、`main` 的 commit 都還在兩個 claude 分支的歷史裡。`live-data` 的 12 個 commit 只有它自己有，想留就在刪之前打 tag（給 commit 一個固定的名字）。指令和每個分支的 SHA（commit 的編號）記在 `archive/README.md`。沒開過 PR 的分支刪掉後能不能從網頁還原，GitHub 文件沒寫，我們也沒查證，所以先當作只能用 SHA 推回去：`git push origin <SHA>:refs/heads/<分支名>`。
 
 預設分支是打開 repo 首頁時看到的分支。GitHub 只執行預設分支根目錄 `.github/workflows/` 裡的排程，`archive/` 裡的副本不會跑，所以預設分支選哪一個，決定每日自動化還跑不跑。現在的預設分支是 `system-completion`。GitHub 不讓你刪預設分支，要先到 Settings > Default branch 換掉，這需要 admin 權限。
 
@@ -133,10 +133,10 @@ flowchart TD
 |---|---|
 | `system-completion`（現況） | 4 個有排程的 workflow 照跑，**`course-benchmark.yml` 在檢查都通過時會真的上傳** |
 | 空的 `main` | 沒有排程會觸發，網頁上也沒有 Run workflow 按鈕，每日自動化全停 |
-| `claude/peaceful-babbage-09xeie` | 根目錄沒有 `.github/`，一樣全停 |
+| `claude/data-collection` | 根目錄沒有 `.github/`，一樣全停 |
 | `claude/hopeful-brahmagupta-wikys1` | 根目錄的 8 個 workflow 和封存版逐字相同，其中 4 個有排程，會繼續觸發。這 4 個開頭都要讀 `live-data` 分支：`live-data` 刪掉，它們會在那一步失敗；留著，`course-benchmark.yml` 會照寫死的開關嘗試上傳 |
 
-想讓自動化全部停下（包括 `course-benchmark.yml` 的真上傳），選空的 `main` 或 `claude/peaceful-babbage-09xeie`。想繼續跑，就要選根目錄有 workflow 的分支，並留著 `live-data`。
+想讓自動化全部停下（包括 `course-benchmark.yml` 的真上傳），選空的 `main` 或 `claude/data-collection`。想繼續跑，就要選根目錄有 workflow 的分支，並留著 `live-data`。
 
 `crawler.py` 是本分支整理資料用的程式，不在每日流程裡。它預設從 `origin/live-data` 讀老師 ZIP，`live-data` 刪掉後要加參數，改讀封存的快照。`git rev-parse HEAD:archive/live-data` 會取出這個資料夾的 git 編號交給它：
 

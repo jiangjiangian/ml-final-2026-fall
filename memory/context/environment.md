@@ -14,7 +14,7 @@
 
 ## Git
 - remote：`https://github.com/jiangjiangian/ml-final-2026-fall`（Public）。
-- 只推 `claude/peaceful-babbage-09xeie`；push 用 `git push -u origin claude/peaceful-babbage-09xeie`。
+- 只推 `claude/data-collection`；push 用 `git push -u origin claude/data-collection`。
 - 老師 ZIP 需要 `git fetch origin live-data`。live-data 被刪掉後改用封存：`python crawler.py --live-data-ref "$(git rev-parse HEAD:archive/live-data)"`（2026-11-05 實測，讀到的 Training ZIP 與 origin/live-data 相同）。
 - 2026-11-05 依使用者要求，把 system-completion、live-data、dev、deep-research 封存到 `archive/<分支名>/`（`git read-tree --prefix`，每個子樹的 tree hash 與原分支相同）。根目錄 `.gitattributes` 加了 `archive/** -text`。
 - 2026-11-04 依使用者要求，本分支移除了 `ml_financial_prediction/`、`.github/`、`graphify-out/`、`tools/`、`.codex/`、`README.md`、`AGENTS.md`、`RTK.md`；它們仍在 git 歷史中，也在 `archive/system-completion/`。

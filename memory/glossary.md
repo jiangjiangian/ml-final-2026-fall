@@ -61,7 +61,7 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 ## 分支
 | 分支 | 用途 |
 |---|---|
-| `claude/peaceful-babbage-09xeie` | 本分支：資料整合成果＋`archive/` |
+| `claude/data-collection` | 本分支：資料整合成果＋`archive/` |
 | `claude/stock-market-challenger` | 2026-11-05 從空的 main 開出的新比賽主程式，目前只有骨架（Cookiecutter 式檔案樹） |
 | `claude/hopeful-brahmagupta-wikys1` | 另一個 claude 分支（R4 模型研究），從 system-completion 的 `2a4c6cb` 長出來，含同一套 workflows |
 | `main` | 空樹 |

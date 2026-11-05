@@ -1,6 +1,6 @@
 # 台股盤中方向預測：資料整合分支
 
-本分支 `claude/peaceful-babbage-09xeie` 只放**資料**：老師資料、yfinance 額外指標、lag 轉換特徵，以及整合好、可直接訓練的長表。
+本分支 `claude/data-collection` 只放**資料**：老師資料、yfinance 額外指標、lag 轉換特徵，以及整合好、可直接訓練的長表。
 資料範圍 **2020-01-02～2026-11-04**：老師 Training ZIP 到 8/31，9/1～11/4 接老師 Live ZIP（2026-11-05 從 9/30 延長）。10/23 颱風假休市，沒有這一天。
 完整的模型與每日提交程式原本在 `system-completion` 分支，2026-11-05 起封存在 `archive/system-completion/`（說明見 `archive/README.md`）。
 
@@ -63,14 +63,14 @@
 ```python
 import pandas as pd
 
-BASE = "https://raw.githubusercontent.com/jiangjiangian/ml-final-2026-fall/claude/peaceful-babbage-09xeie"
+BASE = "https://raw.githubusercontent.com/jiangjiangian/ml-final-2026-fall/claude/data-collection"
 df = pd.read_csv(f"{BASE}/data/transform/panel_lag.csv.gz", dtype={"stock_id": str}, parse_dates=["date"])
 ```
 
 **B. 只抓這個分支**：
 
 ```bash
-git clone --branch claude/peaceful-babbage-09xeie --single-branch --depth 1 https://github.com/jiangjiangian/ml-final-2026-fall.git
+git clone --branch claude/data-collection --single-branch --depth 1 https://github.com/jiangjiangian/ml-final-2026-fall.git
 ```
 
 ```python

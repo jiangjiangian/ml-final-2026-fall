@@ -5,7 +5,7 @@
 
 ## 這個分支是什麼
 課程 ML 期末專案（2026 秋）：預測台股 50 檔「盤中方向」`y = 1{adj_close > adj_open}`。
-本分支 `claude/peaceful-babbage-09xeie` 放資料整合成果，另有 `archive/`。完整程式（特徵管線、模型、每日提交）原本在 `system-completion`，2026-11-05 封存到 `archive/system-completion/`。使用者要讓 repo 只剩 claude 分支（本分支、`claude/hopeful-brahmagupta-wikys1`、2026-11-05 新開的 `claude/stock-market-challenger`）和空的 `main`（預設分支），其他分支由使用者自己刪。
+本分支 `claude/data-collection` 放資料整合成果，另有 `archive/`。完整程式（特徵管線、模型、每日提交）原本在 `system-completion`，2026-11-05 封存到 `archive/system-completion/`。使用者要讓 repo 只剩 claude 分支（本分支、`claude/hopeful-brahmagupta-wikys1`、2026-11-05 新開的 `claude/stock-market-challenger`）和空的 `main`（預設分支），其他分支由使用者自己刪。
 
 | 路徑 | 內容 |
 |---|---|
@@ -52,7 +52,7 @@
 - 殖利率也用百分比報酬（使用者選擇，即使接近 0 時數值很大）。
 - 缺漏日期留空白，不補值。
 - 審查有發現時，等審查結果出來再一起修（使用者偏好）。
-- 只推到 `claude/peaceful-babbage-09xeie`；不自行開 PR。
+- 只推到 `claude/data-collection`；不自行開 PR。這個分支原名 `claude/peaceful-babbage-09xeie`，使用者 2026-11-05 改名。
 
 ## 重建資料
 ```bash

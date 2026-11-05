@@ -41,7 +41,7 @@ def load_raw(cfg: dict):
     - 台股 ETF 成交量 0、四個價格相同的佔位K棒。
     - .TW／.TWO 的分割只調了一半時補調（例如 0052 在 2025-11 的一拆七）。
     - 美債休市日的平盤K棒（^TNX、^IRX）。
-    規則細節在 claude/peaceful-babbage-09xeie 分支 data/extra/manifest.json 的 cleaning_rules。
+    規則細節在 claude/data-collection 分支 data/extra/manifest.json 的 cleaning_rules。
     回傳一個 dict。
     """
     raise NotImplementedError

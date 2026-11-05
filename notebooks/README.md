@@ -9,6 +9,6 @@
 
 驗證要按日期切：先取出不重複的日期，對日期清單做切分（例如 `TimeSeriesSplit`），再把列對回去。直接對資料列用 `TimeSeriesSplit` 的話，切點可能落在某一天中間，同一天的 50 檔會被拆到兩邊。
 
-notebook 裡用到的資料一律從 `data/` 讀，不要在 notebook 裡另外爬一份。`crawler.py` 寫好之前 `data/raw/` 是空的；想先看資料，可以暫時用 `claude/peaceful-babbage-09xeie` 分支的 `data/teacher/`（老師 Training 資料原樣），但不要 commit 進這個分支。
+notebook 裡用到的資料一律從 `data/` 讀，不要在 notebook 裡另外爬一份。`crawler.py` 寫好之前 `data/raw/` 是空的；想先看資料，可以暫時用 `claude/data-collection` 分支的 `data/teacher/`（老師 Training 資料原樣），但不要 commit 進這個分支。
 
 Jupyter 不在 `requirements.txt` 裡，要用的話自己 `pip install jupyter`。

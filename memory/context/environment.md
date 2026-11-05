@@ -22,23 +22,24 @@ python -m pytest               # 目前 4 個測試都是 skipped
 | 分支 | 用途 |
 |---|---|
 | `claude/stock-market-challenger` | 比賽主程式（這個分支）。只在這裡 commit 和 push |
-| `claude/peaceful-babbage-09xeie` | 舊的資料整理和查證紀錄；`archive/` 封存了其他分支 |
+| `claude/data-collection` | 資料整合成果（到 2026-11-04）和查證紀錄；`archive/` 封存了其他分支。原名 `claude/peaceful-babbage-09xeie`，使用者 2026-11-05 改名 |
 | `claude/hopeful-brahmagupta-wikys1` | 11/04 的 R4 Phase 2 模型研究（commit 訊息寫選了 E1 線性模型、LightGBM 沒贏 E1），含舊 workflows。只在選模型時參考 |
 | `main` | 空的，預設分支（2026-11-05 查到已換好，等使用者確認） |
-| `system-completion`、`live-data`、`dev`、`deep-research` | 已逐位元封存在 peaceful-babbage 的 `archive/`，使用者會自己在 GitHub 刪 |
+| `live-data` | 舊系統的共用資料分支，還在 GitHub 上；已逐位元封存在 data-collection 的 `archive/` |
+| `system-completion`、`dev`、`deep-research` | 使用者 2026-11-05 已在 GitHub 刪掉；逐位元封存在 data-collection 的 `archive/` |
 
 `hw6-jiangjiangian` 是無關的舊作業，不要碰。
 
 ## 舊系統（唯讀）
 
-不要切到 peaceful-babbage 分支，用唯讀的 worktree（同一個 repo 的第二個工作資料夾）看：
+不要切到 data-collection 分支，用唯讀的 worktree（同一個 repo 的第二個工作資料夾）看：
 
 ```bash
-git fetch origin claude/peaceful-babbage-09xeie
-git worktree add ../ml-final-archive origin/claude/peaceful-babbage-09xeie
+git fetch origin claude/data-collection
+git worktree add ../ml-final-archive origin/claude/data-collection
 ```
 
-2026-11-05 已經建好在 `../ml-final-archive`（detached HEAD `08780f0`）。需要時讀：
+2026-11-05 已經建好在 `../ml-final-archive`（detached HEAD，2026-11-05 更新到 `a806959`，資料到 11/4）。需要時讀：
 
 - `CLAUDE.md`、`memory/`：舊分支的規則和紀錄。
 - `memory/context/data-decisions.md`：時間對齊驗證、限流的做法、Live 的慣例。

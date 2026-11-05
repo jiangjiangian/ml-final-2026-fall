@@ -28,4 +28,4 @@
 
 - manifest：下載紀錄 `data/raw/manifest.json`，記每個檔案的下載時間、sha256（由內容算出的指紋，內容一變就不同）和成功或失敗。
 - 骨架：每個檔案的用途、輸入、輸出和函式介面都寫好了，函式本體是 `raise NotImplementedError`。
-- 舊系統：Phase 1 用的那套程式，現在封存在 `claude/peaceful-babbage-09xeie` 分支的 `archive/`。
+- 舊系統：Phase 1 用的那套程式，現在封存在 `claude/data-collection` 分支的 `archive/`。

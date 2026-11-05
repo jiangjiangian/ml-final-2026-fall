@@ -3,33 +3,33 @@
   "generated_by": "crawler.py",
   "date_range": {
     "start": "2020-01-01",
-    "end_inclusive": "2026-09-30",
-    "data_end": "2026-09-30",
+    "end_inclusive": "2026-11-04",
+    "data_end": "2026-11-04",
     "note": "資料實際到 data_end；沒有 Live 時只到 Training 最後一天"
   },
   "readiness": "research_assumption",
   "historical_vintage_verified": false,
   "timing_verification": {
     "verified_on": "2026-11-04",
-    "conclusion": "日期語意驗證通過：老師 5 個指數與老師個股的日期都沒有錯位；19 個額外指標在小時K期間（2025-11-10～2026-08-31）也沒有錯位，較早年份見 method；Live（9 月）的個股日期與 global 慣例也逐值核對過。transform 與 panel 用到的每根K棒都在 t 日台北 07:00 以前收完（市場時間）；market_features 也是如此（TX_OI 已改成前一列 TX_OI_prev_row）。Yahoo 實際何時上架（發布延遲）無法驗證，所以 readiness 仍是 research_assumption。",
-    "method": "另用 yfinance（同一套限流）抓 Yahoo 原始資料，只用來比對、不存進 data/：老師 5 個指數與 5 檔老師個股（2330、2317、2454、2881、1101）的日K（2019-12～2026-09），以及 19 個額外指標的小時K。小時K本次只抓2025-11-10～2026-08-31（約 10 個月，涵蓋冬令與夏令）；Yahoo 1h 最多回溯 730 天（約到 2024-11），更早的年份無法用小時K驗證。延長到 9/30 時，另抓老師 5 個指數與 100 檔老師個股 2026-07～10 的日K，核對 Live 與接縫。較早年份改用逐年開盤跳空測試：SOX、TSM、NVDA、DJI、4 檔台灣 ETF、N225 每年都有鑑別力，確認慣例不變；HSI、SSE、STOXX50E、GDAXI、TWD=X 方向一致但部分年份鑑別力弱；DXY、^TNX、^IRX、CL=F、GC=F沒有鑑別力，2025-11-10 以前的日期慣例是假設（交易所以當地交易日標示日K）。",
+    "conclusion": "日期語意驗證通過：老師 5 個指數與老師個股的日期都沒有錯位；19 個額外指標在小時K期間（2025-11-10～2026-08-31）也沒有錯位，較早年份見 method；Live（2026-09-01～11-04）的個股日期與 global 慣例也逐值核對過。transform 與 panel 用到的每根K棒都在 t 日台北 07:00 以前收完（市場時間）；market_features 也是如此（TX_OI 已改成前一列 TX_OI_prev_row）。Yahoo 實際何時上架（發布延遲）無法驗證，所以 readiness 仍是 research_assumption。",
+    "method": "另用 yfinance（同一套限流）抓 Yahoo 原始資料，只用來比對、不存進 data/：老師 5 個指數與 5 檔老師個股（2330、2317、2454、2881、1101）的日K（2019-12～2026-09），以及 19 個額外指標的小時K。小時K本次只抓2025-11-10～2026-08-31（約 10 個月，涵蓋冬令與夏令）；Yahoo 1h 最多回溯 730 天（約到 2024-11），更早的年份無法用小時K驗證。延長到 9/30 時，另抓老師 5 個指數與 100 檔老師個股 2026-07～10 的日K，核對 Live 與接縫。延長到 11/4 時（2026-11-05），另抓老師 5 個指數與 100 檔老師個股 2026-09-20～11-04 的日K，核對 10/1～11/4 的 Live 列；^VIX 另用 live-data 存的 CBOE 官方日K（cboe_vix）和 11 個 Live 版本核對。9/1～11/3 的列在新舊兩份 Live ZIP（7f4c759a、eea89fce）完全相同，所以 8/31→9/1 接縫的驗證沿用。較早年份改用逐年開盤跳空測試：SOX、TSM、NVDA、DJI、4 檔台灣 ETF、N225 每年都有鑑別力，確認慣例不變；HSI、SSE、STOXX50E、GDAXI、TWD=X 方向一致但部分年份鑑別力弱；DXY、^TNX、^IRX、CL=F、GC=F沒有鑑別力，2025-11-10 以前的日期慣例是假設（交易所以當地交易日標示日K）。",
     "verified_against": {
       "teacher_members_sha256": "31bbdc99c3bfd28f9df8b671160fba7030408d9eea18694c3cec9f94ccb73ea0",
-      "teacher_live_used_rows_sha256": "171700b774ef7fe87c876642e2002cb7ec3c60f9b3f3dac0465b0fae3c516a53",
-      "market_features_sha256": "59860b37ae802bcae0822fe78c974d5cfefa4c535a31ceaaf9f6a87a32867802",
-      "panel_sha256_csv_uncompressed": "2242cfb129abea331382ffbc3e998a1e36226ef87d9f03d436201ea9259d7f2c"
+      "teacher_live_used_rows_sha256": "db61f3488e3b982722547fc29639a3d58b174e7ff88e8258c4903608f8230c57",
+      "market_features_sha256": "6be2f3f17b9f021a20e7877704bc089b24ac36d5b4a5efb3336c3d33c5adbfc1",
+      "panel_sha256_csv_uncompressed": "f2da302c01add6623734d5d647997620a0f7903f492b3d65e2dcb52afeab7522"
     },
     "teacher_global": {
       "^VIX/^IXIC/^GSPC": "第 j 列＝第 j−1 列日期的 Yahoo 收盤，1505/1505；第一列＝2020-01-02 收盤；以 ^GSPC／^IXIC 的美股日曆計 88 列落後超過一個美股日（^VIX 依 Yahoo 自己的日曆是 89，因為 Yahoo 在 2026-05-25 美國假日有一根 VIX K棒）",
       "^TWII/^KS11": "同日收盤，各 1506/1506 → 不能當 t 的輸入。transform 只用 i＝前一個台股日（i 不是 global 列就空白）；market_features 用日期 < t 的最後一個 global 列（111 天比前一個台股日更舊）",
       "TX_OI": "沒有可逐值比對的來源；逐年相關性顯示疑似含當日資訊，不可直接當輸入（見 teacher.global_columns.TX_OI.timing）；market_features 已改放前一列",
-      "live_2026_09": "2026-11-04 與 Yahoo 原始收盤逐值比對 Live 用到的 20 列（2026-09-01～09-30）：^IXIC／^GSPC 20/20＝日期 < d 的最後一個美股收盤；^VIX 19/20 同上，9/08 那列＝9/04 收盤（Yahoo 在 9/07 美國假日另有一根 VIX K棒）；^TWII 20/20＝同日收盤；^KS11 19/20＝同日收盤，1 列（韓國休市）＝前一個韓股收盤。和 Training 的差別：Training 只有五個序列同日都有資料才有列，美股欄＝前一個 global 列日期的收盤；Live 每個台股日都有一列，美股或韓股休市時沿用前一筆值（9 月 ^VIX／^IXIC／^GSPC／^KS11 各有 1 列和前一列相同）。兩者的值都在 t 開盤前已知；teacher_* 的 lag 在 9 月往回數的是 Live 的列。"
+      "live": "和 Yahoo、CBOE 原始收盤逐值比對 Live 用到的 42 列（2026-09-01～11-04，不含 10/23 颱風假）。9 月 20 列（2026-11-04 比對）：^IXIC／^GSPC 20/20＝日期 < d 的最後一個美股收盤；^VIX 19/20 同上，9/08 那列＝9/04 收盤（Yahoo 在 9/07 美國假日另有一根 VIX K棒）；^TWII 20/20＝同日收盤；^KS11 19/20＝同日收盤，1 列（韓國休市）＝前一個韓股收盤。10/1～11/4 的 22 列（2026-11-05 比對）：^IXIC／^GSPC 22/22 同上；^TWII 22/22 同日；^KS11 21/22 同日，10/05（韓國休市）沿用前一個韓股收盤。^VIX 只有 9/22 等於前一個美股日的 CBOE 收盤；其他 13 列都落在前一個美股日的盤中高低區間內，不是收盤（例：11/03 那列 18.83，CBOE 11/02 收盤 21.15、區間 18.03～21.77）。live-data 存的 11 個 Live 版本裡，每列的 ^VIX 第一次出現後就沒變過，11/04、11/05 的列在當天 08:06、08:55 已經有值，所以是 d 開盤前就定下的盤中值：沒有洩漏，但和 Training（前一個 global 列日期的收盤）定義不同，teacher_vix 在 10 月以後比較吵。和 Training 的差別：Training 只有五個序列同日都有資料才有列，美股欄＝前一個 global 列日期的收盤；Live 每個台股日都有一列，美股或韓股休市時沿用前一筆值。兩者的值都在 t 開盤前已知；9 月以後 teacher_* 的 lag 往回數的是 Live 的列。"
     },
-    "teacher_stocks": "日期＝台股交易日。盤中比 adj_close/adj_open 與 Yahoo 同日 close/open 一致 99.8%～99.9%（分母＝Yahoo 同日有成交量的K棒，絕對差 < 1e-4；含零量K棒為 99.7%～99.8%），錯一天只有 1.5%～7.0%，所以排除日期位移；y＝1{adj_close > adj_open} 同列 100%。不一致日都是 Yahoo 的資料問題，前後一天也對不上：2022-08-22（5/5 檔）、2024-03-29（4/5 檔）Yahoo 是不完整的盤中K棒（open 相同、高低在老師區間內、成交量只有老師的約 4～8 成）；2020-02-04 Yahoo 的 open 錯（超出 ±10% 漲跌幅）；2024-11-20 Yahoo 平盤K棒；2021-08-17 Yahoo 零量佔位K棒；Yahoo 缺 2021-04-06、2025-08-01。Live（2026-09-01～09-30）100 檔 2,000 列：盤中比與 Yahoo 同日一致 100%，錯一天約 2.3%；y 同列 2000/2000。Training／Live 接縫（8/31→9/1）：100 檔的還原價基準（老師 adj_close ÷ Yahoo 原始 close）完全相同，所以跨接縫的報酬連續；9 月除息日（例：2330 9/16）只在 Live 內部造成正常的除息調整。",
+    "teacher_stocks": "日期＝台股交易日。盤中比 adj_close/adj_open 與 Yahoo 同日 close/open 一致 99.8%～99.9%（分母＝Yahoo 同日有成交量的K棒，絕對差 < 1e-4；含零量K棒為 99.7%～99.8%），錯一天只有 1.5%～7.0%，所以排除日期位移；y＝1{adj_close > adj_open} 同列 100%。不一致日都是 Yahoo 的資料問題，前後一天也對不上：2022-08-22（5/5 檔）、2024-03-29（4/5 檔）Yahoo 是不完整的盤中K棒（open 相同、高低在老師區間內、成交量只有老師的約 4～8 成）；2020-02-04 Yahoo 的 open 錯（超出 ±10% 漲跌幅）；2024-11-20 Yahoo 平盤K棒；2021-08-17 Yahoo 零量佔位K棒；Yahoo 缺 2021-04-06、2025-08-01。Live（2026-09-01～09-30）100 檔 2,000 列：盤中比與 Yahoo 同日一致 100%，錯一天約 2.3%；y 同列 2000/2000。Training／Live 接縫（8/31→9/1）：100 檔的還原價基準（老師 adj_close ÷ Yahoo 原始 close）完全相同，所以跨接縫的報酬連續；9 月除息日（例：2330 9/16）只在 Live 內部造成正常的除息調整。Live 10/1～11/4（2026-11-05 比對）100 檔 2,200 列：盤中比與 Yahoo 同日一致 2200/2200，錯一天 2.0%；y 同列 2200/2200。10/23 颱風假：100 檔在 Yahoo 都只有成交量 0 的佔位K棒，^TWII 沒有這天，老師那列整列 -1，所以不用（見 teacher_live.excluded_closed_days）。",
     "extra_bars": "每個序列的結果見 extra.series.<series_id>.timing。除 TWD=X 外，所有日K最晚在 d+1 07:00（台北）收完（保守上界）；TWD=X 只驗證了 close 的時點：每一年都在美股 d 日開盤前（台北 d 日 22:30 前）",
     "outputs": {
-      "market_features": "19 個額外序列的 source_date 全部 <= t−1 日曆天；老師欄 ^VIX／^IXIC／^GSPC 照抄同日期（Training 列＝前一個 global 列日期的收盤；Live 9 月列＝日期 < d 的最後一個美股收盤，見 teacher_live.global_convention；都在 t 開盤前已知）、^TWII_prev_row／^KS11_prev_row／TX_OI_prev_row 取日期 < t 的最後一個 global 列",
-      "transform_and_panel": "i＝t 的前一個台股交易日；t−i（日曆天）分布 1 天 1,278 列、2 天 10、3 天 299、4 天 29、5 天 13、6 天 1、10 天 2、12 天 4、13 天 1；不含 TX_OI",
+      "market_features": "19 個額外序列的 source_date 全部 <= t−1 日曆天；老師欄 ^VIX／^IXIC／^GSPC 照抄同日期（Training 列＝前一個 global 列日期的收盤；Live 列＝日期 < d 的最後一個美股收盤，10 月以後多數 ^VIX 是前一個美股日的盤中值，見 teacher_live.global_convention；都在 t 開盤前已知）、^TWII_prev_row／^KS11_prev_row／TX_OI_prev_row 取日期 < t 的最後一個 global 列",
+      "transform_and_panel": "i＝t 的前一個台股交易日；t−i（日曆天）分布 1 天 1,295 列、2 天 10、3 天 302、4 天 30、5 天 14、6 天 1、10 天 2、12 天 4、13 天 1；不含 TX_OI",
       "implication": "用到的每根K棒都在 t 日台北 07:00 以前收完（市場時間；專案截止 08:10、老師截止 09:00）；Yahoo 實際上架時間未驗證"
     },
     "open_gap_test": {
@@ -57,7 +57,7 @@
     "data/teacher/info.json": "Top50@Y（預測目標50股）／Top100@Y 名單",
     "data/teacher/global/global_data.csv": "老師全球指標；只有台／美／韓同日都交易的日期才有列（1506 列，缺 112 個台股交易日）",
     "data/teacher/market/<stock_id>.csv": "老師個股資料（每股一檔，21欄含 y）",
-    "data/teacher_live/": "老師 Live ZIP 原樣（逐位元組，sha256 見 teacher_live）：global/global_data.csv＋market/<stock_id>.csv；本分支只用 Training 最後一天之後、<= date_range.end_inclusive 的列",
+    "data/teacher_live/": "老師 Live ZIP 原樣（逐位元組，sha256 見 teacher_live）：global/global_data.csv＋market/<stock_id>.csv；本分支只用 Training 最後一天之後、<= date_range.end_inclusive 的列，不含 teacher_live.excluded_closed_days",
     "data/extra/yfinance/<series_id>.csv": "yfinance 額外指標日K（已清理，見 extra.series.*.cleaning）",
     "data/extra/manifest.json": "爬蟲紀錄：取得時間、限流設定、重試、清理、hash、失敗原因",
     "data/features/market_features.csv": "每台股交易日一列：老師市場欄（^VIX／^IXIC／^GSPC 照抄同日期；^TWII／^KS11／TX_OI 取日期 < t 的最後一個 global 列：*_prev_row）＋已對齊的額外特徵",
@@ -81,10 +81,10 @@
   "teacher": {
     "source": {
       "live_data_ref": "origin/live-data",
-      "catalog_sha256": "8615bd636d6043d9ce9d90dcc891bec225e8a1869229627ad9c00a0be70026a5",
+      "catalog_sha256": "e97c228634d51ba9bc41be41d81bd8ac7e17944825eaa32a1e09838ec5cfce7a",
       "catalog_source": "course-training",
       "object": "live-data:objects/7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2.zip",
-      "source_fetched_at": "2026-11-04T05:18:59.376329+00:00"
+      "source_fetched_at": "2026-11-05T00:55:19.607918+00:00"
     },
     "archive_sha256": "7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2",
     "members_sha256": "31bbdc99c3bfd28f9df8b671160fba7030408d9eea18694c3cec9f94ccb73ea0",
@@ -315,31 +315,37 @@
   "teacher_live": {
     "source": {
       "live_data_ref": "origin/live-data",
-      "catalog_sha256": "8615bd636d6043d9ce9d90dcc891bec225e8a1869229627ad9c00a0be70026a5",
+      "catalog_sha256": "e97c228634d51ba9bc41be41d81bd8ac7e17944825eaa32a1e09838ec5cfce7a",
       "catalog_source": "course-live",
-      "object": "live-data:objects/7f4c759af6df64e3a1b5e42330cfa5a56fe1f6a4644ca56a052d3a6297dc096b.zip",
-      "source_fetched_at": "2026-11-04T05:19:04.731133+00:00"
+      "object": "live-data:objects/eea89fce45e3acb734b84f67299145d5171383e095a76419489dcc3d4e353711.zip",
+      "source_fetched_at": "2026-11-05T00:55:26.198276+00:00"
     },
-    "archive_sha256": "7f4c759af6df64e3a1b5e42330cfa5a56fe1f6a4644ca56a052d3a6297dc096b",
-    "members_sha256": "fe7607e1e880f002cfc903691b60a6a9067f68da12121b340528f857997bf565",
-    "used_rows_sha256": "171700b774ef7fe87c876642e2002cb7ec3c60f9b3f3dac0465b0fae3c516a53",
+    "archive_sha256": "eea89fce45e3acb734b84f67299145d5171383e095a76419489dcc3d4e353711",
+    "members_sha256": "36db708a0c69068a1f44c490ebf3b1e45ff14f51af80a2f5966b3f1aea5f8041",
+    "used_rows_sha256": "db61f3488e3b982722547fc29639a3d58b174e7ff88e8258c4903608f8230c57",
     "stock_count": 100,
     "stock_date_min": "2026-09-01",
-    "stock_date_max": "2026-11-04",
-    "global_rows": 43,
+    "stock_date_max": "2026-11-05",
+    "global_rows": 44,
     "global_date_min": "2026-09-01",
-    "global_date_max": "2026-11-04",
+    "global_date_max": "2026-11-05",
     "used_range": {
       "after": "2026-08-31",
-      "end_inclusive": "2026-09-30"
+      "end_inclusive": "2026-11-04"
     },
-    "used_taiwan_trading_days": 20,
-    "used_stock_rows": 2000,
-    "used_global_rows": 20,
+    "used_taiwan_trading_days": 42,
+    "used_stock_rows": 4200,
+    "used_global_rows": 42,
     "used_pending_rows": 0,
+    "excluded_closed_days": [
+      "2026-10-23"
+    ],
+    "closed_days_rule": {
+      "2026-10-23": "颱風假，台股休市（使用者 2026-11-05 確認）。Live 100 檔整列 -1、global 的 ^TWII 與 TX_OI 為 -1，到 11/05 都沒補；Yahoo ^TWII 沒有這天的K棒，2330.TW、0050.TW 只有成交量 0 的佔位K棒"
+    },
     "file": "data/teacher_live/",
-    "how_used": "個股檔與 global 表接在 Training 之後：只取 Training 最後日期之後、<= date_range.end_inclusive 的列；欄位與 Training 相同。-1 是 Live 的待定標記，待定列整列都是 -1（y、價格、量、法人、TX_OI…）；使用範圍內出現待定值時 crawler 會拒絕（fail closed）。自己讀 data/teacher_live 的組員請只取 date <= date_range.end_inclusive，或濾掉 -1 列",
-    "global_convention": "2026-11-04 與 Yahoo 原始收盤逐值比對 Live 用到的 20 列（2026-09-01～09-30）：^IXIC／^GSPC 20/20＝日期 < d 的最後一個美股收盤；^VIX 19/20 同上，9/08 那列＝9/04 收盤（Yahoo 在 9/07 美國假日另有一根 VIX K棒）；^TWII 20/20＝同日收盤；^KS11 19/20＝同日收盤，1 列（韓國休市）＝前一個韓股收盤。和 Training 的差別：Training 只有五個序列同日都有資料才有列，美股欄＝前一個 global 列日期的收盤；Live 每個台股日都有一列，美股或韓股休市時沿用前一筆值（9 月 ^VIX／^IXIC／^GSPC／^KS11 各有 1 列和前一列相同）。兩者的值都在 t 開盤前已知；teacher_* 的 lag 在 9 月往回數的是 Live 的列。"
+    "how_used": "個股檔與 global 表接在 Training 之後：只取 Training 最後日期之後、<= date_range.end_inclusive 的列；欄位與 Training 相同。-1 是 Live 的待定標記，待定列整列都是 -1（y、價格、量、法人、TX_OI…）；使用範圍內出現待定值時 crawler 會拒絕（fail closed）。例外是 excluded_closed_days：老師建了列、但台股休市（理由見 closed_days_rule），個股列和 global 列整列不用，所以 panel 沒有這天；下一個台股日的「前一個台股日」跳過它，^TWII_prev_row／^KS11_prev_row／TX_OI_prev_row 也取更早的 global 列（2026-10-27 的 ^KS11_prev_row 是 10/22 收盤，韓股 10/23 那天的收盤沒用到）。自己讀 data/teacher_live 的組員請只取 date <= date_range.end_inclusive，濾掉 -1 列",
+    "global_convention": "和 Yahoo、CBOE 原始收盤逐值比對 Live 用到的 42 列（2026-09-01～11-04，不含 10/23 颱風假）。9 月 20 列（2026-11-04 比對）：^IXIC／^GSPC 20/20＝日期 < d 的最後一個美股收盤；^VIX 19/20 同上，9/08 那列＝9/04 收盤（Yahoo 在 9/07 美國假日另有一根 VIX K棒）；^TWII 20/20＝同日收盤；^KS11 19/20＝同日收盤，1 列（韓國休市）＝前一個韓股收盤。10/1～11/4 的 22 列（2026-11-05 比對）：^IXIC／^GSPC 22/22 同上；^TWII 22/22 同日；^KS11 21/22 同日，10/05（韓國休市）沿用前一個韓股收盤。^VIX 只有 9/22 等於前一個美股日的 CBOE 收盤；其他 13 列都落在前一個美股日的盤中高低區間內，不是收盤（例：11/03 那列 18.83，CBOE 11/02 收盤 21.15、區間 18.03～21.77）。live-data 存的 11 個 Live 版本裡，每列的 ^VIX 第一次出現後就沒變過，11/04、11/05 的列在當天 08:06、08:55 已經有值，所以是 d 開盤前就定下的盤中值：沒有洩漏，但和 Training（前一個 global 列日期的收盤）定義不同，teacher_vix 在 10 月以後比較吵。和 Training 的差別：Training 只有五個序列同日都有資料才有列，美股欄＝前一個 global 列日期的收盤；Live 每個台股日都有一列，美股或韓股休市時沿用前一筆值。兩者的值都在 t 開盤前已知；9 月以後 teacher_* 的 lag 往回數的是 Live 的列。"
   },
   "extra": {
     "api": "yfinance（Yahoo Finance chart API：query1/query2.finance.yahoo.com/v8/finance/chart）；19 個序列全部經 yfinance",
@@ -372,7 +378,7 @@
         "circuit_breaker": "序列因限流放棄後冷卻 backoff_max 秒；連續 3 個序列被限流即中止"
       },
       "last_run": {
-        "run_started_at": "2026-11-04T13:04:26+00:00",
+        "run_started_at": "2026-11-05T12:22:02+00:00",
         "series_requested": [
           "sox",
           "tsm_adr",
@@ -394,8 +400,8 @@
           "wti",
           "gold"
         ],
-        "http_requests": 20,
-        "paced_sleep_seconds": 48.124,
+        "http_requests": 40,
+        "paced_sleep_seconds": 92.376,
         "circuit_breaker_cooldown_seconds": 0.0
       }
     },
@@ -425,11 +431,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/sox.csv",
-        "rows": 1695,
+        "rows": 1720,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "3a875108c8b061f9a364d287787b74f6bc357bbe4ea03070a182f678dfdc56c4",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "d2578b718c05bee62723aa136668fdc6df0b1829fda4eeacdb2c6c4ba29902fb",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -462,11 +468,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/tsm_adr.csv",
-        "rows": 1695,
+        "rows": 1720,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "a64d7ac7fd130611c7010cb6857434fed32ded1d85b8d53c53795ae9ac0f7595",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "6baebf6570cb87e007f0e20112af6495c53c364e5069408bad255dce04ee71d3",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -499,11 +505,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/nvda.csv",
-        "rows": 1695,
+        "rows": 1720,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "d9ae2c20d53d23d46bec904c4dfc8b25707b8193f7e605c580f0df34fe7bfc4d",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "257f2a647c1433fe59b7ddd5d2d17dcf9913c71e8f5863f5ef15cb873b551a90",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -536,11 +542,11 @@
         "note": "報價＝1美元兌多少台幣；報酬為正＝台幣貶值。Yahoo FX 日K依倫敦日界，不是台北收盤或定盤。約 68% 的列 close＝open（2023–2024 幾乎 100%，各年比例不同）。2026-11-04 驗證：日期 d 的 close≈倫敦 d 日 00:00～01:00 的報價（台北 d 日早上），所以報酬比名稱舊約一天（安全，但較不新鮮）；見 timing。",
         "status": "ok",
         "file": "data/extra/yfinance/usd_twd.csv",
-        "rows": 1754,
+        "rows": 1779,
         "date_min": "2020-01-01",
-        "date_max": "2026-09-30",
-        "sha256": "233cda3a19740010c5e4c69384b1708f6e1c034710a10fea9ac6d4a624c1e748",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "4d3437b4b547ed5c9e00f8f63318832625e7d49a40e65d2b1ccc409c3266a7e9",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [
             {
@@ -595,11 +601,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/dxy.csv",
-        "rows": 1697,
+        "rows": 1722,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "f480371620314e2905f9eecd39d4abc80cb8fc05ba12ef4582ada2971d484034",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "1b6f2443c1d771628ce09f3a3f43bc5aebdc54bdd34051e300c609b5050626ab",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -632,11 +638,11 @@
         "note": "以百分比報價（4.25＝4.25%）。",
         "status": "ok",
         "file": "data/extra/yfinance/us10y.csv",
-        "rows": 1684,
+        "rows": 1708,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "8a22b1ddd86257872feb3b02593c10b1a7f42ae6bf1d590c0181d45b8df11347",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "0ea186be1ce260fecbb843fab1f925879b663195c7aa42bb3ef371a622923203",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [
@@ -749,6 +755,16 @@
               "adj_close": 4.119999885559082,
               "volume": 0.0,
               "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+            },
+            {
+              "date": "2026-10-12",
+              "open": 5.239999771118164,
+              "high": 5.239999771118164,
+              "low": 5.239999771118164,
+              "close": 5.239999771118164,
+              "adj_close": 5.239999771118164,
+              "volume": 0.0,
+              "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
             }
           ],
           "placeholder_bars_dropped": [],
@@ -780,11 +796,11 @@
         "note": "2020–2021 接近 0 且偶有負值；百分比報酬在此期間會非常大。",
         "status": "ok",
         "file": "data/extra/yfinance/us13w.csv",
-        "rows": 1684,
+        "rows": 1708,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "ab0599a657d224c1aaf2668ab362b21a8c573cb26fdf25704b3ec635e4223b53",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "25f6a13c9b7fc6f8d8f5f73aa76450d70c8e7a1433a3ab9153aee8ad6316e177",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [
@@ -897,6 +913,16 @@
               "adj_close": 3.7829999923706055,
               "volume": 0.0,
               "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+            },
+            {
+              "date": "2026-10-12",
+              "open": 4.050000190734863,
+              "high": 4.050000190734863,
+              "low": 4.050000190734863,
+              "close": 4.050000190734863,
+              "adj_close": 4.050000190734863,
+              "volume": 0.0,
+              "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
             }
           ],
           "placeholder_bars_dropped": [],
@@ -928,11 +954,11 @@
         "note": "Yahoo 沒有櫃買指數本身（^TWOII／^TWO／^TPEX 皆查無）；以追蹤富櫃50指數的 ETF 代理櫃買市場。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_006201.csv",
-        "rows": 1628,
+        "rows": 1650,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "a41a4498a49b8f60639e757c0d677ad70eb96828dd650fce5ab0be9ee873e468",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "93fc86c60b34a0431f7b2360a10ddb33a0663072be76864dbb031dca3c3eab49",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -963,7 +989,7 @@
               "high": 10.720000267028809,
               "low": 10.720000267028809,
               "close": 10.720000267028809,
-              "adj_close": 8.884191513061523,
+              "adj_close": 8.884190559387207,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
             },
@@ -1026,6 +1052,16 @@
               "adj_close": 21.77480125427246,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
+            },
+            {
+              "date": "2026-10-23",
+              "open": 42.150001525878906,
+              "high": 42.150001525878906,
+              "low": 42.150001525878906,
+              "close": 42.150001525878906,
+              "adj_close": 42.150001525878906,
+              "volume": 0.0,
+              "reason": "零量平盤且等於前一收盤"
             }
           ],
           "split_adjustments": [],
@@ -1068,11 +1104,11 @@
         "note": "ETF 代理，不是台灣50指數本身。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_0050.csv",
-        "rows": 1630,
+        "rows": 1652,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "a5399cc1cb8e5a7fafb743bac5aa76e35c1780db8c0644cfefc2d0d0166765af",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "efa46c7262928c27658c0f53e12559d6935344444ddd8bf0e07669b5e806223a",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1083,7 +1119,7 @@
               "high": 33.162498474121094,
               "low": 33.162498474121094,
               "close": 33.162498474121094,
-              "adj_close": 30.952096939086914,
+              "adj_close": 30.95209503173828,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
             },
@@ -1103,7 +1139,7 @@
               "high": 47.162498474121094,
               "low": 47.162498474121094,
               "close": 47.162498474121094,
-              "adj_close": 45.9013671875,
+              "adj_close": 45.901371002197266,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
             },
@@ -1113,7 +1149,7 @@
               "high": 47.162498474121094,
               "low": 47.162498474121094,
               "close": 47.162498474121094,
-              "adj_close": 45.9013671875,
+              "adj_close": 45.901371002197266,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
             },
@@ -1123,7 +1159,7 @@
               "high": 47.162498474121094,
               "low": 47.162498474121094,
               "close": 47.162498474121094,
-              "adj_close": 45.9013671875,
+              "adj_close": 45.901371002197266,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
             },
@@ -1133,7 +1169,7 @@
               "high": 47.162498474121094,
               "low": 47.162498474121094,
               "close": 47.162498474121094,
-              "adj_close": 45.9013671875,
+              "adj_close": 45.901371002197266,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
             },
@@ -1143,7 +1179,17 @@
               "high": 47.162498474121094,
               "low": 47.162498474121094,
               "close": 47.162498474121094,
-              "adj_close": 45.9013671875,
+              "adj_close": 45.901371002197266,
+              "volume": 0.0,
+              "reason": "零量平盤且等於前一收盤"
+            },
+            {
+              "date": "2026-10-23",
+              "open": 106.9000015258789,
+              "high": 106.9000015258789,
+              "low": 106.9000015258789,
+              "close": 106.9000015258789,
+              "adj_close": 106.9000015258789,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
             }
@@ -1186,11 +1232,11 @@
         "note": "電子類股代理，不是證交所電子類指數。2025 年 11 月一拆七（11-19～25 停牌、11-26 復牌）；Yahoo 只把 11-17 起的K棒÷7、更早的沒調整，且分割前的股利調整只做約 1/7，兩者都由 crawler 修正（見 cleaning）。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_0052.csv",
-        "rows": 1630,
+        "rows": 1652,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "6fb4f54801a605f707ddfedae23be9ee6a2ce521062a2d05887f827c139cf6c4",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "71f7e3a84a2ebbc60d14066f620d5ee03fd3a4d4bbb18717008557b4dcb73b19",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1264,6 +1310,16 @@
               "adj_close": 34.203369140625,
               "volume": 0.0,
               "reason": "零量平盤且等於前一收盤"
+            },
+            {
+              "date": "2026-10-23",
+              "open": 61.79999923706055,
+              "high": 61.79999923706055,
+              "low": 61.79999923706055,
+              "close": 61.79999923706055,
+              "adj_close": 61.79999923706055,
+              "volume": 0.0,
+              "reason": "零量平盤且等於前一收盤"
             }
           ],
           "split_adjustments": [
@@ -1278,28 +1334,28 @@
           "dividend_adjustments_rescaled": [
             {
               "ex_date": "2020-04-22",
-              "yahoo_fraction": 0.004235238745861181,
-              "rescaled_fraction": 0.029646671221028265
+              "yahoo_fraction": 0.004235236443432822,
+              "rescaled_fraction": 0.02964665510402975
             },
             {
               "ex_date": "2021-04-20",
-              "yahoo_fraction": 0.001149470289483645,
-              "rescaled_fraction": 0.008046292026385515
+              "yahoo_fraction": 0.0011495333563315002,
+              "rescaled_fraction": 0.008046733494320502
             },
             {
               "ex_date": "2022-04-20",
-              "yahoo_fraction": 0.01208559170223622,
-              "rescaled_fraction": 0.08459914191565354
+              "yahoo_fraction": 0.012085657522357462,
+              "rescaled_fraction": 0.08459960265650224
             },
             {
               "ex_date": "2023-04-21",
-              "yahoo_fraction": 0.005383167859268845,
-              "rescaled_fraction": 0.03768217501488191
+              "yahoo_fraction": 0.005383242144293754,
+              "rescaled_fraction": 0.03768269501005628
             },
             {
               "ex_date": "2024-04-18",
-              "yahoo_fraction": 0.005714438846111447,
-              "rescaled_fraction": 0.04000107192278013
+              "yahoo_fraction": 0.005714341299665082,
+              "rescaled_fraction": 0.040000389097655575
             },
             {
               "ex_date": "2025-04-23",
@@ -1343,11 +1399,11 @@
         "note": "金融類股代理，不是證交所金融保險類指數。",
         "status": "ok",
         "file": "data/extra/yfinance/etf_0055.csv",
-        "rows": 1635,
+        "rows": 1657,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "9db6a49c58cc36c81ccf761751534a73d86fcd8d062e03b6eb66dccd18b82a51",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "e49bc742e913e44994e866616e5dbeebe4cbbd87fb6468e2937180c97d9f58d8",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1371,6 +1427,16 @@
               "adj_close": 26.847736358642578,
               "volume": 514.0,
               "reason": "平盤且成交量 < 前 21 筆中位數的 1%（不完整K棒）"
+            },
+            {
+              "date": "2026-10-23",
+              "open": 51.900001525878906,
+              "high": 51.900001525878906,
+              "low": 51.900001525878906,
+              "close": 51.900001525878906,
+              "adj_close": 51.900001525878906,
+              "volume": 0.0,
+              "reason": "零量平盤且等於前一收盤"
             }
           ],
           "split_adjustments": [],
@@ -1406,11 +1472,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/dji.csv",
-        "rows": 1695,
+        "rows": 1720,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "ff928fa7ef69a52e1191499b78f39e085e55fbb3b5d811604cda7ce4899f2ba1",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "7e6a7ae525b55f1267de04f20950986761d9976e829feb52a835b3b54bcab5a8",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1443,11 +1509,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/n225.csv",
-        "rows": 1645,
+        "rows": 1668,
         "date_min": "2020-01-06",
-        "date_max": "2026-09-30",
-        "sha256": "d6d619bd698e5b2c3ed5bbdef061e198ce8813de731885fbbe632890731ecac9",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "2a399df17741884a01dbfed5052e0b77a530a839def558808b35728b4fcc0cab",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1480,11 +1546,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/hsi.csv",
-        "rows": 1660,
+        "rows": 1683,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "fc3d8241e1141a1f681cf3956133a928cef9632204ae929cc488198a8b608920",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "02f69ea3cf7f03b727c2e0d5788b397eeaf2da32144f30e3807291550fcb4db1",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1517,11 +1583,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/sse.csv",
-        "rows": 1636,
+        "rows": 1656,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "03b38937c56e9cba75d8f242f4c7065f4fd98844c7fd5f7e15906d1358a439a2",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "59f81fdb93c995c918b78e737b322a76457987afd03c043e9bb33aaf95415048",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1554,11 +1620,11 @@
         "note": "Yahoo 依瑞士假日缺 21 個 Eurex 交易日（1/2、耶穌升天日、聖靈降臨節翌日、8/1），因此 1 期報酬偶爾跨 2 個交易日。",
         "status": "ok",
         "file": "data/extra/yfinance/stoxx50e.csv",
-        "rows": 1698,
+        "rows": 1723,
         "date_min": "2020-01-03",
-        "date_max": "2026-09-30",
-        "sha256": "85fa0c86a56f5166b3e9195ad7e511cbc1b2a7adf96df72caed324a2e414adf3",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "d3fc9c1b4a8dad38050e6d290cd365022d7889edc72c39adacd04fda8a21056b",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1592,11 +1658,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/gdaxi.csv",
-        "rows": 1719,
+        "rows": 1744,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "677bab35a74aea68ac178990e40901579a7af1ee8a18c45d6b85e9e3c099ccb9",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "ec388b68d91605595fa87ead200cc0903458d38d8592654cdb5a6a64e2b37a16",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1630,11 +1696,11 @@
         "note": "連續近月合約；2020-04-20 結算價 −37.63，碰到非正價格的報酬保持空值。",
         "status": "ok",
         "file": "data/extra/yfinance/wti.csv",
-        "rows": 1697,
+        "rows": 1722,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "0036c7af351cf806cd02732c4e8bf01c7cec7aba87eb1527d4ce84b8ace56ad3",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "42fef777e4289ed243d7e3306452255819f167b453f1bba6ef2da9654cb9aa21",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1667,11 +1733,11 @@
         "note": null,
         "status": "ok",
         "file": "data/extra/yfinance/gold.csv",
-        "rows": 1698,
+        "rows": 1723,
         "date_min": "2020-01-02",
-        "date_max": "2026-09-30",
-        "sha256": "746b48f48d2849676f5dd6e1d30e89fdd9a17b996e9cf41a5c097befba0c2570",
-        "fetched_at": "2026-11-04T13:04:26+00:00",
+        "date_max": "2026-11-04",
+        "sha256": "516ca88b35471fecb6469efb1f957acb7a78a548a0c99acfe2f0706f1ddc0401",
+        "fetched_at": "2026-11-05T12:22:02+00:00",
         "cleaning": {
           "bad_ticks_dropped": [],
           "bond_holiday_bars_dropped": [],
@@ -1697,10 +1763,10 @@
   },
   "market_features": {
     "file": "data/features/market_features.csv",
-    "sha256": "59860b37ae802bcae0822fe78c974d5cfefa4c535a31ceaaf9f6a87a32867802",
-    "rows": 1638,
+    "sha256": "6be2f3f17b9f021a20e7877704bc089b24ac36d5b4a5efb3336c3d33c5adbfc1",
+    "rows": 1660,
     "date_min": "2020-01-02",
-    "date_max": "2026-09-30",
+    "date_max": "2026-11-04",
     "date_definition": "老師個股檔所有台股交易日（Training＋Live 到 date_range.end_inclusive 的聯集），比老師 global 表多",
     "alignment_rule": "額外特徵：對每個台股目標日 t，取來源交易日 s <= t − 1 日曆天的最後一筆；報酬先在完整原生序列計算再對齊，不先做多市場日期交集。日期語意已驗證（見 timing_verification）：除 TWD=X 外，每根日K最晚在 d+1 07:00（台北）收完，TWD=X 的 close 在 d 日就定下，所以 s <= t−1 的K棒都在 t 日 07:00 以前收完（市場時間）；Yahoo 實際上架時間未驗證。",
     "teacher_columns": [
@@ -1712,7 +1778,7 @@
       "TX_OI_prev_row"
     ],
     "teacher_columns_definition": {
-      "^VIX/^IXIC/^GSPC": "老師 global 同日期原值照抄（老師表缺該日則空白）；Training 列＝前一個 global 列日期的收盤，Live 9 月列＝日期 < d 的最後一個美股收盤（見 teacher_live.global_convention）；都可當輸入",
+      "^VIX/^IXIC/^GSPC": "老師 global 同日期原值照抄（老師表缺該日則空白）；Training 列＝前一個 global 列日期的收盤，Live 列＝日期 < d 的最後一個美股收盤，10 月以後多數 ^VIX 是前一個美股日的盤中值（見 teacher_live.global_convention）；都可當輸入",
       "^TWII_prev_row/^KS11_prev_row/TX_OI_prev_row": "最後一個日期 < t 的老師 global 列之 ^TWII／^KS11／TX_OI（前兩者是當日收盤、TX_OI 疑似含當日資訊，所以都往前一列）"
     },
     "extra_columns": [
@@ -3015,103 +3081,103 @@
     }
   },
   "extra_feature_non_missing_rows": {
-    "sox_ret_1s": 1636,
-    "sox_ret_5s": 1632,
-    "sox_ret_20s": 1623,
-    "sox_age_days": 1637,
-    "sox_source_date": 1637,
-    "tsm_adr_ret_1s": 1636,
-    "tsm_adr_ret_5s": 1632,
-    "tsm_adr_ret_20s": 1623,
-    "tsm_adr_age_days": 1637,
-    "tsm_adr_source_date": 1637,
-    "nvda_ret_1s": 1636,
-    "nvda_ret_5s": 1632,
-    "nvda_ret_20s": 1623,
-    "nvda_age_days": 1637,
-    "nvda_source_date": 1637,
-    "usd_twd_level": 1638,
-    "usd_twd_ret_1s": 1637,
-    "usd_twd_ret_5s": 1633,
-    "usd_twd_ret_20s": 1625,
-    "usd_twd_age_days": 1638,
-    "usd_twd_source_date": 1638,
-    "dxy_level": 1637,
-    "dxy_ret_1s": 1636,
-    "dxy_ret_5s": 1632,
-    "dxy_ret_20s": 1623,
-    "dxy_age_days": 1637,
-    "dxy_source_date": 1637,
-    "us10y_level_pct": 1637,
-    "us10y_change_bp_1s": 1636,
-    "us10y_change_bp_5s": 1632,
-    "us10y_age_days": 1637,
-    "us10y_source_date": 1637,
-    "us13w_level_pct": 1637,
-    "us13w_change_bp_1s": 1636,
-    "us13w_change_bp_5s": 1632,
-    "us13w_age_days": 1637,
-    "us13w_source_date": 1637,
-    "etf_006201_ret_1s": 1636,
-    "etf_006201_ret_5s": 1632,
-    "etf_006201_ret_20s": 1617,
-    "etf_006201_age_days": 1637,
-    "etf_006201_source_date": 1637,
-    "etf_0050_ret_1s": 1636,
-    "etf_0050_ret_5s": 1632,
-    "etf_0050_ret_20s": 1617,
-    "etf_0050_age_days": 1637,
-    "etf_0050_source_date": 1637,
-    "etf_0052_ret_1s": 1636,
-    "etf_0052_ret_5s": 1632,
-    "etf_0052_ret_20s": 1617,
-    "etf_0052_age_days": 1637,
-    "etf_0052_source_date": 1637,
-    "etf_0055_ret_1s": 1636,
-    "etf_0055_ret_5s": 1632,
-    "etf_0055_ret_20s": 1617,
-    "etf_0055_age_days": 1637,
-    "etf_0055_source_date": 1637,
-    "dji_ret_1s": 1636,
-    "dji_ret_5s": 1632,
-    "dji_ret_20s": 1623,
-    "dji_age_days": 1637,
-    "dji_source_date": 1637,
-    "n225_ret_1s": 1634,
-    "n225_ret_5s": 1629,
-    "n225_ret_20s": 1621,
-    "n225_age_days": 1635,
-    "n225_source_date": 1635,
-    "hsi_ret_1s": 1636,
-    "hsi_ret_5s": 1632,
-    "hsi_ret_20s": 1622,
-    "hsi_age_days": 1637,
-    "hsi_source_date": 1637,
-    "sse_ret_1s": 1636,
-    "sse_ret_5s": 1632,
-    "sse_ret_20s": 1618,
-    "sse_age_days": 1637,
-    "sse_source_date": 1637,
-    "stoxx50e_ret_1s": 1635,
-    "stoxx50e_ret_5s": 1631,
-    "stoxx50e_ret_20s": 1623,
-    "stoxx50e_age_days": 1636,
-    "stoxx50e_source_date": 1636,
-    "gdaxi_ret_1s": 1636,
-    "gdaxi_ret_5s": 1632,
-    "gdaxi_ret_20s": 1624,
-    "gdaxi_age_days": 1637,
-    "gdaxi_source_date": 1637,
-    "wti_ret_1s": 1634,
-    "wti_ret_5s": 1630,
-    "wti_ret_20s": 1621,
-    "wti_age_days": 1637,
-    "wti_source_date": 1637,
-    "gold_ret_1s": 1636,
-    "gold_ret_5s": 1632,
-    "gold_ret_20s": 1623,
-    "gold_age_days": 1637,
-    "gold_source_date": 1637
+    "sox_ret_1s": 1658,
+    "sox_ret_5s": 1654,
+    "sox_ret_20s": 1645,
+    "sox_age_days": 1659,
+    "sox_source_date": 1659,
+    "tsm_adr_ret_1s": 1658,
+    "tsm_adr_ret_5s": 1654,
+    "tsm_adr_ret_20s": 1645,
+    "tsm_adr_age_days": 1659,
+    "tsm_adr_source_date": 1659,
+    "nvda_ret_1s": 1658,
+    "nvda_ret_5s": 1654,
+    "nvda_ret_20s": 1645,
+    "nvda_age_days": 1659,
+    "nvda_source_date": 1659,
+    "usd_twd_level": 1660,
+    "usd_twd_ret_1s": 1659,
+    "usd_twd_ret_5s": 1655,
+    "usd_twd_ret_20s": 1647,
+    "usd_twd_age_days": 1660,
+    "usd_twd_source_date": 1660,
+    "dxy_level": 1659,
+    "dxy_ret_1s": 1658,
+    "dxy_ret_5s": 1654,
+    "dxy_ret_20s": 1645,
+    "dxy_age_days": 1659,
+    "dxy_source_date": 1659,
+    "us10y_level_pct": 1659,
+    "us10y_change_bp_1s": 1658,
+    "us10y_change_bp_5s": 1654,
+    "us10y_age_days": 1659,
+    "us10y_source_date": 1659,
+    "us13w_level_pct": 1659,
+    "us13w_change_bp_1s": 1658,
+    "us13w_change_bp_5s": 1654,
+    "us13w_age_days": 1659,
+    "us13w_source_date": 1659,
+    "etf_006201_ret_1s": 1658,
+    "etf_006201_ret_5s": 1654,
+    "etf_006201_ret_20s": 1639,
+    "etf_006201_age_days": 1659,
+    "etf_006201_source_date": 1659,
+    "etf_0050_ret_1s": 1658,
+    "etf_0050_ret_5s": 1654,
+    "etf_0050_ret_20s": 1639,
+    "etf_0050_age_days": 1659,
+    "etf_0050_source_date": 1659,
+    "etf_0052_ret_1s": 1658,
+    "etf_0052_ret_5s": 1654,
+    "etf_0052_ret_20s": 1639,
+    "etf_0052_age_days": 1659,
+    "etf_0052_source_date": 1659,
+    "etf_0055_ret_1s": 1658,
+    "etf_0055_ret_5s": 1654,
+    "etf_0055_ret_20s": 1639,
+    "etf_0055_age_days": 1659,
+    "etf_0055_source_date": 1659,
+    "dji_ret_1s": 1658,
+    "dji_ret_5s": 1654,
+    "dji_ret_20s": 1645,
+    "dji_age_days": 1659,
+    "dji_source_date": 1659,
+    "n225_ret_1s": 1656,
+    "n225_ret_5s": 1651,
+    "n225_ret_20s": 1643,
+    "n225_age_days": 1657,
+    "n225_source_date": 1657,
+    "hsi_ret_1s": 1658,
+    "hsi_ret_5s": 1654,
+    "hsi_ret_20s": 1644,
+    "hsi_age_days": 1659,
+    "hsi_source_date": 1659,
+    "sse_ret_1s": 1658,
+    "sse_ret_5s": 1654,
+    "sse_ret_20s": 1640,
+    "sse_age_days": 1659,
+    "sse_source_date": 1659,
+    "stoxx50e_ret_1s": 1657,
+    "stoxx50e_ret_5s": 1653,
+    "stoxx50e_ret_20s": 1645,
+    "stoxx50e_age_days": 1658,
+    "stoxx50e_source_date": 1658,
+    "gdaxi_ret_1s": 1658,
+    "gdaxi_ret_5s": 1654,
+    "gdaxi_ret_20s": 1646,
+    "gdaxi_age_days": 1659,
+    "gdaxi_source_date": 1659,
+    "wti_ret_1s": 1656,
+    "wti_ret_5s": 1652,
+    "wti_ret_20s": 1643,
+    "wti_age_days": 1659,
+    "wti_source_date": 1659,
+    "gold_ret_1s": 1658,
+    "gold_ret_5s": 1654,
+    "gold_ret_20s": 1645,
+    "gold_age_days": 1659,
+    "gold_source_date": 1659
   },
   "transform": {
     "definition": {
@@ -3123,15 +3189,15 @@
       "price": "額外指標：股票／ETF 用 adj_close，其他用 close；老師個股用 etl:adj_close；老師全球指數用該欄值",
       "yields": "殖利率（us10y、us13w）也一律用百分比報酬（使用者選擇）；us13w 在 2020-03 與 2021-02～2022-02 接近 0，報酬會到 ±100% 以上，建模時可考慮 winsorize 或穩健縮放",
       "missing": "空白＝缺值：序列在 i 沒有資料、往回不足 k 個交易日、或 close_i／close_{i−k} 缺值或 <= 0；不補值",
-      "leakage": "i 一定早於 t，所以用到的K棒都在 t 日台北 07:00 以前收完（市場時間，見 timing_verification）；老師美股欄已被老師位移：Training 列＝前一個 global 列日期的收盤（長假後可能落後多個美股日），Live 9 月列＝日期 < d 的最後一個美股收盤，所以 teacher_vix／ixic／gspc 的值比名稱舊；teacher_twii／ks11 在 i 列是 i 當日收盤，t 開盤前已知"
+      "leakage": "i 一定早於 t，所以用到的K棒都在 t 日台北 07:00 以前收完（市場時間，見 timing_verification）；老師美股欄已被老師位移：Training 列＝前一個 global 列日期的收盤（長假後可能落後多個美股日），Live 列＝日期 < d 的最後一個美股收盤（10 月以後多數 ^VIX 是前一個美股日的盤中值），所以 teacher_vix／ixic／gspc 的值比名稱舊；teacher_twii／ks11 在 i 列是 i 當日收盤，t 開盤前已知"
     },
     "lags": [
       2,
       5
     ],
-    "rows_per_file": 1638,
+    "rows_per_file": 1660,
     "date_min": "2020-01-02",
-    "date_max": "2026-09-30",
+    "date_max": "2026-11-04",
     "feature_count": 124,
     "files_per_lag": 124,
     "features": {
@@ -3145,14 +3211,14 @@
           "lag2": {
             "file": "data/transform/lag2/sox.csv",
             "column": "sox_ret_lag2",
-            "sha256": "4837ff7f4e78c0323afea7e66769fb4df2a41a08c84a5b6136cd4bc8eff457ee",
-            "non_missing_rows": 1581
+            "sha256": "87c35bdc18d6cc427b50595bc0eaa88172d255a93e251616c8649c86a7f448f3",
+            "non_missing_rows": 1603
           },
           "lag5": {
             "file": "data/transform/lag5/sox.csv",
             "column": "sox_ret_lag5",
-            "sha256": "bb2b1ffd3a0f7ece4ce9cd35069ff00eb582432184f00c6cb6ced37ee13ba1db",
-            "non_missing_rows": 1578
+            "sha256": "220097f2b057fb4c3fbc04a91a82a285e2ce8d001f9819fd464472ca382a8f1b",
+            "non_missing_rows": 1600
           }
         }
       },
@@ -3166,14 +3232,14 @@
           "lag2": {
             "file": "data/transform/lag2/tsm_adr.csv",
             "column": "tsm_adr_ret_lag2",
-            "sha256": "69fec44939dade9f639e06b996a7030e4d472396304117da8849b665c53db2cf",
-            "non_missing_rows": 1581
+            "sha256": "fb577333ee0159263ae1aad2768864400a0ab16c4bf16503f50109e0f1e74425",
+            "non_missing_rows": 1603
           },
           "lag5": {
             "file": "data/transform/lag5/tsm_adr.csv",
             "column": "tsm_adr_ret_lag5",
-            "sha256": "87ce7df1fa510c187f5ec355f963e14dd256b4e3fe359ae036f975ef7f4d5742",
-            "non_missing_rows": 1578
+            "sha256": "e9a144c411580881fcb4c7bd565f541f1be986b75ebdc47b9f5e21eda99e92d5",
+            "non_missing_rows": 1600
           }
         }
       },
@@ -3187,14 +3253,14 @@
           "lag2": {
             "file": "data/transform/lag2/nvda.csv",
             "column": "nvda_ret_lag2",
-            "sha256": "145c8d636858431c6557a2eb96fcc1bb8461838815a1cdd696419d5e1a7c0c1a",
-            "non_missing_rows": 1581
+            "sha256": "70459045f2682062f6aab92a0f24cafd1c1fd9c1463938cea4f2a6ebb3fedf98",
+            "non_missing_rows": 1603
           },
           "lag5": {
             "file": "data/transform/lag5/nvda.csv",
             "column": "nvda_ret_lag5",
-            "sha256": "780d184594a7ac3d89d9324e5c3968a16de71f822cc744c09043384f7e0e9251",
-            "non_missing_rows": 1578
+            "sha256": "554da9fc4cef9683891513d14834a981d4a46492848af8ea3edb64c709323d79",
+            "non_missing_rows": 1600
           }
         }
       },
@@ -3208,14 +3274,14 @@
           "lag2": {
             "file": "data/transform/lag2/usd_twd.csv",
             "column": "usd_twd_ret_lag2",
-            "sha256": "d37c9a49b79adf2d53546bd083e9d9468d63ed1484fe1897efc79c305396ecbf",
-            "non_missing_rows": 1632
+            "sha256": "51f7554d99d4dc743f5f28bc34aeedb8da9773b062378192b1ebf26a01956ec6",
+            "non_missing_rows": 1654
           },
           "lag5": {
             "file": "data/transform/lag5/usd_twd.csv",
             "column": "usd_twd_ret_lag5",
-            "sha256": "fdd97f011e0ecf908cacb442adb3522d828de7212173d11a1fcf86a8cee4d0c7",
-            "non_missing_rows": 1629
+            "sha256": "88037dafc51fec4b27ad91652e5371bf04697a552f27a10988c96f977593c534",
+            "non_missing_rows": 1651
           }
         }
       },
@@ -3229,14 +3295,14 @@
           "lag2": {
             "file": "data/transform/lag2/dxy.csv",
             "column": "dxy_ret_lag2",
-            "sha256": "2bcdcd1a2f900fb32dbfd113fbf002b1d14ec5f730ae5b20de7701f289aee182",
-            "non_missing_rows": 1583
+            "sha256": "403bcf26b54bf29325347430bf7b97b564673957e948e18490a2f6142b423c73",
+            "non_missing_rows": 1605
           },
           "lag5": {
             "file": "data/transform/lag5/dxy.csv",
             "column": "dxy_ret_lag5",
-            "sha256": "995d6f42d5c04b561826f4a1ddd4e95bb7a8dcef275cbe8d767c5a53e2c340ea",
-            "non_missing_rows": 1580
+            "sha256": "23fbddf900cafcd8e9ffb69f1c306f2413e4c1b8185d06c332f053165731581d",
+            "non_missing_rows": 1602
           }
         }
       },
@@ -3250,14 +3316,14 @@
           "lag2": {
             "file": "data/transform/lag2/us10y.csv",
             "column": "us10y_ret_lag2",
-            "sha256": "3ddb7bc94eac0ce2e81184cb391e91a9dcbdee4a26d34c688a67df8c71e9925f",
-            "non_missing_rows": 1573
+            "sha256": "63c4927b698ef803715c6036b84c68ebe79c04956631f3ffe63a430dad9c8850",
+            "non_missing_rows": 1594
           },
           "lag5": {
             "file": "data/transform/lag5/us10y.csv",
             "column": "us10y_ret_lag5",
-            "sha256": "7b19090f77b864c4145f13d9d9dad5146326a1263f6049f989ddd143cd9ffdc0",
-            "non_missing_rows": 1570
+            "sha256": "ce3eb31ce39b380f11510726a0b1f0f8ae43b53eaeedee877b70c2666242e907",
+            "non_missing_rows": 1591
           }
         }
       },
@@ -3271,14 +3337,14 @@
           "lag2": {
             "file": "data/transform/lag2/us13w.csv",
             "column": "us13w_ret_lag2",
-            "sha256": "64c6913e7240c8523e87d5313e454eb74c3efe21f10a6b124ec02379770d2821",
-            "non_missing_rows": 1564
+            "sha256": "0a4d98de3f14de6a2bfd8f77ee887706fd572a0325ca5a32c6e497529b615d9c",
+            "non_missing_rows": 1585
           },
           "lag5": {
             "file": "data/transform/lag5/us13w.csv",
             "column": "us13w_ret_lag5",
-            "sha256": "17815837480dab9aeb0b012d62ad8ecc7a83021435afb888754d7ae01c23baa5",
-            "non_missing_rows": 1560
+            "sha256": "923b1fe6f3765144cfdb8d0b8d488bdfe2b9cac3eeac15d5d789c06079f788dc",
+            "non_missing_rows": 1581
           }
         }
       },
@@ -3292,14 +3358,14 @@
           "lag2": {
             "file": "data/transform/lag2/etf_006201.csv",
             "column": "etf_006201_ret_lag2",
-            "sha256": "e67043ec3976c5ba66efc7c92f098c161aa633df51748de578181a36491a75b0",
-            "non_missing_rows": 1625
+            "sha256": "2ee74f06ffc48e28c41f9be06e550798fa7af736e638722a7293f15df40daf03",
+            "non_missing_rows": 1647
           },
           "lag5": {
             "file": "data/transform/lag5/etf_006201.csv",
             "column": "etf_006201_ret_lag5",
-            "sha256": "faddb5d9dad34e021e4f41e74169236983d5cd73d0bf1d446faea6c8bec6e07f",
-            "non_missing_rows": 1622
+            "sha256": "3dbf605d3be06b2605e8f218266a698bf2ad579eb0f2b9c0402400c22549321b",
+            "non_missing_rows": 1644
           }
         }
       },
@@ -3313,14 +3379,14 @@
           "lag2": {
             "file": "data/transform/lag2/etf_0050.csv",
             "column": "etf_0050_ret_lag2",
-            "sha256": "734c1786eaccb7e16ba177df70648730e80ae68b3ca1062302cf657e263424d9",
-            "non_missing_rows": 1627
+            "sha256": "b41e397bd1e649e53a4109d4eb42f9a1e7a628ffb53f7d5a3332fc2585cbfc7e",
+            "non_missing_rows": 1649
           },
           "lag5": {
             "file": "data/transform/lag5/etf_0050.csv",
             "column": "etf_0050_ret_lag5",
-            "sha256": "3e791855bdf54a3dc26b8149af8e9c01da5ca77da2d214e36537aeec9f548568",
-            "non_missing_rows": 1624
+            "sha256": "e623455bfc897915829f4d555a25020e444881dfc6dcde4b08ec41dfc188e870",
+            "non_missing_rows": 1646
           }
         }
       },
@@ -3334,14 +3400,14 @@
           "lag2": {
             "file": "data/transform/lag2/etf_0052.csv",
             "column": "etf_0052_ret_lag2",
-            "sha256": "010f60cc93d11fbd7034d2c722e31e90c7bdbbc5820b936ebbc0fba78f4f5cc3",
-            "non_missing_rows": 1627
+            "sha256": "e793db64800d468580aa73be3e3a1adbfba2d9773414d39cb81530b49b6ea4d4",
+            "non_missing_rows": 1649
           },
           "lag5": {
             "file": "data/transform/lag5/etf_0052.csv",
             "column": "etf_0052_ret_lag5",
-            "sha256": "86eafa5f37864519935d31a6694cb0b660995533e8b4417bf2f25a83c3f249b3",
-            "non_missing_rows": 1624
+            "sha256": "ca3b2a2199249e0d2f6316db061f9208360d156ed7cc1166ce111b94c519169d",
+            "non_missing_rows": 1646
           }
         }
       },
@@ -3355,14 +3421,14 @@
           "lag2": {
             "file": "data/transform/lag2/etf_0055.csv",
             "column": "etf_0055_ret_lag2",
-            "sha256": "957405d20d4417271529a85cd9cdd2fd3ced46a3436d520ef6b11cdd42430181",
-            "non_missing_rows": 1632
+            "sha256": "64afd4c9a972a3db1544b1b565074d7a6b64b4f1620820bf31d6ed66e462e821",
+            "non_missing_rows": 1654
           },
           "lag5": {
             "file": "data/transform/lag5/etf_0055.csv",
             "column": "etf_0055_ret_lag5",
-            "sha256": "05f9613fea2d95941bde0e4212a85098fb48a6ac97cb641bc87aa657d1216291",
-            "non_missing_rows": 1629
+            "sha256": "9911d3437827aca970c908a318ca6cd568dd1fb48fff2fe02e2f0546a3da8d67",
+            "non_missing_rows": 1651
           }
         }
       },
@@ -3376,14 +3442,14 @@
           "lag2": {
             "file": "data/transform/lag2/dji.csv",
             "column": "dji_ret_lag2",
-            "sha256": "c1477d54870f8c6fafdc01d0fc6174720ff4f022832d93d8e0db2cabfedaa922",
-            "non_missing_rows": 1581
+            "sha256": "a04d1fc06f527358c886a7de8f651f60a266a5270e69845fd693d217083f62a7",
+            "non_missing_rows": 1603
           },
           "lag5": {
             "file": "data/transform/lag5/dji.csv",
             "column": "dji_ret_lag5",
-            "sha256": "07888f5591ea8024211c4e91c06aeee052cd7c65790d52e88e6c76f5d3f8fd86",
-            "non_missing_rows": 1578
+            "sha256": "cb44d7f332ae300b887012ffe5e0f786040ebb0900abc318f0acb72f6e5c2f38",
+            "non_missing_rows": 1600
           }
         }
       },
@@ -3397,14 +3463,14 @@
           "lag2": {
             "file": "data/transform/lag2/n225.csv",
             "column": "n225_ret_lag2",
-            "sha256": "0d22222d3288bee36ccf4558ae078b1bef3463e423a142182b0ddf82ee8beba6",
-            "non_missing_rows": 1532
+            "sha256": "161c0e020f455aa0ad50a1bb30861df7cf996dc0f401e47b7b05c96b250de6a9",
+            "non_missing_rows": 1552
           },
           "lag5": {
             "file": "data/transform/lag5/n225.csv",
             "column": "n225_ret_lag5",
-            "sha256": "a2481bdbea57fd73cffcf106a921b20658ca2f0706e7f43b466a033efb8cd324",
-            "non_missing_rows": 1529
+            "sha256": "9867452305bea2e3c961d3d6d47c11964eeb2784cfbe8595b1505476f0561fc8",
+            "non_missing_rows": 1549
           }
         }
       },
@@ -3418,14 +3484,14 @@
           "lag2": {
             "file": "data/transform/lag2/hsi.csv",
             "column": "hsi_ret_lag2",
-            "sha256": "e3ff7800c2965dba7f96363c38877f902e2d36c183cd13031277c6d0787b10b5",
-            "non_missing_rows": 1581
+            "sha256": "bab83f43fae9dcb2e43f187654b5d4a0c5f3a0b04670eee662eb82de1a508ee2",
+            "non_missing_rows": 1601
           },
           "lag5": {
             "file": "data/transform/lag5/hsi.csv",
             "column": "hsi_ret_lag5",
-            "sha256": "9d2d385befe843803830d816049f6bb85388d58fe43d02efc7705dd07c840847",
-            "non_missing_rows": 1578
+            "sha256": "cd13b7d7a7a9980caa3eecc8b2733c217cac0e8a7621a9bab9ce40b2c27067a6",
+            "non_missing_rows": 1598
           }
         }
       },
@@ -3439,14 +3505,14 @@
           "lag2": {
             "file": "data/transform/lag2/sse.csv",
             "column": "sse_ret_lag2",
-            "sha256": "57d7f7dfd3568f0d6e56b635d8f27664e15ca52ee6dee1773e09bb4134f438a2",
-            "non_missing_rows": 1579
+            "sha256": "091a16ac68ee0c07d0291256482dcbe678812f4c1bd6b8593afe4dda0e1fe767",
+            "non_missing_rows": 1596
           },
           "lag5": {
             "file": "data/transform/lag5/sse.csv",
             "column": "sse_ret_lag5",
-            "sha256": "3b8b5b25c2d21ea343b70192d76cebea77125865a90e203d793ef23505d270e9",
-            "non_missing_rows": 1576
+            "sha256": "e94f0c21ac99c4cf37ad68165246376262896f71b81ac47a59b824628f3be59b",
+            "non_missing_rows": 1593
           }
         }
       },
@@ -3460,14 +3526,14 @@
           "lag2": {
             "file": "data/transform/lag2/stoxx50e.csv",
             "column": "stoxx50e_ret_lag2",
-            "sha256": "b4d59b2fdfb0c1c287f5bb19654f59138c7bdccabd589c552ca8d6008db78483",
-            "non_missing_rows": 1589
+            "sha256": "afe8830617f17caf6873272d2bb1df6445129667efb44624bffb08ebc1f2be96",
+            "non_missing_rows": 1611
           },
           "lag5": {
             "file": "data/transform/lag5/stoxx50e.csv",
             "column": "stoxx50e_ret_lag5",
-            "sha256": "4f345e48a39ce054d11ca31bd7ccfe77e7dd7cb425c09be3686343421f4b81fd",
-            "non_missing_rows": 1586
+            "sha256": "b61606601ea866bb5731a42d7e449229d4ec04589a62cad68f58a55fd422ace2",
+            "non_missing_rows": 1608
           }
         }
       },
@@ -3481,14 +3547,14 @@
           "lag2": {
             "file": "data/transform/lag2/gdaxi.csv",
             "column": "gdaxi_ret_lag2",
-            "sha256": "c11e886deef454a70cbb0213274ede9025646a0823e4b47eb56b608922e36295",
-            "non_missing_rows": 1609
+            "sha256": "d3166e4bc51f3e7a843f03e6829bd0bfcb27db4c61d8a9af1c1a45167527cde6",
+            "non_missing_rows": 1631
           },
           "lag5": {
             "file": "data/transform/lag5/gdaxi.csv",
             "column": "gdaxi_ret_lag5",
-            "sha256": "0cab8621b8a61aa5066db96823d268915daab0982a448411579e85702bb5ec38",
-            "non_missing_rows": 1606
+            "sha256": "588ffd73cf5b7ca945e6fdfc74cc95719b8c27fdb30fafceb90bcfd985a33866",
+            "non_missing_rows": 1628
           }
         }
       },
@@ -3502,14 +3568,14 @@
           "lag2": {
             "file": "data/transform/lag2/wti.csv",
             "column": "wti_ret_lag2",
-            "sha256": "d468d71d0a86d38d2b5447bca8b02f16aca8c1a018e67e3fd19c8df8641bcd7d",
-            "non_missing_rows": 1581
+            "sha256": "e8767bfa088e602da6f6fc4ade2570a96995e262bf8780bedf03c96db3e62c7a",
+            "non_missing_rows": 1603
           },
           "lag5": {
             "file": "data/transform/lag5/wti.csv",
             "column": "wti_ret_lag5",
-            "sha256": "145926df6a9ac784935ea4a1750cf2b8d23eec4b3f2936a16cd0038148f13392",
-            "non_missing_rows": 1578
+            "sha256": "ed9c083bdc5a5dfccd0ceed8e51058a8c476a1f03e78d06b437d5734ec82da9a",
+            "non_missing_rows": 1600
           }
         }
       },
@@ -3523,14 +3589,14 @@
           "lag2": {
             "file": "data/transform/lag2/gold.csv",
             "column": "gold_ret_lag2",
-            "sha256": "a87e638ce4f30577566dc44b16be073c92ded579e486b06d7935f15d527f6ada",
-            "non_missing_rows": 1584
+            "sha256": "285d1049a62858fa13fe6b886ccbfed11ad4bb2cd92bfaff588cbb876b7df396",
+            "non_missing_rows": 1606
           },
           "lag5": {
             "file": "data/transform/lag5/gold.csv",
             "column": "gold_ret_lag5",
-            "sha256": "662f5f3223cf524811586d188e6506f0a17625a09a7bfaf99b6359468ef4e868",
-            "non_missing_rows": 1581
+            "sha256": "4dd4fb91749aca0f2cb935af21d45ee487ac60fac8e2daef0b3256ba9198c29f",
+            "non_missing_rows": 1603
           }
         }
       },
@@ -3540,19 +3606,19 @@
         "group": "teacher_global",
         "price_column": "^VIX",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。（以上是 Training；Live 見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_vix.csv",
             "column": "teacher_vix_ret_lag2",
-            "sha256": "7b53da07431c532eab1561b629b561307c7d04f840e35771aad4969918f5fe0c",
-            "non_missing_rows": 1523
+            "sha256": "e1559d825877aca1656296b560ddbb514170ce3dc18d1a4513b5aea7482a6254",
+            "non_missing_rows": 1545
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_vix.csv",
             "column": "teacher_vix_ret_lag5",
-            "sha256": "6e6963819decdeaaa9261c724091c7a031c2f21ed5566279130c91518b59b6cc",
-            "non_missing_rows": 1520
+            "sha256": "975a3f791e8376bb22b064e4c51b65f33d14f2737fbd9419d7b8a52ad1251f7d",
+            "non_missing_rows": 1542
           }
         }
       },
@@ -3562,19 +3628,19 @@
         "group": "teacher_global",
         "price_column": "^IXIC",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。（以上是 Training；Live 見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_ixic.csv",
             "column": "teacher_ixic_ret_lag2",
-            "sha256": "cbf1502a54264e3d6a5f40a111cc9780077a027b50204983a30a1148d426a957",
-            "non_missing_rows": 1523
+            "sha256": "7ee892a6d6c0041c8186b49544411c820e9f174a59d8b653151e088a7dcfd09c",
+            "non_missing_rows": 1545
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_ixic.csv",
             "column": "teacher_ixic_ret_lag5",
-            "sha256": "33b3c13d7c508b518ba013a28d83e0f1885bd193c647730f11a38bd52c1b0c62",
-            "non_missing_rows": 1520
+            "sha256": "948843f54985e6529c2306d13f03cc5e3229a462f7eb6e23efd1afac32ec5aa7",
+            "non_missing_rows": 1542
           }
         }
       },
@@ -3584,19 +3650,19 @@
         "group": "teacher_global",
         "price_column": "^GSPC",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
+        "timing": "列日期 d 的值＝「前一個老師 global 列日期」的 Yahoo 收盤（老師已位移，09:00 前可得）。2026-11-04 與 Yahoo 原始收盤逐值比對（相對誤差 < 1e-6）：第 j 列＝第 j−1 列日期的收盤 1505/1505，第一列 2020-01-03＝2020-01-02 的收盤。global 表只有五個序列同日都有資料才有列，所以長假後會落後多個美股交易日（以 ^GSPC／^IXIC 的美股日曆計 88 列，例：2020-01-30 那列是 01-17 的收盤）；不要再自行 shift。（以上是 Training；Live 見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_gspc.csv",
             "column": "teacher_gspc_ret_lag2",
-            "sha256": "ba6410a2478d107e3fcc7ad424254749f07741448aa95ec5bc161a0a328b1c55",
-            "non_missing_rows": 1523
+            "sha256": "2fbb7a1788b0c857de34f57ff7362a0e9c2bcedd936516c1dc7da5f080c6047b",
+            "non_missing_rows": 1545
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_gspc.csv",
             "column": "teacher_gspc_ret_lag5",
-            "sha256": "2fd7368a23d2ce72d7332550c845c7e4b979cb8b7b27798e2b1168f3f57a0d3d",
-            "non_missing_rows": 1520
+            "sha256": "c14e694028432a1a5018445d2781b80639680946901e30b5bbb56a9f4edb3db5",
+            "non_missing_rows": 1542
           }
         }
       },
@@ -3606,19 +3672,19 @@
         "group": "teacher_global",
         "price_column": "^TWII",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^TWII 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與 0050 同日 0.94、前一交易日 0.08）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
+        "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^TWII 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與 0050 同日 0.94、前一交易日 0.08）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。（以上是 Training；Live 見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_twii.csv",
             "column": "teacher_twii_ret_lag2",
-            "sha256": "7e996b72d1b7ff97fef5277d99d4914d59f21af93b18b52703f335f90ac554d2",
-            "non_missing_rows": 1523
+            "sha256": "ac851ac8d956fecf403ec4753a5f00b0f0039c0396e71d182138082a1727f558",
+            "non_missing_rows": 1545
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_twii.csv",
             "column": "teacher_twii_ret_lag5",
-            "sha256": "c5f1682bf4b152c41056059d0b4b74fa363a82f689b2125a7100ca78df9016f8",
-            "non_missing_rows": 1520
+            "sha256": "c6754e9034027599e39c5e7832e30dc4e722aecfe76dedeeaeaae33ce7c5842c",
+            "non_missing_rows": 1542
           }
         }
       },
@@ -3628,19 +3694,19 @@
         "group": "teacher_global",
         "price_column": "^KS11",
         "previous_trading_day": "老師 global 表的前 k 列。Training 部分只有五個序列同日都有資料才有列；Live 部分（Training 之後）每個台股日都有一列，休市的市場沿用前一筆值",
-        "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^KS11 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與日經225同日 0.65、前一交易日 0.01）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。（以上是 Training；Live 9 月見 teacher_live.global_convention）",
+        "timing": "列日期 d 的值＝d 當日收盤（2026-11-04 與 Yahoo ^KS11 原始收盤逐值比對：同日相同 1506/1506；早先的相關性檢查：與日經225同日 0.65、前一交易日 0.01）；09:00 前不可得；作為輸入至少要往前一列。market_features.csv 已改放前一列的值。（以上是 Training；Live 見 teacher_live.global_convention）",
         "files": {
           "lag2": {
             "file": "data/transform/lag2/teacher_ks11.csv",
             "column": "teacher_ks11_ret_lag2",
-            "sha256": "53cf053421c66a3b4acda438799ebc0d0025d86d89fb466090fd9da3669551c9",
-            "non_missing_rows": 1523
+            "sha256": "0d6b16e3e1f1a49e3b3cc746505d936c9b9ab81a4c7a51a764c9f623b21363b2",
+            "non_missing_rows": 1545
           },
           "lag5": {
             "file": "data/transform/lag5/teacher_ks11.csv",
             "column": "teacher_ks11_ret_lag5",
-            "sha256": "dce5e834ceb3591f8aa0b5f4ea1c839eaea3a544215458fed8d90911c7e57e15",
-            "non_missing_rows": 1520
+            "sha256": "a5fd2bc8c65fa72cf8c16c84c5575891f8d55a2fc61e61eda04854c05350cb86",
+            "non_missing_rows": 1542
           }
         }
       },
@@ -3654,14 +3720,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1101.csv",
             "column": "stock_1101_ret_lag2",
-            "sha256": "ecbd8255ae6d9ab3724f942efad5cc5de98345022b64b52dc38d48b6dae740d2",
-            "non_missing_rows": 1634
+            "sha256": "55ad3e6b5d0b2eaee663157c263c7f08c199059e2880791d88cb682eb88cf784",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1101.csv",
             "column": "stock_1101_ret_lag5",
-            "sha256": "e18ad008ff041014b38b70874977a7d7408c2601f5eaf112776e11f3b17bbc10",
-            "non_missing_rows": 1631
+            "sha256": "367c2f9553116fa819aa03ed0ff731f54551a3ec1b9418e41e32a2f7addaa797",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -3675,14 +3741,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1102.csv",
             "column": "stock_1102_ret_lag2",
-            "sha256": "44963c3c6b5352f5d009c920d66ce1e763ee464e227500c68a9534aa9b1f29b2",
-            "non_missing_rows": 1634
+            "sha256": "7bce4a2429699be4668bf7d10ce4238ae33431acb8c6058228aea9fcc1509768",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1102.csv",
             "column": "stock_1102_ret_lag5",
-            "sha256": "9a80a579760f9aa8cb0e06607753089b965dc01d7b8fa5eeff4cee4be266c519",
-            "non_missing_rows": 1631
+            "sha256": "96127ad67958ab4b9e5fdbeab1e8b0b86dd0b4d4a527e6cccf6865711307c51d",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -3696,14 +3762,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1216.csv",
             "column": "stock_1216_ret_lag2",
-            "sha256": "c1ff2d006409c5b91ca8e7a4990c1e9cdd9e66d10f807fc3b40180f66cc7f22d",
-            "non_missing_rows": 1635
+            "sha256": "c958550f79c25eef83c2c48a3698a01ccf0e5467e01bf21d782f249f4b0348d6",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1216.csv",
             "column": "stock_1216_ret_lag5",
-            "sha256": "76e28860d92e9aa8789c96be363e0e6fef0acb83f61f5568d00ae76c7eb6a3f7",
-            "non_missing_rows": 1632
+            "sha256": "9748e92fc972bf51b36581847c89aa57d415546114b3fd436833fab2d49cc140",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3717,14 +3783,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1301.csv",
             "column": "stock_1301_ret_lag2",
-            "sha256": "af36b8f8181731394ea1708f587b79a281e2d05190c111952c28ef05033db128",
-            "non_missing_rows": 1635
+            "sha256": "09bc68f70c63cdc4295c213e5fb3ac94cd6e6bd3e5b5baf023e1779ceb7a2981",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1301.csv",
             "column": "stock_1301_ret_lag5",
-            "sha256": "1d5282c85fb7aa8d9d2a201c0c82e97bebb1de36d824bc61249e755b8ec18d12",
-            "non_missing_rows": 1632
+            "sha256": "9fc6930eb1e0f61db41e30465013a5d1fd370766267d373feceb3768f6ddfcdc",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3738,14 +3804,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1303.csv",
             "column": "stock_1303_ret_lag2",
-            "sha256": "609a7a6276546db819f36e13f702271770aee466808709cd5596b5ff01c5ba6b",
-            "non_missing_rows": 1635
+            "sha256": "49af823d5e0237f423dcc418d3de07b7254fa5798c84e9acc25a0d783af5ca9d",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1303.csv",
             "column": "stock_1303_ret_lag5",
-            "sha256": "f5cc0dfd1ac2404d9ad80948467e0faa2eb468fcf162861509c02f1236d95ed6",
-            "non_missing_rows": 1632
+            "sha256": "fbf41960622299cd7bf49c63149b61452096b011f16029967bbd2d2b1052f48d",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3759,14 +3825,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1326.csv",
             "column": "stock_1326_ret_lag2",
-            "sha256": "c0d28798fd7f750c680c7f55895360245b358d99b8fa8235ee0e1e9475dd3b67",
-            "non_missing_rows": 1635
+            "sha256": "27a7ff2ed913e1db439f7a328bd7455703bac75cb4a6be01b902dc7c3480cb1d",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1326.csv",
             "column": "stock_1326_ret_lag5",
-            "sha256": "451507042d5ba4608d0331410a2d52508ce11f1b17d02be1617fd129037e8197",
-            "non_missing_rows": 1632
+            "sha256": "3f47182bdc6bbfc4a83a9d4436deb91c794a0367b81aae2cbcf34ee168deecc7",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3780,14 +3846,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1402.csv",
             "column": "stock_1402_ret_lag2",
-            "sha256": "2843a48e7efcd758bedd4f4dccaa3b84beeebb13de5ebd4386533474f63fcfb6",
-            "non_missing_rows": 1635
+            "sha256": "b10ed4fa49a4b8a6912a50f85a3b18eeb255e196833d7c2203f9c7dcddcf4a58",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1402.csv",
             "column": "stock_1402_ret_lag5",
-            "sha256": "4bcafcddea88c0e9ff262780ef3ce6dd9846b3be062ee0c6303332a2ae9bd842",
-            "non_missing_rows": 1632
+            "sha256": "02decfad3f77ce348fdf01c2cb7ff523b646a9dc791a44c4d67ef6d67cb79236",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3801,14 +3867,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1476.csv",
             "column": "stock_1476_ret_lag2",
-            "sha256": "9311d70eae1196cf7c8f4dad8b79b0a2eb248526eb341806e1b672d4a34634af",
-            "non_missing_rows": 1635
+            "sha256": "32f08e6241cce23214334750dbf7a16548d11fadaa48f177a8f7f89d45e53e2f",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1476.csv",
             "column": "stock_1476_ret_lag5",
-            "sha256": "1131f5288aa6690483aef1846efcfc977a1870e9b5cb713599276dd09ac18a69",
-            "non_missing_rows": 1632
+            "sha256": "2db9840b64ff6314f03b70f13b1e18319f0250fa2f785f78a3b50fd0e6594ded",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3822,14 +3888,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1504.csv",
             "column": "stock_1504_ret_lag2",
-            "sha256": "d1761f2175edf0545679d7f1b5d6257ba165b6e028fcf8a171c2ad126954742c",
-            "non_missing_rows": 1634
+            "sha256": "6fc1f38189b2f13718c30c7d9f77d38869ffda1b86e590dfe43e6784fd7aaf7a",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1504.csv",
             "column": "stock_1504_ret_lag5",
-            "sha256": "3d3e651bc10f0f490b6f1be07e0194da44ca67f7e93843f4a3dbb38446147fea",
-            "non_missing_rows": 1631
+            "sha256": "1ee6500bf8848206351d5c464d633a7150ef68c9c5c313fa7110876e68ac895d",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -3843,14 +3909,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1519.csv",
             "column": "stock_1519_ret_lag2",
-            "sha256": "b517ae1c47c2c5638538937759b5e1f284ef9dc65ea26001add1702e72962067",
-            "non_missing_rows": 1635
+            "sha256": "c80b12dfbb4a2b6327f973aa978c8061de28e685ee78ff932907dafae4cb1b53",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1519.csv",
             "column": "stock_1519_ret_lag5",
-            "sha256": "523c140c7b90e03eb716bd8dc8d7c209631f04216c0a2745fb59f3918c0497d7",
-            "non_missing_rows": 1632
+            "sha256": "97fd1c82e1ef51bd37421c3e094262eb4c747ca19750e89188afde82a09228bb",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3864,14 +3930,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_1590.csv",
             "column": "stock_1590_ret_lag2",
-            "sha256": "60a4aea5eba94fc802f705e3fac0d6aae65791e02861052f87e36eda0cfd09af",
-            "non_missing_rows": 1635
+            "sha256": "b979d237cb9d7773f33dabe92ceff716a57d18bdc5c027607ad0b71451b0a0ba",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_1590.csv",
             "column": "stock_1590_ret_lag5",
-            "sha256": "7aea928d7fd3a978c5e3361c77848a1894298172f8287e8f99babd02898416e1",
-            "non_missing_rows": 1632
+            "sha256": "7cb59ab9f902330dcaf645cdc8419dc58d17358c41e07c3f00b69d00ae904ec0",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3885,14 +3951,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2002.csv",
             "column": "stock_2002_ret_lag2",
-            "sha256": "8d1eeff729fe9d85f07113c0ccaac4169f813a6cea1dd74199909ec2db9629df",
-            "non_missing_rows": 1635
+            "sha256": "e7a2874c082015c700fa1383b78217b82ce690b34b9198eee945a760a2634b7c",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2002.csv",
             "column": "stock_2002_ret_lag5",
-            "sha256": "21256d0ed01a09f36b46463d27c5e4cd3741ff96625a025e89fff40511dd52fc",
-            "non_missing_rows": 1632
+            "sha256": "93ac0c47950cc21ab3acdf6f8987cb1963f6bc6deda413671612b3bea6caf0de",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3906,14 +3972,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2059.csv",
             "column": "stock_2059_ret_lag2",
-            "sha256": "42afb0d2646f4ada73960f4c7b6bc72e5e50111fef80ef746db83926cc1c013d",
-            "non_missing_rows": 1635
+            "sha256": "510ccef2d907f6e25551f1d88162d5b33744df3e77cb203fc0653bed886e9efa",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2059.csv",
             "column": "stock_2059_ret_lag5",
-            "sha256": "0ac5b20d6da543a6d4ead7f902dbf5f10b979f589329802957f3d4640b5fe2f7",
-            "non_missing_rows": 1632
+            "sha256": "dc114aa74442d3683242dc09c8c9b25fe2afee98ac5015905d119589c53af80d",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3927,14 +3993,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2105.csv",
             "column": "stock_2105_ret_lag2",
-            "sha256": "72c9ab41f5c8350c113a27d15f5712c444f5fbd4a3a3c4fb03dc4ecd128d5070",
-            "non_missing_rows": 1635
+            "sha256": "19e935f9b92dd93344df8e8462258be769faaeb6514a3ac3df26e5cec6e50512",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2105.csv",
             "column": "stock_2105_ret_lag5",
-            "sha256": "c4236a6123602d38fa2c4a5ce1d9621dbd8dae906331adbe8d10d992c46bf6ec",
-            "non_missing_rows": 1632
+            "sha256": "9c15edeb985e425bc304ee387a644338618edbe719807b6ea67a54a2e3c94a81",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3948,14 +4014,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2207.csv",
             "column": "stock_2207_ret_lag2",
-            "sha256": "aa606597d501468b1089c38a06865070c5bb4f4a7e391a31858beaf6e1e8c31f",
-            "non_missing_rows": 1634
+            "sha256": "1f87788c23d5139c7d3eea947ba3013ffa3a2e897f8c5a411ebbf836df00e610",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2207.csv",
             "column": "stock_2207_ret_lag5",
-            "sha256": "f8e8ccd64f3e2947c9fde0783116def6a0cfa73fd0862711d65b79b7a49036b7",
-            "non_missing_rows": 1631
+            "sha256": "1392713abaa0a2dc32153ba32d9f497e110b513e0c53c8f34a6f133d7901ed66",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -3969,14 +4035,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2301.csv",
             "column": "stock_2301_ret_lag2",
-            "sha256": "5df1972ec62c40d3a84b3c581913aa52c62ee94c5fd8bf6386fbe5d9378008d3",
-            "non_missing_rows": 1635
+            "sha256": "e366e5f08489e8adcb18571ea154f8838d5214bd9592cb4f344654c0ed5cfdad",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2301.csv",
             "column": "stock_2301_ret_lag5",
-            "sha256": "67f380855aba8a8301ee2031cc13f7be968990156dccc9e9ca1aaf722bdcca12",
-            "non_missing_rows": 1632
+            "sha256": "09c0b13b86355c603e0c69dd3d9d7657ad8c8c009eb35be5398add505434587f",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -3990,14 +4056,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2303.csv",
             "column": "stock_2303_ret_lag2",
-            "sha256": "947953b89bcbb93da4df347e79398c2f23832d37d6b0077bae33ebcca5baa721",
-            "non_missing_rows": 1635
+            "sha256": "8a7828949098fe46eb4e24de2719c083bec09a931e3cf90e0aa7ab14dcff64aa",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2303.csv",
             "column": "stock_2303_ret_lag5",
-            "sha256": "7e2bca0c99b583f2015a21d09ebf15b73946f516dec596e7a8186f57832fc289",
-            "non_missing_rows": 1632
+            "sha256": "d0a539dd0207e9be96e55593f41e9f12f2cc690ed91458a0e8a65ebe00c3d286",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4011,14 +4077,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2308.csv",
             "column": "stock_2308_ret_lag2",
-            "sha256": "f25c360207d7412c281396c4d35ea3b5b2657897932860c4c0294d4b5ff7a8c1",
-            "non_missing_rows": 1635
+            "sha256": "99851ed7ffda80c12dfb4ac6cd7c399ff70b733976b7cae842301795bd3896e1",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2308.csv",
             "column": "stock_2308_ret_lag5",
-            "sha256": "421d539277b5911793c548ead8657f813699fe36373946b7f6f4aad7c3ad1116",
-            "non_missing_rows": 1632
+            "sha256": "5d5ed5e469abd431132e09b6a5784c1dc9a84144c179322dd5434618b4df79ab",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4032,14 +4098,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2317.csv",
             "column": "stock_2317_ret_lag2",
-            "sha256": "f6e5f22f50336f5ea72310b50e26359fed02a1b65083368225559b470696f9b7",
-            "non_missing_rows": 1634
+            "sha256": "78043e6ae518e4744b633c1c5b0ef2ad0e0a458272a8e9951b1c73fe0b5ad185",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2317.csv",
             "column": "stock_2317_ret_lag5",
-            "sha256": "3754733d743018fd7259a4306041e2dfeb62b327ef09fc992a61bfb98b0c7df8",
-            "non_missing_rows": 1631
+            "sha256": "9d5affd803eae27aff1340dfd0ab96a149d9e21dd6fd3bceb935f2dc2cb0f0c2",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -4053,14 +4119,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2324.csv",
             "column": "stock_2324_ret_lag2",
-            "sha256": "66d7852d1282e5c5293ee615a67a90e3ecbddec4b472adb553222eded575f88d",
-            "non_missing_rows": 1635
+            "sha256": "88037beeb285a10e17a9a59ae5bf267e941a54755a01ce14c0baaf6ab7605d06",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2324.csv",
             "column": "stock_2324_ret_lag5",
-            "sha256": "3b5d379de447a52a708619f740cb4f2741d2f233b861558fb23fa6e62a3cccdf",
-            "non_missing_rows": 1632
+            "sha256": "b4d3edfa4f5fdc51aa7a36735ebbab85691d31b36b0d4000b3c9db9b4b80b059",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4074,14 +4140,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2327.csv",
             "column": "stock_2327_ret_lag2",
-            "sha256": "f23c1a04faffbc0b18fc50c5a792facdec489dc2b8f1de440d89ce7ab3a4e15b",
-            "non_missing_rows": 1620
+            "sha256": "21560b76768cca529631d5194ebab30fe9b37106628f9ee305092b9e0af4494a",
+            "non_missing_rows": 1642
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2327.csv",
             "column": "stock_2327_ret_lag5",
-            "sha256": "ea864c21c21df977010c2fe7b6a45da42562b8fe952ae1873495762aba940040",
-            "non_missing_rows": 1617
+            "sha256": "171cb7173b67783e6a832f9041747201d340022a564acbc16263a8f52b796185",
+            "non_missing_rows": 1639
           }
         }
       },
@@ -4095,14 +4161,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2330.csv",
             "column": "stock_2330_ret_lag2",
-            "sha256": "44862f039cea75f6c2b516401583a1bc7af0eea67ae3fe02e09d6821ce67b5b8",
-            "non_missing_rows": 1635
+            "sha256": "2d14a355d7815069e367b67ee08c73a387585c6c88ff531b611f215bb8dacb9b",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2330.csv",
             "column": "stock_2330_ret_lag5",
-            "sha256": "7c448e0d01aab630ab7bbd31e25f94aa204a00ad087b62ee2f439209f3e4c8f0",
-            "non_missing_rows": 1632
+            "sha256": "bbe21019405111c571d800af7be7bf2201ee9e3994fbb8b6b904cc8be53b48ca",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4116,14 +4182,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2344.csv",
             "column": "stock_2344_ret_lag2",
-            "sha256": "257a8e4a839d11bf18d11ae49707a94a255e91c46480074d33c4a50cb1ce8426",
-            "non_missing_rows": 1635
+            "sha256": "ca04e4dabb8b50165d4efb9dc77e478afa5ee0f460a7969d57662781430b1479",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2344.csv",
             "column": "stock_2344_ret_lag5",
-            "sha256": "83e71fe274973889325a70f0786b22d3386c5b65a41c0b2268172ec89a0eea28",
-            "non_missing_rows": 1632
+            "sha256": "b7d6026d0e9870eeceb75c02aba1919f6765b1bbb1167a247cdc372049581493",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4137,14 +4203,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2345.csv",
             "column": "stock_2345_ret_lag2",
-            "sha256": "ed49fa5001aeafa781fedc9195eaf3601b9e9fbeeb36ce03d0635a5dde511755",
-            "non_missing_rows": 1635
+            "sha256": "dfa94f0a3eafdf05f90f7e1c664eae3f40f602669250e72fe93109df399556a5",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2345.csv",
             "column": "stock_2345_ret_lag5",
-            "sha256": "1024e750888f33e476b764a60184721d9ff35e7684eba56b8fad2025d7ac115d",
-            "non_missing_rows": 1632
+            "sha256": "b0a828f46e74ed4a132ca776eccbfaa17c2b50276ac224ce9ae444c01c8a00cb",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4158,14 +4224,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2356.csv",
             "column": "stock_2356_ret_lag2",
-            "sha256": "e4b5d628a569c49ba88f5d162c0c791b87f69d9a4cfb96f8c6e41ce893fd80a2",
-            "non_missing_rows": 1635
+            "sha256": "2576be28c53cca52c9c6e9fbf5c5017542c190006cdb3210d46d0b7094e9d4a4",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2356.csv",
             "column": "stock_2356_ret_lag5",
-            "sha256": "359ac9293d803d6a742df7600c0af9afe9bcd9e0724fe4cfd1c595207dbc2443",
-            "non_missing_rows": 1632
+            "sha256": "605af5d8bb42c169b81cdbc102ecccccd421a754d8f549d77235329f3efb94ef",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4179,14 +4245,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2357.csv",
             "column": "stock_2357_ret_lag2",
-            "sha256": "3e30643da32c00651ce02bfd8beb470b5cc2edd0e61a0844ede595cc7be7ef83",
-            "non_missing_rows": 1635
+            "sha256": "bd91ff81d6dd70191f21760072aecf1bd3e75cfca4bb3e9113b1f5d3b0bac4a9",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2357.csv",
             "column": "stock_2357_ret_lag5",
-            "sha256": "63d2a9f333dcf4223ffdce918f1efcb8df9101dd52e35002f6b972c5cbffb9ee",
-            "non_missing_rows": 1632
+            "sha256": "2ec167dfbf5aa6b34fd63303695ab827f491ecb76473501628ffd8f6e1b88acd",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4200,14 +4266,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2360.csv",
             "column": "stock_2360_ret_lag2",
-            "sha256": "348ecb011d44644f8d4d2b7958dc2fe3ed5a718042524924d045f7b923982b14",
-            "non_missing_rows": 1635
+            "sha256": "22e73fdec6e7325d97004e28d5bafedebc8a7776c98279794a896ce2ec0dcd98",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2360.csv",
             "column": "stock_2360_ret_lag5",
-            "sha256": "4a46db1c26d577c9819a743c57b34b448002619d1da28a7c748d01c56e3a9104",
-            "non_missing_rows": 1632
+            "sha256": "f6ed7618299e35ed3f86b98f82d3b8be93174ad0ed2035cb79a165c4263418a4",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4221,14 +4287,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2368.csv",
             "column": "stock_2368_ret_lag2",
-            "sha256": "4ab6a94fa83261e69d3572920f93892e54ab9c0b11d71576e6c17e323de50666",
-            "non_missing_rows": 1628
+            "sha256": "1f49dbc7ad072fa14b88d4e3b735f3e93aac5babd348c7bc5d572a909ae71354",
+            "non_missing_rows": 1650
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2368.csv",
             "column": "stock_2368_ret_lag5",
-            "sha256": "7161cb3859f0b3e93a7a3ecd0bdc70b572d9f8034c67ac4bedf81b6bef4472ac",
-            "non_missing_rows": 1625
+            "sha256": "4b034f4ab3cc0512b2aa2fff64b183527842041524c2ed6dd65287c2c582eb6c",
+            "non_missing_rows": 1647
           }
         }
       },
@@ -4242,14 +4308,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2376.csv",
             "column": "stock_2376_ret_lag2",
-            "sha256": "ad9d7c7e8c75c6e346fff0d2693cbb751b6e01d65221bed9b37601ab640038de",
-            "non_missing_rows": 1635
+            "sha256": "1c290b4d83d38a6ff8ad9bc5e1772062a67da9f3c321c76a581ca9fb7ba51256",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2376.csv",
             "column": "stock_2376_ret_lag5",
-            "sha256": "b39705095c4055fbb828d591c91abbd8e938118a603245637ac6c6d87a58ade4",
-            "non_missing_rows": 1632
+            "sha256": "1c90c38a658e474ca04ee4d73b7a1dea4ccfe8aac1b995a0a83d2a7d83cd130d",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4263,14 +4329,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2377.csv",
             "column": "stock_2377_ret_lag2",
-            "sha256": "7e15a7c185766014515864f0ba5519d1ac496ee6f6b4122c0141940ec1a1405c",
-            "non_missing_rows": 1635
+            "sha256": "0592f28fdc8d4d2f80cf7226a270d60ecd6735db6b578073c9c679c383cd346c",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2377.csv",
             "column": "stock_2377_ret_lag5",
-            "sha256": "c5c5e42446be3e16576b71876cd3d77454b592380656d0d21513c6a959b04ff5",
-            "non_missing_rows": 1632
+            "sha256": "a5929c5546229e0925aad015d8f33a22d2bc3064fb926745dfb96a44afda4ba4",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4284,14 +4350,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2379.csv",
             "column": "stock_2379_ret_lag2",
-            "sha256": "0b6091ed10d7bd230bcfaa2036ffc13fcac1db2fae6d8f732e6c7e978aef3683",
-            "non_missing_rows": 1635
+            "sha256": "b90084fb8dd0ab538ff27f68e2c925537eb0f40a11e5e004c4dd0835f08a228c",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2379.csv",
             "column": "stock_2379_ret_lag5",
-            "sha256": "a84da53bcf2fcf575a88062878378776741928f050f1af17610c2c435b2766fd",
-            "non_missing_rows": 1632
+            "sha256": "27d8c9a70dfa1ceb60244dbf790fcf71fb9d729aa6325072a610028f0ef0bfa6",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4305,14 +4371,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2382.csv",
             "column": "stock_2382_ret_lag2",
-            "sha256": "a5625160ccc74100b897238967f2020450abd1d7af48dde0480954a768fcc220",
-            "non_missing_rows": 1635
+            "sha256": "ccabcef3627c01db6edc64a766994b0d26bbebda8c23623e0f4eab617c12b30e",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2382.csv",
             "column": "stock_2382_ret_lag5",
-            "sha256": "52352defc5f267017b828d120815e270f7a3135786ab249aebdc76dbcd9f6473",
-            "non_missing_rows": 1632
+            "sha256": "fbe2c28594f61734a00c80f56eb10d4ab5e1fd035bebf089c8503ed3d0173edd",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4326,14 +4392,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2383.csv",
             "column": "stock_2383_ret_lag2",
-            "sha256": "9fa7bc290a017d639f360cef614bdc908e0a51872c54ce2f4482d87deb8ba996",
-            "non_missing_rows": 1635
+            "sha256": "8a61a36334abdf9c58660e71f5c7f97eed5d7dc14dae920b65fc1e38c4d6feae",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2383.csv",
             "column": "stock_2383_ret_lag5",
-            "sha256": "3d0ae743f95a8ee5124a00c11e55eb535eade76434c6190806b9e341375ce90c",
-            "non_missing_rows": 1632
+            "sha256": "783985651e604b60063633099ac15f642d98102afd030c4891eb124b3e8ae089",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4347,14 +4413,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2395.csv",
             "column": "stock_2395_ret_lag2",
-            "sha256": "ebf05e1dd9e9fbee728f00399b393d3ebe1a89778e94421844368bb911745c5d",
-            "non_missing_rows": 1635
+            "sha256": "bce298ff995d2c3216ee6b27bf4a55280e6c22e191dfcda212c954bafd180a97",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2395.csv",
             "column": "stock_2395_ret_lag5",
-            "sha256": "e277e626e197af4493f0a6e1e900ba0950f10b9c25b959302ed860a9762787bb",
-            "non_missing_rows": 1632
+            "sha256": "da33a8143dcdc0f61b16c7eace2ae9f72460f4f206e9c8c67850bb40d8e06892",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4368,14 +4434,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2404.csv",
             "column": "stock_2404_ret_lag2",
-            "sha256": "94cee43399cf22d7e7baeb9b9d22b8aed0637dc4b29177b519f368ebb13334c8",
-            "non_missing_rows": 1635
+            "sha256": "cc4f2d2cb8ee0d644decf83405bf20dde4678e75618f7dd3a7c607b0f271b0c9",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2404.csv",
             "column": "stock_2404_ret_lag5",
-            "sha256": "dafab5f0f06c69ad3f5d339eef2fa1fb28d4a827630cc67fa753da9e7ac6d44d",
-            "non_missing_rows": 1632
+            "sha256": "211cba353d63414f4dce6269307a919285f1579b2ff886ac9c5adf9d39331040",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4389,14 +4455,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2408.csv",
             "column": "stock_2408_ret_lag2",
-            "sha256": "94fdea1a3c33d02e679ae63b6a1c4cf2eb01bb8de976fb4c8088e77a7e3e5442",
-            "non_missing_rows": 1635
+            "sha256": "27ad011f83925e3d51be7e01f6146844cdd74d286ec6a12fc2afbd7d2e604df7",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2408.csv",
             "column": "stock_2408_ret_lag5",
-            "sha256": "8be626e27e946a42d279469f1b9b867deb0fe560ca08787821186e62179618fc",
-            "non_missing_rows": 1632
+            "sha256": "f4a3388bd6d9b38c57888ec0623c55b50652b1addfddecccaee02b6d8b40abc6",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4410,14 +4476,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2412.csv",
             "column": "stock_2412_ret_lag2",
-            "sha256": "fc137dd2750f173970fc140542e902b23eb8f152132801beab494302a7ca06e6",
-            "non_missing_rows": 1635
+            "sha256": "9cf26c72264a64829a2a24f4dc3dd4809afb53707d089937ea89becb9f63ca81",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2412.csv",
             "column": "stock_2412_ret_lag5",
-            "sha256": "3413532d44d3331ef64c5d6048cc4b6342fde5dd7c4fd833203d4aa7cd30f6f5",
-            "non_missing_rows": 1632
+            "sha256": "b22c34f3dd9f0349c576b0b44652bf73b6edd265a0de7e09e58c1afee0def7b8",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4431,14 +4497,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2449.csv",
             "column": "stock_2449_ret_lag2",
-            "sha256": "eae083fdba1425492b886eb215285db4c6e2f206b58e359c3f4706d4009a98b1",
-            "non_missing_rows": 1634
+            "sha256": "f28b1b0f162ee6ba48fd152d8849ccd221e0ff09f448668d1f4ff5164b0eb51a",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2449.csv",
             "column": "stock_2449_ret_lag5",
-            "sha256": "049b53dd317b71a9174c3aab90aad78df18995c88073230b971bd562a4157422",
-            "non_missing_rows": 1631
+            "sha256": "9600154dc1c81e6bae8c38e4f4b6ed419548828b1165de253fd25ed0e360de58",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -4452,14 +4518,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2454.csv",
             "column": "stock_2454_ret_lag2",
-            "sha256": "0426788ccaa12d99df6afbba1218a0ea637ec9ec609e2d546adae26ac656c277",
-            "non_missing_rows": 1635
+            "sha256": "382789e1eb64205f3cf4e6874455aeb8c72799e9c85ff053da89c25becb25285",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2454.csv",
             "column": "stock_2454_ret_lag5",
-            "sha256": "8358b48b181ba44dafa8412484889540c38e5fc453ef2aa9319cbaf4c63ccdad",
-            "non_missing_rows": 1632
+            "sha256": "98a07ebe943588084f787011138f0c6a45d6d584be327c32eb5d8de954289b0a",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4473,14 +4539,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2474.csv",
             "column": "stock_2474_ret_lag2",
-            "sha256": "650f503355023b37f0b15435bb2312eb51d516e4b325e1737496a9123751617f",
-            "non_missing_rows": 1634
+            "sha256": "d210a414ebee76804fa207e2d907a9a6d651bd15efae7d4c735d8569e978939d",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2474.csv",
             "column": "stock_2474_ret_lag5",
-            "sha256": "8536b6c5e650cb64a157a5451b6953a27f93711ed901b22ccdf80422ac9bb994",
-            "non_missing_rows": 1631
+            "sha256": "98120962590f637683741377cc6642cfd67a0935bca6bdd11af1cbcf9ebccc49",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -4494,14 +4560,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2603.csv",
             "column": "stock_2603_ret_lag2",
-            "sha256": "6341c941993b709668be8903f08475cf27794e0d3b7e70031e051590bdf63939",
-            "non_missing_rows": 1628
+            "sha256": "6fbc45373172d985069a9abb2d7a5caf9d9329d1aed9164a1a26f0daddc0a9bd",
+            "non_missing_rows": 1650
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2603.csv",
             "column": "stock_2603_ret_lag5",
-            "sha256": "d2f92d8cfa583a968715a4a7bf8dead7274fd112d4631834cc7847be60322f97",
-            "non_missing_rows": 1625
+            "sha256": "3eb5c05bd58ceefba0fb303bce6c1ec18a0aa0214a9e444af66cf21a41dd68d8",
+            "non_missing_rows": 1647
           }
         }
       },
@@ -4515,14 +4581,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2609.csv",
             "column": "stock_2609_ret_lag2",
-            "sha256": "b79906b8e87f7b16997f8b16b5633d0631d53ffa1eb68e4adf150ed70d7ad0b1",
-            "non_missing_rows": 1635
+            "sha256": "a2e37dcf4fd714b2ef63ac91565776ca2eca8c0d1afe5c03e35a398374a304ca",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2609.csv",
             "column": "stock_2609_ret_lag5",
-            "sha256": "490e5570ef0c8e4cd2bec20cca630f82a84cd41737eafccee53f2cdf21bba4d3",
-            "non_missing_rows": 1632
+            "sha256": "4f3c13b18c61642be565b58f579046db65a9c06d9320bb29b44e136f21331356",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4536,14 +4602,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2610.csv",
             "column": "stock_2610_ret_lag2",
-            "sha256": "c662b83e8fa58e33f4410c4d042b4ef0ac16503a03276906ba36999cd531db9b",
-            "non_missing_rows": 1635
+            "sha256": "5a7d603e015a59c9abb8937cfe90cbe2c24fc0cfcb67165c740da97dc1143b26",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2610.csv",
             "column": "stock_2610_ret_lag5",
-            "sha256": "8d38f9881d414ba256eab528a2f87ba547ca35534557756d5efc2c3e52b4295b",
-            "non_missing_rows": 1632
+            "sha256": "d594f61042af89d6d6d45e38358653f074c85bbf3996a910613cc73b3773dbe3",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4557,14 +4623,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2615.csv",
             "column": "stock_2615_ret_lag2",
-            "sha256": "e343663630ab0c08ef10e175d9e648f350721e248e19ffa3d87eb8b43db7383c",
-            "non_missing_rows": 1635
+            "sha256": "267c02de05b35613dbdfeb43a4cb2f7d8ca512c0154a1c3d7288eafee16f1e0c",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2615.csv",
             "column": "stock_2615_ret_lag5",
-            "sha256": "b089831f5e193e2a744dc2a4c7be04633998935b43884b534eff7d07de656a16",
-            "non_missing_rows": 1632
+            "sha256": "f0a59a67fdf382712b925ac6a07e88f19329c553fe51c96af40e4ab846a9d474",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4578,14 +4644,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2618.csv",
             "column": "stock_2618_ret_lag2",
-            "sha256": "dfe492159b198eee4105fd3f6eb326b62c7156d77aa6aaed00b56a5f4100e561",
-            "non_missing_rows": 1635
+            "sha256": "ad99af8d034bd26007e0913ddab292a09e1ae34c9b070cb9962625ab72ea6b6b",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2618.csv",
             "column": "stock_2618_ret_lag5",
-            "sha256": "fbe5574687632898dea4d5308f9d331b7a7aac7102f0efadbe71dfba63457263",
-            "non_missing_rows": 1632
+            "sha256": "9f2fc3906f73695357301f4da9d0c561ff69ce6daafadb4e59c89f6e87af9a2c",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4599,14 +4665,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2633.csv",
             "column": "stock_2633_ret_lag2",
-            "sha256": "6dde2faf04883e8128929ae4a519b4ae536d1f3ff68aaa2c61c961463ace48d8",
-            "non_missing_rows": 1635
+            "sha256": "2593fba46d168f832470e11e7d38deb53e3bce3e46334596d61303c437fc6df2",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2633.csv",
             "column": "stock_2633_ret_lag5",
-            "sha256": "1e6007d463270ddb886a996fb3bffaf0fbf8bdde2f3811bb9b5ddac7f7e13b7f",
-            "non_missing_rows": 1632
+            "sha256": "c0fdabf846789ce12c42b2456eb0f95417f01a62521304a884b98a8ffa03023d",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4620,14 +4686,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2801.csv",
             "column": "stock_2801_ret_lag2",
-            "sha256": "ecfba7a7101f64199df8317c480b55c33039364f908735b191e2d200650ce4cc",
-            "non_missing_rows": 1635
+            "sha256": "16e0b3aa2915e2b972245b882dbc581500ba2af3bece88edd0bbf8ecffc26021",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2801.csv",
             "column": "stock_2801_ret_lag5",
-            "sha256": "55708b88dff8bc503b625ed2432aa982b415b4adc669d774a283ab03298e8a0b",
-            "non_missing_rows": 1632
+            "sha256": "e83186ef41bf52f08306f8df51446b2edf5ce76be6ce1f5735d4ef7fa346b021",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4641,14 +4707,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2812.csv",
             "column": "stock_2812_ret_lag2",
-            "sha256": "adf674d2af746a773afe008afb16d23062e9a880999552d7c002a2a37334dcaf",
-            "non_missing_rows": 1635
+            "sha256": "c92b4017718a80d30de53cb5e65633957ec612a351d882488becfd72a92496f2",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2812.csv",
             "column": "stock_2812_ret_lag5",
-            "sha256": "5fac8d9f92ca6cb3e4e1202357c0f9d6c073e8cf5e33a521a7afe24a2855c590",
-            "non_missing_rows": 1632
+            "sha256": "ddfe1814dd25a1a01a000931151819b9c0bed9189e230dad2b768eda70d20cef",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4662,14 +4728,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2834.csv",
             "column": "stock_2834_ret_lag2",
-            "sha256": "a0b1470bae96a6a5fbb321d434fe25edead13475ebc4ceed93ded6071a1ceb9b",
-            "non_missing_rows": 1635
+            "sha256": "7c62b5d77ed1125820700481550951b0bb89a747bdc3764300e384d903a8372c",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2834.csv",
             "column": "stock_2834_ret_lag5",
-            "sha256": "93b72e57e768236532640823b4454a95951f3de729e96aeb6847bafc0ff67bad",
-            "non_missing_rows": 1632
+            "sha256": "3e7f4eb19eee03340bf6407d7183258cced861f30704b0a9595dc4ab5c5d7987",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4683,14 +4749,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2880.csv",
             "column": "stock_2880_ret_lag2",
-            "sha256": "0c9420da04ed5cf963b90df4b6fc9fc6a3e432b8b8510fbc1b894982cebb5892",
-            "non_missing_rows": 1635
+            "sha256": "97e0fec6422f1ec56c8dacb80af909dfc4e7b307303bdbf6032f8d3c92e0f8b5",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2880.csv",
             "column": "stock_2880_ret_lag5",
-            "sha256": "425ffaa5c19b3ba291ae66b0d3f998223ebde5fc816c5111a5d57928a11f2985",
-            "non_missing_rows": 1632
+            "sha256": "018f12eea4b1be525dca5f943473395279b93e552402910298733930745babd0",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4704,14 +4770,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2881.csv",
             "column": "stock_2881_ret_lag2",
-            "sha256": "79d67f7188b9d9d6ed62118b6a79aa4624c5a5e18ab2ae4a9fe556a2774aec80",
-            "non_missing_rows": 1635
+            "sha256": "37ffd6183a7b890a261fc496a84a88ae492d35d345f1330d27cd4a136e7e87e4",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2881.csv",
             "column": "stock_2881_ret_lag5",
-            "sha256": "146137ada28c8c7227271d9e046aa9ddb07dd21c4d6c745079a6c6aef542b6d4",
-            "non_missing_rows": 1632
+            "sha256": "fddf58cc49cfec0c226c1ff75f2195a050f075f0e009b83871d50d64f6c00e2f",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4725,14 +4791,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2882.csv",
             "column": "stock_2882_ret_lag2",
-            "sha256": "da4e6b1a12a82e08e19f91356ce7c424169937ce0e41e129d7e9cd15b6f365b3",
-            "non_missing_rows": 1635
+            "sha256": "0bd688e12c16dc41b627a5469d5daaa86eb1f5cff61caa1e62cede3e89df4439",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2882.csv",
             "column": "stock_2882_ret_lag5",
-            "sha256": "85184717db014777e0f0530e310d3acd2eda7430f8a285132d6eaa6e8723a30f",
-            "non_missing_rows": 1632
+            "sha256": "1799b3d88af5f89a8cf569f0a37f8eaca01fb8d4a9b296778e1b77628e6f8cea",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4746,14 +4812,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2883.csv",
             "column": "stock_2883_ret_lag2",
-            "sha256": "5017084d8a003f4dd75882541a294d2b63e538b4d48d0305332de8a34118c03e",
-            "non_missing_rows": 1635
+            "sha256": "e097107c0c48430daa7d8c68c8e8b20ebfa05321b66cfa43b9e277ef65ba8e54",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2883.csv",
             "column": "stock_2883_ret_lag5",
-            "sha256": "c6c1ae713d10d09432fd86e9e9b987a3bba4c4be6cab899208bf8d0204d23409",
-            "non_missing_rows": 1632
+            "sha256": "909050f1ddb284d7bd77d03f54c134d87bf930953badce565105c50a18c3c400",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4767,14 +4833,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2884.csv",
             "column": "stock_2884_ret_lag2",
-            "sha256": "2270cfb97cc73adc61e5eafe9a9ee0059bafc6c553107645cc97ebc688009dfe",
-            "non_missing_rows": 1634
+            "sha256": "f824f08b3785ab0c74bf971df0ed934153a342492afcf14af86b2f3d61f92876",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2884.csv",
             "column": "stock_2884_ret_lag5",
-            "sha256": "3aea5f7ae0933c552543695b5ed9b9503e57040c140ac37ce160ebabc991a97d",
-            "non_missing_rows": 1631
+            "sha256": "ad3abd4e25afe8978923b8cb22ac1b8984779b2d1984cab5d7a3db8354d47317",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -4788,14 +4854,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2885.csv",
             "column": "stock_2885_ret_lag2",
-            "sha256": "8048c367240afeef7715cd02d749dec44f59f2ebd7eab9e2032a2bc742de531b",
-            "non_missing_rows": 1635
+            "sha256": "ffa248aec5542e21251ec2c2ea8b8a372005aa9eb52723878b6a5e17fbb64203",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2885.csv",
             "column": "stock_2885_ret_lag5",
-            "sha256": "86938925a198233f32f9ee66b126c65ddd4b34896b3d66b961d2c01b53983f29",
-            "non_missing_rows": 1632
+            "sha256": "25b475bb8dbf79c6fbe66a6bb0639d74d2a696797e66c6f5893c82c381bd81a6",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4809,14 +4875,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2886.csv",
             "column": "stock_2886_ret_lag2",
-            "sha256": "952c45226b63b1c0f6f81731d38339c2c3095dba67e8428c1d1a0b15a9915d32",
-            "non_missing_rows": 1635
+            "sha256": "4ead1bc9fcbf5d5bf1f3ceeccd63db168e84550103f249c4c0cad39f3eb2014f",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2886.csv",
             "column": "stock_2886_ret_lag5",
-            "sha256": "5bc2427af9db5a8a675c77167da9c6ae1f0de2c198805ab3021d30c8c4033a6f",
-            "non_missing_rows": 1632
+            "sha256": "ad0491b3b7527864f307ce05680c3cb619321b23540c53875507031c3f158f11",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4830,14 +4896,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2887.csv",
             "column": "stock_2887_ret_lag2",
-            "sha256": "bb6b6bfb603ad0a562c479174ae7fa7afff376166662b8982bb1248edaec8ebf",
-            "non_missing_rows": 1634
+            "sha256": "0539e3d2135b23a8107b43c42f32d2c87f062fd603d65f1047e01328c0b40c88",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2887.csv",
             "column": "stock_2887_ret_lag5",
-            "sha256": "6219bffb60d87be13076e23b669b6efa8ab719ca70a6bd768b1c1e55a9c3ac7d",
-            "non_missing_rows": 1631
+            "sha256": "a699237870310f8bca45fa911df3d426919f213537fe9e3b9eff1d3e41bf8d00",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -4851,14 +4917,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2890.csv",
             "column": "stock_2890_ret_lag2",
-            "sha256": "dc3088d27f55da14254466a5f21a10f39bf43b678b65a357fe4281c4692df2a4",
-            "non_missing_rows": 1635
+            "sha256": "78625ed88d13d0abd72b3c4de32fcd1aad33a7914875a4da9f49e0a57216c5f4",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2890.csv",
             "column": "stock_2890_ret_lag5",
-            "sha256": "7b4679a60336dbf8fd420cb1f2e06acec0fcc90a1d7b46f92bb973ba1ec73514",
-            "non_missing_rows": 1632
+            "sha256": "ab1c8826a07642430b3e3a7065a7b3b540d860c969ae633f8af3de506ae32851",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4872,14 +4938,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2891.csv",
             "column": "stock_2891_ret_lag2",
-            "sha256": "a7378d37acffc216d3efdce66fa63caabee18f5c1d0019ec33ee37c8e623c62b",
-            "non_missing_rows": 1635
+            "sha256": "a85b239c02f0966b308effde97be638cf0f42e6ae28e7fc5f3ddfe60613cdd22",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2891.csv",
             "column": "stock_2891_ret_lag5",
-            "sha256": "1879923449d4a5211a3e243a225c3addcdbbe9cddd0f5661cb8bb9acf6728787",
-            "non_missing_rows": 1632
+            "sha256": "88a5dba8157972769ab1d9be7e19646d40f2c382151caaef41f89d7daab27c08",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4893,14 +4959,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2892.csv",
             "column": "stock_2892_ret_lag2",
-            "sha256": "d53cbcd2a4cabdf42752049b9b08d77a4448c72d019e62069ab936a46dc10a67",
-            "non_missing_rows": 1635
+            "sha256": "ee756385794b1442589e9b2006d72dd01cf428a53d58414f5488399fbfe9d364",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2892.csv",
             "column": "stock_2892_ret_lag5",
-            "sha256": "76a926868630860e975210e98ba373eeca01eeb84b1e6a3d5e3a7cfda8c9a72e",
-            "non_missing_rows": 1632
+            "sha256": "883e1464101b68d686d93320c2bebbd381261249a03f353c4803aee3d13c256c",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4914,14 +4980,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_2912.csv",
             "column": "stock_2912_ret_lag2",
-            "sha256": "ab8796bf8cd42d73d46a6eb799ac4e4a333e85843a484354a46f44c23f447ba1",
-            "non_missing_rows": 1635
+            "sha256": "8a56a74f1785ebd84342490e5ce832ad15036daf7918019ed6b47e5596e20cec",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_2912.csv",
             "column": "stock_2912_ret_lag5",
-            "sha256": "3878fbe880fa0880d700f2e3461b05a38efcbea364ccbdcf7789171af9a5f918",
-            "non_missing_rows": 1632
+            "sha256": "df3b9ab6267123b3322ee875d095b79c96c5397a148c6bffef1ccc9be73fa4c8",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4935,14 +5001,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3008.csv",
             "column": "stock_3008_ret_lag2",
-            "sha256": "8ec138f4d9e243d56c6ad87b0e20e704a5b4fc0437d199cee467bfa9b5583392",
-            "non_missing_rows": 1635
+            "sha256": "fae7a2aa8391fdb0c3e65da553599fa136cd122a6d00e250c3d39fd09c215d8c",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3008.csv",
             "column": "stock_3008_ret_lag5",
-            "sha256": "21805ac5093cb1909b3cd519c9cb64e76c555d20c07cfa5b4811389035577e68",
-            "non_missing_rows": 1632
+            "sha256": "455e08b097198d991e34dfc796ef369e8646d0ba6f087fd0bb58c44048c18e80",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4956,14 +5022,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3017.csv",
             "column": "stock_3017_ret_lag2",
-            "sha256": "5c38f3f023915ab9b369ed9fc35ac73bdc7fa395beceb221365c55c315ef7188",
-            "non_missing_rows": 1635
+            "sha256": "632726858f1812b5328086394f739c1357b17eae8fd773d820d07936b67f844d",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3017.csv",
             "column": "stock_3017_ret_lag5",
-            "sha256": "5632084224c315907f83e8d1700fd569645d32dfbd4687df10c3fa95fd8929f6",
-            "non_missing_rows": 1632
+            "sha256": "04d1aa6f6e18125696c2a2bf25a9deb475beea36db3fd2dc7b105d6f58d7a9d4",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4977,14 +5043,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3034.csv",
             "column": "stock_3034_ret_lag2",
-            "sha256": "821b21f4c340d1baf8bb660540272baf0fb8251eaec0f9e346ca1402ac474c0d",
-            "non_missing_rows": 1635
+            "sha256": "54d706841d8d39fb0c3fbecaf1f38a98f034abb6c31411f3358bfd8bd2d843c6",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3034.csv",
             "column": "stock_3034_ret_lag5",
-            "sha256": "47d45e7e9b8335e3ac8facf683c06aa0dbd1b185c00805d1cfba7862ec65c8ca",
-            "non_missing_rows": 1632
+            "sha256": "c6e69c9374a57d317e731760e2781e467596898f73809357b44850108ecd1598",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -4998,14 +5064,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3036.csv",
             "column": "stock_3036_ret_lag2",
-            "sha256": "ea8404ca0167fc1510d1a6791f0f7a806ed9e63661201534949b00afc6f65129",
-            "non_missing_rows": 1631
+            "sha256": "78f00f8895ae958f4e448c6c9776e84209d3e0e399ef514287dab7e85fc0b831",
+            "non_missing_rows": 1653
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3036.csv",
             "column": "stock_3036_ret_lag5",
-            "sha256": "02294a9d5d1027c36a83b843a660407ca2e90519a3ad15cb14ee031a6a2e9271",
-            "non_missing_rows": 1628
+            "sha256": "d54a67c4e624b1c8ac49a07b917af945f2091e2745c3c8a47e5263b018d35198",
+            "non_missing_rows": 1650
           }
         }
       },
@@ -5019,14 +5085,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3037.csv",
             "column": "stock_3037_ret_lag2",
-            "sha256": "1d8b48c781f40938758479bee4b0af344f61109ebca4bc0bb1244e7a609c47f3",
-            "non_missing_rows": 1634
+            "sha256": "3561c79f2aca0e679ff51b7e36067953a6b0adf1ffd212e48d78720ecbfacd77",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3037.csv",
             "column": "stock_3037_ret_lag5",
-            "sha256": "f92ec2eead058c9161a40af92e6b90e2cc306a9ffd3d50e729e5c6a0f105a5e9",
-            "non_missing_rows": 1631
+            "sha256": "e2fda816544f5205b5355d6d720433057797c013b1960ec0982ac4e8c43d700b",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -5040,14 +5106,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3044.csv",
             "column": "stock_3044_ret_lag2",
-            "sha256": "47f67e11f99994ec18b7ea1903e45c31251cbaef99f5cbc6f690d15311d9dd3d",
-            "non_missing_rows": 1635
+            "sha256": "08b6f848f9ebc4fed8a2420f45e4a6434da8c89d788971e46cf38a804cc7bd62",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3044.csv",
             "column": "stock_3044_ret_lag5",
-            "sha256": "d94a1917d66a31315ea9b1ff1262013960d513a05a6518d6112e617b94a43267",
-            "non_missing_rows": 1632
+            "sha256": "7e379d8a988faa8b94ea03fc98c195ace705e7a036ea251408c9784c01026775",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5061,14 +5127,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3045.csv",
             "column": "stock_3045_ret_lag2",
-            "sha256": "92dc2be18b28181d0b1401d1300da85aa7df6dc3f539c555f630ccb301c76475",
-            "non_missing_rows": 1635
+            "sha256": "cb7f9288453762e31aa7eba15fe672eb324e9db3b11b865d244005336af6cf84",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3045.csv",
             "column": "stock_3045_ret_lag5",
-            "sha256": "00b5f6d961e1099947069471d4a76b104d7b0f77a166b1a369da04adc48503e9",
-            "non_missing_rows": 1632
+            "sha256": "3be4c1a02c733d16bf52e2733bfef9526cb99bd5d8bc4d47c351737cde686826",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5082,14 +5148,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3231.csv",
             "column": "stock_3231_ret_lag2",
-            "sha256": "28ec1cbfbbf6defce8c8ba32f01b67aaa8231f4d11b339061c763d8b0f80e742",
-            "non_missing_rows": 1635
+            "sha256": "c62b17bcab24524ae02381f7bac27d5b0c484eb8d7301e9036f295a419598cd5",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3231.csv",
             "column": "stock_3231_ret_lag5",
-            "sha256": "dbf464be93f11c1deb8e6c11bab8b890d2fbe2ceb7a23296d32a8c78e9a8ae50",
-            "non_missing_rows": 1632
+            "sha256": "8f910e466681bb2bac26cb67daad1670af1d6de1826b89698508640d990eac21",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5103,14 +5169,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3293.csv",
             "column": "stock_3293_ret_lag2",
-            "sha256": "a7d6e6703528e8d589814edd14c2c6dc2168a3eebaad8ba47513b45eb80eee9e",
-            "non_missing_rows": 1635
+            "sha256": "1e4775cd4cfd4718aafa93c2be6a2ad7275893d6d16e489431ce776c8549a21a",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3293.csv",
             "column": "stock_3293_ret_lag5",
-            "sha256": "d8878c4bcad1730da114bd1fb1551d63b149f4e184e259622fc4cf495955617f",
-            "non_missing_rows": 1632
+            "sha256": "ab067b1ef2a7d76d1b17083408a3c6e3da4cb84a48a87817fea31eabf33f710c",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5124,14 +5190,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3443.csv",
             "column": "stock_3443_ret_lag2",
-            "sha256": "05e27c279fb0d13c93a7d9120bb8e11e8f313417def6f21ea0766abc233c6cfa",
-            "non_missing_rows": 1635
+            "sha256": "0bc42d11942c36a8592c5442db5acd0ad3279fc4964f629fa4352a2c342b1dd0",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3443.csv",
             "column": "stock_3443_ret_lag5",
-            "sha256": "ef94e31c3a9858a09ea28bd6d15213172905a28d57d276b92f24fd1e28dce244",
-            "non_missing_rows": 1632
+            "sha256": "6ee6d7ca2111a2948da32f796a81543c3641129f4d7f0e4d01fa6ca90a35b604",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5145,14 +5211,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3529.csv",
             "column": "stock_3529_ret_lag2",
-            "sha256": "a961b4b4801fcb2bf79b34f10c0a8bb8f939841ce66cbe9f51d072629ed6115b",
-            "non_missing_rows": 1635
+            "sha256": "1866921dcc04baa563b9060c14f6eb8402004881fa965b0a7524d322cbf26e42",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3529.csv",
             "column": "stock_3529_ret_lag5",
-            "sha256": "86d60b0b7839631538f9a5024a69de8a2ed1bbf6f03e531c1314f02dec305a82",
-            "non_missing_rows": 1632
+            "sha256": "0874f7172405d46a332381ad1840d0bf9c122cfc4eed1d644c91e3601b0ecb0b",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5166,14 +5232,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3533.csv",
             "column": "stock_3533_ret_lag2",
-            "sha256": "27287358b7a2ab881c621d7d2a26f42df105811f618cf07948b2c4ce216412b0",
-            "non_missing_rows": 1635
+            "sha256": "c8cc3dc53344275b0387673b20a766b2a867c23d357d3675ee865e2404874b14",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3533.csv",
             "column": "stock_3533_ret_lag5",
-            "sha256": "e1c0ab6279df3bc791b79170611d5fdc928bb9c26c6169b84960889bb49eb587",
-            "non_missing_rows": 1632
+            "sha256": "7557ae8ad390e8dbcd59d28ef99ca2a8773d1dae00f2daf8bd6bd19cc381cedd",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5187,14 +5253,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3653.csv",
             "column": "stock_3653_ret_lag2",
-            "sha256": "ea106c754a454f689b1604d65378ac85d42e23c38d7dc15d4927b6da5a5a35d9",
-            "non_missing_rows": 1635
+            "sha256": "0c5982b356ab8206184661efee516bae894b39792aa16eefdc5c465b01f976b0",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3653.csv",
             "column": "stock_3653_ret_lag5",
-            "sha256": "7c866758b3221fe769d561619b3a3661da911f4c5dfda8f1c9b38538f99ac69c",
-            "non_missing_rows": 1632
+            "sha256": "8391b917a46f802cb3f201d1dbf165668b71bce3bc9cc5558c2aada01ca881f0",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5208,14 +5274,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3661.csv",
             "column": "stock_3661_ret_lag2",
-            "sha256": "b042911ada3e3be57eff97216fdbbe33d1fdf27aa809ffabacb32b94bf918ae1",
-            "non_missing_rows": 1635
+            "sha256": "c5dcbf3b8cc5fee138e1e47fd350bae193835848baa40c634dae4e49e61c075c",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3661.csv",
             "column": "stock_3661_ret_lag5",
-            "sha256": "260e1f444af5a85818456c6a673a26d1bdeb71657fb5d68eddaebbf778f8ca9d",
-            "non_missing_rows": 1632
+            "sha256": "ee59fe0652a1540e39296b8189d7c3ad1f3cd00b9c2f5077421e3eae912d3ffb",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5229,14 +5295,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3665.csv",
             "column": "stock_3665_ret_lag2",
-            "sha256": "6875059586a609133b0f0169ac2387663f0afda710a5073f548e0d506f4a1607",
-            "non_missing_rows": 1633
+            "sha256": "9adab2632421b6b467f61bd516b656ffe97acf24d422d71b10b08114503c7e38",
+            "non_missing_rows": 1655
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3665.csv",
             "column": "stock_3665_ret_lag5",
-            "sha256": "5386082817431e328813b10eaab50e5fa337768461d5ddac315f7e2cc9d91439",
-            "non_missing_rows": 1630
+            "sha256": "af9f71401be1df9af189484cb5bf48fef5a6a862fae006900e7d96403bbb7421",
+            "non_missing_rows": 1652
           }
         }
       },
@@ -5250,14 +5316,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3702.csv",
             "column": "stock_3702_ret_lag2",
-            "sha256": "cd0069f8f552357688a55272de90175445bb50080fbe959763d7f267d4d9ca24",
-            "non_missing_rows": 1635
+            "sha256": "e3bfb16c6d522dfa8d2fd4b3939bdc8fbc9bf753e3a27ce647ea15a4d921623d",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3702.csv",
             "column": "stock_3702_ret_lag5",
-            "sha256": "ee40f200063a6dc63731bd6b9c24d63df1cab13b5abbea47b69ace84690c381a",
-            "non_missing_rows": 1632
+            "sha256": "512f3ad220f3df3d400c19090d3efc8dce644a278c20847c6487b77d505fc4d1",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5271,14 +5337,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_3711.csv",
             "column": "stock_3711_ret_lag2",
-            "sha256": "20b6b6d7f9cf219e7e1c03194ae56e68bde674dd62cb08279beac49fa4e5ad41",
-            "non_missing_rows": 1635
+            "sha256": "8b631c5c9a3e5a0c83786e598669bba07cf4f3c48f5f28044df6f34780149bf9",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_3711.csv",
             "column": "stock_3711_ret_lag5",
-            "sha256": "5b2de9202ead3fc4ee172e46844746cff126c1213c02c0a7520522b59401ac99",
-            "non_missing_rows": 1632
+            "sha256": "a5f7863ab0cadcccdeb3838a059b29cdba170f6ada2912a0b35b9363800a66d1",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5292,14 +5358,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_4904.csv",
             "column": "stock_4904_ret_lag2",
-            "sha256": "511d5645236373ff9edda7c935b6f8f81356f96c79f29cd771e27425c68bc147",
-            "non_missing_rows": 1635
+            "sha256": "bcb04129230cab892f57171e513d56964784f83e9f56d5baa5115765a23bffa3",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_4904.csv",
             "column": "stock_4904_ret_lag5",
-            "sha256": "f5af33aa6beedc267d6d7ab2f51cb0beefd1dd00129108c08995a7132965374c",
-            "non_missing_rows": 1632
+            "sha256": "ef837d424aaa5087a1a3945fafe570e692fbbe8f507069da1bc3d2232f78e49e",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5313,14 +5379,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_4938.csv",
             "column": "stock_4938_ret_lag2",
-            "sha256": "6871e3d7853afd6cc3331a7cfc3fc1cd796cf409a577216fccd2891f099a1d07",
-            "non_missing_rows": 1634
+            "sha256": "34f31aa47cde6b4037448b9cdaf146d2e9a8d2e0640c0f05b0bc3948b7f6ed43",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_4938.csv",
             "column": "stock_4938_ret_lag5",
-            "sha256": "3abf38aff52f3e34021464cbff76f90705c754e0985428c41361ba3dc53b1b0b",
-            "non_missing_rows": 1631
+            "sha256": "58dfff5995154c9f5d02af7a488af53962799686a12b4dd1f315cd45739b29cf",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -5334,14 +5400,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_4958.csv",
             "column": "stock_4958_ret_lag2",
-            "sha256": "b3faf23c12c70f35ba960df8e5c2f911d40dd24fbc6eb0dc13fee42130ab4ce6",
-            "non_missing_rows": 1634
+            "sha256": "a8a6c1be1d2e9f50ff4980ce0ec033ecf3f83381004981939bb95a42c18216c1",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_4958.csv",
             "column": "stock_4958_ret_lag5",
-            "sha256": "bb965aae625053191f030271d30ce26f4d4a4d39cc23f42d73e8ff6638876fa6",
-            "non_missing_rows": 1631
+            "sha256": "6a516d42c7701d105a7ee4483ab71b277f67fbb305d740849ec239a58ea78717",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -5355,14 +5421,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5269.csv",
             "column": "stock_5269_ret_lag2",
-            "sha256": "211ac6e9a9fa1e0609db94e49f6d739624983c5236c3b658e1430371b8d6d700",
-            "non_missing_rows": 1634
+            "sha256": "37c83a9c758863305b6f0159a93410426b6453552ab8ead0e7fa776baf3d9dbd",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5269.csv",
             "column": "stock_5269_ret_lag5",
-            "sha256": "814b16b1df9950b52495e2ed244638245db857a3a0aae6ce84f8fd71dfb14ade",
-            "non_missing_rows": 1631
+            "sha256": "df59e2b144145df6e78d3bdc1a82377ded84a8423f83e46fd4508d65c975da55",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -5376,14 +5442,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5274.csv",
             "column": "stock_5274_ret_lag2",
-            "sha256": "75968cbcd2c6807fa4dae837a4c6077ebc0fcfbc6c4388fb977f22f0dd30ce79",
-            "non_missing_rows": 1635
+            "sha256": "e7735ca3ffb8d28199af2c94cc33b70485085605193185f0adb0fc9a2d662b19",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5274.csv",
             "column": "stock_5274_ret_lag5",
-            "sha256": "b894983cad4a6f371fd9622768d8542ef0552aa9da7d6337c7b3b39789e94800",
-            "non_missing_rows": 1632
+            "sha256": "5e496444a60f107aaa469eb68dd4b581f9893a67165634c5f5d1f3fadc7e4d3a",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5397,14 +5463,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5347.csv",
             "column": "stock_5347_ret_lag2",
-            "sha256": "954ad2aa3310ad240aeb072c7b30065e75b1a7305bd85800392d479c2f8cf9ba",
-            "non_missing_rows": 1634
+            "sha256": "1fa3cbf044efe6b9efba42661713a0cc655cd5bf30de2a534395c03e1570191d",
+            "non_missing_rows": 1656
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5347.csv",
             "column": "stock_5347_ret_lag5",
-            "sha256": "fcaf8a28d43e6ec6d43e86bb443e464b1671662947da798a388f1ee6e21ecd90",
-            "non_missing_rows": 1631
+            "sha256": "ea52a2687159a9f1fd247801a32e55207544864e9f18500459104809032bc11b",
+            "non_missing_rows": 1653
           }
         }
       },
@@ -5418,14 +5484,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5871.csv",
             "column": "stock_5871_ret_lag2",
-            "sha256": "8389fc142bd49257ef79d47441b952eeb504d36ab1825d25211f2d45498fcae3",
-            "non_missing_rows": 1635
+            "sha256": "21ab31fde6031f7a78884e68b107e77da74427569fd5d77f7602ece5670bed4e",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5871.csv",
             "column": "stock_5871_ret_lag5",
-            "sha256": "f79418ddf4195f265cdfe54cd2622478955eb6c3049072b6319409b7c814ce82",
-            "non_missing_rows": 1632
+            "sha256": "0ee9b78fef4d950881a9f8b067280697893fc5376a6f68f7a29dc5b24d1a1721",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5439,14 +5505,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5876.csv",
             "column": "stock_5876_ret_lag2",
-            "sha256": "2fd14d696a25f089c11da85a9ffca67121f8ec455712ef9ea8b2ee7f0fc555e5",
-            "non_missing_rows": 1635
+            "sha256": "0b1bc6551eb4c21c112bd00d730ff7c68859fd30681f79d40d2545c211029095",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5876.csv",
             "column": "stock_5876_ret_lag5",
-            "sha256": "0887c7cb70672ff9bd26ec3b0f8c6c39c4cc41cb196a195efef41b975c216582",
-            "non_missing_rows": 1632
+            "sha256": "07ce9664d8545b31d4af1769dc5eea081c5200561b5a3e03c54191233df4fb28",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5460,14 +5526,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_5880.csv",
             "column": "stock_5880_ret_lag2",
-            "sha256": "1bcd9ba0c9b537677224a01f47d8eb0a37ac816787eb7f529fc4e45a6141f7c9",
-            "non_missing_rows": 1635
+            "sha256": "8e35dcc4feba8fdeaf9a98633be54cedc84c19a74c5e0175647a48938624c9b8",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_5880.csv",
             "column": "stock_5880_ret_lag5",
-            "sha256": "4dcf7a270d7b0d65260badc23427b8cf3304b2006f66de117036bde41e85bc0e",
-            "non_missing_rows": 1632
+            "sha256": "158849fcdf1cc6c9094565119fca905189c1a10c451a19131129bfbb0c464480",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5481,14 +5547,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6223.csv",
             "column": "stock_6223_ret_lag2",
-            "sha256": "196c7582e9e281f84769ecace20e9f48042931d811896beaec102c9c4b6e77d1",
-            "non_missing_rows": 1635
+            "sha256": "840509ef24efc40b35a3642e78b49aaf5c830668f085056d2f1e8682f3033935",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6223.csv",
             "column": "stock_6223_ret_lag5",
-            "sha256": "e2da8b3a364d76ef273812410a7910387f12f3db696da3c9a587913fff245f6e",
-            "non_missing_rows": 1632
+            "sha256": "48c0f234b5a5a57938c5547aadaf0605ce3eaaeeecd0c7eef728e5e9024769d9",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5502,14 +5568,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6274.csv",
             "column": "stock_6274_ret_lag2",
-            "sha256": "9898a113f3d61b61a9bde18ff6336203def766fa19d10d64018a02b6c9037963",
-            "non_missing_rows": 1635
+            "sha256": "d6e4ed739abacf4b72ac016ee266c1f1c4c3b4d8348aa41e4b714aae0242be54",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6274.csv",
             "column": "stock_6274_ret_lag5",
-            "sha256": "703ec06d3f6f11cf6fc387b98f57959013821d555d2194da5a85eb2c8e9b8127",
-            "non_missing_rows": 1632
+            "sha256": "12c4732db59c4d2133ff00d6523d1c624e12f5dcde8aec2efe3b81a07a525df2",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5523,14 +5589,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6409.csv",
             "column": "stock_6409_ret_lag2",
-            "sha256": "0d55b1626b54f4d3f7f67e3d1b9ac99b0f90806b99694bc4dddb1d6c0d536176",
-            "non_missing_rows": 1635
+            "sha256": "a6e75871b47b783c1a74300de0be848eacab86a0de040a5045b6ea4efdb00c2c",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6409.csv",
             "column": "stock_6409_ret_lag5",
-            "sha256": "90ad7673d7c7ab14519b2f407e0e3c15b8ba7f9a765cd62ecb9dfbb9a8ffcb8b",
-            "non_missing_rows": 1632
+            "sha256": "37c7c5528e42c69535030c10873c1219f0d5d5a4b22da344e52fab3e27cf1ac8",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5544,14 +5610,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6415.csv",
             "column": "stock_6415_ret_lag2",
-            "sha256": "975c7e31e5c0ca0a0352023f0fa8ab2e37a8cda79e5640c8e91bec4c92797892",
-            "non_missing_rows": 1630
+            "sha256": "397dc1dbd7d50aa3529304ad169605505b5609bc7efc5fae3ed79bc452d32420",
+            "non_missing_rows": 1652
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6415.csv",
             "column": "stock_6415_ret_lag5",
-            "sha256": "e70e908790b0892bcca67b6329a3f9cd4a1e0eb7f3cc34ae353269009309d6d0",
-            "non_missing_rows": 1627
+            "sha256": "7c6a18211990a5ab10fbf78472f19f9d847b1d1eba11e3e0e3a02010d1750846",
+            "non_missing_rows": 1649
           }
         }
       },
@@ -5565,14 +5631,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6446.csv",
             "column": "stock_6446_ret_lag2",
-            "sha256": "2f58aba9780feb3f88adf7c1df13eb6ea044abd5105f340d8fb448dc225bf6d0",
-            "non_missing_rows": 1635
+            "sha256": "f47c3d28197ffe9a13bae683f230aad8ec44d5951cdea93f3b6163d046f625a9",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6446.csv",
             "column": "stock_6446_ret_lag5",
-            "sha256": "1a03261eedc7eff629ad98f25847f3a594700556b6155409bb0bc0aac87322bd",
-            "non_missing_rows": 1632
+            "sha256": "5bf87d823f959fb38bdf8bce1e4e51c0430a25f10a168582a38ebd7bea22f7d8",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5586,14 +5652,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6488.csv",
             "column": "stock_6488_ret_lag2",
-            "sha256": "43d8f38a225199822f6b36b5c3c0384960d81f241a1ed5f9a95e5647bf9ed6f9",
-            "non_missing_rows": 1635
+            "sha256": "226996aa527b7e6cfd65dc021e0003b313c0bcb40b14c63fc30599793ffe42c1",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6488.csv",
             "column": "stock_6488_ret_lag5",
-            "sha256": "310498a5c9cdc439d145718baf974e423996c8eeb2e4de1e574144c2dca032f1",
-            "non_missing_rows": 1632
+            "sha256": "1ea6acb2447662eaeedd7c513029c8f7855af783dd42d8a06f91c8718f74bdd7",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5607,14 +5673,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6505.csv",
             "column": "stock_6505_ret_lag2",
-            "sha256": "e9fdcc2333ffcf45089a5883cca2c3e665a0a2b0247e773b0664b1b04ba814cb",
-            "non_missing_rows": 1635
+            "sha256": "50c56f88c47e69109de4fc5f8547304b573033e9e11a0ed08a4b0996901f66e2",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6505.csv",
             "column": "stock_6505_ret_lag5",
-            "sha256": "8537d33aa2de4fecdbca0bf559d15f9e6fbd8f35e4d946b5156fc0dbec3daa60",
-            "non_missing_rows": 1632
+            "sha256": "f5e86283c62bf12ee30a4c89ed9b56ff296ec53e7f0f875f230a8b4bb966e8b1",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5628,14 +5694,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_6669.csv",
             "column": "stock_6669_ret_lag2",
-            "sha256": "1c3bfb874ceea6d5cd64d1f140cfce7416ec341d2e2069a33e0d9fcbd8d170ca",
-            "non_missing_rows": 1635
+            "sha256": "fdb7a8ff02cf08445d1d6675ff2ac000a5357cf87f5f79d34c60c611a772012a",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_6669.csv",
             "column": "stock_6669_ret_lag5",
-            "sha256": "973164e3c421556e5fe2faac42ae4cf0c83b0e6f8b3c4dc4c8e53941d40436d7",
-            "non_missing_rows": 1632
+            "sha256": "7ccbba6f638a916f4a6058a1ffb5aed3ee88c83109b201129adaf0e8238e7742",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5649,14 +5715,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_8046.csv",
             "column": "stock_8046_ret_lag2",
-            "sha256": "bf16e99b24c7f5f7f1ccc68502dc33f81e4ee6d19084ec9f5f5915c1cc780d62",
-            "non_missing_rows": 1635
+            "sha256": "f905192c24473737e4cba2ba0e7634d8792437b412344d9a971fc866dd3055b9",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_8046.csv",
             "column": "stock_8046_ret_lag5",
-            "sha256": "24e7a6ba4d3a0c2b5344a54eecbf031d73708dd21dfb7e491728b4e9463d156a",
-            "non_missing_rows": 1632
+            "sha256": "b13afef95789387497bcad929fb91e6ec6e74382453352f1f040145851c5e647",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5670,14 +5736,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_8069.csv",
             "column": "stock_8069_ret_lag2",
-            "sha256": "32f3f75ef6985887c7b898aeab29c02145c77752e34df04166ceda83fe680ebf",
-            "non_missing_rows": 1635
+            "sha256": "52f779a9813a1a01306a840ac2217bfc3c9928e83d8d4ae492ebf7245a714a7d",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_8069.csv",
             "column": "stock_8069_ret_lag5",
-            "sha256": "538042d4dd88a5f0f2a8fe7b3532677425bebb9918a25aac69a92dd9674e7eff",
-            "non_missing_rows": 1632
+            "sha256": "eb4f1f4b370dee20e6dfbda1f4d938085e1f422fe91256943f3f0722da563802",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5691,14 +5757,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_8299.csv",
             "column": "stock_8299_ret_lag2",
-            "sha256": "c37ea81456c0fc97e729bf0367272476859ac9be453c6dca166f02e95981529b",
-            "non_missing_rows": 1635
+            "sha256": "70f54281a41bcd51a3d1f9b053f8b88504a9e01192cf27f71648d197bde48228",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_8299.csv",
             "column": "stock_8299_ret_lag5",
-            "sha256": "d0f52ab8495e0a334ba33adbbfcd4490519be5d274cd0b700c5207545353d29b",
-            "non_missing_rows": 1632
+            "sha256": "56cd9606eeda55ece95c737d16462adfff46c5f0068854f8ef79391c0b112e26",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5712,14 +5778,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_8464.csv",
             "column": "stock_8464_ret_lag2",
-            "sha256": "fc0ac04335fe96f92f749c97509f509beb25db5d978aff98d97d9eecbe9d8b0c",
-            "non_missing_rows": 1635
+            "sha256": "7284e94a8305b3a5c1d6dcd4c85eb8f4d0b3522042d899c691085bb3adfad84e",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_8464.csv",
             "column": "stock_8464_ret_lag5",
-            "sha256": "0d19192f1d98834f65dfac40517976e806d5f93dc56f73e968f03a856b886e4b",
-            "non_missing_rows": 1632
+            "sha256": "a9bfd74eddcbb57ffba479acce5cab469e81dc94b9d695e6d352a93c500e6819",
+            "non_missing_rows": 1654
           }
         }
       },
@@ -5733,14 +5799,14 @@
           "lag2": {
             "file": "data/transform/lag2/stock_9910.csv",
             "column": "stock_9910_ret_lag2",
-            "sha256": "8c6f6460aa545ad22b1efa80be0003f335f4f8630060a6c026d76616daf296fb",
-            "non_missing_rows": 1635
+            "sha256": "e2471252fccae4944d8e6af55c695139ae2e1fb3e1f8afaafe5c171beff6a1df",
+            "non_missing_rows": 1657
           },
           "lag5": {
             "file": "data/transform/lag5/stock_9910.csv",
             "column": "stock_9910_ret_lag5",
-            "sha256": "ecb938bd5c12206ca9af0d99a7621705cab7f6c4ccf567826f2e74e95670a4e4",
-            "non_missing_rows": 1632
+            "sha256": "93628f08025e5767d6a2763dc9ed49b328354856d6b506aef7b8369934649b0d",
+            "non_missing_rows": 1654
           }
         }
       }
@@ -5749,14 +5815,14 @@
   "panel": {
     "file": "data/transform/panel_lag.csv.gz",
     "format": "gzip 壓縮的 UTF-8 CSV（LF）；pandas 可直接 read_csv",
-    "sha256_csv_uncompressed": "2242cfb129abea331382ffbc3e998a1e36226ef87d9f03d436201ea9259d7f2c",
-    "sha256_gz": "4cf389facb1a65fbb8da57de2738df63c9c6c5f7625112897dc8d463070e01a3",
-    "row_definition": "每列＝一股 × 一個台股交易日；100 股 × 1638 天的完整格子，依 date、stock_id 排序",
+    "sha256_csv_uncompressed": "f2da302c01add6623734d5d647997620a0f7903f492b3d65e2dcb52afeab7522",
+    "sha256_gz": "f308a00f198c369a1502837ff405eaeea90c5e0b9712cfc05d3141e359b8e187",
+    "row_definition": "每列＝一股 × 一個台股交易日；100 股 × 1660 天的完整格子，依 date、stock_id 排序",
     "stocks": 100,
-    "dates": 1638,
-    "rows": 163800,
-    "rows_with_label": 163746,
-    "top50_rows": 81900,
+    "dates": 1660,
+    "rows": 166000,
+    "rows_with_label": 165946,
+    "top50_rows": 83000,
     "key_columns": [
       "date",
       "stock_id",

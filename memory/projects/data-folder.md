@@ -53,6 +53,12 @@
     - 選模：R2 共 48 fits＝12 個設定 × 2025 四季。合併分數 M3-2 0.000869，第二名 M4-1 0.000867（只差 1.6e-6），全猜 0 是 0.000447。逐季只有 2 季贏過全猜 0；2025 的 accuracy 51.7%，比全猜 0 的 56.5% 還低。
     - 洩漏檢查：沒有用到 t 當天的資訊。TWII／KS11 的值和同一列的當日報酬吻合 0/1521，US 指數都用前一個美股交易日，TX_OI 沒用到，個股特徵重算 77,674/77,674 一致。
     - 沒驗證的事：歷史 vintage（調整價和 Yahoo 資料都是最新版）、只跑一個 seed、6～9 月真實資料當 lag 輸入在 Phase 1 規則上是否允許。
+27. 2026-11-05（從 `claude/stock-market-challenger` 的 session 做）：資料延長到 11/4。
+    - Live ZIP 換成 live-data 上舊排程最後一次抓的 `eea89fce…`（11/05 08:55，9/1～11/4 填好、11/5 待定）。9/1～11/3 的列和舊的 `7f4c759a…` 完全相同。
+    - 10/23 颱風假：使用者確認當休市日跳過，`LIVE_CLOSED_DAYS` 只列這天，其他 -1 照舊 fail closed。
+    - yfinance 19 序列限流重抓；9/30 以前的值只有 Yahoo 還原價的浮點漂移（長表 ≤ 8.5e-7、market_features ≤ 9.6e-7，缺值位置不變）。
+    - 10/1～11/4 用 Yahoo 核對：個股 2200/2200、^IXIC／^GSPC／^TWII 22/22、^KS11 21/22（韓國休市）。^VIX 13/22 列是前一個美股日的盤中值，不是收盤，開盤前就定下，沒有洩漏，記在 schema。
+    - 測試照本分支規則放在 session 暫存區，沒有 commit：10/23 跳過、其他 -1 照舊報錯、休市日被填值時報錯，11 個通過。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。
@@ -75,12 +81,12 @@
 ## 已知限制（交接時要說）
 - 日期語意已用 Yahoo 原始資料驗證（2026-11-04）；但歷史上幾點真的抓得到（發布延遲）沒有驗證，所以仍標 research_assumption。
 - TWD=X 日期 d 的 close≈倫敦 d 日 00:00～01:00 報價（台北 d 日早上），所以 usd_twd 特徵比名稱舊約一天；若要台北收盤，需另找來源（例如 live-data 的 FRED DEXTAUS，但那不是 yfinance）。
-- 老師 global：Training 1,506 列＋Live 9 月 20 列；transform 的 teacher_* 只在「前一個台股日」是 global 日期時有值（lag2 1,523、lag5 1,520 列）。
+- 老師 global：Training 1,506 列＋Live 42 列（9/1～11/4，不含 10/23）；transform 的 teacher_* 只在「前一個台股日」是 global 日期時有值（lag2 1,545、lag5 1,542 列）。
 - 授權：老師 ZIP 與 Yahoo 資料的公開再散布授權未核實。
 
 ## 數字
-- 老師：Training 100 股、161,746 列、2020-01-02～2026-08-31；global 1,506 列、缺 112 個台股日。Live（只用 9 月）2,000 列、global 20 列。
-- market_features：1,638 列 × 104 欄（date＋6 個老師市場欄＋97 個額外特徵）。
+- 老師：Training 100 股、161,746 列、2020-01-02～2026-08-31；global 1,506 列、缺 112 個台股日。Live（9/1～11/4）4,200 列、global 42 列；10/23 颱風假的列不用。
+- market_features：1,660 列 × 104 欄（date＋6 個老師市場欄＋97 個額外特徵）。
 - transform：124 個特徵 × lag2／lag5 ＝ 248 個 CSV。
-- panel：163,800 列 × 56 欄（50 個特徵），有答案 163,746 列，top50 81,900 列，7 MB；老師缺列仍是 54 格。
+- panel：166,000 列 × 56 欄（50 個特徵），有答案 165,946 列，top50 83,000 列，7 MB；老師缺列仍是 54 格。
 - data/ 約 72 MB：teacher 45M、transform 20M（含 panel 7M）、extra 3.2M、features 2.5M、teacher_live 1.6M。

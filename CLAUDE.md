@@ -13,10 +13,10 @@
 | `crawler.py` | 唯一程式：yfinance 限流爬蟲 → 清理 → 老師資料 → features → transform → panel → schema |
 | `schema.json` | **所有特徵**（老師＋額外＋transform）的公式、單位、lag 規則、清理紀錄、hash；`timing_verification` 是時間對齊驗證紀錄 |
 | `data/teacher/` | 老師 Training ZIP 原樣（100 股、`global/global_data.csv`、`info.json`），到 2026-08-31 |
-| `data/teacher_live/` | 老師 Live ZIP 原樣（`7f4c759a…`，9/1～11/4）；**只用 9/1～9/30**，接在 Training 後面 |
+| `data/teacher_live/` | 老師 Live ZIP 原樣（`eea89fce…`，9/1～11/5）；**只用 9/1～11/4**，接在 Training 後面；10/23 颱風假不用 |
 | `data/extra/` | 19 個 yfinance 額外指標日K（已清理）＋ `manifest.json`（限流、重試、清理紀錄） |
-| `data/features/market_features.csv` | 1,638 個台股日 × 104 欄：老師市場欄（`^TWII/^KS11/TX_OI` 都用 `_prev_row`）＋as-of 對齊的額外特徵（`_ret_1s/5s/20s` 等） |
-| `data/transform/panel_lag.csv.gz` | **組員直接用**：100 股 × 1,638 天＝163,800 列 × 56 欄（鍵、旗標、50 個 lag 特徵、`label_y`、`label_intraday_return`），7 MB |
+| `data/features/market_features.csv` | 1,660 個台股日 × 104 欄：老師市場欄（`^TWII/^KS11/TX_OI` 都用 `_prev_row`）＋as-of 對齊的額外特徵（`_ret_1s/5s/20s` 等） |
+| `data/transform/panel_lag.csv.gz` | **組員直接用**：100 股 × 1,660 天＝166,000 列 × 56 欄（鍵、旗標、50 個 lag 特徵、`label_y`、`label_intraday_return`），7 MB |
 | `data/transform/lag2/`、`lag5/` | 124 個特徵各一檔：`date, <id>_ret_lag{k}` |
 | `deploy/README.md` | 每日自動預測怎麼部署，以封存的舊程式為例：從爬蟲到上傳的步驟、流程圖、刪分支的影響（2026-11-05 重寫；舊的研究報告在 `archive/old-research/`）。新的比賽主程式骨架在 `claude/stock-market-challenger` 分支 |
 | `archive/` | 其他分支的逐位元封存：`system-completion/`、`live-data/`、`dev/`、`deep-research/`，加 `old-research/`。`archive/README.md` 有 commit SHA 和還原方法；這裡的 workflows 不會執行 |
@@ -32,7 +32,7 @@
 ## 常用術語
 | 詞 | 意思 |
 |---|---|
-| **老師資料** | 課程 Training ZIP（2020-01-02～2026-08-31）＋ Live ZIP（9/1 起，本分支只用到 9/30），在 `live-data` 分支以 sha256 命名（封存在 `archive/live-data/objects/`） |
+| **老師資料** | 課程 Training ZIP（2020-01-02～2026-08-31）＋ Live ZIP（9/1 起，本分支用到 11/4，不含 10/23 颱風假），在 `live-data` 分支以 sha256 命名（封存在 `archive/live-data/objects/`） |
 | **老師 index** | global_data 的 `^VIX ^IXIC ^GSPC ^TWII ^KS11`（＋`TX_OI` 口數）；「額外指標」＝排除這些 |
 | **額外指標** | 19 個 yfinance 序列：SOX、TSM、NVDA、TWD=X、DXY、^TNX、^IRX、0050/0052/0055/006201、DJI、N225、HSI、SSE、STOXX50E、DAX、CL=F、GC=F |
 | **lag k（transform）** | 台股日 t 那列＝`(close_i − close_{i−k}) / close_{i−k}`，**i＝t 的前一個台股交易日**，i−k 數該序列自己的交易日；i 那天沒資料就空白 |
@@ -46,7 +46,8 @@
 - 回覆用**繁體中文**；先講清楚定義讓使用者確認，再實作。
 - 寫文件和回覆要容易懂、不要有 AI 味（使用者 2026-11-05 要求）。照 Humanizer skill（blader，依 Wikipedia〈Signs of AI writing〉）的規則：短句、先講結論；不用「不是…而是…」、破折號、總結式結尾句、硬湊三點；粗體很少用，不在每個列表項目加粗體標籤；不寫「本文將介紹」這類描述文件本身的句子；第一次出現的術語用幾個字解釋。
 - 這個分支只放：`crawler.py`、`schema.json`、`data/`、`.agents/skills/`、`README.md`、`deploy/`（使用者 2026-11-04 要求放 Phase 2 部署設計）、`archive/`（使用者 2026-11-05 要求封存其他分支）、本檔與 `memory/`（加 `.gitignore`、`.gitattributes`）。**其他東西先不要放到 GitHub。** `crawler.py` 由使用者明確要求保留（2026-11-04）。
-- 額外指標一律用 **yfinance**；範圍固定 **2020-01-01～2026-09-30**（使用者 2026-11-04 從 8/31 延長）；要含**台幣匯率** TWD=X。9 月的老師資料用 Live ZIP。
+- 額外指標一律用 **yfinance**；範圍固定 **2020-01-01～2026-11-04**（使用者 2026-11-04 從 8/31 延長到 9/30，2026-11-05 再延長到 11/4）；要含**台幣匯率** TWD=X。9/1 以後的老師資料用 Live ZIP。
+- 10/23 颱風假當休市日跳過（使用者 2026-11-05 確認）：寫在 `crawler.py` 的 `LIVE_CLOSED_DAYS`，個股列和 global 列都不用；範圍內其他 -1 照舊 fail closed。
 - 爬蟲**必須限流**（每個 HTTP 請求都過限流器，見 `memory/context/data-decisions.md`）。
 - 殖利率也用百分比報酬（使用者選擇，即使接近 0 時數值很大）。
 - 缺漏日期留空白，不補值。

@@ -6,8 +6,8 @@
   "terms_note": "Yahoo 非官方介面，僅供課程研究；再散布授權未核實。",
   "range": {
     "start": "2020-01-01",
-    "end_inclusive": "2026-09-30",
-    "request_end_exclusive": "2026-10-01"
+    "end_inclusive": "2026-11-04",
+    "request_end_exclusive": "2026-11-05"
   },
   "request_options": {
     "interval": "1d",
@@ -39,7 +39,7 @@
       "circuit_breaker": "序列因限流放棄後冷卻 backoff_max 秒；連續 3 個序列被限流即中止"
     },
     "last_run": {
-      "run_started_at": "2026-11-04T13:04:26+00:00",
+      "run_started_at": "2026-11-05T12:22:02+00:00",
       "series_requested": [
         "sox",
         "tsm_adr",
@@ -61,8 +61,8 @@
         "wti",
         "gold"
       ],
-      "http_requests": 20,
-      "paced_sleep_seconds": 48.124,
+      "http_requests": 40,
+      "paced_sleep_seconds": 92.376,
       "circuit_breaker_cooldown_seconds": 0.0
     }
   },
@@ -82,12 +82,12 @@
       "required": true,
       "status": "ok",
       "file": "yfinance/sox.csv",
-      "sha256": "3a875108c8b061f9a364d287787b74f6bc357bbe4ea03070a182f678dfdc56c4",
-      "rows": 1695,
+      "sha256": "d2578b718c05bee62723aa136668fdc6df0b1829fda4eeacdb2c6c4ba29902fb",
+      "rows": 1720,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -109,12 +109,12 @@
       "required": true,
       "status": "ok",
       "file": "yfinance/tsm_adr.csv",
-      "sha256": "a64d7ac7fd130611c7010cb6857434fed32ded1d85b8d53c53795ae9ac0f7595",
-      "rows": 1695,
+      "sha256": "6baebf6570cb87e007f0e20112af6495c53c364e5069408bad255dce04ee71d3",
+      "rows": 1720,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -136,12 +136,12 @@
       "required": true,
       "status": "ok",
       "file": "yfinance/nvda.csv",
-      "sha256": "d9ae2c20d53d23d46bec904c4dfc8b25707b8193f7e605c580f0df34fe7bfc4d",
-      "rows": 1695,
+      "sha256": "257f2a647c1433fe59b7ddd5d2d17dcf9913c71e8f5863f5ef15cb873b551a90",
+      "rows": 1720,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -163,12 +163,12 @@
       "required": true,
       "status": "ok",
       "file": "yfinance/usd_twd.csv",
-      "sha256": "233cda3a19740010c5e4c69384b1708f6e1c034710a10fea9ac6d4a624c1e748",
-      "rows": 1754,
+      "sha256": "4d3437b4b547ed5c9e00f8f63318832625e7d49a40e65d2b1ccc409c3266a7e9",
+      "rows": 1779,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-01",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -211,12 +211,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/dxy.csv",
-      "sha256": "f480371620314e2905f9eecd39d4abc80cb8fc05ba12ef4582ada2971d484034",
-      "rows": 1697,
+      "sha256": "1b6f2443c1d771628ce09f3a3f43bc5aebdc54bdd34051e300c609b5050626ab",
+      "rows": 1722,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -238,12 +238,12 @@
       "required": true,
       "status": "ok",
       "file": "yfinance/us10y.csv",
-      "sha256": "8a22b1ddd86257872feb3b02593c10b1a7f42ae6bf1d590c0181d45b8df11347",
-      "rows": 1684,
+      "sha256": "0ea186be1ce260fecbb843fab1f925879b663195c7aa42bb3ef371a622923203",
+      "rows": 1708,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -358,6 +358,16 @@
             "adj_close": 4.119999885559082,
             "volume": 0.0,
             "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2026-10-12",
+            "open": 5.239999771118164,
+            "high": 5.239999771118164,
+            "low": 5.239999771118164,
+            "close": 5.239999771118164,
+            "adj_close": 5.239999771118164,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
           }
         ],
         "placeholder_bars_dropped": [],
@@ -376,12 +386,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/us13w.csv",
-      "sha256": "ab0599a657d224c1aaf2668ab362b21a8c573cb26fdf25704b3ec635e4223b53",
-      "rows": 1684,
+      "sha256": "25f6a13c9b7fc6f8d8f5f73aa76450d70c8e7a1433a3ab9153aee8ad6316e177",
+      "rows": 1708,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -496,6 +506,16 @@
             "adj_close": 3.7829999923706055,
             "volume": 0.0,
             "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2026-10-12",
+            "open": 4.050000190734863,
+            "high": 4.050000190734863,
+            "low": 4.050000190734863,
+            "close": 4.050000190734863,
+            "adj_close": 4.050000190734863,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
           }
         ],
         "placeholder_bars_dropped": [],
@@ -514,12 +534,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/etf_006201.csv",
-      "sha256": "a41a4498a49b8f60639e757c0d677ad70eb96828dd650fce5ab0be9ee873e468",
-      "rows": 1628,
+      "sha256": "93fc86c60b34a0431f7b2360a10ddb33a0663072be76864dbb031dca3c3eab49",
+      "rows": 1650,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -552,7 +572,7 @@
             "high": 10.720000267028809,
             "low": 10.720000267028809,
             "close": 10.720000267028809,
-            "adj_close": 8.884191513061523,
+            "adj_close": 8.884190559387207,
             "volume": 0.0,
             "reason": "零量平盤且等於前一收盤"
           },
@@ -615,6 +635,16 @@
             "adj_close": 21.77480125427246,
             "volume": 0.0,
             "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2026-10-23",
+            "open": 42.150001525878906,
+            "high": 42.150001525878906,
+            "low": 42.150001525878906,
+            "close": 42.150001525878906,
+            "adj_close": 42.150001525878906,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
           }
         ],
         "split_adjustments": [],
@@ -632,12 +662,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/etf_0050.csv",
-      "sha256": "a5399cc1cb8e5a7fafb743bac5aa76e35c1780db8c0644cfefc2d0d0166765af",
-      "rows": 1630,
+      "sha256": "efa46c7262928c27658c0f53e12559d6935344444ddd8bf0e07669b5e806223a",
+      "rows": 1652,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -650,7 +680,7 @@
             "high": 33.162498474121094,
             "low": 33.162498474121094,
             "close": 33.162498474121094,
-            "adj_close": 30.952096939086914,
+            "adj_close": 30.95209503173828,
             "volume": 0.0,
             "reason": "零量平盤且等於前一收盤"
           },
@@ -670,7 +700,7 @@
             "high": 47.162498474121094,
             "low": 47.162498474121094,
             "close": 47.162498474121094,
-            "adj_close": 45.9013671875,
+            "adj_close": 45.901371002197266,
             "volume": 0.0,
             "reason": "零量平盤且等於前一收盤"
           },
@@ -680,7 +710,7 @@
             "high": 47.162498474121094,
             "low": 47.162498474121094,
             "close": 47.162498474121094,
-            "adj_close": 45.9013671875,
+            "adj_close": 45.901371002197266,
             "volume": 0.0,
             "reason": "零量平盤且等於前一收盤"
           },
@@ -690,7 +720,7 @@
             "high": 47.162498474121094,
             "low": 47.162498474121094,
             "close": 47.162498474121094,
-            "adj_close": 45.9013671875,
+            "adj_close": 45.901371002197266,
             "volume": 0.0,
             "reason": "零量平盤且等於前一收盤"
           },
@@ -700,7 +730,7 @@
             "high": 47.162498474121094,
             "low": 47.162498474121094,
             "close": 47.162498474121094,
-            "adj_close": 45.9013671875,
+            "adj_close": 45.901371002197266,
             "volume": 0.0,
             "reason": "零量平盤且等於前一收盤"
           },
@@ -710,7 +740,17 @@
             "high": 47.162498474121094,
             "low": 47.162498474121094,
             "close": 47.162498474121094,
-            "adj_close": 45.9013671875,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2026-10-23",
+            "open": 106.9000015258789,
+            "high": 106.9000015258789,
+            "low": 106.9000015258789,
+            "close": 106.9000015258789,
+            "adj_close": 106.9000015258789,
             "volume": 0.0,
             "reason": "零量平盤且等於前一收盤"
           }
@@ -730,12 +770,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/etf_0052.csv",
-      "sha256": "6fb4f54801a605f707ddfedae23be9ee6a2ce521062a2d05887f827c139cf6c4",
-      "rows": 1630,
+      "sha256": "71f7e3a84a2ebbc60d14066f620d5ee03fd3a4d4bbb18717008557b4dcb73b19",
+      "rows": 1652,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -811,6 +851,16 @@
             "adj_close": 34.203369140625,
             "volume": 0.0,
             "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2026-10-23",
+            "open": 61.79999923706055,
+            "high": 61.79999923706055,
+            "low": 61.79999923706055,
+            "close": 61.79999923706055,
+            "adj_close": 61.79999923706055,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
           }
         ],
         "split_adjustments": [
@@ -825,28 +875,28 @@
         "dividend_adjustments_rescaled": [
           {
             "ex_date": "2020-04-22",
-            "yahoo_fraction": 0.004235238745861181,
-            "rescaled_fraction": 0.029646671221028265
+            "yahoo_fraction": 0.004235236443432822,
+            "rescaled_fraction": 0.02964665510402975
           },
           {
             "ex_date": "2021-04-20",
-            "yahoo_fraction": 0.001149470289483645,
-            "rescaled_fraction": 0.008046292026385515
+            "yahoo_fraction": 0.0011495333563315002,
+            "rescaled_fraction": 0.008046733494320502
           },
           {
             "ex_date": "2022-04-20",
-            "yahoo_fraction": 0.01208559170223622,
-            "rescaled_fraction": 0.08459914191565354
+            "yahoo_fraction": 0.012085657522357462,
+            "rescaled_fraction": 0.08459960265650224
           },
           {
             "ex_date": "2023-04-21",
-            "yahoo_fraction": 0.005383167859268845,
-            "rescaled_fraction": 0.03768217501488191
+            "yahoo_fraction": 0.005383242144293754,
+            "rescaled_fraction": 0.03768269501005628
           },
           {
             "ex_date": "2024-04-18",
-            "yahoo_fraction": 0.005714438846111447,
-            "rescaled_fraction": 0.04000107192278013
+            "yahoo_fraction": 0.005714341299665082,
+            "rescaled_fraction": 0.040000389097655575
           },
           {
             "ex_date": "2025-04-23",
@@ -867,12 +917,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/etf_0055.csv",
-      "sha256": "9db6a49c58cc36c81ccf761751534a73d86fcd8d062e03b6eb66dccd18b82a51",
-      "rows": 1635,
+      "sha256": "e49bc742e913e44994e866616e5dbeebe4cbbd87fb6468e2937180c97d9f58d8",
+      "rows": 1657,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -898,6 +948,16 @@
             "adj_close": 26.847736358642578,
             "volume": 514.0,
             "reason": "平盤且成交量 < 前 21 筆中位數的 1%（不完整K棒）"
+          },
+          {
+            "date": "2026-10-23",
+            "open": 51.900001525878906,
+            "high": 51.900001525878906,
+            "low": 51.900001525878906,
+            "close": 51.900001525878906,
+            "adj_close": 51.900001525878906,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
           }
         ],
         "split_adjustments": [],
@@ -915,12 +975,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/dji.csv",
-      "sha256": "ff928fa7ef69a52e1191499b78f39e085e55fbb3b5d811604cda7ce4899f2ba1",
-      "rows": 1695,
+      "sha256": "7e6a7ae525b55f1267de04f20950986761d9976e829feb52a835b3b54bcab5a8",
+      "rows": 1720,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -942,12 +1002,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/n225.csv",
-      "sha256": "d6d619bd698e5b2c3ed5bbdef061e198ce8813de731885fbbe632890731ecac9",
-      "rows": 1645,
+      "sha256": "2a399df17741884a01dbfed5052e0b77a530a839def558808b35728b4fcc0cab",
+      "rows": 1668,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-06",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -969,12 +1029,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/hsi.csv",
-      "sha256": "fc3d8241e1141a1f681cf3956133a928cef9632204ae929cc488198a8b608920",
-      "rows": 1660,
+      "sha256": "02f69ea3cf7f03b727c2e0d5788b397eeaf2da32144f30e3807291550fcb4db1",
+      "rows": 1683,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -996,12 +1056,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/sse.csv",
-      "sha256": "03b38937c56e9cba75d8f242f4c7065f4fd98844c7fd5f7e15906d1358a439a2",
-      "rows": 1636,
+      "sha256": "59f81fdb93c995c918b78e737b322a76457987afd03c043e9bb33aaf95415048",
+      "rows": 1656,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -1023,12 +1083,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/stoxx50e.csv",
-      "sha256": "85fa0c86a56f5166b3e9195ad7e511cbc1b2a7adf96df72caed324a2e414adf3",
-      "rows": 1698,
+      "sha256": "d3fc9c1b4a8dad38050e6d290cd365022d7889edc72c39adacd04fda8a21056b",
+      "rows": 1723,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-03",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -1050,12 +1110,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/gdaxi.csv",
-      "sha256": "677bab35a74aea68ac178990e40901579a7af1ee8a18c45d6b85e9e3c099ccb9",
-      "rows": 1719,
+      "sha256": "ec388b68d91605595fa87ead200cc0903458d38d8592654cdb5a6a64e2b37a16",
+      "rows": 1744,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -1077,12 +1137,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/wti.csv",
-      "sha256": "0036c7af351cf806cd02732c4e8bf01c7cec7aba87eb1527d4ce84b8ace56ad3",
-      "rows": 1697,
+      "sha256": "42fef777e4289ed243d7e3306452255819f167b453f1bba6ef2da9654cb9aa21",
+      "rows": 1722,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {
@@ -1104,12 +1164,12 @@
       "required": false,
       "status": "ok",
       "file": "yfinance/gold.csv",
-      "sha256": "746b48f48d2849676f5dd6e1d30e89fdd9a17b996e9cf41a5c097befba0c2570",
-      "rows": 1698,
+      "sha256": "516ca88b35471fecb6469efb1f957acb7a78a548a0c99acfe2f0706f1ddc0401",
+      "rows": 1723,
       "dropped_out_of_range_or_empty": 0,
       "date_min": "2020-01-02",
-      "date_max": "2026-09-30",
-      "fetched_at": "2026-11-04T13:04:26+00:00",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
       "attempts": 1,
       "retry_events": [],
       "cleaning": {

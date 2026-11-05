@@ -6,7 +6,7 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | 詞 | 意思 | 備註 |
 |---|---|---|
 | 老師資料／Training ZIP | 課程提供的歷史包：100 股 CSV＋`global_data.csv`＋`info.json` | sha256 `7433b271…`，存在 `live-data:objects/`（封存：`archive/live-data/objects/`） |
-| Live ZIP | 9/1 之後的老師新資料（`y=-1`＝pending） | 本分支放在 `data/teacher_live/`，只用 9/1～9/30 |
+| Live ZIP | 9/1 之後的老師新資料（`y=-1`＝pending） | 本分支放在 `data/teacher_live/`，用 9/1～11/4（10/23 颱風假不用） |
 | template | 官方預測模板（股票／日期／欄位順序） | 不在本分支 |
 | Top50@Y／Top100@Y | `info.json` 的預測目標 50 股／全部 100 股 | |
 | global_data | 老師全球表：`date, ^VIX, ^IXIC, ^GSPC, ^TWII, ^KS11, TX_OI` | 五個老師 Yahoo 序列同日都有資料才有列（1,506 列，缺 112 個台股日；缺列不代表休市） |
@@ -29,7 +29,7 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | `<id>_level`／`_level_pct` | FX／美元指數水準；殖利率水準（百分比） |
 | `<id>_change_bp_{k}s` | 殖利率 k 期基點變化 `100 × (Y[s] − Y[s−k])` |
 | `^TWII_prev_row`／`^KS11_prev_row`／`TX_OI_prev_row` | 最後一個日期 < t 的老師 global 列之值（避開當日收盤／疑似當日的 TX_OI） |
-| panel／長表 | `data/transform/panel_lag.csv.gz`：每列＝一股 × 一個台股交易日（100 × 1,638，到 2026-09-30），56 欄 |
+| panel／長表 | `data/transform/panel_lag.csv.gz`：每列＝一股 × 一個台股交易日（100 × 1,660，到 2026-11-04），56 欄 |
 | `stock_ret_lag{k}` | 長表中該列股票自己的 lag（＝`transform/lag{k}/stock_<代號>.csv`） |
 | `label_y`／`label_intraday_return` | 長表的答案欄（老師 y、adj_close/adj_open−1）；只用於訓練與評分 |
 | is_top50／has_teacher_row | 長表旗標：官方 50 檔預測目標／老師該股該日有資料（54 格為 0） |

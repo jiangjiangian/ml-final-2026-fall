@@ -32,7 +32,8 @@
 
 - 每個請求至少間隔 2 秒，yfinance 自己送的請求（取 cookie、crumb、時區）也算。
 - 下載時設 `auto_adjust=False`，才會同時有 `close` 和 `adj_close`。
-- `end` 不含那一天，設成台北今天就不會存到今天的K棒。前一天的K棒有沒有收完要看各市場的時間：美股約 05:30、期貨 06:00、DXY 07:00、TWD=X 保守估 08:00（台北時間）。
+- `end` 不含那一天，但它只限制請求的範圍。期貨在台北 07:00 後就開始下一個交易日，Yahoo 可能把盤中資料標成前一天。不存到還沒收完的K棒，要靠爬蟲自己丟掉日期 ≥ t 和週末的K棒，再檢查期貨最後一根的成交量（見 `memory/projects/crawler.md`）。
+- 前一天的K棒收完時間（台北）：美股約 05:30、期貨 06:00、DXY 07:00、TWD=X 保守估 08:00。
 - 時區快取放 `configs/config.yaml` 的 `yfinance.cache_dir`（`.cache/yfinance`，不進 Git）。
 
 ## 資料放在這個分支

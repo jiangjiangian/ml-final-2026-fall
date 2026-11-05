@@ -72,7 +72,7 @@ def check_deadline(cfg: dict, target_date: str, now: datetime | None = None, key
 def get_logger(name: str, target_date: str):
     """回傳寫到畫面和 data/submission/run_<target_date>.log 的 logger。
 
-    等級是 INFO。不要改成 DEBUG：yfinance 在 DEBUG 會印出 crumb 和整個回應。
+    等級是 INFO。這個 logger 不往上傳，改它的等級不影響 yfinance（yfinance 的警告見 crawler.setup_yfinance）。
     """
     logger = logging.getLogger(f"finpred.{name}")
     logger.setLevel(logging.INFO)

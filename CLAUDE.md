@@ -2,7 +2,7 @@
 
 這是課程 ML 期末專案（2026 秋）的比賽主程式，分支 `claude/stock-market-challenger`，repo `jiangjiangian/ml-final-2026-fall`。每個台股交易日的台北 09:00 前，預測 50 檔股票當天會不會「收盤高於開盤」（`y = 1` 代表 `adj_close > adj_open`），把 0/1 寫成 CSV 上傳課程網站。
 
-目前只有骨架：`src/` 每個檔案都寫好用途、輸入、輸出和函式介面，函式本體是 `NotImplementedError`。下一步是補 `src/crawler.py`。
+`src/crawler.py` 已實作，離線測試通過，還沒連網試跑。`src/` 其他檔案是骨架：寫好用途、輸入、輸出和函式介面，函式本體是 `NotImplementedError`。下一步是第一次連網試跑爬蟲（先問使用者），再補 `src/features.py`。
 
 ## 先讀哪個檔
 
@@ -30,6 +30,8 @@
 
 - 回覆用繁體中文。
 - 補程式前，先把要寫的東西和定義講清楚，等使用者確認後才實作。
+- 要使用者做決定時，用選擇題問（AskUserQuestion），推薦的選項放第一個。每題自己講清楚，不用 i、E 這類代號；金融名詞（K棒、成交量、指數）先用白話解釋。
+- 同一個資料夾可能有別的 session 在工作（例如 `notebooks/kaggle/`、`memory/projects/kaggle-models.md`）。commit 時只 `git add` 自己改的檔，不用 `git add -A`。
 - 審查或測試有發現問題時，等結果全部出來再一起修。
 - 只在 `claude/stock-market-challenger` commit 和 push。沒有使用者同意，不推其他分支、不開 PR。commit 不加 `Co-Authored-By`。
 - `../ml-final-archive` 是舊分支的唯讀 worktree，只讀不改。

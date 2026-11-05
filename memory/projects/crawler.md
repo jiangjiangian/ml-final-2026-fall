@@ -2,12 +2,13 @@
 
 ## 狀態
 
-- 2026-11-05：計畫第二版（已經過三個角度的審查並修正），等使用者確認。確認前不寫程式。
+- 2026-11-05：已實作（commit `f50e5a3`），實作審查（四個角度、28 個成立的發現）修完，離線測試全部通過。第一次連網試跑前要先問使用者，試跑時不上傳。
+- 審查裡有兩條會改到使用者決定過的規則，等使用者回答：個別股票停牌時「i 那天填好」怎麼判斷；期貨最後一根成交量的防線要不要只記錄不丟。
 - 查證紀錄（本機暫存，session 結束會消失）：yfinance 1.7.0 原始碼、老師 ZIP 結構、各序列日期、舊爬蟲、兩輪審查。結論都整理在下面。
 
 ## 使用者的決定
 
-- 2026-11-05：Live 用助教的 chatgpt.site 新入口，金鑰由使用者放 `.env` 的 `COURSE_LIVE_KEY`，不自動從課程網站抓。
+- 2026-11-05：Live 用助教的 chatgpt.site 新入口，金鑰由使用者放 `.env` 的 `COURSE_LIVE_KEY`，不自動從課程網站抓。舊程式（`../ml-final-archive/archive/system-completion/ml_financial_prediction/src/finpred/ingestion/course.py`）會從課程網站首頁載入的 JS 找金鑰，這個做法不採用。舊入口 `https://140.112.31.182:8444/` 的 TLS 驗證會失敗，也不用。
 - 2026-11-05：19 個 yfinance 序列都抓，爬蟲台北 07:10 開始跑。要不要用在模型上，看驗證分數。
 - 2026-11-05：輸出和 peaceful-babbage 分支的資料對齊：`data/raw/teacher/`、`data/raw/teacher_live/`、`data/raw/yfinance/` 對應舊的 `data/teacher/`、`data/teacher_live/`、`data/extra/yfinance/`，19 個代號、檔名、欄位都一樣。
 - 2026-11-05：成交量要 > 0 只檢查個股和 ETF（TSM、NVDA、四檔台灣 ETF），和舊分支清理規則用成交量的範圍一樣。其他序列只查日期。
@@ -57,7 +58,7 @@
 
 `main(argv)` 依序做：
 
-1. 讀 `/api/state`，把 `phase2Days` 的日期和 `enabled` 存成 `data/raw/phase2_days.json`。`uploadQuota`、`mySubmissions` 不存。i 取 `phase2Days` 裡早於 t 的最後一天，不篩 `enabled`：舊紀錄只看到「當天開放提交的 slot 是 enabled=1」（`../ml-final-archive/archive/system-completion/ml_financial_prediction/docs/research/AUTOMATION.md` 第 18 行），看起來像提交窗口，不一定代表交易日。第一次真的讀到 `/api/state` 時要確認過去的日子 `enabled` 是多少。`phase2Days` 裡沒有早於 t 的日子時（Phase 2 第一天，或研究用的舊 t），取 Live 裡早於 t、個股列不是整列 `-1` 的最後一天。
+1. 讀 `/api/state`，把 `phase2Days` 的 `tradingDate`、`enabled`、`isCompetition` 存成 `data/raw/phase2_days.json`。`uploadQuota`、`mySubmissions` 不存。i 取 `phase2Days` 裡早於 t 的最後一天，不篩 `enabled`：舊紀錄只看到「當天開放提交的 slot 是 enabled=1」（`../ml-final-archive/archive/system-completion/ml_financial_prediction/docs/research/AUTOMATION.md` 第 18 行），看起來像提交窗口，不一定代表交易日。第一次真的讀到 `/api/state` 時要確認過去的日子 `enabled` 是多少。`phase2Days` 裡沒有早於 t 的日子時（Phase 2 第一天，或研究用的舊 t），取 Live 裡早於 t、已經填好的最後一天（100 檔的 `y` 都是 0 或 1，還原開盤價、收盤價都 > 0）。
 2. 老師 Training。
 3. 老師 Live。
 4. yfinance 19 個序列。
@@ -99,15 +100,15 @@
   - `impersonate="chrome"`、`retry=0`。
   - 一律把 `allow_redirects` 改成 False。遇到 3xx 自己跟過去，每一跳也經過限流器，最多 5 跳，303 改用 GET。
   - chart 回 429 就丟 `YFRateLimitError`。
-  - 只記方法、網址（拿掉 `?` 後面）、狀態碼、時間。
+  - 只數請求數和轉址次數，寫進 manifest 的 `run.http_requests`、`run.redirects`。
 - 開始前：`yf.set_tz_cache_location(".cache/yfinance")`、`yf.config.network.retries = 0`、`yf.config.debug.hide_exceptions = False`、`YfData(session=paced)`。
 - 每個序列：`cache_clear()` 後 `yf.Ticker(代號, session=paced).history(start="2020-01-01", end=t, interval="1d", auto_adjust=False, actions=False, repair=False)`。每天重抓完整歷史。
 - CL=F、GC=F 的 `end` 改用帶時區的時間：「t 那天台北 00:00」換算成紐約的日期，再取那天紐約 17:30。這在下一段交易（18:00 ET）開始之前，yfinance 會先丟掉時間戳 ≥ end 的列，再做同日合併，所以盤中那列進不來（離線 probe 驗證過；Yahoo 那邊怎麼處理沒驗證）。
 - 抓回來之後：
   - 丟掉日期 ≥ t 的K棒，也丟掉日期是週六、週日的K棒。
   - CL=F、GC=F 第二道：最後一根的成交量低於前 21 根中位數的 10%，就丟掉那一根。
-  - 兩道防線哪一道動作了，都記在 manifest 那個序列的 `guard` 欄。
-  - 寫檔前檢查：至少剩 1 列，而且第一個日期不晚於舊檔的第一個日期。不符合就當這個序列失敗，舊檔留著。
+  - 丟了幾根、哪一道防線動作了，記在 manifest 那個序列的 `dropped` 欄：`on_or_after_t`、`weekend`、`low_volume_last_bar`。
+  - 寫檔前檢查：至少剩 1 列；第一個日期不晚於舊檔的第一個日期；最後一天不早於舊檔裡早於 t 的最後一天（歷史被截短）。不符合就當這個序列失敗，舊檔留著。
 - 重試：只分兩類，不看錯誤訊息的文字。
   - `YFRateLimitError`：等 15、30、60 秒。連續 2 個序列因為限流放棄，就停掉剩下的。
   - 其他所有例外：等 5、10、20 秒。
@@ -129,21 +130,28 @@
 
 ```json
 {
-  "run": {"started_at": "2026-11-17T07:10:02+08:00", "finished_at": "…", "target_date": "2026-11-17",
-          "prev_day": "2026-11-16", "status": "ok", "http_requests": 45},
-  "phase2_days": {"status": "ok", "file": "phase2_days.json", "days": 30},
+  "run": {"started_at": "2026-11-17T07:10:02+08:00", "target_date": "2026-11-17", "mode": "daily",
+          "status": "ok", "prev_day": "2026-11-16", "finished_at": "…", "http_requests": 45, "redirects": 0},
   "teacher": {"status": "ok", "action": "skipped_unchanged", "zip_sha256": "7433b271…", "files_sha256": "…"},
-  "teacher_live": {"status": "ok", "zip_sha256": "…", "files_sha256": "…", "date_max": "2026-11-17",
-                   "prev_day_filled": true, "attempts": 1, "error": null},
+  "phase2_days": {"status": "ok", "file": "phase2_days.json", "days": 30},
+  "teacher_live": {"status": "ok", "source": "fin-pred-daily.jiangxuehaokeai.chatgpt.site/data.zip",
+                   "attempts": 1, "error": null, "zip_sha256": "…", "files_sha256": "…", "date_max": "2026-11-17",
+                   "has_t_row": true, "prev_day": "2026-11-16", "prev_day_planned": "2026-11-16",
+                   "prev_day_never_filled": false},
   "yfinance": {
-    "sox": {"ticker": "^SOX", "status": "ok", "rows": 1730, "date_max": "2026-11-16",
-            "sha256": "…", "attempts": 1, "error": null}
+    "sox": {"ticker": "^SOX", "status": "ok", "file": "yfinance/sox.csv", "attempts": 1, "error": null,
+            "dropped": {"on_or_after_t": 0, "weekend": 0, "low_volume_last_bar": false},
+            "rows": 1730, "date_max": "2026-11-16", "sha256": "…"},
+    "wti": {"ticker": "CL=F", "status": "failed", "file": "yfinance/wti.csv", "attempts": 4,
+            "error": "JSONDecodeError", "kept_previous_file": true, "rows": 1729, "date_max": "2026-11-13",
+            "sha256": "…", "end": "2026-11-16T17:30:00-05:00"}
   }
 }
 ```
 
 - 序列的 `status`：`ok`、`no_bar_i`（抓到了但沒有 i 那根）、`failed`（沒抓到，舊檔留著）。
-- `run.status`：全部 `ok` 是 `ok`，否則 `stale`。
+- `run.status`：全部 `ok` 是 `ok`，否則 `stale`；丟出例外時是 `failed`，`error` 是自己寫的短訊息或例外類別名稱。
+- 失敗時 `teacher` 那筆照抄上一次的，下次還認得本機的 Training，不用重新下載。指紋不算點開頭的檔（`.DS_Store`）。
 - sha256 用檔案原始位元組算。加 `.gitattributes` 的 `data/raw/** -text`，Git 不改換行。
 - 不記：金鑰、帳密、cookie、crumb、網址的 `?` 後面、伺服器回應的內容。錯誤只記例外類別和自己寫的短訊息。
 
@@ -161,11 +169,13 @@
 
 ### 測試（全部離線）
 
-`tests/test_crawler.py`，用假的 transport（換掉 curl_cffi 的 `_request_once`）、假的時鐘、測試裡現做的小 ZIP，不連網：
+`tests/test_crawler.py`，用假的 `PacedSession._send`、假的 requests.Session、假的時鐘、測試裡現做的小 ZIP。`no_network` 把 curl_cffi 的 `_request_once` 和 requests 的 `send` 換成丟錯，防止不小心連網；每個測試前後重設 yfinance 的 `YfData` 單例，結果不看順序：
 
 - 限流：連續請求間隔 ≥ 2 秒，從上一個結束算起；cookie、crumb 請求也算；302 再 200 的兩次請求也隔 ≥ 2 秒。
 - 429：出在 chart 時退避而且 yfinance 不會再送一次；出在 getcrumb 時 chart 照送、也有限流。
-- `YFPricesMissingError` 會重試到 `max_retries` 次。
+- `YFPricesMissingError` 會重試到 `max_retries` 次（也固定住 `hide_exceptions=False`）。限流連續 2 個序列就熔斷，第三個不送。
+- SiteClient：POST 不重試、GET 遇到 5xx 重試、轉到別的主機不跟、`allow_redirects` 一律 False、超過大小上限丟錯。
+- 截止：08:28 Live 還沒有 t 那列時不再等；08:31 yfinance 全部跳過、舊檔不動；08:29:50 失敗時不重試；重抓 i 那根時過了截止就停。
 - `cache_clear()`：固定用過去的日期（t = 2026-11-04）和台股代號，第一次 chart 回 500，重試時要看到新的 chart 請求；反向對照是不清快取時請求數是 0。
 - `YfData` 用的是我們的 `PacedSession`。
 - 日期：日期 ≥ t 的K棒、週末日期的K棒會被丟掉；期貨的 `end` 算對（含週一的 t）；假 chart JSON 最後時間戳是 i 的 18:10 ET（期貨盤中）時，那一列進不來，i 那根結算K棒還在。
@@ -182,9 +192,9 @@
 
 ### 第一次實際跑要確認的事
 
-- 台北 07:10～13:00 之間跑一次（`submit.enabled` 還是 false），確認 wti、gold 有 i 那根，`guard` 有沒有動作。
+- 台北 07:10～13:00 之間跑一次（`submit.enabled` 還是 false），確認 wti、gold 有 i 那根，`dropped.low_volume_last_bar` 有沒有動作。
 - `/api/state` 的 `phase2Days` 裡，過去的日子 `enabled` 是多少；10-23 在不在裡面。
-- 轉址實際有沒有發生（PacedSession 的 log）。
+- 轉址實際有沒有發生（manifest 的 `run.redirects`）。
 
 - 2026-11-05：最後一根K棒的檢查改成「有沒有 i 那根」，取代「每個市場的前一個交易日加假日清單」。這和舊分支 `data/transform/`、`panel_lag.csv.gz` 的算法一樣（用 i 那根，沒有就空白）。
 - 2026-11-05：使用者同意照這個計畫開始寫程式和離線測試。第一次連網試跑前要先問。

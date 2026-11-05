@@ -21,6 +21,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   └── skills/                graphify、humanizer（只在本機，不進 Git）
 ├── requirements.txt           套件和鎖定的版本
 ├── .gitignore                 哪些檔案不進 Git
+├── .gitattributes             data/raw/ 的檔案 Git 不改換行，manifest 的 sha256 才對得上
 ├── .env.example               帳號密碼的範例；真的值放 .env（不進 Git）
 ├── run_daily.py               一個指令跑完一天：爬蟲 → 特徵 → 訓練 → 預測 → 上傳
 ├── configs/
@@ -30,6 +31,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   │   ├── teacher/           老師 Training ZIP 解開的檔案
 │   │   ├── teacher_live/      老師 Live ZIP 解開的檔案（每次下載覆蓋）
 │   │   ├── yfinance/          19 個額外指標，一個序列一個 CSV
+│   │   ├── phase2_days.json   課程網站的交易日清單（/api/state 的 phase2Days）
 │   │   └── manifest.json      下載紀錄
 │   ├── processed/             features.csv.gz（可以重算，不進 Git）
 │   └── submission/            每天的產出
@@ -48,6 +50,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   ├── submit.py              上傳 CSV，再下載回來核對
 │   └── utils.py               讀設定和帳密、台北時間、截止檢查、log
 └── tests/
+    ├── test_crawler.py            爬蟲的離線測試（假伺服器、假時鐘）
     ├── test_no_future_data.py     特徵只能用 t 之前的資料
     └── test_submission_format.py  CSV 的欄位、列數、0/1
 ```

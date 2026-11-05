@@ -35,18 +35,6 @@
 
 使用者 2026-11-05 選 Email：用 Healthchecks.io 內建的信件通知。實作排程時再搬到對應的檔。
 
-## Live ZIP 怎麼下載
-
-兩條線索都要先跟使用者確認再用：
-
-- Phase 1 紀錄寫的來源：`https://fin-pred-daily.jiangxuehaokeai.chatgpt.site/data.zip`。
-- 舊程式 `../ml-final-archive/archive/system-completion/ml_financial_prediction/src/finpred/ingestion/course.py`：
-  - 金鑰：先讀 `COURSE_LIVE_KEY`。沒有的話，從課程網站首頁 `<script src>` 載入的 JS（前 20 個）裡，找字串 `"https://140.112.31.182:8444/"` 之後的下一個賦值 `名稱="…"`，金鑰是引號裡的值（英數、`_`、`-`）。
-  - 登入：`POST {LIVE_BASE}/login`，表單帶 `key`，要用瀏覽器的 User-Agent；回應裡要有 `href="/data.zip"`。
-  - 下載：`GET {LIVE_BASE}/data.zip`。`LIVE_BASE` 就是上面那個 chatgpt.site 網址。
-- 兩個主機的關係（`../ml-final-archive/archive/system-completion/ml_financial_prediction/docs/SOURCES.md` 第 9～11 行）：課程網站的 Live 卡片寫「前往資料服務取得最新 training data，並使用下方公開金鑰存取」，連到 `https://140.112.31.182:8444/`，但 TLS 驗證失敗（憑證沒有 IP）。chatgpt.site 是助教後來給的新入口，一般 TLS 可以過，用同一把公開金鑰登入。
-- 更新時間：t 那列的 `^IXIC`、`^GSPC` 在 t 當天 05:05 前填好，其他欄和 y 在 t 當天 22:05 前填完（細節見 `memory/projects/crawler.md`）。
-
 ## Phase 2 用哪個模型
 
 - `configs/config.yaml` 先寫 LightGBM，之後依驗證結果換。

@@ -39,6 +39,20 @@ def no_network(monkeypatch):
     monkeypatch.setattr(requests.Session, "send", boom)
 
 
+@pytest.fixture(autouse=True)
+def fresh_yfdata():
+    """yfinance 的 YfData 是全程式共用的單例，crumb、cookie 策略、快取會留到下一個測試。每個測試從新的開始，結果才不看順序。"""
+    from yfinance.data import YfData
+
+    def reset():
+        YfData._instances.pop(YfData, None)
+        YfData.cache_get.cache_clear()
+
+    reset()
+    yield
+    reset()
+
+
 class Clock:
     """假時鐘：sleep 只把時間往後撥，順便記下睡了幾秒。"""
 
@@ -183,15 +197,37 @@ def live_fake(zip_bytes, login=None):
     })
 
 
+class SequenceHttp:
+    """依序回 responses 的假 requests.Session，記下每個請求的方法、網址和 kwargs。"""
+
+    def __init__(self, responses):
+        self.responses, self.headers, self.calls = list(responses), {}, []
+
+    def request(self, method, url, **kwargs):
+        self.calls.append((method, url, kwargs))
+        return self.responses.pop(0)
+
+    def close(self):
+        pass
+
+
+def site(responses, clock=None, max_bytes=1000):
+    http = SequenceHttp(responses)
+    sleeps = clock.sleep if clock else (lambda s: None)
+    return crawler.SiteClient("https://site.example", (10, 90), max_bytes, http, sleeps), http
+
+
 # ---------------------------------------------------------------- 假的 Yahoo
 
 
 def chart_json(symbol, tz, itype, bars):
-    """bars 是 [(有時區的 datetime, open, high, low, close, adj_close, volume)]。"""
+    """bars 是 [(有時區的 datetime, open, high, low, close, adj_close, volume)]；None 代表回應裡沒有K棒（沒有 timestamp）。"""
+    meta = {"currency": "USD", "symbol": symbol, "exchangeTimezoneName": tz, "instrumentType": itype,
+            "validRanges": ["1d", "5d", "max"], "priceHint": 2, "timezone": "X", "gmtoffset": 0, "exchangeName": "X"}
+    if bars is None:
+        return json.dumps({"chart": {"result": [{"meta": meta, "indicators": {"quote": [{}]}}], "error": None}})
     return json.dumps({"chart": {"result": [{
-        "meta": {"currency": "USD", "symbol": symbol, "exchangeTimezoneName": tz, "instrumentType": itype,
-                 "validRanges": ["1d", "5d", "max"], "priceHint": 2, "timezone": "X", "gmtoffset": 0,
-                 "exchangeName": "X"},
+        "meta": meta,
         "timestamp": [int(b[0].timestamp()) for b in bars],
         "indicators": {"quote": [{"open": [b[1] for b in bars], "high": [b[2] for b in bars],
                                   "low": [b[3] for b in bars], "close": [b[4] for b in bars],
@@ -225,12 +261,13 @@ class FakeYahoo(crawler.PacedSession):
     def __init__(self, clock, scenarios):
         super().__init__(2.0, 1.0, 5, clock=clock.monotonic, sleep=clock.sleep, rng=lambda: 0.5)
         self.clock, self.scenarios = clock, scenarios
-        self.sent = []  # (時間, 方法, 網址, allow_redirects)
+        self.sent = []  # (時間, 方法, 網址, allow_redirects, params 的鍵)
         self.chart_status = {}
         self.crumb_status = 200
 
     def _send(self, method, url, **kwargs):
-        self.sent.append((self.clock.monotonic(), method, url.split("?")[0], kwargs.get("allow_redirects")))
+        self.sent.append((self.clock.monotonic(), method, url.split("?")[0], kwargs.get("allow_redirects"),
+                          frozenset((kwargs.get("params") or {}).keys())))
         if "fc.yahoo.com" in url:
             return YResp(url, 404, "")
         if "getcrumb" in url:
@@ -248,6 +285,10 @@ class FakeYahoo(crawler.PacedSession):
 
     def charts(self, symbol=None):
         return [s for s in self.sent if "/v8/finance/chart/" in s[2] and (symbol is None or s[2].endswith(symbol))]
+
+    def history(self, symbol=None):
+        """抓歷史的 chart 請求（有 period1）。時區查詢也打 chart，但不算在這裡。"""
+        return [s for s in self.charts(symbol) if "period1" in s[4]]
 
 
 def default_yahoo(clock):
@@ -290,18 +331,66 @@ def bad_zips():
 
 @pytest.mark.parametrize("label,members,error", list(bad_zips()), ids=[z[0] for z in bad_zips()])
 def test_live_zip_rejected(label, members, error):
-    with pytest.raises(error):
+    with pytest.raises(error) as e:
         crawler.unpack_zip(make_zip(members), "live", STOCKS)
+    assert type(e.value) is error  # 不會自己好的錯誤不能被當成暫時性
+
+
+def test_zip_error_message_has_no_server_names():
+    members = live_members(LIVE_DATES) + [("data/market/EVIL-NAME.csv", b"x")]
+    with pytest.raises(crawler.CrawlerError) as e:
+        crawler.unpack_zip(make_zip(members), "live", STOCKS)
+    assert "EVIL-NAME" not in str(e.value) and "多了 1 個" in str(e.value)
 
 
 def test_zip_size_limits():
     blob = make_zip(live_members(LIVE_DATES))
-    with pytest.raises(crawler.CrawlerError):
-        crawler.unpack_zip(blob, "live", STOCKS, max_bytes=len(blob) - 1)
-    with pytest.raises(crawler.CrawlerError):
-        crawler.unpack_zip(blob, "live", STOCKS, max_unzipped=1000)
+    for kwargs in ({"max_bytes": len(blob) - 1}, {"max_unzipped": 1000}):
+        with pytest.raises(crawler.CrawlerError) as e:
+            crawler.unpack_zip(blob, "live", STOCKS, **kwargs)
+        assert type(e.value) is crawler.CrawlerError
     with pytest.raises(crawler.TransientError):
         crawler.unpack_zip(blob[: len(blob) // 2], "live", STOCKS)  # 沒下載完整
+
+
+# ================================================================ SiteClient（課程網站和 Live 的 HTTP）
+
+
+def test_site_post_is_not_retried():
+    client, http = site([FakeResp(503), FakeResp(200, b"ok")])
+    with pytest.raises(crawler.TransientError):
+        client.read("POST", "/login", data={"key": "k"})
+    assert len(http.calls) == 1  # 登入失敗不自動重試
+
+
+def test_site_get_retries_5xx():
+    clock = Clock(at("2026-11-17", "07:10"))
+    client, http = site([FakeResp(503), FakeResp(503), FakeResp(200, b"ok")], clock)
+    assert client.read("GET", "/data.zip") == b"ok"
+    assert len(http.calls) == 3 and clock.sleeps == [1, 2]
+
+
+def test_site_redirect_to_other_host_is_refused():
+    client, http = site([FakeResp(307, headers={"Location": "https://evil.example/steal"})])
+    with pytest.raises(crawler.CrawlerError) as e:
+        client.read("POST", "/login", data={"key": "secret"})
+    assert type(e.value) is crawler.CrawlerError
+    assert len(http.calls) == 1  # 金鑰沒有送到別的主機
+
+
+def test_site_follows_same_host_redirect_without_libraries():
+    client, http = site([FakeResp(303, headers={"Location": "/data.zip"}), FakeResp(200, b"zip")])
+    assert client.read("POST", "/login", data={"key": "k"}) == b"zip"
+    assert [c[0] for c in http.calls] == ["POST", "GET"]
+    assert "data" not in http.calls[1][2]  # 303 改成 GET，表單不再送
+    assert all(c[2]["allow_redirects"] is False for c in http.calls)
+
+
+def test_site_size_limit():
+    client, _ = site([FakeResp(200, b"x" * 1001)], max_bytes=1000)
+    with pytest.raises(crawler.CrawlerError) as e:
+        client.read("GET", "/data.zip")
+    assert type(e.value) is crawler.CrawlerError
 
 
 # ================================================================ Live 有沒有更新到 t
@@ -330,6 +419,15 @@ def test_live_check_never_filled_day_falls_back():
     assert check["prev_day"] == "2026-10-22"
     assert check["prev_day_planned"] == "2026-10-23"
     assert check["prev_day_never_filled"] is True
+
+
+def test_live_check_does_not_filter_enabled():
+    stocks = live_stocks(LIVE_DATES, pending={"2026-11-17"})
+    calendar = days("2026-11-13", "2026-11-16", "2026-11-17")
+    calendar[1]["enabled"] = 0
+    check = crawler.live_check(stocks, "2026-11-17", calendar)
+    assert check["prev_day"] == check["prev_day_planned"] == "2026-11-16"
+    assert check["prev_day_never_filled"] is False
 
 
 def test_live_check_without_t_row():
@@ -368,10 +466,22 @@ def test_filter_rows_futures_low_volume_last_bar(cfg):
 
 
 def test_filter_rows_empty_or_shorter(cfg):
+    t = "2026-11-17"
     with pytest.raises(crawler.EmptyResult):
-        crawler.filter_rows([row("2026-11-17")], "^SOX", "2026-11-17", cfg)
-    with pytest.raises(crawler.EmptyResult):
-        crawler.filter_rows([row("2026-11-13")], "^SOX", "2026-11-17", cfg, old_first="2020-01-02")
+        crawler.filter_rows([row(t)], "^SOX", t, cfg)
+    old = [row("2020-01-02"), row("2026-11-13"), row("2026-11-16")]
+    span = crawler.old_span(old, t)
+    assert span == ("2020-01-02", "2026-11-16")
+    with pytest.raises(crawler.EmptyResult, match="開頭"):
+        crawler.filter_rows([row("2026-11-13"), row("2026-11-16")], "^SOX", t, cfg, span)
+    with pytest.raises(crawler.EmptyResult, match="最後一天"):
+        crawler.filter_rows([row("2020-01-02"), row("2026-11-13")], "^SOX", t, cfg, span)  # 歷史被截短
+    kept, _ = crawler.filter_rows([row("2020-01-02"), row("2026-11-16")], "^SOX", t, cfg, span)
+    assert len(kept) == 2
+    # 用比較早的 t 重跑：舊檔裡晚於 t 的那幾天不算，所以不會被誤擋
+    kept, _ = crawler.filter_rows([row("2020-01-02"), row("2026-11-12")], "^SOX", "2026-11-13", cfg,
+                                  crawler.old_span(old, "2026-11-13"))
+    assert kept[-1][0] == "2026-11-12"
 
 
 def test_has_bar_volume_rule():
@@ -454,10 +564,10 @@ def test_chart_429_is_not_resent(tmp_path):
     s.chart_status["^SOX"] = 429
     with pytest.raises(YFRateLimitError):
         crawler.fetch_once(s, "^SOX", "2020-01-01", "2026-11-17", 30)
-    history_requests = [x for x in s.charts("^SOX")]
-    assert history_requests[-1][3] is False
-    # 429 之後沒有再送 chart（yfinance 自己的「換策略再送一次」被擋住）
-    assert s.sent[-1][2].endswith("/v8/finance/chart/^SOX")
+    history = s.history("^SOX")
+    assert len(history) == 1  # yfinance 自己的「換 cookie 策略再送一次」被擋住
+    assert history[0] is s.sent[-1]  # 429 之後什麼都沒再送
+    assert history[0][3] is False
 
 
 def test_getcrumb_429_still_fetches_chart(tmp_path):
@@ -466,7 +576,11 @@ def test_getcrumb_429_still_fetches_chart(tmp_path):
     crawler.setup_yfinance(s, tmp_path / "yfc")
     s.crumb_status = 429
     rows = crawler.fetch_once(s, "^SOX", "2020-01-01", "2026-11-17", 30)
-    assert rows and s.charts("^SOX")
+    assert rows
+    crumbs = [x for x in s.sent if "getcrumb" in x[2]]
+    assert crumbs  # 真的送了 getcrumb，而且它回 429
+    history = s.history("^SOX")
+    assert len(history) == 1 and "crumb" not in history[0][4]  # 沒有 crumb 也照樣抓
     assert all(g >= 2.5 for g in gaps(s.sent))
 
 
@@ -545,11 +659,96 @@ def test_bar_i_check_rechecks_once(tmp_path, cfg):
     })
     run = make_run(tmp_path, cfg, clock)
     run.prev_day = "2026-11-16"
+    wait = cfg["yfinance"]["recheck_wait_seconds"]
+
+    def sleep(seconds):
+        if seconds == wait:  # 等的這段時間 Yahoo 補上了 TSM 的 11-16
+            s.scenarios["TSM"] = (ny, "EQUITY", bars_on(["2026-11-12", "2026-11-13", "2026-11-16"], ny))
+        clock.sleep(seconds)
+
+    run.sleep = sleep
     crawler.download_yfinance(run, s)
-    status = {sid: e["status"] for sid, e in run.manifest["yfinance"].items()}
-    assert status == {"sox": "ok", "nvda": "no_bar_i", "tsm_adr": "no_bar_i"}
-    assert clock.sleeps.count(cfg["yfinance"]["recheck_wait_seconds"]) == 1
+    entries = run.manifest["yfinance"]
+    assert {sid: e["status"] for sid, e in entries.items()} == {"sox": "ok", "nvda": "no_bar_i", "tsm_adr": "ok"}
+    assert entries["tsm_adr"]["attempts"] == 2
+    assert clock.sleeps.count(wait) == 1
+    # 只重抓缺的：^SOX 1 次，NVDA、TSM 各 2 次
+    assert [len(s.history(x)) for x in ("^SOX", "NVDA", "TSM")] == [1, 2, 2]
     assert run.stale is True
+
+
+def test_recheck_stops_at_deadline(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "08:20"))
+    cfg["yfinance"]["tickers"] = {"nvda": "NVDA", "tsm_adr": "TSM"}
+    ny = "America/New_York"
+    s = FakeYahoo(clock, {x: (ny, "EQUITY", bars_on(["2026-11-12", "2026-11-13"], ny)) for x in ("NVDA", "TSM")})
+    run = make_run(tmp_path, cfg, clock)
+    run.prev_day = "2026-11-16"
+    wait = cfg["yfinance"]["recheck_wait_seconds"]
+
+    def sleep(seconds):
+        clock.sleep(seconds)
+        if seconds == wait:
+            clock.t = at("2026-11-17", "08:29:58")  # 等完重抓的 60 秒，離截止只剩 2 秒
+
+    run.sleep = sleep
+    crawler.download_yfinance(run, s)
+    assert clock.sleeps.count(wait) == 1
+    # NVDA 重抓一次後就過了 08:30，TSM 不再重抓
+    assert [len(s.history(x)) for x in ("NVDA", "TSM")] == [2, 1]
+
+
+def test_rate_limit_waits_and_breaker(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {"a": "AAA", "b": "BBB", "c": "CCC"}
+    ny = "America/New_York"
+    s = FakeYahoo(clock, {x: (ny, "EQUITY", bars_on(["2026-11-16"], ny)) for x in ("AAA", "BBB", "CCC")})
+    s.chart_status = {"AAA": 429, "BBB": 429, "CCC": 429}
+    run = make_run(tmp_path, cfg, clock, daily=False)
+    crawler.download_yfinance(run, s)
+    entries = run.manifest["yfinance"]
+    waits = cfg["yfinance"]["rate_limit_wait_seconds"]
+    for sid in ("a", "b"):
+        assert entries[sid]["status"] == "failed" and entries[sid]["error"] == "YFRateLimitError"
+        assert entries[sid]["attempts"] == cfg["yfinance"]["max_retries"] + 1
+    assert [x for x in clock.sleeps if x >= 5] == waits * 2
+    assert entries["c"]["error"] == "skipped_rate_limit_breaker" and not s.history("CCC")
+
+
+def test_prices_missing_is_retried(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {"sox": "^SOX"}
+    s = FakeYahoo(clock, {"^SOX": ("America/New_York", "INDEX", None)})  # chart 沒有任何K棒
+    run = make_run(tmp_path, cfg, clock, daily=False)
+    crawler.download_yfinance(run, s)
+    entry = run.manifest["yfinance"]["sox"]
+    assert entry["status"] == "failed" and entry["attempts"] == cfg["yfinance"]["max_retries"] + 1
+    assert entry["error"] == "YFPricesMissingError"  # 也確認 hide_exceptions 是關的，錯誤真的丟出來
+    assert [x for x in clock.sleeps if x >= 5] == cfg["yfinance"]["retry_wait_seconds"]
+
+
+def test_yfinance_after_deadline_skips_everything(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "08:31"))
+    s = default_yahoo(clock)
+    run = make_run(tmp_path, cfg, clock)
+    old = crawler.rows_to_csv([row("2020-01-02"), row("2026-11-13")])
+    crawler.write_atomic(run.raw_dir / "yfinance" / "sox.csv", old)
+    crawler.download_yfinance(run, s)
+    assert {e["error"] for e in run.manifest["yfinance"].values()} == {"skipped_deadline"}
+    assert (run.raw_dir / "yfinance" / "sox.csv").read_bytes() == old
+    assert not s.history()
+
+
+def test_yfinance_failure_near_deadline_does_not_retry(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "08:29:50"))
+    cfg["yfinance"]["tickers"] = {"etf_0050": "0050.TW"}
+    s = default_yahoo(clock)
+    s.chart_status["0050.TW"] = 500
+    run = make_run(tmp_path, cfg, clock)
+    crawler.download_yfinance(run, s)
+    entry = run.manifest["yfinance"]["etf_0050"]
+    assert entry["attempts"] == 1 and entry["error"].endswith("（到了爬蟲截止）")
+    assert not [x for x in clock.sleeps if x >= 5]
 
 
 # ================================================================ 整個流程
@@ -583,6 +782,52 @@ def test_daily_run_happy_path_and_training_skip(tmp_path, cfg):
     assert code == 0 and run.manifest["teacher"]["action"] == "skipped_unchanged"
     assert ("GET", "/downloads/fin_pred_data.zip") not in course.calls
 
+    (raw / "teacher" / ".DS_Store").write_bytes(b"finder")  # Finder 留下的檔不算
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:50")))
+    assert run.manifest["teacher"]["action"] == "skipped_unchanged"
+
+    original = (raw / "teacher" / "market" / "1101.csv").read_bytes()
+    (raw / "teacher" / "market" / "1101.csv").write_bytes(original.replace(b"101.5", b"999.9", 1))
+    course = course_fake()
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:55")), course=course)
+    assert run.manifest["teacher"]["action"] == "downloaded"  # 本機的檔被改過就重新下載
+    assert ("GET", "/downloads/fin_pred_data.zip") in course.calls
+    assert (raw / "teacher" / "market" / "1101.csv").read_bytes() == original
+
+
+def test_failed_run_keeps_training_fingerprint(tmp_path, cfg):
+    crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")))
+    broken = course_fake()
+    broken.routes[("GET", "/api/state")] = FakeResp(500)
+    with pytest.raises(crawler.CrawlerError):
+        crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:20")), course=broken)
+    manifest = json.loads((tmp_path / "raw" / "manifest.json").read_text())
+    assert manifest["run"]["status"] == "failed" and manifest["teacher"]["files_sha256"]
+    course = course_fake()
+    crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:45")), course=course)
+    assert ("GET", "/downloads/fin_pred_data.zip") not in course.calls
+
+
+def test_unexpected_error_marks_run_failed(tmp_path, cfg):
+    def disk_error(kwargs):
+        raise OSError("/Users/someone/private/path")
+
+    course = course_fake()
+    course.routes[("GET", "/downloads/fin_pred_data.zip")] = disk_error
+    with pytest.raises(OSError):
+        crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")), course=course)
+    manifest = (tmp_path / "raw" / "manifest.json").read_text()
+    assert json.loads(manifest)["run"]["status"] == "failed"
+    assert json.loads(manifest)["run"]["error"] == "OSError"
+    assert "/Users/someone" not in manifest  # 例外訊息可能帶路徑，不寫進 manifest
+
+
+def test_live_attempts_must_be_positive(tmp_path, cfg):
+    cfg["crawler"]["live_attempts"] = 0
+    with pytest.raises(crawler.CrawlerError, match="live_attempts"):
+        crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")))
+    assert not (tmp_path / "raw" / "teacher_live").exists()  # 沒有把 Training 的檔寫進 teacher_live/
+
 
 def test_daily_run_before_start_time_refuses(tmp_path, cfg):
     with pytest.raises(crawler.CrawlerError):
@@ -605,6 +850,14 @@ def test_live_without_t_row_retries_then_stops(tmp_path, cfg):
     assert manifest["run"]["status"] == "failed"
 
 
+def test_live_near_deadline_does_not_wait(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "08:28"))
+    no_t = live_fake(make_zip(live_members(LIVE_DATES[:-1])))
+    with pytest.raises(crawler.CrawlerError):
+        crawl(tmp_path, cfg, clock, live=no_t)
+    assert cfg["crawler"]["live_wait_seconds"] not in clock.sleeps
+
+
 def test_bad_live_zip_keeps_old_dir(tmp_path, cfg):
     clock = Clock(at("2026-11-17", "07:10"))
     live_dir = tmp_path / "raw" / "teacher_live"
@@ -615,6 +868,7 @@ def test_bad_live_zip_keeps_old_dir(tmp_path, cfg):
     with pytest.raises(crawler.CrawlerError):
         crawl(tmp_path, cfg, clock, live=live_fake(make_zip(bad)))
     assert sorted(p.name for p in live_dir.iterdir()) == ["old.csv"]
+    assert cfg["crawler"]["live_wait_seconds"] not in clock.sleeps  # 表頭不對不會自己好，不重抓
 
 
 def test_missing_live_key(tmp_path, cfg):

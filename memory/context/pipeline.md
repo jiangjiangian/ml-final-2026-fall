@@ -24,7 +24,7 @@ flowchart TD
 
 ```bash
 python run_daily.py            # 一次跑完五步；--skip-train 沿用 models/ 的模型；--date 2026-11-17 指定 t
-python -m src.crawler          # 1. 抓資料到 data/raw/
+python -m src.crawler          # 1. 抓資料到 data/raw/；這是研究模式，正式流程由 run_daily.py 傳 --date t
 python -m src.features         # 2. 算特徵到 data/processed/
 python -m src.train            # 3. 訓練，模型存到 models/
 python -m src.predict          # 4. 產生 data/submission/submission_YYYY-MM-DD.csv
@@ -36,8 +36,8 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 ## 什麼時候跑
 
 - 正式流程在 t 當天早上跑：Live ZIP 要到 t 當天早上才有 t 的一列。
-- 爬蟲排在台北 06:00 之後，美股前一天的K棒才收完（規則見 `memory/context/data-rules.md`）。yfinance 的 DXY 要到 07:00 才收完，所以計畫排 07:10（等使用者確認，見 `memory/projects/crawler.md`）。
-- 截止檢查只在 `predict.py`（09:00）和 `submit.py`（08:50）做。單獨跑 `crawler`、`features`、`train` 做研究，什麼時間都可以。
+- 爬蟲排在台北 06:00 之後，美股前一天的K棒才收完（規則見 `memory/context/data-rules.md`）。yfinance 的 DXY 要到 07:00 才收完，所以爬蟲排台北 07:10（使用者 2026-11-05 決定，見 `memory/projects/crawler.md`）。
+- `predict.py`（09:00）和 `submit.py`（08:50）檢查截止。crawler 的每日模式（`--date t`）在 07:00 前不跑，08:30 後不再等待或重試。研究模式的 crawler 和 `features`、`train` 什麼時間都能跑。
 
 ## 失敗時怎麼處理
 

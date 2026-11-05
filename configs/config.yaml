@@ -3,18 +3,20 @@
 
 competition:
   timezone: Asia/Taipei
-  deadline: "09:00"              # 過了這個時間就不上傳
-  stocks: Top50@Y                # 要預測的 50 檔，來自老師 info.json 的這個欄位
-  label: y                       # y = 1 代表 adj_close > adj_open
+  deadline: "09:00"              # 預測日 t 當天的截止時間
+  upload_cutoff: "08:50"         # submit.py 自己的截止，留 10 分鐘給上傳和核對
+  stocks: Top50@Y                # 老師 info.json 裡要預測的 50 檔；實際順序以當天範本為準
+  label: y                       # y = 1 代表 etl:adj_close > etl:adj_open
 
 course_site:
   base_url: https://final.html2026.csie.org
   login: /api/auth/login                         # POST，JSON 帶 email、password
-  training_zip: /downloads/fin_pred_data.zip     # 老師 Training 資料
-  template: /api/sample-submission?phase=2&tradingDate={date}   # 當天的空白提交檔，定出 50 檔順序
-  submissions: /api/submissions                  # POST 上傳
-  state: /api/state                              # 查目前有效的提交
-  live_zip_url: ""                               # Live 資料另有伺服器和金鑰，還沒決定怎麼取得
+  training_zip: /downloads/fin_pred_data.zip     # 老師 Training 資料；ZIP 裡的路徑開頭有一層 data/
+  template: /api/sample-submission?phase=2&tradingDate={date}   # 當天的範本，定出 50 檔順序；用 utf-8-sig 讀
+  state: /api/state              # 交易日和截止（phase2Days、openAt、deadline）、上傳次數（uploadQuota）、目前的提交（mySubmissions）
+  submissions: /api/submissions  # POST 上傳，JSON 格式見 src/submit.py；舊程式的研究整理出來的，還沒實際送過
+  submission_file: /api/submissions/{id}?record=current   # 下載目前有效的那份；id 來自 state 的 mySubmissions
+  live_zip_url: ""               # Live 資料在另一台伺服器，下載方式還沒決定
 
 data:
   start: "2020-01-01"
@@ -25,6 +27,7 @@ data:
 yfinance:
   min_interval_seconds: 2        # 每個請求至少間隔幾秒
   max_retries: 3
+  cache_dir: .cache/yfinance     # yfinance 的時區快取，放在 repo 裡但不進 Git
   tickers:                       # 名稱: Yahoo 代號
     sox: ^SOX                    # 費城半導體指數
     tsm_adr: TSM                 # 台積電 ADR
@@ -48,7 +51,10 @@ yfinance:
 
 features:
   lags: [2, 5]                   # 報酬往回看幾個交易日
-  # lag k 的定義：t 那列 = (close_i − close_(i−k)) / close_(i−k)，i = t 的前一個台股交易日
+  # lag k：t 那列 = (close_i − close_(i−k)) / close_(i−k)，i = t 的前一個台股交易日
+  stock_column: etl:adj_close    # 老師個股檔算報酬用的欄；這組特徵讓 50 檔每天的值不同
+  teacher_global: ["^VIX", "^IXIC", "^GSPC", "^TWII", "^KS11"]   # 老師 global 表要算 lag 的欄
+  adj_close_kinds: [TSM, NVDA, 0050.TW, 0052.TW, 0055.TW, 006201.TWO]   # 這些 yfinance 代號用 adj_close，其他用 close
 
 model:
   type: lightgbm

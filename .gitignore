@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+.ipynb_checkpoints/
 
 # 帳號密碼
 .env
@@ -11,7 +12,7 @@ __pycache__/
 data/processed/*
 !data/processed/.gitkeep
 
-# yfinance 的時區快取等暫存
+# yfinance 的時區快取（config.yaml 的 yfinance.cache_dir）
 .cache/
 
 # 編輯器

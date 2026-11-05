@@ -8,7 +8,8 @@
 - 回覆用繁體中文。
 - 文件和回覆要容易懂、不要有 AI 味：短句、先講結論；不用「不是…而是…」、破折號、總結式結尾句、硬湊三點；粗體很少用；第一次出現的術語用幾個字解釋。
 - 資料、模型、上傳紀錄都放在這個分支（使用者 2026-11-05 選擇）；`data/processed/` 可重算，不進 Git。
-- 自動觸發的方式還沒決定，先不放 `.github/workflows/`。repo 的預設分支是空的 `main`，GitHub 只執行預設分支上的 workflow。
+- 自動觸發的方式還沒決定，先不放 `.github/workflows/`。GitHub 的排程和網頁上的手動觸發都只看預設分支上的 workflow 檔。
+- 使用者要把預設分支換成空的 `main`。2026-11-05 時預設分支還是 `system-completion`，那邊的 `course-benchmark.yml` 每天照排程跑、上傳開關是開的。這個分支開始真的上傳（`submit.enabled: true`）之前，要先確認預設分支已經換掉。
 
 ## 絕對不要
 - 用 t 當天的價格、成交量、法人、技術指標或 `y` 當 t 的特徵；老師 global 的 `^TWII`、`^KS11`、`TX_OI` 只能用前一列。
@@ -17,5 +18,5 @@
 - 把帳號密碼寫進程式、設定檔或 log。
 - yfinance 請求間隔少於 2 秒。
 
-## 參考
+## 舊系統的程式和資料
 舊系統的完整程式和資料封存在 `claude/peaceful-babbage-09xeie` 分支的 `archive/`；那邊的 `data/transform/panel_lag.csv.gz` 是整理好的 50 個 lag 特徵（2020-01～2026-09）。使用者希望新流程不要被舊研究牽著走，只在需要時查。

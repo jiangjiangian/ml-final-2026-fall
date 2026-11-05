@@ -4,87 +4,87 @@
     {
       "source": "course-training",
       "sha256": "7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2",
-      "fetched_at": "2026-11-04T05:18:59.376329+00:00"
+      "fetched_at": "2026-11-05T00:55:19.607918+00:00"
     },
     {
       "source": "course-template",
       "sha256": "2081e92b216ff1cd231f0e1ec32d709b6e6b734d9ace41fc7d0b3fe02cc93f28",
-      "fetched_at": "2026-11-04T05:18:59.580670+00:00"
+      "fetched_at": "2026-11-05T00:55:19.800008+00:00"
     },
     {
       "source": "course-live",
-      "sha256": "7f4c759af6df64e3a1b5e42330cfa5a56fe1f6a4644ca56a052d3a6297dc096b",
-      "fetched_at": "2026-11-04T05:19:04.731133+00:00"
+      "sha256": "eea89fce45e3acb734b84f67299145d5171383e095a76419489dcc3d4e353711",
+      "fetched_at": "2026-11-05T00:55:26.198276+00:00"
     },
     {
       "source": "cboe_vix",
       "sha256": "e5d1e436c05c0e346387984c9750daf5d8da140ba6e34bca79d81b326510a62b",
-      "fetched_at": "2026-11-04T05:19:04.882537+00:00"
+      "fetched_at": "2026-11-05T00:55:26.358174+00:00"
     },
     {
       "source": "twse_twii",
-      "sha256": "08e11fce4733c637b35236fa64661f87e0ebd124aac215a30e7bdcb6d76a5620",
-      "fetched_at": "2026-11-04T05:19:06.014952+00:00"
+      "sha256": "a7409cf6d41e043e1202f119ba437c238f2ae52f511d2c8267958a71e90f6035",
+      "fetched_at": "2026-11-05T00:55:27.581972+00:00"
     },
     {
       "source": "fred_us10y",
-      "sha256": "a960c659b08dec31394a7150119fd54dcd45091ec4cc017e318ba54aa11adfac",
-      "fetched_at": "2026-11-04T05:19:06.128608+00:00"
+      "sha256": "6cf6f289f918ee84343ef50dba91d0ef419a6c05e493f827e9a718e049ca0bef",
+      "fetched_at": "2026-11-05T00:55:27.723942+00:00"
     },
     {
       "source": "fred_usd_twd",
       "sha256": "7fd8734f5f8a6d95d0d98856d4087a09e6b0a3796fdc265b7a8c5c7a29b7b8b4",
-      "fetched_at": "2026-11-04T05:19:06.497829+00:00"
+      "fetched_at": "2026-11-05T00:55:28.033994+00:00"
     },
     {
       "source": "yahoo-ixic",
-      "sha256": "9742616a2d07ab92a8e0f6d2224c917be9923dd24c3c7b256d4316cc8dd6b4ca",
-      "fetched_at": "2026-11-04T05:19:06.603907+00:00"
+      "sha256": "f4534964dd62197699ec0524354c6da9306f34d1689fedab90a7a742c936e6c7",
+      "fetched_at": "2026-11-05T00:55:28.312724+00:00"
     },
     {
       "source": "yahoo-gspc",
-      "sha256": "5246eeb6ddde72cbb035ee36ce4b63c6490b8b67c99e110b31b76bde9b5eb199",
-      "fetched_at": "2026-11-04T05:19:06.702246+00:00"
+      "sha256": "d23f4c194f2acaac96554dd8bafa35870e15847fa881d0edf8e900c1cf581c54",
+      "fetched_at": "2026-11-05T00:55:28.569926+00:00"
     },
     {
       "source": "yahoo-twii",
-      "sha256": "375483cdd6b72949b3e8efd60a70b8aa3bdbe98117bb03867fe316587255ddcd",
-      "fetched_at": "2026-11-04T05:19:06.815480+00:00"
+      "sha256": "8ec02f54520743528c5673bd0bdd121e94316add2906762361a7d22937666045",
+      "fetched_at": "2026-11-05T00:55:28.803643+00:00"
     },
     {
       "source": "yahoo-ks11",
-      "sha256": "0741feac37cd1e8fdb7c115bf9b52c98da10e0aa87cc4da7882a88f0919fef78",
-      "fetched_at": "2026-11-04T05:19:06.950065+00:00"
+      "sha256": "dd10cca8fee4a44ca6f6eb7b30d1216cd37cb9a581034a8f9ebe3353c7a639a1",
+      "fetched_at": "2026-11-05T00:55:29.068244+00:00"
     },
     {
       "source": "yahoo-vix",
-      "sha256": "866dbb886c012864d0f5b9e08ce4de4c222829f6ec9771263fa4be847c5d2e5f",
-      "fetched_at": "2026-11-04T05:19:07.051462+00:00"
+      "sha256": "9a81ef2b2cbd153470152a9bd14fb446bf856520ba3c010d19c5111db62a430f",
+      "fetched_at": "2026-11-05T00:55:29.308363+00:00"
     },
     {
       "source": "yahoo-sox",
-      "sha256": "2aef25c8c722107accf8c3e658fc112b6e287e73e422afd2c45934fadefec195",
-      "fetched_at": "2026-11-04T05:19:07.209319+00:00"
+      "sha256": "d874ae92f31eace9750a8f1e9d182e2e6b394cfe244306b06826a4ebc35fe767",
+      "fetched_at": "2026-11-05T00:55:29.645011+00:00"
     },
     {
       "source": "yahoo-tsm_adr",
-      "sha256": "069fddcca0698864d64ed62f1847cc23628d275a26c8ea2d7eb67932d846068d",
-      "fetched_at": "2026-11-04T05:19:07.324703+00:00"
+      "sha256": "d81cd7c244aa8615baf4ee1a3ca753226ff09f3450b764a807f18af29bf81b35",
+      "fetched_at": "2026-11-05T00:55:29.919535+00:00"
     },
     {
       "source": "yahoo-nvda",
-      "sha256": "98b022240680700f59a4b3adb1a6dda3ef9d7f7d97c63060f7b230ac496971bb",
-      "fetched_at": "2026-11-04T05:19:07.434021+00:00"
+      "sha256": "f34162e8e133acf89e1926f159336a54b17b3bb5b5d83140d52e6239a165a50a",
+      "fetched_at": "2026-11-05T00:55:30.188440+00:00"
     },
     {
       "source": "twse-sectors",
-      "sha256": "f3d2baac06c74ee6e004a9d272a7d5d8a89da1e6898ca22783d134ab901ca5de",
-      "fetched_at": "2026-11-04T05:19:08.234902+00:00"
+      "sha256": "fb2e6509fc76a412bdfadf771dbe62870c11029e0380ce6530b5af34f741e188",
+      "fetched_at": "2026-11-05T00:55:30.897371+00:00"
     }
   ],
   "failures": [],
-  "started_at": "2026-11-04T05:18:52.273383+00:00",
-  "finished_at": "2026-11-04T05:19:08.236921+00:00",
+  "started_at": "2026-11-05T00:55:14.106622+00:00",
+  "finished_at": "2026-11-05T00:55:30.899104+00:00",
   "required_sources": [
     "cboe_vix",
     "course-live",
@@ -110,10 +110,10 @@
     "readiness": "research_assumption",
     "production_eligible": false,
     "historical_vintage_verified": false,
-    "raw_catalog_sha256": "8615bd636d6043d9ce9d90dcc891bec225e8a1869229627ad9c00a0be70026a5",
-    "target_date_count": 1661,
+    "raw_catalog_sha256": "e97c228634d51ba9bc41be41d81bd8ac7e17944825eaa32a1e09838ec5cfce7a",
+    "target_date_count": 1662,
     "stock_count": 50,
-    "stock_feature_rows": 83050,
+    "stock_feature_rows": 83100,
     "pending_label_rows": 100,
     "missing_label_rows": 26,
     "market_readiness": "research_assumption",
@@ -121,19 +121,19 @@
     "calendar_basis": "union_of_course_observation_dates_not_certified_TWSE_session_calendar",
     "files": {
       "features/stock_lags.csv.gz": {
-        "sha256": "c41e9feea20cf31404ec61f4802cbeede5a9f56bcfa957ef9af6173ec7674974",
-        "size_bytes": 4741369
+        "sha256": "37e0c58699f7f6515ec219d3f8fc2bb28c0e58fb7bf2491f15d442efa220d21f",
+        "size_bytes": 4744290
       },
       "labels/stock_outcomes.csv.gz": {
-        "sha256": "1d47c3cb46b576503cad97a2e01d9e6115c700913f800eab5929621785e11791",
-        "size_bytes": 882566
+        "sha256": "ae2d31a327e7d2c0d957b9d454f37568c907b475f61282f78ea3ce4912c0e323",
+        "size_bytes": 883136
       },
       "features/market.csv": {
-        "sha256": "bc355331c1aca26fefc5f08c957f31cc95225d948cf6ec736b5aee425d6348c2",
-        "size_bytes": 1323461
+        "sha256": "b8f5c239fe5951e9394317fa5af4ddb9fe31740f6adb79545af74f66d3846916",
+        "size_bytes": 1324213
       },
       "features/market_report.json": {
-        "sha256": "bc68f1dbd1c82fc9db8779713617d7149940e838a5c08aea78539dc1362c534d",
+        "sha256": "55dc7f1d6a2cc8c98a25be33f99b0f7b4e379e72cdab4dd59a1e886db44a505c",
         "size_bytes": 5219
       },
       "features/schema.json": {

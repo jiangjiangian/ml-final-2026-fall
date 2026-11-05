@@ -26,9 +26,14 @@
 
 還沒決定。帳號密碼只放 `.env` 或執行環境的 secret。
 
+## 排程設定檔放哪裡
+
+- 選項：空的 `main` 只放一個 `.github/workflows/daily.yml`（去拿這個分支的程式來跑），或把預設分支改成這個分支。
+- 使用者 2026-11-05 擔心延遲。已說明：延遲來自 GitHub 的 `schedule`，和設定檔放哪裡無關；外部呼叫 `workflow_dispatch` 平常是分鐘內，2026-01-20 事故時平均晚 11 分鐘。上線前試跑一週，記錄「呼叫到開始」的秒數。寫到排程那一步再問。
+
 ## 失敗時用什麼管道通知
 
-還沒決定，例如 LINE 群組。LINE Notify 已在 2025 年停用，要用 LINE 得另外建 Messaging API 的 bot；Healthchecks 內建的 email 或 Discord 比較簡單。
+使用者 2026-11-05 選 Email：用 Healthchecks.io 內建的信件通知。實作排程時再搬到對應的檔。
 
 ## Live ZIP 怎麼下載
 

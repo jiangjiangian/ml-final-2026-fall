@@ -17,7 +17,7 @@
 
 ## 舊系統的排程停了沒
 
-- 2026-11-05 稍晚查到：GitHub 預設分支已經是空的 `main`（`gh api repos/jiangjiangian/ml-final-2026-fall --jq .default_branch`）。`system-completion` 最後一次排程是 11/05 台北 11:39，之後沒有再跑。等使用者確認是他換的，再把這節搬走。
+- 2026-11-05：GitHub 預設分支已經是空的 `main`，使用者因為 GitHub Actions 一直延遲而換掉。`system-completion` 最後一次排程是 11/05 台北 11:39，之後沒有再跑。使用者之後想用下面「外部排程叫 GitHub 執行」的做法。
 - 換之前的狀況：`system-completion` 的 `course-benchmark.yml` 每天照排程跑，上傳開關寫死成開，舊模型也通過了上傳前的檢查。台北 08:20、08:27 這兩個排程準時觸發時，它會真的上傳。
 - 這個分支把 `submit.enabled` 改成 `true` 之前，要先跟使用者確認舊排程已經停了。不然兩套程式會搶著交答案、用掉上傳次數。
 - `system-completion`、`live-data`、`dev`、`deep-research` 還在 GitHub 上，由使用者自己刪，Claude 不刪。
@@ -40,7 +40,7 @@
   - 登入：`POST {LIVE_BASE}/login`，表單帶 `key`，要用瀏覽器的 User-Agent；回應裡要有 `href="/data.zip"`。
   - 下載：`GET {LIVE_BASE}/data.zip`。`LIVE_BASE` 就是上面那個 chatgpt.site 網址。
 - 兩個主機的關係（`../ml-final-archive/archive/system-completion/ml_financial_prediction/docs/SOURCES.md` 第 9～11 行）：課程網站的 Live 卡片寫「前往資料服務取得最新 training data，並使用下方公開金鑰存取」，連到 `https://140.112.31.182:8444/`，但 TLS 驗證失敗（憑證沒有 IP）。chatgpt.site 是助教後來給的新入口，一般 TLS 可以過，用同一把公開金鑰登入。
-- 建檔時間：約台北 07:00 和 21:05～22:05 各一次（細節見 `memory/projects/crawler.md`）。
+- 更新時間：t 那列的 `^IXIC`、`^GSPC` 在 t 當天 05:05 前填好，其他欄和 y 在 t 當天 22:05 前填完（細節見 `memory/projects/crawler.md`）。
 
 ## Phase 2 用哪個模型
 

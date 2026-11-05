@@ -36,7 +36,7 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 ## 什麼時候跑
 
 - 正式流程在 t 當天早上跑：Live ZIP 要到 t 當天早上才有 t 的一列。
-- 爬蟲排在台北 06:00 之後，美股前一天的K棒才收完（規則見 `memory/context/data-rules.md`）。Live 約 07:00 建檔，所以計畫排 07:10（等使用者確認，見 `memory/projects/crawler.md`）。
+- 爬蟲排在台北 06:00 之後，美股前一天的K棒才收完（規則見 `memory/context/data-rules.md`）。yfinance 的 DXY 要到 07:00 才收完，所以計畫排 07:10（等使用者確認，見 `memory/projects/crawler.md`）。
 - 截止檢查只在 `predict.py`（09:00）和 `submit.py`（08:50）做。單獨跑 `crawler`、`features`、`train` 做研究，什麼時間都可以。
 
 ## 失敗時怎麼處理

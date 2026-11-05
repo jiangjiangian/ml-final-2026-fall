@@ -5,7 +5,7 @@
 
 ## 這個分支是什麼
 課程 ML 期末專案（2026 秋）：預測台股 50 檔「盤中方向」`y = 1{adj_close > adj_open}`。
-本分支 `claude/peaceful-babbage-09xeie` 放資料整合成果，另有 `archive/`。完整程式（特徵管線、模型、每日提交）原本在 `system-completion`，2026-11-05 封存到 `archive/system-completion/`。使用者要讓 repo 只剩兩個 claude 分支（本分支、`claude/hopeful-brahmagupta-wikys1`）和空的 `main`，其他分支由使用者自己刪。
+本分支 `claude/peaceful-babbage-09xeie` 放資料整合成果，另有 `archive/`。完整程式（特徵管線、模型、每日提交）原本在 `system-completion`，2026-11-05 封存到 `archive/system-completion/`。使用者要讓 repo 只剩 claude 分支（本分支、`claude/hopeful-brahmagupta-wikys1`、2026-11-05 新開的 `claude/stock-market-challenger`）和空的 `main`（預設分支），其他分支由使用者自己刪。
 
 | 路徑 | 內容 |
 |---|---|
@@ -18,7 +18,7 @@
 | `data/features/market_features.csv` | 1,638 個台股日 × 104 欄：老師市場欄（`^TWII/^KS11/TX_OI` 都用 `_prev_row`）＋as-of 對齊的額外特徵（`_ret_1s/5s/20s` 等） |
 | `data/transform/panel_lag.csv.gz` | **組員直接用**：100 股 × 1,638 天＝163,800 列 × 56 欄（鍵、旗標、50 個 lag 特徵、`label_y`、`label_intraday_return`），7 MB |
 | `data/transform/lag2/`、`lag5/` | 124 個特徵各一檔：`date, <id>_ret_lag{k}` |
-| `deploy/README.md` | 每日自動預測怎麼部署：從爬蟲到上傳的步驟、流程圖、現況（2026-11-05 重寫；舊的研究報告在 `archive/old-research/`） |
+| `deploy/README.md` | 每日自動預測怎麼部署，以封存的舊程式為例：從爬蟲到上傳的步驟、流程圖、刪分支的影響（2026-11-05 重寫；舊的研究報告在 `archive/old-research/`）。新的比賽主程式骨架在 `claude/stock-market-challenger` 分支 |
 | `archive/` | 其他分支的逐位元封存：`system-completion/`、`live-data/`、`dev/`、`deep-research/`，加 `old-research/`。`archive/README.md` 有 commit SHA 和還原方法；這裡的 workflows 不會執行 |
 | `.agents/skills/` | 既有 Codex 格式 skills（Claude Code 不會自動載入，需要時直接讀 SKILL.md） |
 

@@ -38,6 +38,12 @@
     - 預設分支是 system-completion：要先改預設才能刪。預設改成 main（空）後，每天的 workflows 會全部停。
     - 舊的 `deploy/README.md`（兩輪研究）依「暫時捨棄過去的研究」移到 `archive/old-research/deploy-README-2026-11-04.md`。
 24. 2026-11-05：文件要容易懂、沒有 AI 味 → 找到 Humanizer（blader）plugin，給使用者安裝卡片；寫作規則記在 CLAUDE.md。`deploy/README.md` 重寫成從爬蟲到上傳的簡單說明＋一張流程圖（workflow：3 個讀程式＋1 個查 GitHub 文件 → 撰寫 → 事實／AI 味／新手三方審稿 → 修訂）。
+25. 2026-11-05：新開 `claude/stock-market-challenger`（從空的 main），只放骨架和說明。
+    - 使用者要求不受舊研究影響，參考一份 Cookiecutter 式的檔案樹。
+    - 使用者決定：預設分支用空的 main；自動化方式之後再談，所以先不放 workflows。
+    - 資料也放同一個分支，只有 `data/processed/` 不進 Git。
+    - 11/05 GitHub 排程又晚約 4 小時：07:20～07:35 的排程到 11:31～11:39 才開始，16 個時點只觸發 5 個。
+    - `course-benchmark.yml` 的上傳開關寫死 `'true'`，而且有已核准的模型；預設分支改成空的 main 後才會停。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。

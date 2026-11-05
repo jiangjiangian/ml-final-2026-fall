@@ -1,0 +1,22 @@
+# Python 快取和虛擬環境
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# 帳號密碼
+.env
+
+# 可以從 data/raw/ 重算的特徵表
+data/processed/*
+!data/processed/.gitkeep
+
+# yfinance 的時區快取等暫存
+.cache/
+
+# 編輯器
+.vscode/
+.idea/
+.DS_Store
+
+# data/raw/、data/submission/、models/ 都要進 Git（見 README「資料為什麼也放在這個分支」）

@@ -1,0 +1,10 @@
+# Python 3.12。版本都是發布滿兩週的版本，鎖定避免今天能跑、明天不能跑。
+pandas==3.0.6
+numpy==2.5.4
+scikit-learn==1.9.1
+lightgbm==4.7.0
+yfinance==1.7.0
+requests==2.34.2
+pyyaml==6.0.3
+joblib==1.6.0
+pytest==9.1.1

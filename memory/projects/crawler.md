@@ -56,7 +56,7 @@
 
 `main(argv)` 依序做：
 
-1. 讀 `/api/state`，把 `phase2Days` 的日期和 `enabled` 存成 `data/raw/phase2_days.json`。`uploadQuota`、`mySubmissions` 不存。i 取 enabled 的日子裡早於 t 的最後一天；沒有的話（Phase 2 第一天，或研究用的舊 t），取 Live 裡早於 t、個股列不是整列 `-1` 的最後一天。
+1. 讀 `/api/state`，把 `phase2Days` 的日期和 `enabled` 存成 `data/raw/phase2_days.json`。`uploadQuota`、`mySubmissions` 不存。i 取 `phase2Days` 裡早於 t 的最後一天，不篩 `enabled`：舊紀錄只看到「當天開放提交的 slot 是 enabled=1」（`../ml-final-archive/archive/system-completion/ml_financial_prediction/docs/research/AUTOMATION.md` 第 18 行），看起來像提交窗口，不一定代表交易日。第一次真的讀到 `/api/state` 時要確認過去的日子 `enabled` 是多少。`phase2Days` 裡沒有早於 t 的日子時（Phase 2 第一天，或研究用的舊 t），取 Live 裡早於 t、個股列不是整列 `-1` 的最後一天。
 2. 老師 Training。
 3. 老師 Live。
 4. yfinance 19 個序列。
@@ -101,9 +101,11 @@
   - 只記方法、網址（拿掉 `?` 後面）、狀態碼、時間。
 - 開始前：`yf.set_tz_cache_location(".cache/yfinance")`、`yf.config.network.retries = 0`、`yf.config.debug.hide_exceptions = False`、`YfData(session=paced)`。
 - 每個序列：`cache_clear()` 後 `yf.Ticker(代號, session=paced).history(start="2020-01-01", end=t, interval="1d", auto_adjust=False, actions=False, repair=False)`。每天重抓完整歷史。
+- CL=F、GC=F 的 `end` 改用帶時區的時間：「t 那天台北 00:00」換算成紐約的日期，再取那天紐約 17:30。這在下一段交易（18:00 ET）開始之前，yfinance 會先丟掉時間戳 ≥ end 的列，再做同日合併，所以盤中那列進不來（離線 probe 驗證過；Yahoo 那邊怎麼處理沒驗證）。
 - 抓回來之後：
   - 丟掉日期 ≥ t 的K棒，也丟掉日期是週六、週日的K棒。
-  - CL=F、GC=F：最後一根的成交量低於前 21 根中位數的 10%，就丟掉那一根（可能是盤中的資料）。
+  - CL=F、GC=F 第二道：最後一根的成交量低於前 21 根中位數的 10%，就丟掉那一根。
+  - 兩道防線哪一道動作了，都記在 manifest 那個序列的 `guard` 欄。
   - 寫檔前檢查：至少剩 1 列，而且第一個日期不晚於舊檔的第一個日期。不符合就當這個序列失敗，舊檔留著。
 - 重試：只分兩類，不看錯誤訊息的文字。
   - `YFRateLimitError`：等 15、30、60 秒。連續 2 個序列因為限流放棄，就停掉剩下的。
@@ -165,7 +167,7 @@
 - `YFPricesMissingError` 會重試到 `max_retries` 次。
 - `cache_clear()`：固定用過去的日期（t = 2026-11-04）和台股代號，第一次 chart 回 500，重試時要看到新的 chart 請求；反向對照是不清快取時請求數是 0。
 - `YfData` 用的是我們的 `PacedSession`。
-- 日期：日期 ≥ t 的K棒、週末日期的K棒會被丟掉；假 chart JSON 最後時間戳是 i 的 18:10 ET（期貨盤中）時，量太小的那根被丟掉。
+- 日期：日期 ≥ t 的K棒、週末日期的K棒會被丟掉；期貨的 `end` 算對（含週一的 t）；假 chart JSON 最後時間戳是 i 的 18:10 ET（期貨盤中）時，那一列進不來，i 那根結算K棒還在。
 - 空的或變短的回應：舊檔位元組不變，manifest 是 `failed`。
 - i 那根的檢查：^SOX 成交量 0 要通過、NVDA 成交量 0 要不通過、沒有 i 那根的序列只重抓一輪。
 - ZIP：多一個成員、少一個成員、名稱重複、表頭不對、Live 有 `info.json`、超過大小，都要拒絕；拿掉 `data/` 前綴；換行 CRLF 原樣保留。
@@ -176,6 +178,12 @@
 - Training 的真 `-1` 和空格，解壓後位元組不變。
 - 帳密：假伺服器回傳含密碼的錯誤，密碼不能出現在 manifest、log 或例外訊息裡。
 - `main()` 回傳 0 或 3，不會丟 `SystemExit`。
+
+### 第一次實際跑要確認的事
+
+- 台北 07:10～13:00 之間跑一次（`submit.enabled` 還是 false），確認 wti、gold 有 i 那根，`guard` 有沒有動作。
+- `/api/state` 的 `phase2Days` 裡，過去的日子 `enabled` 是多少；10-23 在不在裡面。
+- 轉址實際有沒有發生（PacedSession 的 log）。
 
 ## 還要使用者決定的事
 

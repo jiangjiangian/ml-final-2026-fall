@@ -1,0 +1,46 @@
+{
+  "exact_duplicates_removed": 9,
+  "external_import_stubs_added": 53,
+  "declared_external_dependency_nodes_added": 1,
+  "duplicate_groups": [
+    {
+      "edge": {
+        "_origin": "ast",
+        "confidence": "EXTRACTED",
+        "relation": "contains",
+        "source": "configs_features_m0_price_indices",
+        "source_file": "configs/features.yaml",
+        "source_location": "L1",
+        "target": "configs_features_price_indices_id",
+        "weight": 1.0
+      },
+      "occurrences": 4
+    },
+    {
+      "edge": {
+        "_origin": "ast",
+        "confidence": "EXTRACTED",
+        "relation": "contains",
+        "source": "configs_features_m0_price_indices",
+        "source_file": "configs/features.yaml",
+        "source_location": "L1",
+        "target": "configs_features_price_indices_teacher_column",
+        "weight": 1.0
+      },
+      "occurrences": 4
+    },
+    {
+      "edge": {
+        "_origin": "ast",
+        "confidence": "EXTRACTED",
+        "relation": "contains",
+        "source": "configs_features_m0_price_indices",
+        "source_file": "configs/features.yaml",
+        "source_location": "L1",
+        "target": "configs_features_price_indices_transform",
+        "weight": 1.0
+      },
+      "occurrences": 4
+    }
+  ]
+}

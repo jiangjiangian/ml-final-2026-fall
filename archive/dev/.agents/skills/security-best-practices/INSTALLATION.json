@@ -1,0 +1,97 @@
+{
+  "schema_version": "vendored-skill-v1",
+  "name": "security-best-practices",
+  "publisher": "OpenAI",
+  "repository": "https://github.com/openai/skills",
+  "commit": "49f948faa9258a0c61caceaf225e179651397431",
+  "upstream_path": "skills/.curated/security-best-practices",
+  "upstream_files_modified": false,
+  "execution": "Downloaded and statically inspected; no scripts, hooks, login, or external messages executed",
+  "files": {
+    "LICENSE.txt": {
+      "upstream_path": "skills/.curated/security-best-practices/LICENSE.txt",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/LICENSE.txt",
+      "sha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9",
+      "bytes": 10776
+    },
+    "SKILL.md": {
+      "upstream_path": "skills/.curated/security-best-practices/SKILL.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/SKILL.md",
+      "sha256": "7b3dae1ffc5434d890f3c65c8f552af52d0307fab3b35dec13013c9ca3844c4f",
+      "bytes": 8612
+    },
+    "agents/openai.yaml": {
+      "upstream_path": "skills/.curated/security-best-practices/agents/openai.yaml",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/agents/openai.yaml",
+      "sha256": "6e9c6f2edce448eb2b589f81ad6e3f722665021785513bcbfd0bf7b86b529171",
+      "bytes": 237
+    },
+    "references/golang-general-backend-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/golang-general-backend-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/golang-general-backend-security.md",
+      "sha256": "a73c47c34497b120672d48411fe51dc90d426a571801a0b3f649e2ce4ec658b4",
+      "bytes": 38659
+    },
+    "references/javascript-express-web-server-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/javascript-express-web-server-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/javascript-express-web-server-security.md",
+      "sha256": "427835cbb5be7ba96172ea6ca9af80ddd4419c833e9ebf870996740c80d8406c",
+      "bytes": 49357
+    },
+    "references/javascript-general-web-frontend-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/javascript-general-web-frontend-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/javascript-general-web-frontend-security.md",
+      "sha256": "3a7bc7b3f6e7ff043db9dbaa8933894d7a19d987d0607e4ddae5d70184a63d63",
+      "bytes": 38638
+    },
+    "references/javascript-jquery-web-frontend-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/javascript-jquery-web-frontend-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/javascript-jquery-web-frontend-security.md",
+      "sha256": "bcbad2fa6c2a02709e47e889e70102c76886bf36bc798624d27db570eccf40da",
+      "bytes": 33581
+    },
+    "references/javascript-typescript-nextjs-web-server-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/javascript-typescript-nextjs-web-server-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/javascript-typescript-nextjs-web-server-security.md",
+      "sha256": "71c773f7a97ce60c853adfa100b3d88b3b7bc4c6b8acaef1432ffabd923ee182",
+      "bytes": 43423
+    },
+    "references/javascript-typescript-react-web-frontend-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/javascript-typescript-react-web-frontend-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/javascript-typescript-react-web-frontend-security.md",
+      "sha256": "d3030c0f24bddb56b9bbb91bbec1ee49eb7778bce4d3e0297b2641b2fc6b0d9c",
+      "bytes": 41686
+    },
+    "references/javascript-typescript-vue-web-frontend-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/javascript-typescript-vue-web-frontend-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/javascript-typescript-vue-web-frontend-security.md",
+      "sha256": "77c6a747f9f17e3df03aad0fcb20d99ac7898001b81aef8b80908e45ac14a688",
+      "bytes": 31445
+    },
+    "references/python-django-web-server-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/python-django-web-server-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/python-django-web-server-security.md",
+      "sha256": "4fb69b5d45f10e588d1a8c35cdc5f59e18910f6b46a93e2d342d90f286f8dfd2",
+      "bytes": 38661
+    },
+    "references/python-fastapi-web-server-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/python-fastapi-web-server-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/python-fastapi-web-server-security.md",
+      "sha256": "7383c7f4fc271190b05e562ada7e825982a2c76b6c79a9f95a1da7687b65a616",
+      "bytes": 44926
+    },
+    "references/python-flask-web-server-security.md": {
+      "upstream_path": "skills/.curated/security-best-practices/references/python-flask-web-server-security.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-best-practices/references/python-flask-web-server-security.md",
+      "sha256": "9606d69190c04c167fdeac57e61297547a57b0542fd89dede36f355970446929",
+      "bytes": 31748
+    }
+  },
+  "license": "Apache-2.0",
+  "license_file": "LICENSE.txt",
+  "review": {
+    "status": "agent_checked_human_review_pending",
+    "method": "Read SKILL and CI script; static Python AST parse; SHA256 verified for every upstream file",
+    "execution": "No supplied script, hook, login, external message, or CLI install executed"
+  }
+}

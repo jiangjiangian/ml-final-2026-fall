@@ -15,10 +15,11 @@
 ## Git
 - remote：`https://github.com/jiangjiangian/ml-final-2026-fall`（Public）。
 - 只推 `claude/peaceful-babbage-09xeie`；push 用 `git push -u origin claude/peaceful-babbage-09xeie`。
-- 老師 ZIP 需要 `git fetch origin live-data`。
-- 2026-11-04 依使用者要求，本分支移除了 `ml_financial_prediction/`、`.github/`、`graphify-out/`、`tools/`、`.codex/`、`README.md`、`AGENTS.md`、`RTK.md`；它們仍在 `system-completion` 與 git 歷史中。
+- 老師 ZIP 需要 `git fetch origin live-data`。live-data 被刪掉後改用封存：`python crawler.py --live-data-ref "$(git rev-parse HEAD:archive/live-data)"`（2026-11-05 實測，讀到的 Training ZIP 與 origin/live-data 相同）。
+- 2026-11-05 依使用者要求，把 system-completion、live-data、dev、deep-research 封存到 `archive/<分支名>/`（`git read-tree --prefix`，每個子樹的 tree hash 與原分支相同）。根目錄 `.gitattributes` 加了 `archive/** -text`。
+- 2026-11-04 依使用者要求，本分支移除了 `ml_financial_prediction/`、`.github/`、`graphify-out/`、`tools/`、`.codex/`、`README.md`、`AGENTS.md`、`RTK.md`；它們仍在 git 歷史中，也在 `archive/system-completion/`。
 
-## Skills（`.agents/skills/`，保留，內容與 system-completion 逐位元組相同）
+## Skills（`.agents/skills/`，保留，內容與 `archive/system-completion/.agents/skills/` 逐位元組相同）
 這些是 Codex／agents 格式的 skill，Claude Code **不會自動載入**；需要時直接讀對應的 `SKILL.md`。
 
 | skill | 用途 | 依賴已移除的檔案 |
@@ -29,10 +30,8 @@
 | rtk | 壓縮指令輸出以省 token | `tools/setup_rtk.sh`、`RTK.md`、`AGENTS.md`、`.codex/hooks.json` |
 | security-best-practices | 安全最佳實務參考 | 無 |
 
-要安裝這些 CLI 時，在本機從 system-completion 取回 `tools/`（已在 `.gitignore`，不會被 commit）：
+要安裝這些 CLI 時，從封存取回 `tools/`（根目錄的 `tools/` 已在 `.gitignore`，不會被 commit）：
 ```bash
-git fetch origin system-completion
-git checkout origin/system-completion -- tools   # 取回安裝腳本（會被加入 index）
-git restore --staged tools                       # 取消暫存，留在工作目錄
+cp -r archive/system-completion/tools ./tools
 bash tools/setup_rtk.sh                          # rtk init 會產生 RTK.md、AGENTS.md、.codex/（也已 ignore）
 ```

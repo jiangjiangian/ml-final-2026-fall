@@ -1,0 +1,16 @@
+{
+  "schema_version": "phase1-shared-result-v1",
+  "status": "verified",
+  "prediction_count": 4200,
+  "csv_sha256": "e816ba3d132168dc004406784f52e8c67c300d8de9cf3e75ec209f06b7d9b5e7",
+  "official_score": 0.0009684891420741849,
+  "artifact_archive": {
+    "path": "candidates/phase1-static-v1/artifacts.zip",
+    "object_key": "runtime/objects/0e5401ee9957fabd55e1e4cb031326abe35326f6b171d67e4dfc321f2db95f2d.bin",
+    "sha256": "0e5401ee9957fabd55e1e4cb031326abe35326f6b171d67e4dfc321f2db95f2d",
+    "size_bytes": 49401245
+  },
+  "archive_members": 24,
+  "scope": "static Phase 1 reproduction; not a Phase 2 model approval",
+  "historical_availability_verified": false
+}

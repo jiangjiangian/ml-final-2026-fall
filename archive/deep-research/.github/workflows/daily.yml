@@ -1,0 +1,62 @@
+name: Manual financial pipeline stage
+
+# Manual rehearsal only. There is deliberately no schedule event in this file.
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Pipeline stage; explicit readiness checks still apply
+        type: choice
+        required: true
+        options: [collect, train, predict, submit, verify]
+      target_date:
+        description: Official target date YYYY-MM-DD (blank uses pipeline date)
+        type: string
+        required: false
+      submit:
+        description: Request real submission (requires released pipeline and valid evidence)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: financial-pipeline-manual
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    # Persistent runner is essential: hosted-runner caches are not a raw/model store.
+    # Repository variable may select other persistent labels after verification.
+    runs-on: ${{ fromJSON(vars.FINPRED_RUNNER_LABELS || '["self-hosted","linux","finpred"]') }}
+    timeout-minutes: 40
+    steps:
+      - name: Check out dev source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: dev
+          persist-credentials: false
+      - name: Set up locked uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+        with:
+          version: "0.12.23"
+          python-version: "3.12"
+      - name: Install locked project dependencies
+        working-directory: ml_financial_prediction
+        run: uv sync --locked --group dev --extra models --extra data
+      - name: Run stage with persistent runtime
+        env:
+          FINPRED_PROJECT_ROOT: ${{ github.workspace }}/ml_financial_prediction
+          FINPRED_RUNTIME_ROOT: ${{ vars.FINPRED_RUNTIME_ROOT }}
+          FINPRED_TRAINING_TABLE: ${{ vars.FINPRED_TRAINING_TABLE }}
+          FINPRED_PREDICTION_TABLE: ${{ vars.FINPRED_PREDICTION_TABLE }}
+          FINPRED_TARGET_DATE: ${{ inputs.target_date }}
+          FINPRED_STAGE: ${{ inputs.stage }}
+          FINPRED_ENABLE_SUBMIT: ${{ inputs.submit && vars.FINPRED_SUBMISSION_RELEASED == 'true' && '1' || '0' }}
+          COURSE_EMAIL: ${{ secrets.COURSE_EMAIL }}
+          COURSE_PASSWORD: ${{ secrets.COURSE_PASSWORD }}
+          COURSE_LIVE_KEY: ${{ secrets.COURSE_LIVE_KEY }}
+        shell: bash
+        run: bash "$FINPRED_PROJECT_ROOT/deployment/run-stage.sh" "$FINPRED_STAGE"
+      # No raw-data/model/receipt artifact upload or publishing step.

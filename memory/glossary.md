@@ -5,7 +5,7 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 ## 資料與來源
 | 詞 | 意思 | 備註 |
 |---|---|---|
-| 老師資料／Training ZIP | 課程提供的歷史包：100 股 CSV＋`global_data.csv`＋`info.json` | sha256 `7433b271…`，存在 `live-data:objects/` |
+| 老師資料／Training ZIP | 課程提供的歷史包：100 股 CSV＋`global_data.csv`＋`info.json` | sha256 `7433b271…`，存在 `live-data:objects/`（封存：`archive/live-data/objects/`） |
 | Live ZIP | 9/1 之後的老師新資料（`y=-1`＝pending） | 本分支放在 `data/teacher_live/`，只用 9/1～9/30 |
 | template | 官方預測模板（股票／日期／欄位順序） | 不在本分支 |
 | Top50@Y／Top100@Y | `info.json` 的預測目標 50 股／全部 100 股 | |
@@ -13,7 +13,7 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 | TX_OI | 台指期外資淨未平倉口數（多減空，可負） | 單位是口數，不算 return；疑似含當日資訊（role＝suspected_same_day），同日值不可當輸入；market_features 用 `TX_OI_prev_row` |
 | 老師 index | global_data 的五個指數欄 | 使用者說的「除了老師以外的 index」＝排除這五個 |
 | 額外指標 | crawler.py 用 yfinance 抓的 19 個序列 | 清單見 data-decisions.md |
-| live-data | 共用資料分支：catalog／manifests／objects／features／labels | 老師 Training／Live ZIP 都由 `git show origin/live-data:...` 取得 |
+| live-data | 共用資料分支：catalog／manifests／objects／features／labels | 老師 Training／Live ZIP 都由 `git show origin/live-data:...` 取得；分支刪掉後用 `--live-data-ref "$(git rev-parse HEAD:archive/live-data)"` |
 | 接縫 | Training 最後一天（8/31）與 Live 第一天（9/1）之間 | 已驗證還原價基準相同 |
 | yfinance | https://github.com/ranaroussi/yfinance，呼叫 Yahoo chart API | 釘選 1.7.0 |
 
@@ -61,8 +61,11 @@ CLAUDE.md 找不到的詞先查這裡；仍找不到就問使用者，問到後�
 ## 分支
 | 分支 | 用途 |
 |---|---|
-| `system-completion` | 預設分支：完整程式、workflows、文件 |
-| `claude/peaceful-babbage-09xeie` | 本分支：只放資料整合成果 |
-| `live-data` | 共用資料版本 |
-| `dev`／`deep-research` | 核心開發歷史／來源研究 |
-| `main` | 依原要求保留空樹 |
+| `claude/peaceful-babbage-09xeie` | 本分支：資料整合成果＋`archive/` |
+| `claude/hopeful-brahmagupta-wikys1` | 另一個 claude 分支（R4 模型研究），從 system-completion 的 `2a4c6cb` 長出來，含同一套 workflows |
+| `main` | 空樹 |
+| `system-completion` | 原預設分支：完整程式、workflows、文件。2026-11-05 封存到 `archive/system-completion/`（`2a4c6cb`） |
+| `live-data` | 共用資料版本（獨立歷史）。封存到 `archive/live-data/`（`e5025e6`） |
+| `dev`／`deep-research` | 核心開發歷史／來源研究。封存到 `archive/dev/`、`archive/deep-research/` |
+
+2026-11-05 使用者要求只留兩個 claude 分支（和空的 main），其他分支封存後由使用者自己在 GitHub 刪除。細節與還原方法見 `archive/README.md`。

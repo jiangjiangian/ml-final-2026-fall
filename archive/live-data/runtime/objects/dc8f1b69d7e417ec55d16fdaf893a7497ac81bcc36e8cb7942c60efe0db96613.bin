@@ -1,0 +1,18 @@
+{
+  "run_id": "56013273e41943c9b3fcfede6ef17329",
+  "deployment_policy": "course-benchmark-v1",
+  "stage": "train",
+  "target_date": "2026-11-04",
+  "started_at": "2026-11-04T05:19:22.122425+00:00",
+  "dry_run": true,
+  "historical_vintage_verified": false,
+  "initialization": true,
+  "status": "course_model_approved",
+  "model_manifest_sha256": "596267286d72bd56e5804269ce74fc630c365d2470b9d69326b5a30a6ab4b0bb",
+  "approved_at": "2026-11-04T05:19:37.765760+00:00",
+  "fit_cutoff": "2026-11-04T05:19:22.123056+00:00",
+  "model_production_eligible": false,
+  "selected_model": "linear",
+  "candidate_score": 0.000297122656240133,
+  "baseline_score": -0.0002506594275542152
+}

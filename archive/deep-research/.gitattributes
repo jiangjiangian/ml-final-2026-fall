@@ -1,0 +1,3 @@
+# Preserve exact upstream skill bytes and their recorded SHA256 values.
+# Upstream prose contains intentional/unmodified trailing spaces.
+.agents/skills/** whitespace=-blank-at-eol

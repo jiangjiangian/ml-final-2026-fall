@@ -1,0 +1,320 @@
+{
+  "schema_version": "citation-audit-v1",
+  "generated_at": "2026-10-30T15:01:34.256163+00:00",
+  "generation": "Script extraction from Crossref records and publisher/arXiv citation meta tags; not invented or hand-typed bibliographic fields",
+  "skill": "citation-management read; bundled script resource unavailable in this environment, not claimed executed",
+  "discovery_databases": [
+    "Crossref",
+    "OpenAlex",
+    "arXiv; publisher/author pages for enrichment"
+  ],
+  "scope": "Internal research bibliography, not submission-ready human-reviewed manuscript",
+  "publication_year_policy": "Prefer verified print year; retain differing online dates; do not invent absent journal details",
+  "entries": [
+    {
+      "key": "Gu2020",
+      "type": "article",
+      "fields": {
+        "author": "Gu, Shihao and Kelly, Bryan and Xiu, Dacheng",
+        "title": "Empirical Asset Pricing via Machine Learning",
+        "year": "2020",
+        "doi": "10.1093/rfs/hhaa009",
+        "url": "https://doi.org/10.1093/rfs/hhaa009",
+        "journal": "The Review of Financial Studies",
+        "volume": "33",
+        "number": "5",
+        "pages": "2223--2273"
+      },
+      "metadata_source": "FIN07",
+      "missing_or_not_applicable": [],
+      "year_basis": "published-print",
+      "online_date": [
+        [
+          2020,
+          2,
+          26
+        ]
+      ],
+      "print_date": [
+        [
+          2020,
+          5,
+          1
+        ]
+      ]
+    },
+    {
+      "key": "Harvey2016",
+      "type": "article",
+      "fields": {
+        "author": "Harvey, Campbell R. and Liu, Yan and Zhu, Heqing",
+        "title": "… and the Cross-Section of Expected Returns",
+        "year": "2016",
+        "doi": "10.1093/rfs/hhv059",
+        "url": "https://doi.org/10.1093/rfs/hhv059",
+        "journal": "Review of Financial Studies",
+        "volume": "29",
+        "number": "1",
+        "pages": "5--68"
+      },
+      "metadata_source": "FIN09",
+      "missing_or_not_applicable": [],
+      "year_basis": "published-print",
+      "online_date": [
+        [
+          2015,
+          10,
+          9
+        ]
+      ],
+      "print_date": [
+        [
+          2016,
+          1
+        ]
+      ]
+    },
+    {
+      "key": "Bailey2016",
+      "type": "article",
+      "fields": {
+        "author": "Bailey, David and Borwein, Jonathan and López de Prado, Marcos and Zhu, Qiji Jim",
+        "title": "The probability of backtest overfitting",
+        "year": "2016",
+        "doi": "10.21314/jcf.2016.322",
+        "url": "https://doi.org/10.21314/jcf.2016.322",
+        "journal": "The Journal of Computational Finance",
+        "note": "Online publication record is 2016; volume, issue and pages were unavailable in retrieved metadata. Methods were read in the author 2015 manuscript."
+      },
+      "metadata_source": "FIN17",
+      "missing_or_not_applicable": [
+        "volume",
+        "issue",
+        "page"
+      ],
+      "year_basis": "published-online",
+      "online_date": [
+        [
+          2016,
+          9
+        ]
+      ],
+      "print_date": null
+    },
+    {
+      "key": "Kelly2023",
+      "type": "article",
+      "fields": {
+        "author": "Kelly, Bryan and Xiu, Dacheng",
+        "title": "Financial Machine Learning",
+        "year": "2023",
+        "doi": "10.1561/0500000064",
+        "url": "https://doi.org/10.1561/0500000064",
+        "journal": "Foundations and Trends® in Finance",
+        "volume": "13",
+        "number": "3-4",
+        "pages": "205--363"
+      },
+      "metadata_source": "FIN20",
+      "missing_or_not_applicable": [],
+      "year_basis": "published-print",
+      "online_date": [
+        [
+          2023
+        ]
+      ],
+      "print_date": [
+        [
+          2023
+        ]
+      ]
+    },
+    {
+      "key": "LimSurvey2021",
+      "type": "article",
+      "fields": {
+        "author": "Lim, Bryan and Zohren, Stefan",
+        "title": "Time-series forecasting with deep learning: a survey",
+        "year": "2021",
+        "doi": "10.1098/rsta.2020.0209",
+        "url": "https://doi.org/10.1098/rsta.2020.0209",
+        "journal": "Philosophical Transactions of the Royal Society A: Mathematical, Physical and Engineering Sciences",
+        "volume": "379",
+        "number": "2194",
+        "eid": "20200209"
+      },
+      "metadata_source": "FIN21",
+      "missing_or_not_applicable": [],
+      "year_basis": "published-print",
+      "online_date": [
+        [
+          2021,
+          2,
+          15
+        ]
+      ],
+      "print_date": [
+        [
+          2021,
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "key": "LimMomentum2019",
+      "type": "article",
+      "fields": {
+        "author": "Lim, Bryan and Zohren, Stefan and Roberts, Stephen",
+        "title": "Enhancing Time-Series Momentum Strategies Using Deep Neural Networks",
+        "year": "2019",
+        "doi": "10.3905/jfds.2019.1.015",
+        "url": "https://doi.org/10.3905/jfds.2019.1.015",
+        "journal": "The Journal of Financial Data Science",
+        "volume": "1",
+        "number": "4",
+        "pages": "19--38"
+      },
+      "metadata_source": "FIN22",
+      "missing_or_not_applicable": [],
+      "year_basis": "published-print",
+      "online_date": [
+        [
+          2019,
+          9,
+          9
+        ]
+      ],
+      "print_date": [
+        [
+          2019,
+          10,
+          31
+        ]
+      ]
+    },
+    {
+      "key": "McLean2016",
+      "type": "article",
+      "fields": {
+        "author": "MCLEAN, R. DAVID and PONTIFF, JEFFREY",
+        "title": "Does Academic Research Destroy Stock Return Predictability?",
+        "year": "2016",
+        "doi": "10.1111/jofi.12365",
+        "url": "https://doi.org/10.1111/jofi.12365",
+        "journal": "The Journal of Finance",
+        "volume": "71",
+        "number": "1",
+        "pages": "5--32"
+      },
+      "metadata_source": "FIN23",
+      "missing_or_not_applicable": [],
+      "year_basis": "published-print",
+      "online_date": [
+        [
+          2016,
+          1,
+          14
+        ]
+      ],
+      "print_date": [
+        [
+          2016,
+          2
+        ]
+      ]
+    },
+    {
+      "key": "Chen2016",
+      "type": "inproceedings",
+      "fields": {
+        "author": "Chen, Tianqi and Guestrin, Carlos",
+        "title": "XGBoost: A Scalable Tree Boosting System",
+        "year": "2016",
+        "doi": "10.1145/2939672.2939785",
+        "url": "https://doi.org/10.1145/2939672.2939785",
+        "booktitle": "Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining",
+        "pages": "785--794"
+      },
+      "metadata_source": "MOD09",
+      "missing_or_not_applicable": [
+        "volume",
+        "issue"
+      ],
+      "year_basis": "published-print",
+      "online_date": [
+        [
+          2016,
+          8,
+          13
+        ]
+      ],
+      "print_date": [
+        [
+          2016,
+          8,
+          13
+        ]
+      ]
+    },
+    {
+      "key": "Li2024",
+      "type": "article",
+      "fields": {
+        "author": "Li, Tong and Liu, Zhaoyang and Shen, Yanyan and Wang, Xue and Chen, Haokun and Huang, Sen",
+        "title": "MASTER: Market-Guided Stock Transformer for Stock Price Forecasting",
+        "year": "2024",
+        "journal": "Proceedings of the AAAI Conference on Artificial Intelligence",
+        "volume": "38",
+        "number": "1",
+        "pages": "162--170",
+        "doi": "10.1609/aaai.v38i1.27767",
+        "url": "https://doi.org/10.1609/aaai.v38i1.27767"
+      },
+      "metadata_source": "FIN12",
+      "missing_or_not_applicable": []
+    },
+    {
+      "key": "Bai2018",
+      "type": "misc",
+      "fields": {
+        "author": "Bai, Shaojie and Kolter, J. Zico and Koltun, Vladlen",
+        "title": "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling",
+        "year": "2018",
+        "eprint": "1803.01271",
+        "archivePrefix": "arXiv",
+        "url": "https://arxiv.org/abs/1803.01271",
+        "note": "Author preprint; no verified journal record asserted."
+      },
+      "metadata_source": "MOD03",
+      "missing_or_not_applicable": [
+        "journal",
+        "volume",
+        "issue",
+        "pages",
+        "publisher DOI not supplied"
+      ]
+    },
+    {
+      "key": "Kassis2026",
+      "type": "misc",
+      "fields": {
+        "author": "Kassis, Timothy and Agarwal, Vinayak and He, Yuhuan and Patel, Darshil and Brueckner, Aubrey M.",
+        "title": "Scientific Agent Skills: A Library of Procedural Knowledge for Research Agents",
+        "year": "2026",
+        "eprint": "2609.00065",
+        "archivePrefix": "arXiv",
+        "url": "https://arxiv.org/abs/2609.00065",
+        "note": "Method/tool citation, not financial performance evidence."
+      },
+      "metadata_source": "FIN03",
+      "missing_or_not_applicable": [
+        "journal",
+        "volume",
+        "issue",
+        "pages",
+        "publisher DOI not supplied"
+      ]
+    }
+  ]
+}

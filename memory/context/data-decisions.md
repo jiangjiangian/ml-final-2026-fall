@@ -6,7 +6,7 @@
 - 日期：**2020-01-01～2026-09-30**（含；使用者 2026-11-04 從 8/31 延長）。yfinance 的 `end` 不含當天，所以請求送 `2026-10-01`。
 - 額外指標**全部**經 yfinance 1.7.0 `Ticker.history(interval='1d', auto_adjust=False, actions=False, repair=False)`。
 - 老師 index（`^VIX ^IXIC ^GSPC ^TWII ^KS11`）不重抓，因為老師 global_data 已有。
-- 老師資料來自 `origin/live-data` 的 `catalog/latest.json` → catalog → `course-training.latest_sha256` → `objects/<sha>.zip`，每層都核對 sha256，再**逐位元組**解到 `data/teacher/`。schema 另存 `teacher.members_sha256`（所有成員檔 hash 的摘要），`--keep-teacher` 會核對它，不符就拒絕。
+- 老師資料來自 `origin/live-data`（2026-11-05 起也封存在 `archive/live-data/`）的 `catalog/latest.json` → catalog → `course-training.latest_sha256` → `objects/<sha>.zip`，每層都核對 sha256，再**逐位元組**解到 `data/teacher/`。schema 另存 `teacher.members_sha256`（所有成員檔 hash 的摘要），`--keep-teacher` 會核對它，不符就拒絕。
 - **9 月接老師 Live ZIP**（`course-live.latest_sha256`＝`7f4c759a…`，11/04 取得，內容 9/1～11/4）：
   - 逐位元組放到 `data/teacher_live/`（沒有 info.json）。schema 的 `teacher_live` 記 hash、`members_sha256`、使用範圍，`--keep-teacher` 一樣會核對。
   - 只取 **Training 最後日期（8/31）之後、<= 9/30** 的列，接在 Training 後面：20 個台股日、2,000 個個股列、20 個 global 列，9 月沒有待定值。
@@ -16,7 +16,7 @@
   - Live global 的慣例和 Training 不同：每個台股日都有一列，休市市場沿用前一筆；美股欄＝日期 < d 的最後一個美股收盤（9 月 ^IXIC／^GSPC 20/20、^VIX 19/20），^TWII 20/20 同日、^KS11 19/20 同日（1 列韓國休市沿用）。值都在開盤前已知；9 月的 teacher_* lag 往回數的是 Live 的列。
   - 延長後 8/31 以前的值：老師相關欄完全相同；ETF／美股的 adj_close 因 Yahoo 重算有約 1e-6 以內的相對浮動（etf_0052 最大 1.04e-6；報酬絕對差：長表 ≤ 1e-6、market_features ≤ 1.1e-6；close 與缺值位置不變）。
   - 待定值 fail closed：使用範圍內只要有 -1（y、價格、指數欄、TX_OI），crawler 直接拒絕；Live 的待定列整列是 -1（10/23、11/04）。
-  - 兩種待定列不一樣（2026-11-04 查證，給每日模式用；見 `deploy/README.md` 第 11.3、11.5 節）：
+  - 兩種待定列不一樣（2026-11-04 查證，給每日模式用；見 `archive/old-research/deploy-README-2026-11-04.md` 第 11.3、11.5 節）：
     - **當天的列**（11/04）：個股全部 -1；global 的 ^VIX／^IXIC／^GSPC 已填前一個美股收盤，^TWII／^KS11／TX_OI 是 -1。t 的特徵只讀 i＝前一個台股日以前，所以這列只當日曆。
     - **永遠不補的列**（10/23）：100 檔全是 -1，global ^TWII、TX_OI 也是 -1，^KS11 有值。Yahoo ^TWII 沒有 10/23；0050 這天是同價佔位K棒 → 很可能休市。提議：台股日曆以官方 `/api/state` 為準，不在官方日曆的待定列拿掉。**未實作，等使用者確認。**
   - 指紋：`timing_verification.verified_against` 用 `teacher_live.used_rows_sha256`（只算實際用到的 9 月列），所以每天換新的 Live ZIP 不會讓驗證失效；整份 ZIP 的 `members_sha256` 只給 `--keep-teacher` 做完整性檢查。

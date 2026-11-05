@@ -1,0 +1,38 @@
+{
+  "status": "selected_sources_refreshed",
+  "refresh_scope": [
+    "course-training",
+    "course-template",
+    "course-live",
+    "fred_us10y",
+    "fred_usd_twd"
+  ],
+  "sources": [
+    {
+      "source": "course-training",
+      "sha256": "7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2",
+      "fetched_at": "2026-11-03T03:04:07.103306+00:00"
+    },
+    {
+      "source": "course-template",
+      "sha256": "2081e92b216ff1cd231f0e1ec32d709b6e6b734d9ace41fc7d0b3fe02cc93f28",
+      "fetched_at": "2026-11-03T03:04:07.327844+00:00"
+    },
+    {
+      "source": "course-live",
+      "sha256": "48b16f68beb92f679250a22d6e314f230e675d9d619b45c52048251aa25b78ed",
+      "fetched_at": "2026-11-03T03:04:12.620750+00:00"
+    },
+    {
+      "source": "fred_us10y",
+      "sha256": "548c7978740bf6c50df3026343d817121fce046e8685bfa1883769c606b443cf",
+      "fetched_at": "2026-11-03T03:07:46.423189+00:00"
+    },
+    {
+      "source": "fred_usd_twd",
+      "sha256": "7fd8734f5f8a6d95d0d98856d4087a09e6b0a3796fdc265b7a8c5c7a29b7b8b4",
+      "fetched_at": "2026-11-03T03:07:46.687463+00:00"
+    }
+  ],
+  "not_a_cloud_credentials_or_network_fix": true
+}

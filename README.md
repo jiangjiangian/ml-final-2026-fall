@@ -2,7 +2,7 @@
 
 本分支 `claude/peaceful-babbage-09xeie` 只放**資料**：老師資料、yfinance 額外指標、lag 轉換特徵，以及整合好、可直接訓練的長表。
 資料範圍 **2020-01-02～2026-09-30**：老師 Training ZIP 到 8/31，9/1～9/30 接老師 Live ZIP。
-完整的模型與每日提交程式在預設分支 `system-completion`。
+完整的模型與每日提交程式原本在 `system-completion` 分支，2026-11-05 起封存在 `archive/system-completion/`（說明見 `archive/README.md`）。
 
 預測目標：台股日 t 的 `y = 1{adj_close_t > adj_open_t}`（盤中上漲）；官方分數＝`mean((2p − 1) × 盤中報酬)`。
 
@@ -19,7 +19,8 @@
 │   └── projects/data-folder.md       #   本分支的需求歷程、兩輪審查、已知限制
 ├── crawler.py                        # 唯一程式：yfinance 限流爬蟲 → 清理 → 整合 → lag 轉換 → 長表 → schema
 ├── schema.json                       # 所有欄位的定義、單位、lag 規則、清理紀錄、hash（老師＋額外＋transform＋panel）
-├── deploy/README.md                  # Phase 2 每日自動提交的部署設計（為何 GitHub 排程延遲、推薦架構、時間表、實作清單）
+├── deploy/README.md                  # 每日自動預測怎麼部署：從爬蟲到上傳，附流程圖
+├── archive/                          # 其他分支的封存（system-completion、live-data、dev、deep-research）與舊研究
 ├── data/
 │   ├── teacher/                      # 老師 Training ZIP 原樣（逐位元組，sha256 已核對）
 │   │   ├── info.json                 #   Top50@Y（50 檔預測目標）／Top100@Y（100 檔）
@@ -76,7 +77,7 @@ git clone --branch claude/peaceful-babbage-09xeie --single-branch --depth 1 http
 df = pd.read_csv("ml-final-2026-fall/data/transform/panel_lag.csv.gz", dtype={"stock_id": str}, parse_dates=["date"])
 ```
 
-`stock_id` 一定要用字串讀，否則代號會變成數字。若之後本分支合併到 `system-completion`，把網址或 `--branch` 換成新分支名即可。
+`stock_id` 一定要用字串讀，否則代號會變成數字。若之後換到別的分支，把網址或 `--branch` 換成新分支名即可。
 
 ### 2. 切成特徵 X 與答案 y
 
@@ -145,8 +146,9 @@ i−k ＝ 該序列往回第 k 個「自己的」交易日
 
 ```bash
 pip install yfinance==1.7.0      # 環境要能連 finance.yahoo.com
-git fetch origin live-data       # 老師 ZIP 的來源
+git fetch origin live-data       # 老師 ZIP 的來源（live-data 還在 GitHub 上時）
 python crawler.py                # 下載＋取老師 Training／Live＋整合＋transform＋panel＋schema，約 1～2 分鐘
+python crawler.py --live-data-ref "$(git rev-parse HEAD:archive/live-data)"   # live-data 刪掉後，改讀封存的快照
 python crawler.py --skip-download --keep-teacher   # 不連網，只用現有檔案重算
 ```
 

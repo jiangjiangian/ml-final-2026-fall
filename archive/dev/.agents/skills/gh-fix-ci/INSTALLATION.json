@@ -1,0 +1,55 @@
+{
+  "schema_version": "vendored-skill-v1",
+  "name": "gh-fix-ci",
+  "publisher": "OpenAI",
+  "repository": "https://github.com/openai/skills",
+  "commit": "49f948faa9258a0c61caceaf225e179651397431",
+  "upstream_path": "skills/.curated/gh-fix-ci",
+  "upstream_files_modified": false,
+  "execution": "Downloaded and statically inspected; no scripts, hooks, login, or external messages executed",
+  "files": {
+    "LICENSE.txt": {
+      "upstream_path": "skills/.curated/gh-fix-ci/LICENSE.txt",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/gh-fix-ci/LICENSE.txt",
+      "sha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9",
+      "bytes": 10776
+    },
+    "SKILL.md": {
+      "upstream_path": "skills/.curated/gh-fix-ci/SKILL.md",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/gh-fix-ci/SKILL.md",
+      "sha256": "7b326b4a2f0f5f85122144628ec02077e48841e0e0e82efce88b3415bcfb7c26",
+      "bytes": 3651
+    },
+    "agents/openai.yaml": {
+      "upstream_path": "skills/.curated/gh-fix-ci/agents/openai.yaml",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/gh-fix-ci/agents/openai.yaml",
+      "sha256": "36f73b9450504983d1647c960689596f59bf9147c14b1b43162912ed7ada9af6",
+      "bytes": 302
+    },
+    "assets/github-small.svg": {
+      "upstream_path": "skills/.curated/gh-fix-ci/assets/github-small.svg",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/gh-fix-ci/assets/github-small.svg",
+      "sha256": "ee05e92d373d4d84f4612af3c1090ef67698d421bbe30896a4ed5a00cb86a069",
+      "bytes": 853
+    },
+    "assets/github.png": {
+      "upstream_path": "skills/.curated/gh-fix-ci/assets/github.png",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/gh-fix-ci/assets/github.png",
+      "sha256": "d55a9baa41798d8b5108e3058df3a5bda09914ea9fd73b49929cc38a8832424f",
+      "bytes": 1838
+    },
+    "scripts/inspect_pr_checks.py": {
+      "upstream_path": "skills/.curated/gh-fix-ci/scripts/inspect_pr_checks.py",
+      "source_url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/gh-fix-ci/scripts/inspect_pr_checks.py",
+      "sha256": "9459e5b03f86785d184a83e5cd8d621b832e918ec04158a2962d867785812c6c",
+      "bytes": 15222
+    }
+  },
+  "license": "Apache-2.0",
+  "license_file": "LICENSE.txt",
+  "review": {
+    "status": "agent_checked_human_review_pending",
+    "method": "Read SKILL and CI script; static Python AST parse; SHA256 verified for every upstream file",
+    "execution": "No supplied script, hook, login, external message, or CLI install executed"
+  }
+}

@@ -1,0 +1,29 @@
+# Microsoft MarkItDown 0.1.9 with PDF extra only.
+# Exact environment captured on Python 3.12, Linux; no OCR/MCP/plugin extras.
+# Recreate with bash tools/setup_markitdown.sh (isolated from ML project deps).
+beautifulsoup4==4.15.0
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+click==8.5.0
+cryptography==50.0.2
+defusedxml==0.7.1
+flatbuffers==25.12.19
+idna==3.20
+magika==1.0.3
+markdownify==1.2.3
+markitdown==0.1.9
+numpy==2.5.4
+onnxruntime==1.31.1
+packaging==26.3
+pdfminer-six==20260107
+pdfplumber==0.11.10
+pillow==13.0.0
+protobuf==7.36.2
+pycparser==3.12
+pypdfium2==5.14.0
+requests==2.34.2
+six==1.17.0
+soupsieve==3.0.4
+typing-extensions==4.16.0
+urllib3==2.8.0

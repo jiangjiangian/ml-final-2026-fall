@@ -5,3 +5,5 @@
 # data/extra/manifest.json still verify.
 data/** -text
 schema.json -text
+# Archived branches keep their exact bytes (their own sha256 records must still verify).
+archive/** -text

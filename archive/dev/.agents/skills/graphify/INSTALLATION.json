@@ -1,0 +1,8 @@
+{
+  "package": "graphifyy",
+  "version": "0.9.95",
+  "repository": "https://github.com/Graphify-Labs/graphify",
+  "source_commit": "92741d162b2094ffc2fed58cfbd8ee823e9da62c",
+  "method": "copy packaged Codex skill and references without installing hooks",
+  "skill_sha256": "e1150326f0ed06db45e735ecb92b9d3048c9d165d61f61c5ecc728758a9c21f2"
+}

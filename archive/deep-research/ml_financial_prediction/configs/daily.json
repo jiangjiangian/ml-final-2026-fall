@@ -1,0 +1,112 @@
+{
+  "schema_version": "daily-plan-v1",
+  "status": "implemented_not_deployed",
+  "timezone": "Asia/Taipei",
+  "config_role": "reviewable_plan_stage_windows_enforced_in_python_timers_not_parsed_from_this_file",
+  "window": {
+    "start": "04:00:00",
+    "official_deadline": "09:00:00",
+    "origin": "user_requirement"
+  },
+  "timing_origin": "proposed_allocations_pending_runtime_measurement",
+  "collection": {
+    "times": [
+      "04:17:00",
+      "05:17:00",
+      "06:17:00",
+      "07:17:00"
+    ],
+    "sources": [
+      "course_training",
+      "course_live",
+      "cboe_vix",
+      "twse_twii",
+      "fred_us10y",
+      "fred_usd_twd",
+      "yahoo_ixic",
+      "yahoo_gspc",
+      "yahoo_twii",
+      "yahoo_ks11",
+      "yahoo_vix",
+      "yahoo_sox",
+      "yahoo_tsm_adr",
+      "yahoo_nvda",
+      "twse_sectors"
+    ],
+    "immutable_snapshots": true,
+    "tls_verification": true,
+    "source_time_evidence_required": true,
+    "partial_or_ambiguous_values": "preserve_status_do_not_infer_training_readiness"
+  },
+  "candidate_training": {
+    "frequency": "daily_on_official_target_session",
+    "start": "07:20:00",
+    "training_data_available_cutoff": "07:20:00",
+    "stop_by": "07:50:00",
+    "max_runtime_minutes": 30,
+    "requires": [
+      "complete_labels_available_at_or_before_training_cutoff",
+      "historically_available_features",
+      "date_grouped_time_validation",
+      "train_only_fit_preprocessing",
+      "same_validation_keys_for_candidate_and_current_model"
+    ],
+    "forbid": [
+      "current_target_day_label",
+      "unfinished_live_label_minus_one",
+      "data_or_labels_available_after_training_cutoff",
+      "future_revisions_as_historical_values"
+    ]
+  },
+  "model_promotion": {
+    "decide_by": "07:55:00",
+    "requires": [
+      "compatible_feature_schema_and_availability_policy",
+      "passed_validation_and_data_checks",
+      "predeclared_official_score_acceptance_rule"
+    ],
+    "on_timeout_or_rejection": "keep_prior_compatible_validated_model",
+    "without_compatible_validated_model": "blocked_no_prediction_claim",
+    "acceptance_threshold_status": "implemented_strict_score_improvement_or_verified_same_recipe_refresh_on_new_complete_history"
+  },
+  "features": {
+    "freeze_at": "08:10:00",
+    "must_be_available_and_successfully_fetched_before_freeze": true,
+    "stock_table_adapter": "implemented_observed_fetch_prediction_and_explicit_research_training",
+    "automatic_market_table_promotion": false
+  },
+  "inference": {
+    "complete_by": "08:20:00",
+    "fit_during_predict": false
+  },
+  "verification": {
+    "check_by": "08:35:00",
+    "expected_stock_count": 50,
+    "prediction_values": [
+      0,
+      1
+    ]
+  },
+  "submission": {
+    "mode": "automatic_after_validated_pipeline",
+    "automatic_submission_enabled": false,
+    "requires_verified_session_and_receipt": true,
+    "authorization_status": "explicit_user_goal_authorized",
+    "enablement_status": "implemented_not_deployed_no_real_post_verified",
+    "scope": "competition_prediction_csv_only_not_raw_data_publication"
+  },
+  "scheduler": {
+    "preferred": "execution_platform_pending_user_no_school_host_preference",
+    "alternative": "github_actions_with_default_branch_and_persistent_storage_requirements",
+    "deployed": false,
+    "native_chat_tasks_available": false
+  },
+  "readiness_blockers": [
+    "historical_source_publication_and_vintage_evidence",
+    "certified_historical_training_table_adapter",
+    "verified_initial_model_and_compatible_fallback",
+    "persistent_executor_storage_and_default_branch_workflow_registration",
+    "five_real_official_trading_day_dry_runs_and_first_receipt"
+  ],
+  "secrets": "environment_only_not_config_or_logs"
+}

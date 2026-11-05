@@ -1,0 +1,163 @@
+{
+  "schema_version": "financial-model-blueprints-v1",
+  "status": "design_only_not_loaded_by_existing_runner",
+  "research_branch": "deep-research",
+  "objective": {
+    "target": "adjusted_open_to_close_return",
+    "decision": "prediction_is_1_if_estimated_return_positive_else_0",
+    "official_score": "mean((2 * prediction - 1) * target_return)",
+    "expected_stocks": 50,
+    "feature_cutoff": "08:10 Asia/Taipei",
+    "production_requires_verified_availability": true
+  },
+  "validation": {
+    "split_by": "complete_target_date",
+    "exploration": "existing_2025_expanding_quarter_folds_already_seen",
+    "spent_holdout": "2026-01 through 2026-05; never relabel as unseen",
+    "new_test": "subsequent_official_sessions_registered_before_labels_are_observed",
+    "primary_seed": 42,
+    "initial_configuration_budget": 12,
+    "initial_configuration_budget_scope": "R2_model_comparison_only",
+    "feature_ablation_budget": {
+      "phase": "R1",
+      "groups": ["F0", "F0+F1", "F0+F2", "F0+F3"],
+      "fixed_models": {"M1": {"ridge_alpha": 1.0}, "M2": {"max_leaf_nodes": 15}},
+      "maximum_configurations": 8,
+      "unsupported_inputs": "blocked_no_replacement_search",
+      "before_fit": "freeze_exact_columns_formulas_versions_common_keys_and_missing_policy"
+    },
+    "quarter_folds_per_configuration": 4,
+    "maximum_fits_R1_plus_R2": 80,
+    "weighted_classification_control": "existing_E00_reference_only_new_fits_require_separate_budget",
+    "preprocessing_fit": "train_only",
+    "preserve_target_universe": true
+  },
+  "models": [
+    {
+      "id": "M1",
+      "family": "regularized_linear",
+      "implementation_status": "existing_linear_baseline_new_feature_design_untrained",
+      "input_layout": "pooled_stock_date_tabular",
+      "primary_head": "raw_return_ridge",
+      "control_head": "absolute_return_weighted_logistic",
+      "initial_tuning": {
+        "dimension": "ridge_alpha",
+        "values": [
+          0.1,
+          1.0,
+          10.0
+        ]
+      },
+      "sources": [
+        "FIN07",
+        "FIN16"
+      ]
+    },
+    {
+      "id": "M2",
+      "family": "gradient_boosted_trees",
+      "implementation_status": "existing_hist_gbdt_baseline_lightgbm_not_integrated",
+      "input_layout": "pooled_stock_date_tabular",
+      "primary_head": "raw_return_regression",
+      "initial_tuning": {
+        "dimension": "max_leaf_nodes",
+        "values": [
+          7,
+          15,
+          31
+        ]
+      },
+      "fixed_design": {
+        "max_iter": 100,
+        "min_samples_leaf": 100,
+        "l2_regularization": 1.0
+      },
+      "sources": [
+        "MOD01",
+        "MOD02",
+        "FIN07"
+      ]
+    },
+    {
+      "id": "M3",
+      "family": "causal_temporal_convolution",
+      "implementation_status": "proposed_not_implemented",
+      "input_layout": [
+        "date_batch",
+        "stock",
+        "lookback",
+        "feature"
+      ],
+      "fixed_design": {
+        "lookback": 20,
+        "hidden_channels": 32,
+        "kernel_size": 3,
+        "dilations": [
+          1,
+          2,
+          4
+        ],
+        "blocks": 3,
+        "convolutions_per_block": 2,
+        "padding": "left_only_with_mask",
+        "epochs": 20,
+        "primary_head": "raw_return_regression",
+        "lookback_unit": "target_market_sessions_with_missing_positions",
+        "include_prediction_cutoff_vector": true
+      },
+      "initial_tuning": {
+        "dimension": "dropout",
+        "values": [
+          0.0,
+          0.1,
+          0.2
+        ]
+      },
+      "deployment_gate": "batch_and_day_by_day_predictions_match_with_identical_context",
+      "sources": [
+        "MOD03",
+        "MOD08",
+        "FIN15",
+        "FIN21"
+      ]
+    },
+    {
+      "id": "M4",
+      "family": "market_gated_cross_stock_attention",
+      "implementation_status": "proposed_not_implemented",
+      "input_layout": [
+        "date_batch",
+        "stock",
+        "lookback",
+        "feature"
+      ],
+      "fixed_design": {
+        "lookback": 20,
+        "temporal_hidden": 32,
+        "stock_attention_heads": 2,
+        "stock_attention_layers": 1,
+        "epochs": 20,
+        "primary_head": "market_return_component_plus_stock_residual",
+        "loss": "raw_return_mean_squared_error",
+        "normalize_target_across_stocks": false,
+        "historical_sector_graph": "excluded_until_point_in_time_classification_exists",
+        "lookback_unit": "target_market_sessions_with_missing_positions",
+        "include_prediction_cutoff_vector": true
+      },
+      "initial_tuning": {
+        "dimension": "dropout",
+        "values": [
+          0.0,
+          0.1,
+          0.2
+        ]
+      },
+      "deployment_gate": "cutoff_proof_and_batch_day_equivalence_and_complete_50_stock_mask",
+      "sources": [
+        "FIN12",
+        "MOD05",
+        "MOD07"
+      ]
+    }
+  ]
+}

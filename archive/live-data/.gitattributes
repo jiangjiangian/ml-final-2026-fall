@@ -1,0 +1,4 @@
+objects/** binary
+*.gz binary
+*.zip binary
+*.csv whitespace=cr-at-eol

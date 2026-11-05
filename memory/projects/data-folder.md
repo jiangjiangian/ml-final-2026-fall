@@ -32,6 +32,12 @@
     - 第 11 節：同一個轉換函式；pandas merge_asof 和 Feast 已核對原文；11/04 待定列與 10/23 永遠不補的列。
     - 第 11.5 節的 5 個缺口等使用者確認。
     - 三張 Mermaid 圖已用 mermaid 11.12 渲染驗證。
+23. 2026-11-05：只留兩個 claude 分支，其他封存 → `archive/system-completion/`、`live-data/`、`dev/`、`deep-research/`（`git read-tree --prefix`；每個子樹的 tree hash 等於原分支 tree）。
+    - main 本來就是空的。分支由使用者自己在 GitHub 刪除，Claude 不刪。
+    - 兩個 claude 分支都從 system-completion 的 `2a4c6cb` 長出來，所以 system-completion／dev／deep-research／main 的歷史都還在；只有 live-data（獨立歷史，12 個 commit）刪掉後只剩快照，建議先打 tag。
+    - 預設分支是 system-completion：要先改預設才能刪。預設改成 main（空）後，每天的 workflows 會全部停。
+    - 舊的 `deploy/README.md`（兩輪研究）依「暫時捨棄過去的研究」移到 `archive/old-research/deploy-README-2026-11-04.md`。
+24. 2026-11-05：文件要容易懂、沒有 AI 味 → 找到 Humanizer（blader）plugin，給使用者安裝卡片；寫作規則記在 CLAUDE.md。`deploy/README.md` 重寫成從爬蟲到上傳的簡單說明＋一張流程圖（workflow：3 個讀程式＋1 個查 GitHub 文件 → 撰寫 → 事實／AI 味／新手三方審稿 → 修訂）。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。

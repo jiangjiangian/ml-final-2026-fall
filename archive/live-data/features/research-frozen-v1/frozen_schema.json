@@ -1,0 +1,664 @@
+{
+  "schema_version": "research-expansion-native-v1",
+  "group_extra_columns": {
+    "F0": [
+      "stock_prev_intraday_return",
+      "stock_return_between_observed_rows",
+      "stock_prev_log_volume",
+      "stock_prev_rsi",
+      "stock_prev_atr_fraction",
+      "stock_prev_sma_deviation",
+      "stock_previous_observation_gap_days"
+    ],
+    "F1": [
+      "ixic_ret_1s",
+      "ixic_ret_5s",
+      "ixic_ret_20s",
+      "gspc_ret_1s",
+      "gspc_ret_5s",
+      "gspc_ret_20s",
+      "twii_ret_1s",
+      "twii_ret_5s",
+      "twii_ret_20s",
+      "ks11_ret_1s",
+      "ks11_ret_5s",
+      "ks11_ret_20s",
+      "sox_ret_1s",
+      "sox_ret_5s",
+      "sox_ret_20s",
+      "tsm_adr_ret_1s",
+      "tsm_adr_ret_5s",
+      "tsm_adr_ret_20s",
+      "nvda_ret_1s",
+      "nvda_ret_5s",
+      "nvda_ret_20s"
+    ],
+    "F2": [
+      "vix_level",
+      "vix_change_points",
+      "ixic_vol_20s",
+      "gspc_vol_20s",
+      "twii_vol_20s",
+      "ks11_vol_20s",
+      "sox_vol_20s",
+      "tsm_adr_vol_20s",
+      "nvda_vol_20s",
+      "ixic_age_hours",
+      "ixic_is_missing",
+      "ixic_is_new_session",
+      "gspc_age_hours",
+      "gspc_is_missing",
+      "gspc_is_new_session",
+      "twii_age_hours",
+      "twii_is_missing",
+      "twii_is_new_session",
+      "ks11_age_hours",
+      "ks11_is_missing",
+      "ks11_is_new_session",
+      "sox_age_hours",
+      "sox_is_missing",
+      "sox_is_new_session",
+      "tsm_adr_age_hours",
+      "tsm_adr_is_missing",
+      "tsm_adr_is_new_session",
+      "nvda_age_hours",
+      "nvda_is_missing",
+      "nvda_is_new_session",
+      "vix_age_hours",
+      "vix_is_missing",
+      "vix_is_new_session"
+    ],
+    "F3": [
+      "usd_twd_ret_1obs",
+      "usd_twd_ret_5obs",
+      "us_10y_yield_percent",
+      "us_10y_yield_change_bp_1obs",
+      "us_10y_yield_change_bp_5obs",
+      "usd_twd_age_hours",
+      "usd_twd_is_missing",
+      "us_10y_yield_age_hours",
+      "us_10y_yield_is_missing",
+      "tw_electronics_ret_1s",
+      "tw_semiconductor_ret_1s",
+      "tw_financials_ret_1s"
+    ]
+  },
+  "model_columns": {
+    "F0": [
+      "stock_prev_intraday_return",
+      "stock_return_between_observed_rows",
+      "stock_prev_log_volume",
+      "stock_prev_rsi",
+      "stock_prev_atr_fraction",
+      "stock_prev_sma_deviation",
+      "stock_previous_observation_gap_days"
+    ],
+    "F1": [
+      "stock_prev_intraday_return",
+      "stock_return_between_observed_rows",
+      "stock_prev_log_volume",
+      "stock_prev_rsi",
+      "stock_prev_atr_fraction",
+      "stock_prev_sma_deviation",
+      "stock_previous_observation_gap_days",
+      "ixic_ret_1s",
+      "ixic_ret_5s",
+      "ixic_ret_20s",
+      "gspc_ret_1s",
+      "gspc_ret_5s",
+      "gspc_ret_20s",
+      "twii_ret_1s",
+      "twii_ret_5s",
+      "twii_ret_20s",
+      "ks11_ret_1s",
+      "ks11_ret_5s",
+      "ks11_ret_20s",
+      "sox_ret_1s",
+      "sox_ret_5s",
+      "sox_ret_20s",
+      "tsm_adr_ret_1s",
+      "tsm_adr_ret_5s",
+      "tsm_adr_ret_20s",
+      "nvda_ret_1s",
+      "nvda_ret_5s",
+      "nvda_ret_20s"
+    ],
+    "F2": [
+      "stock_prev_intraday_return",
+      "stock_return_between_observed_rows",
+      "stock_prev_log_volume",
+      "stock_prev_rsi",
+      "stock_prev_atr_fraction",
+      "stock_prev_sma_deviation",
+      "stock_previous_observation_gap_days",
+      "vix_level",
+      "vix_change_points",
+      "ixic_vol_20s",
+      "gspc_vol_20s",
+      "twii_vol_20s",
+      "ks11_vol_20s",
+      "sox_vol_20s",
+      "tsm_adr_vol_20s",
+      "nvda_vol_20s",
+      "ixic_age_hours",
+      "ixic_is_missing",
+      "ixic_is_new_session",
+      "gspc_age_hours",
+      "gspc_is_missing",
+      "gspc_is_new_session",
+      "twii_age_hours",
+      "twii_is_missing",
+      "twii_is_new_session",
+      "ks11_age_hours",
+      "ks11_is_missing",
+      "ks11_is_new_session",
+      "sox_age_hours",
+      "sox_is_missing",
+      "sox_is_new_session",
+      "tsm_adr_age_hours",
+      "tsm_adr_is_missing",
+      "tsm_adr_is_new_session",
+      "nvda_age_hours",
+      "nvda_is_missing",
+      "nvda_is_new_session",
+      "vix_age_hours",
+      "vix_is_missing",
+      "vix_is_new_session"
+    ],
+    "F3": [
+      "stock_prev_intraday_return",
+      "stock_return_between_observed_rows",
+      "stock_prev_log_volume",
+      "stock_prev_rsi",
+      "stock_prev_atr_fraction",
+      "stock_prev_sma_deviation",
+      "stock_previous_observation_gap_days",
+      "usd_twd_ret_1obs",
+      "usd_twd_ret_5obs",
+      "us_10y_yield_percent",
+      "us_10y_yield_change_bp_1obs",
+      "us_10y_yield_change_bp_5obs",
+      "usd_twd_age_hours",
+      "usd_twd_is_missing",
+      "us_10y_yield_age_hours",
+      "us_10y_yield_is_missing",
+      "tw_electronics_ret_1s",
+      "tw_semiconductor_ret_1s",
+      "tw_financials_ret_1s"
+    ]
+  },
+  "feature_definitions": {
+    "ixic_ret_1s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "1 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "ixic_ret_5s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-5]-1",
+      "unit": "decimal",
+      "lag_meaning": "5 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "ixic_ret_20s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-20]-1",
+      "unit": "decimal",
+      "lag_meaning": "20 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "gspc_ret_1s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "1 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "gspc_ret_5s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-5]-1",
+      "unit": "decimal",
+      "lag_meaning": "5 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "gspc_ret_20s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-20]-1",
+      "unit": "decimal",
+      "lag_meaning": "20 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "twii_ret_1s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "1 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "twii_ret_5s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-5]-1",
+      "unit": "decimal",
+      "lag_meaning": "5 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "twii_ret_20s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-20]-1",
+      "unit": "decimal",
+      "lag_meaning": "20 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "ks11_ret_1s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "1 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "ks11_ret_5s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-5]-1",
+      "unit": "decimal",
+      "lag_meaning": "5 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "ks11_ret_20s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-20]-1",
+      "unit": "decimal",
+      "lag_meaning": "20 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "sox_ret_1s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "1 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "sox_ret_5s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-5]-1",
+      "unit": "decimal",
+      "lag_meaning": "5 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "sox_ret_20s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-20]-1",
+      "unit": "decimal",
+      "lag_meaning": "20 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "tsm_adr_ret_1s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "1 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "tsm_adr_ret_5s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-5]-1",
+      "unit": "decimal",
+      "lag_meaning": "5 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "tsm_adr_ret_20s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-20]-1",
+      "unit": "decimal",
+      "lag_meaning": "20 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "nvda_ret_1s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "1 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "nvda_ret_5s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-5]-1",
+      "unit": "decimal",
+      "lag_meaning": "5 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "nvda_ret_20s": {
+      "group": "F1",
+      "formula": "P[s]/P[s-20]-1",
+      "unit": "decimal",
+      "lag_meaning": "20 native source sessions ending at the latest cutoff-available session; all intervening sessions must exist and be available; not a Taiwan row shift",
+      "historical_vintage_verified": false
+    },
+    "vix_level": {
+      "group": "F2",
+      "formula": "VIX[s]",
+      "unit": "index_point",
+      "lag_meaning": "latest cutoff-available VIX session",
+      "historical_vintage_verified": false
+    },
+    "vix_change_points": {
+      "group": "F2",
+      "formula": "VIX[s]-VIX[s-1]",
+      "unit": "index_point",
+      "lag_meaning": "one native-session point difference; not a tradable asset return",
+      "historical_vintage_verified": false
+    },
+    "ixic_vol_20s": {
+      "group": "F2",
+      "formula": "population_std(P[u]/P[u-1]-1, last 20 native sessions)",
+      "unit": "decimal_not_annualized",
+      "lag_meaning": "21 complete cutoff-available native price levels",
+      "historical_vintage_verified": false
+    },
+    "gspc_vol_20s": {
+      "group": "F2",
+      "formula": "population_std(P[u]/P[u-1]-1, last 20 native sessions)",
+      "unit": "decimal_not_annualized",
+      "lag_meaning": "21 complete cutoff-available native price levels",
+      "historical_vintage_verified": false
+    },
+    "twii_vol_20s": {
+      "group": "F2",
+      "formula": "population_std(P[u]/P[u-1]-1, last 20 native sessions)",
+      "unit": "decimal_not_annualized",
+      "lag_meaning": "21 complete cutoff-available native price levels",
+      "historical_vintage_verified": false
+    },
+    "ks11_vol_20s": {
+      "group": "F2",
+      "formula": "population_std(P[u]/P[u-1]-1, last 20 native sessions)",
+      "unit": "decimal_not_annualized",
+      "lag_meaning": "21 complete cutoff-available native price levels",
+      "historical_vintage_verified": false
+    },
+    "sox_vol_20s": {
+      "group": "F2",
+      "formula": "population_std(P[u]/P[u-1]-1, last 20 native sessions)",
+      "unit": "decimal_not_annualized",
+      "lag_meaning": "21 complete cutoff-available native price levels",
+      "historical_vintage_verified": false
+    },
+    "tsm_adr_vol_20s": {
+      "group": "F2",
+      "formula": "population_std(P[u]/P[u-1]-1, last 20 native sessions)",
+      "unit": "decimal_not_annualized",
+      "lag_meaning": "21 complete cutoff-available native price levels",
+      "historical_vintage_verified": false
+    },
+    "nvda_vol_20s": {
+      "group": "F2",
+      "formula": "population_std(P[u]/P[u-1]-1, last 20 native sessions)",
+      "unit": "decimal_not_annualized",
+      "lag_meaning": "21 complete cutoff-available native price levels",
+      "historical_vintage_verified": false
+    },
+    "ixic_age_hours": {
+      "group": "F2",
+      "formula": "(cutoff-source_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "age of latest eligible source version, not time since last Taiwan row",
+      "historical_vintage_verified": false
+    },
+    "ixic_is_missing": {
+      "group": "F2",
+      "formula": "1 if latest source value or one-session transform missing else 0",
+      "unit": "binary",
+      "lag_meaning": "a missing native predecessor remains missing; no backward search",
+      "historical_vintage_verified": false
+    },
+    "ixic_is_new_session": {
+      "group": "F2",
+      "formula": "1 if selected source session advanced since previous target else 0",
+      "unit": "binary",
+      "lag_meaning": "first target unknown; a revision is not a new source session",
+      "historical_vintage_verified": false
+    },
+    "gspc_age_hours": {
+      "group": "F2",
+      "formula": "(cutoff-source_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "age of latest eligible source version, not time since last Taiwan row",
+      "historical_vintage_verified": false
+    },
+    "gspc_is_missing": {
+      "group": "F2",
+      "formula": "1 if latest source value or one-session transform missing else 0",
+      "unit": "binary",
+      "lag_meaning": "a missing native predecessor remains missing; no backward search",
+      "historical_vintage_verified": false
+    },
+    "gspc_is_new_session": {
+      "group": "F2",
+      "formula": "1 if selected source session advanced since previous target else 0",
+      "unit": "binary",
+      "lag_meaning": "first target unknown; a revision is not a new source session",
+      "historical_vintage_verified": false
+    },
+    "twii_age_hours": {
+      "group": "F2",
+      "formula": "(cutoff-source_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "age of latest eligible source version, not time since last Taiwan row",
+      "historical_vintage_verified": false
+    },
+    "twii_is_missing": {
+      "group": "F2",
+      "formula": "1 if latest source value or one-session transform missing else 0",
+      "unit": "binary",
+      "lag_meaning": "a missing native predecessor remains missing; no backward search",
+      "historical_vintage_verified": false
+    },
+    "twii_is_new_session": {
+      "group": "F2",
+      "formula": "1 if selected source session advanced since previous target else 0",
+      "unit": "binary",
+      "lag_meaning": "first target unknown; a revision is not a new source session",
+      "historical_vintage_verified": false
+    },
+    "ks11_age_hours": {
+      "group": "F2",
+      "formula": "(cutoff-source_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "age of latest eligible source version, not time since last Taiwan row",
+      "historical_vintage_verified": false
+    },
+    "ks11_is_missing": {
+      "group": "F2",
+      "formula": "1 if latest source value or one-session transform missing else 0",
+      "unit": "binary",
+      "lag_meaning": "a missing native predecessor remains missing; no backward search",
+      "historical_vintage_verified": false
+    },
+    "ks11_is_new_session": {
+      "group": "F2",
+      "formula": "1 if selected source session advanced since previous target else 0",
+      "unit": "binary",
+      "lag_meaning": "first target unknown; a revision is not a new source session",
+      "historical_vintage_verified": false
+    },
+    "sox_age_hours": {
+      "group": "F2",
+      "formula": "(cutoff-source_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "age of latest eligible source version, not time since last Taiwan row",
+      "historical_vintage_verified": false
+    },
+    "sox_is_missing": {
+      "group": "F2",
+      "formula": "1 if latest source value or one-session transform missing else 0",
+      "unit": "binary",
+      "lag_meaning": "a missing native predecessor remains missing; no backward search",
+      "historical_vintage_verified": false
+    },
+    "sox_is_new_session": {
+      "group": "F2",
+      "formula": "1 if selected source session advanced since previous target else 0",
+      "unit": "binary",
+      "lag_meaning": "first target unknown; a revision is not a new source session",
+      "historical_vintage_verified": false
+    },
+    "tsm_adr_age_hours": {
+      "group": "F2",
+      "formula": "(cutoff-source_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "age of latest eligible source version, not time since last Taiwan row",
+      "historical_vintage_verified": false
+    },
+    "tsm_adr_is_missing": {
+      "group": "F2",
+      "formula": "1 if latest source value or one-session transform missing else 0",
+      "unit": "binary",
+      "lag_meaning": "a missing native predecessor remains missing; no backward search",
+      "historical_vintage_verified": false
+    },
+    "tsm_adr_is_new_session": {
+      "group": "F2",
+      "formula": "1 if selected source session advanced since previous target else 0",
+      "unit": "binary",
+      "lag_meaning": "first target unknown; a revision is not a new source session",
+      "historical_vintage_verified": false
+    },
+    "nvda_age_hours": {
+      "group": "F2",
+      "formula": "(cutoff-source_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "age of latest eligible source version, not time since last Taiwan row",
+      "historical_vintage_verified": false
+    },
+    "nvda_is_missing": {
+      "group": "F2",
+      "formula": "1 if latest source value or one-session transform missing else 0",
+      "unit": "binary",
+      "lag_meaning": "a missing native predecessor remains missing; no backward search",
+      "historical_vintage_verified": false
+    },
+    "nvda_is_new_session": {
+      "group": "F2",
+      "formula": "1 if selected source session advanced since previous target else 0",
+      "unit": "binary",
+      "lag_meaning": "first target unknown; a revision is not a new source session",
+      "historical_vintage_verified": false
+    },
+    "vix_age_hours": {
+      "group": "F2",
+      "formula": "(cutoff-source_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "age of latest eligible source version, not time since last Taiwan row",
+      "historical_vintage_verified": false
+    },
+    "vix_is_missing": {
+      "group": "F2",
+      "formula": "1 if latest source value or one-session transform missing else 0",
+      "unit": "binary",
+      "lag_meaning": "a missing native predecessor remains missing; no backward search",
+      "historical_vintage_verified": false
+    },
+    "vix_is_new_session": {
+      "group": "F2",
+      "formula": "1 if selected source session advanced since previous target else 0",
+      "unit": "binary",
+      "lag_meaning": "first target unknown; a revision is not a new source session",
+      "historical_vintage_verified": false
+    },
+    "usd_twd_ret_1obs": {
+      "group": "F3",
+      "formula": "FX[o]/FX[o-1]-1",
+      "unit": "decimal_TWD_per_USD",
+      "lag_meaning": "1 FRED observation-row steps; not certified consecutive fixing sessions",
+      "historical_vintage_verified": false
+    },
+    "usd_twd_ret_5obs": {
+      "group": "F3",
+      "formula": "FX[o]/FX[o-5]-1",
+      "unit": "decimal_TWD_per_USD",
+      "lag_meaning": "5 FRED observation-row steps; not certified consecutive fixing sessions",
+      "historical_vintage_verified": false
+    },
+    "us_10y_yield_percent": {
+      "group": "F3",
+      "formula": "DGS10[o]",
+      "unit": "percent_per_annum",
+      "lag_meaning": "latest eligible observation row",
+      "historical_vintage_verified": false
+    },
+    "us_10y_yield_change_bp_1obs": {
+      "group": "F3",
+      "formula": "100*(DGS10[o]-DGS10[o-1])",
+      "unit": "basis_point",
+      "lag_meaning": "1 observation-row steps; negative yields and differences remain signed",
+      "historical_vintage_verified": false
+    },
+    "us_10y_yield_change_bp_5obs": {
+      "group": "F3",
+      "formula": "100*(DGS10[o]-DGS10[o-5])",
+      "unit": "basis_point",
+      "lag_meaning": "5 observation-row steps; negative yields and differences remain signed",
+      "historical_vintage_verified": false
+    },
+    "usd_twd_age_hours": {
+      "group": "F3",
+      "formula": "(cutoff-assumed_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "explicit research quarantine, not measured publication time",
+      "historical_vintage_verified": false
+    },
+    "usd_twd_is_missing": {
+      "group": "F3",
+      "formula": "1 if latest observation or required predecessor missing else 0",
+      "unit": "binary",
+      "lag_meaning": "FRED holiday/missing rows retained; no backward fill",
+      "historical_vintage_verified": false
+    },
+    "us_10y_yield_age_hours": {
+      "group": "F3",
+      "formula": "(cutoff-assumed_available_at)/3600",
+      "unit": "hours",
+      "lag_meaning": "explicit research quarantine, not measured publication time",
+      "historical_vintage_verified": false
+    },
+    "us_10y_yield_is_missing": {
+      "group": "F3",
+      "formula": "1 if latest observation or required predecessor missing else 0",
+      "unit": "binary",
+      "lag_meaning": "FRED holiday/missing rows retained; no backward fill",
+      "historical_vintage_verified": false
+    },
+    "tw_electronics_ret_1s": {
+      "group": "F3",
+      "formula": "sector_index[s]/sector_index[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "blocked until at least complete historical native calendar/value evidence exists",
+      "historical_vintage_verified": false
+    },
+    "tw_semiconductor_ret_1s": {
+      "group": "F3",
+      "formula": "sector_index[s]/sector_index[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "blocked until at least complete historical native calendar/value evidence exists",
+      "historical_vintage_verified": false
+    },
+    "tw_financials_ret_1s": {
+      "group": "F3",
+      "formula": "sector_index[s]/sector_index[s-1]-1",
+      "unit": "decimal",
+      "lag_meaning": "blocked until at least complete historical native calendar/value evidence exists",
+      "historical_vintage_verified": false
+    }
+  },
+  "F0_definition": "Unchanged seven stock features from finpred.features.stock.stock_lags",
+  "fred_assumption": "observation date + 7 calendar days at 23:59 Asia/Taipei; a research quarantine, not a documented publication calendar",
+  "search_budget": {
+    "R1_configurations": 8,
+    "models": 2,
+    "groups": 4,
+    "quarter_folds": 4,
+    "maximum_fits": 32
+  },
+  "schema_sha256": "b492d4d8b9bece6579296f999f32aa1be8c30e6ab7ef59d11743c896c74e6347"
+}

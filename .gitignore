@@ -8,6 +8,11 @@ __pycache__/
 # 帳號密碼
 .env
 
+# 爬蟲解壓和寫檔時的暫存（正常結束會自己刪掉）
+data/raw/.*.new/
+data/raw/.*.old/
+data/raw/**/.*.tmp
+
 # 可以從 data/raw/ 重算的特徵表
 data/processed/*
 !data/processed/.gitkeep

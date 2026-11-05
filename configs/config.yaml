@@ -16,7 +16,19 @@ course_site:
   state: /api/state              # 交易日和截止（phase2Days、openAt、deadline）、上傳次數（uploadQuota）、目前的提交（mySubmissions）
   submissions: /api/submissions  # POST 上傳，JSON 格式見 src/submit.py；舊程式的研究整理出來的，還沒實際送過
   submission_file: /api/submissions/{id}?record=current   # 下載目前有效的那份；id 來自 state 的 mySubmissions
-  live_zip_url: ""               # Live 資料在另一台伺服器，下載方式還沒決定
+  timeout_seconds: [10, 90]      # 課程網站和 Live 的連線、讀取逾時
+  max_zip_mb: 100                # 下載的 ZIP 上限
+  max_unzipped_mb: 512           # ZIP 解開後的總大小上限
+  live:                          # 老師 Live 資料，助教給的新入口；金鑰放 .env 的 COURSE_LIVE_KEY
+    base_url: https://fin-pred-daily.jiangxuehaokeai.chatgpt.site
+    login: /login                # POST，表單帶 key
+    zip: /data.zip
+
+crawler:
+  start_time: "07:00"            # 每日模式（--date t）在 t 當天這個時間（台北）以前不跑
+  deadline: "08:30"              # 每日模式過了這個時間就不再等待或重試，沒抓到的沿用舊檔
+  live_wait_seconds: 180         # Live 還沒有 t 的列或下載失敗時，等多久再抓
+  live_attempts: 3               # Live 最多抓幾次
 
 data:
   start: "2020-01-01"
@@ -25,9 +37,18 @@ data:
   submission_dir: data/submission
 
 yfinance:
-  min_interval_seconds: 2        # 每個請求至少間隔幾秒
-  max_retries: 3
-  cache_dir: .cache/yfinance     # yfinance 的時區快取，放在 repo 裡但不進 Git
+  min_interval_seconds: 2        # 每個請求（含 cookie、crumb、轉址）至少間隔幾秒，從上一個請求結束算起
+  jitter_seconds: 1              # 間隔再加 0～這麼多秒的隨機
+  max_redirects: 5               # 轉址最多跟幾次，每一次也要過限流
+  timeout_seconds: 30            # 每個日K請求的逾時
+  max_retries: 3                 # 一個序列失敗後最多重試幾次
+  retry_wait_seconds: [5, 10, 20]        # 一般錯誤，第 1、2、3 次重試前等幾秒
+  rate_limit_wait_seconds: [15, 30, 60]  # 被 Yahoo 限流（429）時等幾秒
+  breaker_series: 2              # 連續幾個序列因為限流放棄，就停掉剩下的
+  recheck_wait_seconds: 60       # 缺「前一個台股交易日」那根K棒的序列，等多久一起重抓一次
+  cache_dir: .cache/yfinance     # yfinance 的時區和 cookie 快取，放在 repo 裡但不進 Git
+  volume_required: [TSM, NVDA, 0050.TW, 0052.TW, 0055.TW, 006201.TWO]   # 前一個交易日那根的成交量要 > 0（只有個股和 ETF）
+  futures: [CL=F, GC=F]          # 台北 07:00 後已開始下一段交易：抓取範圍截在紐約 17:30，最後一根量太小就丟掉
   tickers:                       # 名稱: Yahoo 代號
     sox: ^SOX                    # 費城半導體指數
     tsm_adr: TSM                 # 台積電 ADR

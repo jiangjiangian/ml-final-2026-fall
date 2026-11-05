@@ -1,0 +1,2 @@
+# 原始資料位元組原樣保存：Git 不改換行（Live 的 CSV 是 CRLF），manifest 的 sha256 才對得上
+data/raw/** -text

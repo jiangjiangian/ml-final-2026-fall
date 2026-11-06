@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Mac 備援：每天 08:05（Mac 的時區要是台北）跑一次。deploy/mac/setup.sh 把 __REPO__ 換成路徑後裝到 ~/Library/LaunchAgents/ -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.mlfinal.backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>cd __REPO__ &amp;&amp; .venv/bin/python run_daily_test.py --sync &gt;&gt; .cache/launchd.log 2&gt;&amp;1</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>5</integer></dict>
+</dict>
+</plist>

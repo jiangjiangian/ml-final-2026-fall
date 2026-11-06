@@ -16,6 +16,7 @@
 - 2026-11-06：`features.csv.gz` 放全部序列（個股自己、19 個 yfinance、老師 global 5 個、`usd_twd_am`）的 lag1、lag2。`configs/config.yaml` 的 `features.model_series` 列出模型要用的序列，`train.py`、`predict.py` 只讀這些欄。之後換序列只改 config。
 - 2026-11-06：組員給的 12 個指標：SOX、台積電 ADR、NVDA、Nasdaq、S&P 500、VIX、0050、美元兌台幣、黃金、道瓊、原油、美國短期和長期債利率。對到序列是 sox、tsm_adr、nvda、teacher_ixic、teacher_gspc、teacher_vix、etf_0050、usd_twd_am、gold、dji、wti、us13w、us10y，共 13 個（債利率是兩個序列；這個對應是 Claude 整理的）。
 - 2026-11-06：模型用這 13 個序列加個股自己，各 lag1、lag2，共 28 欄（使用者選的）。同一天後來加台指期的 `tx_day`、`tx_night`，變 16 個序列、32 欄（見下一條）。
+- 2026-11-06：老師 Live 的 `^VIX` 不是收盤（和 Yahoo 比：`^GSPC` 100% 一樣，`^VIX` 只有 64%，10/13 以後幾乎都不對；11/06 那列 16.83，Yahoo 收盤 28.18）。沒有洩漏，只是不準。使用者決定換成 yfinance 的 `^VIX`（序列 `vix`），模型欄的 `teacher_vix` 改成 `vix`，`teacher_vix` 還留在表裡。
 - 2026-11-06：加台指期（使用者要求）。yfinance 和老師的資料都沒有台指期的價格，所以加開關 `tx_futures.source`：`taifex`（預設，期交所網站下載）或 `yfinance`（用 `tx_futures.yfinance` 填的代號，現在留空，切過去會報錯）。來源的查證見 `memory/context/data-rules.md` 的「資料來源」。
   - 用近月合約（到期月最早、有收盤價的那個）。分子分母用同一個合約，每月第三個週三換月時不會多出一段假的漲跌。i−k 數的是台指期自己的日盤日子（2020-01～2026-11 和老師交易日完全一樣）。
   - `tx_day`：日盤（08:45～13:45）收盤，lag 和其他序列一樣，要有 i 那天的日盤。

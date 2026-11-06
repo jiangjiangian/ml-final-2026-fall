@@ -1,0 +1,6 @@
+# GCP 主機的 crontab（deploy/gcp_setup.sh 把 __REPO__ 換成 repo 的路徑後裝上）。主機時區是台北。
+# 每天兩次：07:10 是正式的一次；07:40 只在 07:10 沒交成時才會真的做事（網站上已經有提交就結束）。
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+10 7 * * * cd __REPO__ && .venv/bin/python run_daily_test.py --sync >> .cache/cron.log 2>&1
+40 7 * * * cd __REPO__ && .venv/bin/python run_daily_test.py --sync >> .cache/cron.log 2>&1

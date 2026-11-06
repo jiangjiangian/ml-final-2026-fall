@@ -360,6 +360,23 @@
       "last": "2026-11-06T05:00:00+08:00",
       "sha256": "58776c2316b712d4be6f6d2d51a65cd8f9c4d1779a08ca1aca781000f0ddba1f",
       "has_value_t": true
+    },
+    "vix": {
+      "ticker": "^VIX",
+      "status": "ok",
+      "file": "yfinance/vix.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1723,
+      "date_max": "2026-11-05",
+      "sha256": "40b84b6cd19c5f67104c94115b22c6bdba8cbfbfa904c0c961559c6286ce4733",
+      "has_bar_i": true,
+      "note": "2026-11-07 00:05 單獨補抓（t = 2026-11-06，只留日期 < t 的K棒）"
     }
   },
   "taifex": {

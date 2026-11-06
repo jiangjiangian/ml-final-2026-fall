@@ -4,6 +4,8 @@
 
 ## 雲端主機的細節
 
+- 2026-11-06 定了：GCP e2-micro 免費額度主跑、使用者的 Mac 備援（見 `memory/context/pipeline.md`）。下面是當初的考量，還沒定的只剩誰的 GCP 帳號、推資料的金鑰。
+
 - 使用者 2026-11-06 決定用雲端小主機跑 cron（見 `memory/context/pipeline.md`），不用 GitHub Actions。理由：GitHub 的 `schedule` 11/04 晚了 3 小時 42 分到 6 小時 17 分，11/05 16 個時點只觸發 5 個。
 - 還沒定：用哪一家（提議 GCP 免費的 e2-micro，要綁卡）、誰的帳號、主機怎麼推資料到 GitHub（只能推這個分支的金鑰）、Healthchecks.io 的通知接在哪。
 - 要先查：Yahoo 會不會擋雲端主機的 IP。

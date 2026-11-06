@@ -3,7 +3,8 @@
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import date, datetime
+from datetime import time as dtime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -66,7 +67,10 @@ def check_deadline(cfg: dict, target_date: str, now: datetime | None = None, key
     submit.py 用 "upload_cutoff"（08:50，留時間給上傳和核對）。
     crawler、features、train 不呼叫這個函式，研究時什麼時間都能跑。
     """
-    raise NotImplementedError
+    hour, minute = (int(x) for x in cfg["competition"][key].split(":"))
+    limit = datetime.combine(date.fromisoformat(target_date), dtime(hour, minute), TAIPEI)
+    if taipei_now(now) >= limit:
+        raise RuntimeError(f"已經過了 {target_date} {cfg['competition'][key]}（台北），不再預測或上傳")
 
 
 def get_logger(name: str, target_date: str):

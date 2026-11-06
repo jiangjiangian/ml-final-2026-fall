@@ -2,3 +2,5 @@
 data/raw/** -text
 # tests/fixtures/ 是 data-collection 的凍結快照，原樣保存，不改換行
 tests/fixtures/** -text
+# 上傳紀錄只會往後加；兩台主機（GCP、Mac 備援）同時加時，rebase 用 union 把兩邊的行都留下
+data/submission/upload_log.jsonl merge=union

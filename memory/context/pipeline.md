@@ -37,7 +37,8 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 
 - 正式流程在 t 當天早上跑：Live ZIP 要到 t 當天早上才有 t 的一列。
 - 爬蟲排在台北 06:00 之後，美股前一天的K棒才收完（規則見 `memory/context/data-rules.md`）。yfinance 的 DXY 要到 07:00 才收完，所以爬蟲排台北 07:10（使用者 2026-11-05 決定，見 `memory/projects/crawler.md`）。
-- 排程（使用者 2026-11-06 決定）：不用 GitHub Actions，在雲端小主機上用 cron 跑 `run_daily.py`。帳密放主機的 `.env`。用哪一家、誰的帳號還沒定（`memory/context/open-questions.md`）。
+- 排程（使用者 2026-11-06 決定）：不用 GitHub Actions 的 `schedule`。主跑是 GCP e2-micro 免費額度（使用者說沒錢，只用免費的；美國機房），台北 07:10、07:40 用 cron 跑 `run_daily_test.py`；備援是使用者的 Mac，08:05 跑，網站上還沒有今天的有效提交才交。帳密放各台的 `.env`。大模型之後在 Kaggle 訓練好推進 repo，主機只預測。
+- 使用者 2026-11-06：先寫 `run_daily_test.py` 每天交 Phase 2，用組員 `notebooks/feature_switch.ipynb` 第 6 節的方法（邏輯迴歸，最近 14 個月訓練、每週重訓、每天用前一天的答案微調，機率 > 0.5 猜漲），特徵是組員 `build_model.ipynb` 的個股特徵加新表的 32 欄。使用者確認舊系統的排程停了，`submit.enabled` 可以打開。跑完要自動 commit、push `data/`。
 - 爬蟲 08:30 以後才開始時（排程延遲才會發生）：每一步只試一次，不等不重試，yfinance 不抓、沿用舊檔，盡量趕在截止前交（使用者 2026-11-06 確認，就是目前的做法）。
 - `predict.py`（09:00）和 `submit.py`（08:50）檢查截止。crawler 的每日模式（`--date t`）在 07:00 前不跑，08:30 後不再等待或重試。研究模式的 crawler 和 `features`、`train` 什麼時間都能跑。
 
@@ -60,3 +61,18 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 - `run_daily.py`：每天只跑這一個指令。
 - `tests/`：擋住兩件最容易出事的事，用到當天的資料和 CSV 格式錯。
 - `.env.example`：帳號密碼不寫進程式或設定檔。
+
+## run_daily_test.py（2026-11-07 寫好）
+
+排程跑的是 `run_daily_test.py --sync`，不是 `run_daily.py`。下面是 Claude 2026-11-07 照使用者 11/06 的決定做的設計：
+
+- 模型：`src/online_lr.py`，組員 `feature_switch.ipynb` 第 6 節的方法。每天早上重新 fit，不讀 `models/`：每週重訓、每天用前一天的答案微調是這個方法的一部分，和 `predict.py`「只載入存好的模型」不同。
+- 開關：`configs/config.yaml` 的 `submit.phase`。1 是 Phase 1（網站範本的 84 天 × 50 檔，測自動化用），2 是每天的 t。使用者 2026-11-06：先交 Phase 1 測試，之後改 2。
+- 跳過：Phase 1 今天（台北）已經交過就結束；Phase 2 網站上 t 已經有提交（不算「強制繳交」）就結束。所以 07:40 和 Mac 08:05 只在前面沒交成時才做事。
+- t 不是交易日（不在 `phase2Days`）：不跑爬蟲和特徵。Phase 2 直接結束，Phase 1 用現有的特徵表。
+- 上傳前：`--sync` 時先 commit 並 push `data/` 和「準備上傳」紀錄，push 失敗就不上傳。
+- POST 失敗後不自動重送：`upload_log.jsonl` 今天有「準備上傳」卻沒有「完成」時，之後的執行（07:40、Mac）停下，留給人到網站確認後手動處理。
+- git：只有 `--sync` 才做。開始前 data/ 以外有改動就停；data/ 裡上次留下的改動先 commit 再 `pull --rebase`。pull 失敗時，本機多出來的 commit 只動 data/ 就丟掉、對齊 origin（資料這次重抓）。`upload_log.jsonl` 用 union 合併，兩台同時加紀錄不會衝突。
+- 同一台主機同時只跑一個（`.cache/run_daily_test.lock`）。
+- 資源：Mac 上 Phase 1 全程約 40 秒，記憶體高峰約 640 MB，e2-micro 要加 swap（`deploy/gcp_setup.sh` 加 2 GB）。
+- Phase 1 本機分數（2026-11-07，用 26 個個股特徵加 32 欄）：0.001235，正確率 53.4%；全猜 0 是 −0.000204。組員 11/06 交的版本網站算 0.002773，本機重算一樣，計分方式對得上。

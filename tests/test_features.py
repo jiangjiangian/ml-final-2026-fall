@@ -123,6 +123,8 @@ def test_suspended_stock_lag_spans_the_gap(frozen):
 def raw_0820473():
     out = {}
     for name, ticker in CFG["yfinance"]["tickers"].items():
+        if name == "vix":   # 2026-11-06 才加的序列，凍結資料裡沒有
+            continue
         rows = features.read_yfinance(REF / "yfinance_raw_0820473" / f"{name}.csv")
         out[name] = features.clean_series(rows, name, ticker, CFG)
     return out

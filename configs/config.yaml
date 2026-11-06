@@ -13,6 +13,7 @@ course_site:
   login: /api/auth/login                         # POST，JSON 帶 email、password
   training_zip: /downloads/fin_pred_data.zip     # 老師 Training 資料；ZIP 裡的路徑開頭有一層 data/
   template: /api/sample-submission?phase=2&tradingDate={date}   # 當天的範本，定出 50 檔順序；用 utf-8-sig 讀
+  template_phase1: /api/sample-submission?phase=1             # Phase 1 的範本：表頭 id 加 84 個交易日（2026-06-01～09-30）
   state: /api/state              # 交易日和截止（phase2Days、openAt、deadline）、上傳次數（uploadQuota）、目前的提交（mySubmissions）
   submissions: /api/submissions  # POST 上傳，JSON 格式見 src/submit.py；舊程式的研究整理出來的，還沒實際送過
   submission_file: /api/submissions/{id}?record=current   # 下載目前有效的那份；id 來自 state 的 mySubmissions
@@ -93,6 +94,7 @@ yfinance:
     gdaxi: ^GDAXI                # 德國 DAX
     wti: CL=F                    # WTI 原油期貨
     gold: GC=F                   # 黃金期貨
+    vix: ^VIX                    # 波動率指數（使用者 2026-11-06：老師 Live 的 ^VIX 不是收盤，模型改用這個）
 
 features:
   lags: [1, 2]                   # 報酬往回看幾個交易日（使用者和組員 2026-11-06 決定只用 lag1、lag2）
@@ -106,7 +108,8 @@ features:
   # 模型用的序列（使用者和組員 2026-11-06 定）：個股自己＋組員的 12 個指標（債利率是 us13w、us10y 兩個序列）。
   # 特徵表裡有全部序列；train.py、predict.py 只讀這些序列的 lag 欄（manifest.json 的 model_columns）。
   # 使用者 2026-11-06 加台指期日盤 tx_day、夜盤 tx_night，共 16 個序列、32 欄。
-  model_series: [stock, sox, tsm_adr, nvda, teacher_ixic, teacher_gspc, teacher_vix, etf_0050, usd_twd_am,
+  # 使用者 2026-11-06：teacher_vix 換成 yfinance 的 vix（老師 Live 的 ^VIX 不是收盤），teacher_vix 還留在表裡。
+  model_series: [stock, sox, tsm_adr, nvda, teacher_ixic, teacher_gspc, vix, etf_0050, usd_twd_am,
                  gold, dji, wti, us13w, us10y, tx_day, tx_night]
   usd_twd_am:                    # 和美股收盤同步的匯率：台北 d 日 06:00 前最後一根 1h 的 close
     daily: usd_twd               # 小時資料開始之前，用這個序列 d 那根日K的 close 補
@@ -135,5 +138,16 @@ model:
   path: models/model.txt
   feature_list: models/feature_columns.json
 
+online_lr:                       # 組員的方法（notebooks/feature_switch.ipynb 第 6 節），run_daily_test.py 用（使用者 2026-11-06）
+  train_months: 14               # 每週重訓：用 fit_end 之前這麼多個月有答案的列（100 檔都用）
+  online_weeks: 2                # fit_end = 預測那週的週一往前這麼多週；之後每天用前一天的答案做 GD
+  C: 0.05                        # LogisticRegression 的正則化強度的倒數（越小越強）
+  max_iter: 2000
+  learning_rate: 0.05            # 每天 GD 的步長
+  steps: 5                       # 每天走幾步
+  clip_z: 5                      # 標準化後截在 ±5
+  threshold: 0.5                 # 機率 > 這個猜 1
+
 submit:
-  enabled: false                 # 確認流程沒問題前保持 false：只印出要送的內容，不真的上傳
+  enabled: true                  # 使用者 2026-11-06 確認舊系統的排程停了才打開；false 時只印出要送的內容
+  phase: 1                       # run_daily_test.py 交哪一個：1 = Phase 1（84 天回測，測自動化用），2 = 每天的 t

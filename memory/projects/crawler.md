@@ -8,7 +8,9 @@
 
 ## 使用者的決定
 
-- 2026-11-05：Live 用助教的 chatgpt.site 新入口，金鑰由使用者放 `.env` 的 `COURSE_LIVE_KEY`，不自動從課程網站抓。舊程式（`../ml-final-archive/archive/system-completion/ml_financial_prediction/src/finpred/ingestion/course.py`）會從課程網站首頁載入的 JS 找金鑰，這個做法不採用。舊入口 `https://140.112.31.182:8444/` 的 TLS 驗證會失敗，也不用。
+- 2026-11-05：Live 用助教的 chatgpt.site 新入口，金鑰由使用者放 `.env` 的 `COURSE_LIVE_KEY`，不自動從課程網站抓。舊程式（`../ml-final-archive/archive/system-completion/ml_financial_prediction/src/finpred/ingestion/course.py`）會從課程網站首頁載入的 JS 找金鑰，這個做法不採用。舊入口 `https://140.112.31.182:8444/` 的 TLS 驗證會失敗，也不用（2026-11-06 改了，見下一條）。
+- 2026-11-06：助教說 chatgpt.site 只給自簽憑證有問題的人用，承受不了太多流量，瀏覽器進得去原本網址的話請用原本的。使用者決定：原本的網址優先，失敗再用 chatgpt.site。不關掉憑證檢查，改成只信任它那一張自簽憑證（`configs/live_ca.pem`）。切換條件（使用者 2026-11-06 確認）：原本的網址連不上、憑證不符、逾時、5xx、金鑰被拒或 ZIP 不對時，同一輪馬上改試 chatgpt.site 一次，不等待；只是還沒有 t 那列的話不換，照舊等 3 分鐘再抓原本的。manifest 的 `teacher_live.source` 記用了哪個入口，`fallback_from` 記前面入口的錯誤。程式是 `live_clients`、`live_fetch`。
+- 2026-11-06：第一次試跑用使用者在本機建的 `.env`。GitHub Secrets 只有 GitHub 上的流程讀得到。
 - 2026-11-05：19 個 yfinance 序列都抓，爬蟲台北 07:10 開始跑。要不要用在模型上，看驗證分數。
 - 2026-11-05：輸出和 data-collection 分支（原名 peaceful-babbage）的資料對齊（2026-11-06 起 data-collection 的資料搬到這個分支，見 `memory/context/data-rules.md`）：`data/raw/teacher/training/`、`data/raw/teacher/live/`、`data/raw/yfinance/`（2026-11-06 前叫 `teacher/`、`teacher_live/`）對應舊的 `data/teacher/`、`data/teacher_live/`、`data/extra/yfinance/`，19 個代號、檔名、欄位都一樣。
 - 2026-11-05：成交量要 > 0 只檢查個股和 ETF（TSM、NVDA、四檔台灣 ETF），和舊分支清理規則用成交量的範圍一樣。其他序列只查日期。
@@ -34,6 +36,7 @@
   - 所以白天下載的 Live，t 那列可能一部分有值。待定要逐格看，不能只看整列。
   - 之前從 ZIP 內檔案時間推的「07:00、21:05 兩次建檔」不對，那只是舊系統剛好在那些時間下載。
 - Live 主機：最早是 `https://140.112.31.182:8444/`，TLS 驗證失敗。助教後來給 `fin-pred-daily.jiangxuehaokeai.chatgpt.site`，一般 TLS 可以過，要用瀏覽器的 User-Agent（Python 預設的會被擋）。
+- 2026-11-06 連原本的網址（沒帶金鑰）：憑證是自簽的，CN 和 SAN 都是 IP `140.112.31.182`，`CA:TRUE`，有效到 2027-10-07，SHA-256 指紋 `C1:C8:03:36:93:77:4D:CD:63:FC:66:B3:02:35:56:A6:7B:12:A5:81:36:90:74:84:23:59:B3:59:4E:84:9C:C9`。用系統憑證驗證會失敗；`requests` 的 `verify=` 指向這張憑證就過，首頁 HTTP 200，是同樣的「每日股票資料」頁，表單一樣 POST `/login`、欄位 `key`。金鑰和 chatgpt.site 是不是同一把還沒試。
 
 ### yfinance 1.7.0 和 curl_cffi 0.16.3
 

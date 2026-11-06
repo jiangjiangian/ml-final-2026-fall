@@ -37,6 +37,8 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 
 - 正式流程在 t 當天早上跑：Live ZIP 要到 t 當天早上才有 t 的一列。
 - 爬蟲排在台北 06:00 之後，美股前一天的K棒才收完（規則見 `memory/context/data-rules.md`）。yfinance 的 DXY 要到 07:00 才收完，所以爬蟲排台北 07:10（使用者 2026-11-05 決定，見 `memory/projects/crawler.md`）。
+- 排程（使用者 2026-11-06 決定）：不用 GitHub Actions，在雲端小主機上用 cron 跑 `run_daily.py`。帳密放主機的 `.env`。用哪一家、誰的帳號還沒定（`memory/context/open-questions.md`）。
+- 爬蟲 08:30 以後才開始時（排程延遲才會發生）：每一步只試一次，不等不重試，yfinance 不抓、沿用舊檔，盡量趕在截止前交（使用者 2026-11-06 確認，就是目前的做法）。
 - `predict.py`（09:00）和 `submit.py`（08:50）檢查截止。crawler 的每日模式（`--date t`）在 07:00 前不跑，08:30 後不再等待或重試。研究模式的 crawler 和 `features`、`train` 什麼時間都能跑。
 
 ## 失敗時怎麼處理

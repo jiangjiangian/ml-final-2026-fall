@@ -52,7 +52,8 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 ├── .env.example               帳號密碼的範例；真的值放 .env（不進 Git）
 ├── run_daily.py               一個指令跑完一天：爬蟲 → 特徵 → 訓練 → 預測 → 上傳
 ├── configs/
-│   └── config.yaml            網站網址、yfinance 代號、特徵、模型參數、截止時間
+│   ├── config.yaml            網站網址、yfinance 代號、特徵、模型參數、截止時間
+│   └── live_ca.pem            Live 原本網址的自簽憑證，爬蟲只信任這一張（公開的，不是密碼）
 ├── data/
 │   ├── raw/                   爬蟲寫的，和來源一模一樣
 │   │   ├── teacher/

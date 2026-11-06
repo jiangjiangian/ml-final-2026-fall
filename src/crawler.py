@@ -317,10 +317,26 @@ def course_client(cfg, sleep=time.sleep, session=None, clock=time.monotonic) -> 
                       site["total_timeout_seconds"], clock)
 
 
-def live_client(cfg, sleep=time.sleep, session=None, clock=time.monotonic) -> SiteClient:
+def live_client(cfg, sleep=time.sleep, session=None, clock=time.monotonic, *, fallback=False) -> SiteClient:
+    """Live 的 HTTP。預設是助教原本的網址，只信任 course_site.live.ca_file 那張自簽憑證，不關掉憑證檢查；
+    fallback=True 是 fallback_url（chatgpt.site），用系統的憑證。憑證檔不見時不指定，驗證會失敗，改用 fallback。"""
     site = cfg["course_site"]
-    return SiteClient(site["live"]["base_url"], site["timeout_seconds"], site["max_zip_mb"] * 2**20, session, sleep,
-                      site["total_timeout_seconds"], clock)
+    conf = site["live"]
+    client = SiteClient(conf["fallback_url"] if fallback else conf["base_url"], site["timeout_seconds"],
+                        site["max_zip_mb"] * 2**20, session, sleep, site["total_timeout_seconds"], clock)
+    ca = utils.ROOT / conf["ca_file"] if conf.get("ca_file") and not fallback else None
+    if ca is not None and ca.is_file():
+        client.session.verify = str(ca)
+    return client
+
+
+def live_clients(cfg, sleep=time.sleep, clock=time.monotonic) -> list:
+    """Live 依序要試的入口（使用者 2026-11-06）：原本的網址優先，連不上或出錯才用 chatgpt.site。
+    助教說 chatgpt.site 承受不了太多流量，正常的日子不對它送請求。"""
+    clients = [live_client(cfg, sleep, clock=clock)]
+    if cfg["course_site"]["live"].get("fallback_url"):
+        clients.append(live_client(cfg, sleep, clock=clock, fallback=True))
+    return clients
 
 
 def course_login(course: SiteClient, cfg, secrets):
@@ -382,6 +398,30 @@ def live_download(live: SiteClient, cfg, key: str) -> bytes:
     if not re.search(rb'href=["\']' + re.escape(conf["zip"].encode()) + rb'["\']', page):
         raise CrawlerError("Live 登入失敗：頁面沒有下載連結（金鑰可能不對）")
     return live.read("GET", conf["zip"], headers={"Referer": live.base + "/"})
+
+
+def live_host(live: SiteClient) -> str:
+    return urlsplit(live.base).netloc
+
+
+def live_fetch(run: Run, lives: list, key: str, stock_ids, max_bytes: int, max_unzipped: int):
+    """照順序試每個 Live 入口，第一個下載並解開成功的就用，回傳 (入口, ZIP, 檔案, 解析結果, 前面入口的錯誤)。
+
+    連不上、憑證不符、逾時、5xx、金鑰被拒、ZIP 不對都換下一個入口，不等待。全部失敗時，只要有一個是暫時性
+    錯誤就丟 TransientError（呼叫的人等一下再抓），否則丟 CrawlerError。還沒有 t 那列不在這裡判斷，不換入口。
+    """
+    errors, transient = [], False
+    for n, client in enumerate(lives):
+        try:
+            blob = live_download(client, run.cfg, key)
+            files, parsed = unpack_zip(blob, "live", stock_ids, max_bytes, max_unzipped)
+            return client, blob, files, parsed, errors
+        except CrawlerError as e:
+            transient = transient or isinstance(e, TransientError)
+            errors.append(f"{live_host(client)}：{e}")
+            if n + 1 < len(lives):
+                run.log.warning("Live %s 出錯（%s），改用 %s", live_host(client), e, live_host(lives[n + 1]))
+    raise (TransientError if transient else CrawlerError)("；".join(errors))
 
 
 # ---------------------------------------------------------------- 老師 ZIP 的檢查和解壓
@@ -536,8 +576,10 @@ def live_check(stocks: dict, t: str, phase2_days, min_stocks: int, closed_days=(
 # ---------------------------------------------------------------- 老師資料
 
 
-def download_teacher(run: Run, secrets: dict, course: SiteClient, live: SiteClient):
-    """Training（指紋一樣就不下載）和 Live（每次下載），解開到 data/raw/。決定 run.prev_day。"""
+def download_teacher(run: Run, secrets: dict, course: SiteClient, live):
+    """Training（指紋一樣就不下載）和 Live（每次下載），解開到 data/raw/。決定 run.prev_day。
+
+    live 是一個 SiteClient，或依序要試的清單（live_clients）。"""
     cfg = run.cfg
     site = cfg["course_site"]
     max_bytes, max_unzipped = site["max_zip_mb"] * 2**20, site["max_unzipped_mb"] * 2**20
@@ -561,7 +603,8 @@ def download_teacher(run: Run, secrets: dict, course: SiteClient, live: SiteClie
     stock_ids = read_info((teacher_dir / "info.json").read_bytes())["Top100@Y"]
 
     # Live
-    entry = {"status": "skipped", "source": urlsplit(site["live"]["base_url"]).netloc + site["live"]["zip"]}
+    lives = live if isinstance(live, (list, tuple)) else [live]
+    entry = {"status": "skipped", "source": live_host(lives[0]) + site["live"]["zip"]}
     run.manifest["teacher_live"] = entry
     if not secrets.get("COURSE_LIVE_KEY"):
         if run.daily:
@@ -577,8 +620,10 @@ def download_teacher(run: Run, secrets: dict, course: SiteClient, live: SiteClie
     for attempt in range(1, attempts + 1):
         entry["attempts"] = attempt
         try:
-            live_blob = live_download(live, cfg, secrets["COURSE_LIVE_KEY"])
-            live_files, live_parsed = unpack_zip(live_blob, "live", stock_ids, max_bytes, max_unzipped)
+            used, live_blob, live_files, live_parsed, skipped = live_fetch(
+                run, lives, secrets["COURSE_LIVE_KEY"], stock_ids, max_bytes, max_unzipped)
+            entry["source"] = live_host(used) + site["live"]["zip"]
+            entry["fallback_from"] = skipped or None   # 前面的入口出了什麼錯；用原本的網址成功時是 None
             check = live_check(stock_rows(live_parsed), run.t, run.phase2_days, cfg["crawler"]["min_stocks_filled"],
                                cfg["crawler"]["closed_days"])
             if run.daily and not check["has_t_row"]:
@@ -1075,8 +1120,11 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None) -
         # 先抄上一次的 Training 紀錄：這次如果在下載 Training 前就失敗，下次還認得本機的檔案，不用重下載
         run.manifest["teacher"] = run.previous["teacher"]
     course = course or course_client(cfg, run.sleep)
-    live = live or live_client(cfg, run.sleep)
-    course.can_wait = live.can_wait = run.can_wait   # 過了爬蟲截止，課程網站和 Live 都不再重試
+    live = live or live_clients(cfg, run.sleep)
+    lives = live if isinstance(live, (list, tuple)) else [live]
+    course.can_wait = run.can_wait   # 過了爬蟲截止，課程網站和 Live 都不再重試
+    for client in lives:
+        client.can_wait = run.can_wait
     if run.past_deadline():
         run.log.warning("已經過了爬蟲截止 %s：每一步只試一次，不再等待或重試", cfg["crawler"]["deadline"])
     yf_session = yf_session or PacedSession(cfg["yfinance"]["min_interval_seconds"],
@@ -1114,12 +1162,13 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None) -
         raise
     finally:
         course.close()
-        live.close()
+        for client in lives:
+            client.close()
         yf_session.close()
     run.manifest["run"].update({"status": "stale" if run.stale else "ok", "prev_day": run.prev_day,
                                 "no_bar_i": run.no_bar_i, "finished_at": run.now().isoformat(timespec="seconds"),
                                 "yahoo_requests": yf_session.requests, "yahoo_redirects": yf_session.redirects,
-                                "site_requests": course.requests + live.requests})
+                                "site_requests": course.requests + sum(client.requests for client in lives)})
     run.save()
     run.log.info("爬蟲完成：%s", run.manifest["run"]["status"])
     return 3 if run.stale else 0

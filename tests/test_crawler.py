@@ -5,9 +5,11 @@
 """
 
 import copy
+import hashlib
 import io
 import json
 import logging
+import ssl
 import warnings
 import zipfile
 from datetime import datetime, timedelta
@@ -844,10 +846,13 @@ def test_yfinance_failure_near_deadline_does_not_retry(tmp_path, cfg):
 # ================================================================ 整個流程
 
 
-def crawl(tmp_path, cfg, clock, *, t="2026-11-17", daily=True, course=None, live=None, yahoo=None, secrets=SECRETS):
+def crawl(tmp_path, cfg, clock, *, t="2026-11-17", daily=True, course=None, live=None, yahoo=None, secrets=SECRETS,
+          fallback=None):
     run = make_run(tmp_path, cfg, clock, t=t, daily=daily)
     course = crawler.course_client(cfg, clock.sleep, course or course_fake())
     live = crawler.live_client(cfg, clock.sleep, live or live_fake(make_zip(live_members(LIVE_DATES, {"2026-11-17"}))))
+    if fallback is not None:
+        live = [live, crawler.live_client(cfg, clock.sleep, fallback, fallback=True)]
     code = crawler.crawl(run, secrets, course=course, live=live, yf_session=yahoo or default_yahoo(clock))
     return code, run
 
@@ -1140,3 +1145,77 @@ def test_download_hourly_failure_keeps_old_file(tmp_path, cfg):
     entry = run.manifest["yfinance"]["usd_twd_1h"]
     assert entry["status"] == "failed" and entry["kept_previous_file"] is True
     assert entry["has_value_t"] is False and run.no_bar_i == ["usd_twd_1h"] and run.stale is True
+
+
+# ---------------------------------------------------------------- Live：原本的網址優先，出錯才用 chatgpt.site
+
+
+LIVE_FINGERPRINT = "C1C8033693774DCD63FC66B3023556A67B12A58136907484 2359B3594E849CC9".replace(" ", "")
+
+
+def raises(error):
+    def route(kwargs):
+        raise error
+    return route
+
+
+def test_live_client_trusts_only_the_pinned_certificate(cfg):
+    primary = crawler.live_client(cfg)
+    fallback = crawler.live_client(cfg, fallback=True)
+    assert primary.base == "https://140.112.31.182:8444"
+    assert primary.session.verify == str(utils.ROOT / "configs" / "live_ca.pem")
+    assert fallback.base == cfg["course_site"]["live"]["fallback_url"] and fallback.session.verify is True
+    der = ssl.PEM_cert_to_DER_cert((utils.ROOT / "configs" / "live_ca.pem").read_text())
+    assert hashlib.sha256(der).hexdigest().upper() == LIVE_FINGERPRINT
+    assert [c.base for c in crawler.live_clients(cfg)] == [primary.base, fallback.base]
+
+
+def test_live_original_ok_sends_nothing_to_fallback(tmp_path, cfg):
+    fallback = live_fake(make_zip(live_members(LIVE_DATES, {"2026-11-17"})))
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")), fallback=fallback)
+    assert code == 0 and fallback.calls == []
+    manifest = json.loads((run.raw_dir / "manifest.json").read_text())
+    assert manifest["teacher_live"]["source"] == "140.112.31.182:8444/data.zip"
+    assert manifest["teacher_live"]["fallback_from"] is None and manifest["run"]["site_requests"] == 5
+
+
+@pytest.mark.parametrize("login", [raises(requests.exceptions.SSLError("cert changed")), FakeResp(503),
+                                   FakeResp(200, b"<p>wrong key</p>")])
+def test_live_falls_back_when_original_fails(tmp_path, cfg, login):
+    clock = Clock(at("2026-11-17", "07:10"))
+    primary = live_fake(make_zip(live_members(LIVE_DATES, {"2026-11-17"})), login=login)
+    fallback = live_fake(make_zip(live_members(LIVE_DATES, {"2026-11-17"})))
+    code, run = crawl(tmp_path, cfg, clock, live=primary, fallback=fallback)
+    assert code == 0 and fallback.calls == [("POST", "/login"), ("GET", "/data.zip")]
+    assert cfg["crawler"]["live_wait_seconds"] not in clock.sleeps   # 換入口不等
+    entry = json.loads((run.raw_dir / "manifest.json").read_text())["teacher_live"]
+    assert entry["status"] == "ok" and entry["source"].startswith("fin-pred-daily.")
+    assert len(entry["fallback_from"]) == 1 and entry["fallback_from"][0].startswith("140.112.31.182:8444：")
+    assert (run.raw_dir / "teacher" / "live" / "market" / "1101.csv").exists()
+
+
+def test_live_without_t_row_does_not_switch(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    no_t = live_fake(make_zip(live_members(LIVE_DATES[:-1])))
+    fallback = live_fake(make_zip(live_members(LIVE_DATES, {"2026-11-17"})))
+    with pytest.raises(crawler.CrawlerError):
+        crawl(tmp_path, cfg, clock, live=no_t, fallback=fallback)
+    assert fallback.calls == []
+    assert no_t.calls.count(("POST", "/login")) == cfg["crawler"]["live_attempts"]
+
+
+def test_live_both_entries_fail(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    primary = live_fake(b"", login=FakeResp(503))
+    fallback = live_fake(b"", login=FakeResp(200, b"<p>wrong key</p>"))
+    with pytest.raises(crawler.CrawlerError) as info:
+        crawl(tmp_path, cfg, clock, live=primary, fallback=fallback)
+    # 原本的網址是暫時性錯誤，所以還是會等一下再試兩個入口
+    assert clock.sleeps.count(cfg["crawler"]["live_wait_seconds"]) == cfg["crawler"]["live_attempts"] - 1
+    assert "140.112.31.182:8444" in str(info.value) and "fin-pred-daily." in str(info.value)
+    fallback_only = live_fake(b"", login=FakeResp(200, b"<p>wrong key</p>"))
+    clock = Clock(at("2026-11-17", "07:10"))
+    with pytest.raises(crawler.CrawlerError):
+        crawl(tmp_path, cfg, clock, live=live_fake(b"", login=FakeResp(200, b"<p>wrong</p>")), fallback=fallback_only)
+    assert cfg["crawler"]["live_wait_seconds"] not in clock.sleeps   # 兩個都是金鑰被拒，不會自己好，不重抓
+

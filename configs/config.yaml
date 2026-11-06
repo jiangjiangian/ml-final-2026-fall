@@ -21,8 +21,10 @@ course_site:
   login_retries: 2               # 登入遇到逾時、連不上、429、5xx 時再試幾次（使用者 2026-11-06）；上傳一律不重試
   max_zip_mb: 100                # 下載的 ZIP 上限
   max_unzipped_mb: 512           # ZIP 解開後的總大小上限
-  live:                          # 老師 Live 資料，助教給的新入口；金鑰放 .env 的 COURSE_LIVE_KEY
-    base_url: https://fin-pred-daily.jiangxuehaokeai.chatgpt.site
+  live:                          # 老師 Live 資料；金鑰放 .env 的 COURSE_LIVE_KEY
+    base_url: https://140.112.31.182:8444      # 助教原本的網址，自簽憑證（使用者 2026-11-06：這個優先）
+    ca_file: configs/live_ca.pem   # 只信任它這一張憑證（公開的，不是密碼），有效到 2027-10-07
+    fallback_url: https://fin-pred-daily.jiangxuehaokeai.chatgpt.site   # 原本的連不上或出錯才用；助教說它承受不了太多流量
     login: /login                # POST，表單帶 key
     zip: /data.zip
 

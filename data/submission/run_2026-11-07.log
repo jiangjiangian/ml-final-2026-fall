@@ -24,3 +24,6 @@
 2026-11-07 07:11:51,407 finpred.run_daily_test INFO Phase 1 本機分數：{'cells': 4200, 'score': 0.0012354357122170373, 'all_0': -0.00020391905575190195, 'all_1': 0.00020391905575190195, 'accuracy': 0.534047619047619, 'pred_up': 0.30333333333333334}
 2026-11-07 07:11:51,538 finpred.run_daily_test INFO 寫好 data/submission/submission_phase1_2026-11-07.csv：50 檔 × 84 天，猜漲 0.303
 2026-11-07 07:11:51,623 finpred.run_daily_test INFO 網站上目前有效的那份（2026-11-06T10:34:55.080Z，分數 0.0027731792355257675）存到 data/submission/backup/phase1_phase1_20261106T103455Z.csv
+2026-11-07 07:11:56,700 finpred.run_daily_test INFO 上傳送出，網站回 200
+2026-11-07 07:11:56,780 finpred.run_daily_test INFO 核對完成：網站上的版本 d3279a40-cbfb-4817-aca7-03a86081301c 和送出的逐格一樣（上傳時間 2026-11-06T23:11:56.681Z，分數 0.0012354357122170393）
+2026-11-07 07:11:56,796 finpred.run_daily_test INFO 結束：done

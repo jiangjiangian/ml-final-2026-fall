@@ -12,7 +12,7 @@ uv venv --python 3.12 .venv    # 或 python3.12 -m venv .venv
 source .venv/bin/activate      # Windows PowerShell：.venv\Scripts\Activate.ps1
 uv pip install -r requirements.txt   # 沒有 uv：pip install -r requirements.txt
 cp .env.example .env           # 填課程網站的 email 和密碼；COURSE_LIVE_KEY 先留空
-python -m pytest               # 目前 52 passed、4 skipped
+python -m pytest               # 目前 96 passed、1 skipped
 ```
 
 - 套件版本：`requirements.txt` 每個套件都鎖在發布滿兩週的版本。新加套件也照這個規則。

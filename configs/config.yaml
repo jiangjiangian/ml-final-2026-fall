@@ -30,6 +30,7 @@ crawler:
   live_wait_seconds: 180         # Live 還沒有 t 那列，或逾時、連不上、429、5xx、ZIP 不完整時，等多久再抓
   live_attempts: 3               # Live 最多抓幾次
   min_stocks_filled: 90          # 100 檔裡有幾檔有 t 那列、i 那天填好就算數；個別停牌的那幾檔自己的特徵空白
+  closed_days: ["2026-10-23"]    # Live 有建列但台股休市的日子（10/23 颱風假）。之後這天出現填好的資料就報錯停下。爬蟲和 features.py 共用
 
 data:
   start: "2020-01-01"
@@ -77,6 +78,26 @@ features:
   stock_column: etl:adj_close    # 老師個股檔算報酬用的欄；這組特徵讓 50 檔每天的值不同
   teacher_global: ["^VIX", "^IXIC", "^GSPC", "^TWII", "^KS11"]   # 老師 global 表要算 lag 的欄
   adj_close_kinds: [TSM, NVDA, 0050.TW, 0052.TW, 0055.TW, 006201.TWO]   # 這些 yfinance 代號用 adj_close，其他用 close
+  output: features.csv.gz        # 寫在 data.processed_dir；清理紀錄寫在同一個資料夾的 cleaning.json
+  # 模型用的序列（使用者和組員 2026-11-06 定）：個股自己＋組員的 12 個指標（債利率是 us13w、us10y 兩個序列）。
+  # features.csv.gz 裡有全部序列；train.py、predict.py 只讀這些序列的 lag 欄。
+  model_series: [stock, sox, tsm_adr, nvda, teacher_ixic, teacher_gspc, teacher_vix, etf_0050, usd_twd_am,
+                 gold, dji, wti, us13w, us10y]
+  usd_twd_am:                    # 和美股收盤同步的匯率：台北 d 日 06:00 前最後一根 1h 的 close
+    daily: usd_twd               # 小時資料開始之前，用這個序列 d 那根日K的 close 補
+    hourly_file: usd_twd_1h.csv  # data/raw/yfinance/ 底下，爬蟲存的 TWD=X 1h（欄位見 features.HOURLY_COLUMNS）
+    hourly_from: "2024-01-22"    # Yahoo 1h 最早到這天；分界取這天和 1h 檔第一天較晚的那個
+    at: "06:00"                  # 台北時間；取結束時間 ≤ 這個時間的最後一根
+    lookback_days: 4             # 最多往回找幾天（冬令週一 05:00 那根不存在，要取到週五收盤）
+  cleaning:                      # yfinance 清理 R0～R5 的參數，和舊爬蟲一樣（memory/projects/features.md）
+    yields: [^TNX, ^IRX]         # R2 債市假日只看這兩個；它們和 yfinance.futures 的 close 可以 ≤ 0
+    bad_tick_tolerance: 0.005    # R1：close 超出 [low, high] 多少比例算壞報價
+    partial_bar_window: 21       # R3：取前幾個保留下來的列算成交量中位數
+    partial_bar_volume_ratio: 0.01   # R3：平盤而且成交量小於中位數的這個比例，算不完整K棒
+    max_split_factor: 50         # R4：分割倍數上限
+    split_tolerance: 0.03        # R4：前後收盤比和整數 n 的相對差要小於這個
+    dividend_step_min: 1.0e-5    # R5：調整比例的變化大於這個才算除息
+    dividend_max_fraction: 0.95  # R5：乘回後的除息比例上限
 
 model:
   type: lightgbm

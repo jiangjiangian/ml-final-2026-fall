@@ -1,68 +1,521 @@
-"""特徵工程：data/raw/ → data/processed/features.csv.gz。
+"""特徵工程：data/raw/ → data/processed/features.csv.gz 和 cleaning.json。
 
-一列＝一檔股票（老師資料的 100 檔）× 一個台股交易日 t。欄位：
+一列＝一檔股票（老師資料的 100 檔）× 一個日期。日期是全部台股交易日；給了預測日 t 時，只留早於 t 的
+交易日，最後再加 t 那天。欄位：
     date, stock_id            鍵；stock_id 一律當字串（"2330"），不轉成數字
     is_top50                  1＝要預測的 50 檔（info.json 的 Top50@Y）
-    <名稱>_ret_lag1、_lag2   特徵，見下方
+    <名稱>_ret_lag{k}        特徵，見下方；k 來自 config 的 features.lags
     label_y                   答案：t 當天 etl:adj_close > etl:adj_open 為 1；還不知道時空白
     label_intraday_return     答案：t 當天 etl:adj_close / etl:adj_open − 1（官方分數用）；還不知道時空白
+預測日 t 那列的 label 一定空白。模型用哪些欄由 config 的 features.model_series 決定，見 model_columns()。
 
-特徵 <名稱>_ret_lag{k}：到 t 的前一個台股交易日 i 為止、往回 k 個交易日的報酬，
-    t 那列 = (close_i − close_(i−k)) / close_(i−k)，i−k 數的是該序列自己的交易日；
-    i 那天該序列沒有資料就留空白，不補值。k 來自 config.yaml 的 features.lags。
-    名稱有三種：
-    - stock：股票自己，用 features.stock_column（etl:adj_close）。這組讓 50 檔每天的值不同；
-      只有市場特徵的話，同一天 50 檔的值都一樣，模型每天只會給一個答案。
-    - 老師 global 表的指數：features.teacher_global。
-    - yfinance 的 19 個序列：features.adj_close_kinds 裡的代號用 adj_close，其他用 close。
+特徵 <名稱>_ret_lag{k}：
+    i 是 t 之前最後一個台股交易日。t 那列 = (close_i − close_(i−k)) / close_(i−k)，i−k 數的是該序列自己的列。
+    該序列在 i 那天沒有列就留空白，不往前找。兩個端點任一是空的或 ≤ 0 也留空白。名稱有四種：
+    - stock：股票自己的 etl:adj_close。這組讓 50 檔每天的值不同。
+    - teacher_vix 等：老師 global 表的欄（features.teacher_global），只用交易日的列。
+    - yfinance 的 19 個序列（yfinance.tickers）：features.adj_close_kinds 的代號用 adj_close，其他用 close。
+    - usd_twd_am：台北 d 日 06:00 前最後一根 TWD=X 1h 的 close，和美股收盤同步。這個序列的 lag 用 t 自己的值：
+      (x_t − x_(t 往回第 k 個交易日)) / x_(t 往回第 k 個交易日)。x_t 在 t 開盤前就知道。
+      小時資料開始之前用 usd_twd 那天日K的 close 補（使用者 2026-11-06 決定）。
 
-台股交易日的日曆：
-    以老師個股檔（market/*.csv）出現過的日期為準。Live 裡的待定列，要 /api/state 的 phase2Days
-    有那一天才算交易日（例如 10/23 那列一直是 -1，使用者 2026-11-05 確認是颱風假）。
-    global 表缺很多台股日（Training 少 112 天），不能當日曆。
+台股交易日（使用者 2026-11-06 決定，和爬蟲共用 crawler.trading_days）：
+    100 檔裡至少 crawler.min_stocks_filled 檔填好的日子：y 是 0 或 1，etl:adj_open、etl:adj_close > 0。
+    還是 -1 的日子（10/23 颱風假、當天早上的 t）不算交易日，往回數 i−k 時也不算。
+    單一檔股票那天沒填好（停牌）就當那檔沒有那一列。phase2Days 不會讓日曆多出日子。
 
 -1 的處理：
-    只有 Live 的待定列是「還沒有」：個股檔 etl:adj_close 是 -1 的列整列當空白；
-    global 表只有 ^TWII、^KS11、TX_OI 會用 -1 表示待定。
-    其他地方的 -1 是真的數字（例如 Training 的法人買賣超有 83 格剛好是 -1 股），要保留。
+    個股檔沒填好的列不用（見上面）。Live global 表 6 欄的 -1 是待定，當空白。
+    Training 法人欄有真的 -1，但法人欄不進特徵，也不影響「填好了」的判斷。
 
-訓練和預測都呼叫 build_features()，所以兩邊算出來的特徵一定一樣。
-預測日 t 也會有一列，它的 label 是空白，predict.py 只取這一列。
+yfinance 清理：照舊爬蟲的 R0～R5 依序做（規則、測試資料、使用者的決定見 memory/projects/features.md）。
+    刪掉的列整列拿掉，不留空白的一列。每一筆都記在 cleaning.json。
 
-用法：python -m src.features
+用法：
+    python -m src.features                    全部交易日
+    python -m src.features --date 2026-11-17  每日模式：交易日只留早於 t 的，加上 t 那列
 """
 
+import argparse
+import csv
+import gzip
+import io
+import json
+import math
+from bisect import bisect_left, bisect_right
+from datetime import date, datetime, time as dtime, timedelta
+from pathlib import Path
 
-def load_raw(cfg: dict):
-    """讀 data/raw/：老師 Training 接上 Live（Live 只取 Training 最後一天之後的列），以及 yfinance 各序列。
+import numpy as np
+import pandas as pd
 
-    yfinance 序列讀進來先清理，照舊爬蟲的 R0～R5 依序做（規則和測試資料見 memory/projects/features.md）：
-    - R0 空值和 close 空的列拿掉、依日期排序。
-    - R1 close 超出 [low, high] 0.5% 以上的壞報價（例如 TWD=X）。
-    - R2 美債休市日（哥倫布日、退伍軍人節）的平盤K棒（^TNX、^IRX）。
-    - R3 股票和 ETF 的佔位K棒和不完整K棒。
-    - R4 .TW／.TWO 的分割只調了一半時補調（例如 0052 在 2025-11 的一拆七）。
-    - R5 分割前的股利調整乘回去。
-    刪掉的列整列拿掉，不留空白的一列（留空白會讓往回數的 i−k 錯位）。
-    清理紀錄的範例在 data/reference/data-collection/extra/manifest.json（data-collection 的凍結快照）。
-    回傳一個 dict。
+from src import crawler, utils
+
+TAIPEI = utils.TAIPEI
+HOURLY_COLUMNS = ("start", "open", "high", "low", "close", "volume")   # start：K棒開始時間，ISO 格式要帶時區
+HOURLY_BAR = timedelta(hours=1)
+PRICE_KEYS = ("open", "high", "low", "close", "adj_close")
+LABELS = ("label_y", "label_intraday_return")
+
+
+class FeatureError(RuntimeError):
+    """資料有問題，不能產生特徵。訊息是自己寫的短句。"""
+
+
+# ---------------------------------------------------------------- 讀檔
+
+
+def read_csv_rows(path: Path, columns: tuple) -> list:
+    """讀 CSV，表頭要和 columns 一樣，回傳表頭以外的列（空行跳過）。"""
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.reader(f))
+    if not rows or tuple(rows[0]) != tuple(columns):
+        raise FeatureError(f"{path.name} 的欄位和預期不同")
+    body = [r for r in rows[1:] if r]
+    if any(len(r) != len(columns) for r in body):
+        raise FeatureError(f"{path.name} 有列的欄數不對")
+    return body
+
+
+def check_date(text: str, name: str) -> str:
+    if not crawler.is_iso_date(text):
+        raise FeatureError(f"{name} 有不是 YYYY-MM-DD 的日期")
+    return text
+
+
+def num(text: str, name: str):
+    """空字串、NaN、inf 當空值；不是數字就丟 FeatureError。"""
+    if text == "":
+        return None
+    try:
+        value = float(text)
+    except ValueError:
+        raise FeatureError(f"{name} 有不是數字的格子") from None
+    return value if math.isfinite(value) else None
+
+
+def load_teacher(teacher_dir: Path, live_dir: Path | None):
+    """回傳 (stocks, global_rows, top50)。
+
+    stocks：{代號: {日期: 資料列}}，Training 全部的列，接上 Live 在 Training 最後一天之後的列。
+    global_rows：{日期: 資料列}，Live 的列裡 6 欄的 -1（待定）換成空字串。
+    top50：要預測的 50 檔代號。
     """
-    raise NotImplementedError
+    paths = sorted((teacher_dir / "market").glob("*.csv"))
+    if not paths:
+        raise FeatureError("老師 Training 沒有個股檔")
+    stocks = {}
+    for path in paths:
+        stocks[path.stem] = {check_date(r[0], path.name): r for r in read_csv_rows(path, crawler.STOCK_COLUMNS)}
+    boundary = max((d for rows in stocks.values() for d in rows), default=None)
+    if boundary is None:
+        raise FeatureError("老師 Training 個股檔沒有資料")
+    global_rows = {check_date(r[0], "global_data.csv"): r
+                   for r in read_csv_rows(teacher_dir / "global" / "global_data.csv", crawler.GLOBAL_COLUMNS)}
+    if live_dir is not None and live_dir.exists():
+        for path in sorted((live_dir / "market").glob("*.csv")):
+            if path.stem not in stocks:
+                raise FeatureError(f"Live 有 Training 沒有的代號 {path.stem}")
+            for r in read_csv_rows(path, crawler.STOCK_COLUMNS):
+                if check_date(r[0], path.name) > boundary:
+                    stocks[path.stem][r[0]] = r
+        live_global = live_dir / "global" / "global_data.csv"
+        if live_global.exists():
+            for r in read_csv_rows(live_global, crawler.GLOBAL_COLUMNS):
+                if check_date(r[0], "Live global_data.csv") > boundary:
+                    global_rows[r[0]] = [r[0]] + ["" if crawler.to_float(v) == -1 else v for v in r[1:]]
+    info = json.loads((teacher_dir / "info.json").read_text(encoding="utf-8-sig"))
+    top50 = {str(x) for x in info["Top50@Y"]}
+    return stocks, global_rows, top50
 
 
-def build_features(raw: dict, cfg: dict):
-    """回傳 pandas DataFrame（欄位見檔案開頭）。
+def read_yfinance(path: Path) -> list:
+    """爬蟲存的日K → [{date, open, high, low, close, adj_close, volume}]，空格是 None。"""
+    out = []
+    for r in read_csv_rows(path, crawler.YF_COLUMNS):
+        row = {"date": check_date(r[0], path.name)}
+        row.update({key: num(text, path.name) for key, text in zip(crawler.YF_COLUMNS[1:], r[1:])})
+        out.append(row)
+    return out
+
+
+def read_hourly(path: Path) -> list:
+    """爬蟲存的 1h → [{start, open, high, low, close, volume}]，start 是帶時區的 datetime。"""
+    out = []
+    for r in read_csv_rows(path, HOURLY_COLUMNS):
+        try:
+            start = datetime.fromisoformat(r[0])
+        except ValueError:
+            raise FeatureError(f"{path.name} 有看不懂的時間") from None
+        if start.tzinfo is None:
+            raise FeatureError(f"{path.name} 的時間沒有時區")
+        row = {"start": start}
+        row.update({key: num(text, path.name) for key, text in zip(HOURLY_COLUMNS[1:], r[1:])})
+        out.append(row)
+    return out
+
+
+# ---------------------------------------------------------------- yfinance 清理 R0～R5
+
+
+def is_flat(row) -> bool:
+    return len({row["open"], row["high"], row["low"], row["close"]}) == 1
+
+
+def is_bond_holiday(day: str) -> bool:
+    """美國債市休市、股市照常的日子：哥倫布日（10 月第 2 個週一）、退伍軍人節（11/11；週六提前、週日順延）。"""
+    d = date.fromisoformat(day)
+    if d.month == 10:
+        return d.weekday() == 0 and 8 <= d.day <= 14
+    if d.month == 11:
+        vet = date(d.year, 11, 11)
+        if vet.weekday() == 5:
+            vet -= timedelta(days=1)
+        elif vet.weekday() == 6:
+            vet += timedelta(days=1)
+        return d == vet
+    return False
+
+
+def split_factor(prev, cur, max_factor, tolerance):
+    """前後收盤比接近整數 n（2～max_factor）時回傳 n（分割）或 1/n（反向合併），否則 None。"""
+    if prev is None or cur is None or prev <= 0 or cur <= 0:
+        return None
+    ratio = prev / cur
+    for value, reverse in ((ratio, False), (1 / ratio, True)):
+        n = round(value)
+        if 2 <= n <= max_factor and abs(value - n) / n < tolerance:
+            return 1.0 / n if reverse else float(n)
+    return None
+
+
+def rescale_dividends(rows, boundary, factor, cc, record):
+    """R5：Yahoo 漏調分割時，分割前的股利調整只做了約 1/factor；把分界前每個除息幅度乘回 factor。"""
+    ratios = [r["adj_close"] / r["close"] if r["adj_close"] and r["close"] else None for r in rows[:boundary]]
+    if boundary < 2 or any(x is None or x <= 0 for x in ratios):
+        return
+    level = ratios[-1]
+    for t in range(boundary - 2, -1, -1):
+        step = 1 - ratios[t] / ratios[t + 1]
+        if step > cc["dividend_step_min"]:
+            fixed = min(step * factor, cc["dividend_max_fraction"])
+            level *= 1 - fixed
+            record("dividend", rows[t + 1]["date"], yahoo_fraction=step, rescaled_fraction=fixed)
+        else:
+            level *= ratios[t] / ratios[t + 1]
+        rows[t]["adj_close"] = rows[t]["close"] * level
+
+
+def clean_series(rows: list, name: str, ticker: str, cfg: dict):
+    """回傳 (清理後的列, 紀錄)。rows 不會被改到。
+
+    順序：R0 空值、close ≤ 0、重複日期 → R1 壞報價 → R2 債市假日（殖利率）→ R3 佔位K棒（股票、ETF）
+    → R4 漏調的分割（台股）→ R5 分割前的股利。紀錄裡被刪的列是 Yahoo 原始單位（還沒做分割修正）。
+    """
+    cc = cfg["features"]["cleaning"]
+    records = []
+
+    def record(rule, day, **extra):
+        records.append({"series": name, "rule": rule, "date": day, **extra})
+
+    def dropped(rule, row):
+        record(rule, row["date"], **{k: row[k] for k in (*PRICE_KEYS, "volume")})
+
+    signed = ticker in cfg["yfinance"]["futures"] or ticker in cc["yields"]
+    by_date = {}
+    for row in rows:
+        row = dict(row)
+        if row["close"] is None:
+            dropped("empty_close", row)
+        elif not signed and row["close"] <= 0:
+            dropped("nonpositive_close", row)
+        else:
+            if row["date"] in by_date:
+                dropped("duplicate_date", by_date[row["date"]])   # 使用者 2026-11-06：重複的日期留最後一列
+            by_date[row["date"]] = row
+    kept = []
+    for day in sorted(by_date):
+        row = by_date[day]
+        lo, hi, close = row["low"], row["high"], row["close"]
+        tol = cc["bad_tick_tolerance"]
+        if lo is not None and hi is not None and lo <= hi and (close < lo - tol * abs(lo) or close > hi + tol * abs(hi)):
+            dropped("bad_tick", row)
+        elif ticker in cc["yields"] and is_flat(row) and is_bond_holiday(day):
+            dropped("bond_holiday", row)
+        else:
+            kept.append(row)
+    if ticker not in cfg["features"]["adj_close_kinds"]:
+        return kept, records
+
+    rows, kept = kept, []
+    window = cc["partial_bar_window"]
+    for row in rows:
+        if kept and is_flat(row):
+            if not row["volume"] and row["close"] == kept[-1]["close"]:
+                dropped("placeholder", row)
+                continue
+            recent = sorted(r["volume"] for r in kept[-window:] if r["volume"])
+            median = recent[len(recent) // 2] if recent else None   # 上中位數，和舊爬蟲一樣
+            if row["volume"] and median and row["volume"] < cc["partial_bar_volume_ratio"] * median:
+                dropped("placeholder", row)
+                continue
+        kept.append(row)
+
+    taiwan = ticker.upper().endswith((".TW", ".TWO"))
+    for i in range(1, len(kept)):
+        prev, cur = kept[i - 1], kept[i]
+        factor = split_factor(prev["close"], cur["close"], cc["max_split_factor"], cc["split_tolerance"])
+        if factor is None or split_factor(prev["adj_close"], cur["adj_close"],
+                                          cc["max_split_factor"], cc["split_tolerance"]) != factor:
+            continue
+        if not taiwan:
+            record("suspected_split_not_applied", cur["date"], factor=factor)   # 沒有漲跌幅限制，可能是真的大漲跌
+            continue
+        before = prev["close"]
+        for row in kept[:i]:
+            for key in PRICE_KEYS:
+                if row[key] is not None:
+                    row[key] = row[key] / factor
+            if row["volume"] is not None:
+                row["volume"] = row["volume"] * factor
+        if factor > 1:
+            record("split", cur["date"], factor=factor, previous_close_before_fix=before,
+                   close_on_boundary=cur["close"])
+            rescale_dividends(kept, i, factor, cc, record)
+        else:
+            # 使用者交給 Claude 決定（2026-11-06）：反向合併照樣修正價格和成交量，但不乘回股利
+            record("reverse_split", cur["date"], factor=factor, previous_close_before_fix=before,
+                   close_on_boundary=cur["close"])
+    return kept, records
+
+
+def clean_hourly(rows: list, cfg: dict):
+    """1h 只做 R0（空值、≤ 0、重複時間留最後一列）和 R1（壞報價）。回傳 (依時間排序的列, 紀錄)。"""
+    tol = cfg["features"]["cleaning"]["bad_tick_tolerance"]
+    records, by_start = [], {}
+    for row in rows:
+        when = row["start"].isoformat()
+        close, lo, hi = row["close"], row["low"], row["high"]
+        if close is None or close <= 0:
+            records.append({"series": "usd_twd_1h", "rule": "empty_or_nonpositive_close", "start": when})
+        elif lo is not None and hi is not None and lo <= hi and (close < lo - tol * abs(lo) or close > hi + tol * abs(hi)):
+            records.append({"series": "usd_twd_1h", "rule": "bad_tick", "start": when, "close": close})
+        else:
+            if row["start"] in by_start:
+                records.append({"series": "usd_twd_1h", "rule": "duplicate_start", "start": when})
+            by_start[row["start"]] = row
+    return [by_start[k] for k in sorted(by_start)], records
+
+
+# ---------------------------------------------------------------- 讀 data/raw/
+
+
+def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None) -> dict:
+    """讀 data/raw/，yfinance 清理過。路徑沒給就用 config 的 data.raw_dir（測試會改成凍結資料）。
+
+    回傳 {"stocks", "global", "top50", "yfinance": {名稱: 列}, "hourly": 列或 None,
+          "cleaning": [紀錄], "warnings": [訊息]}。
+    yfinance 某個檔不存在時，那個序列整欄空白，記一筆警告，不中斷（每天的流程要全自動）。
+    """
+    raw_dir = utils.ROOT / cfg["data"]["raw_dir"]
+    teacher_dir = Path(teacher_dir) if teacher_dir else raw_dir / "teacher"
+    live_dir = Path(live_dir) if live_dir else raw_dir / "teacher_live"
+    yf_dir = Path(yf_dir) if yf_dir else raw_dir / "yfinance"
+    stocks, global_rows, top50 = load_teacher(teacher_dir, live_dir)
+    out = {"stocks": stocks, "global": global_rows, "top50": top50, "yfinance": {}, "hourly": None,
+           "cleaning": [], "warnings": []}
+    for name, ticker in cfg["yfinance"]["tickers"].items():
+        path = yf_dir / f"{name}.csv"
+        if not path.exists():
+            out["warnings"].append(f"沒有 yfinance/{name}.csv，{name} 的特徵整欄空白")
+            out["yfinance"][name] = []
+            continue
+        rows, records = clean_series(read_yfinance(path), name, ticker, cfg)
+        out["yfinance"][name] = rows
+        out["cleaning"].extend(records)
+    hourly = yf_dir / cfg["features"]["usd_twd_am"]["hourly_file"]
+    if hourly.exists():
+        out["hourly"], records = clean_hourly(read_hourly(hourly), cfg)
+        out["cleaning"].extend(records)
+    else:
+        out["warnings"].append(f"沒有 yfinance/{hourly.name}，usd_twd_am 從 "
+                               f"{cfg['features']['usd_twd_am']['hourly_from']} 起空白")
+    return out
+
+
+# ---------------------------------------------------------------- lag
+
+
+def k_returns(dates: list, prices: list, k: int) -> dict:
+    """{日期 d: (price_d − price_(d 往回第 k 列)) / price_(d 往回第 k 列)}。兩個價格任一是空的或 ≤ 0 就沒有值。"""
+    out = {}
+    for j in range(k, len(dates)):
+        base, cur = prices[j - k], prices[j]
+        if base is not None and cur is not None and base > 0 and cur > 0:
+            out[dates[j]] = (cur - base) / base
+    return out
+
+
+def series_name(column: str) -> str:
+    """老師 global 表的欄名 → 序列名稱，例如 ^VIX → teacher_vix。"""
+    return "teacher_" + column.lstrip("^").lower()
+
+
+def market_sources(raw: dict, cfg: dict, calendar: list) -> dict:
+    """{序列名稱: (日期, 價格)}：yfinance 19 個加老師 global 的欄，只留交易日以內的列。"""
+    last = calendar[-1] if calendar else ""
+    adj_kinds = cfg["features"]["adj_close_kinds"]
+    out = {}
+    for name, ticker in cfg["yfinance"]["tickers"].items():
+        rows = [r for r in raw["yfinance"].get(name, []) if r["date"] <= last]
+        key = "adj_close" if ticker in adj_kinds else "close"
+        out[name] = ([r["date"] for r in rows], [r[key] for r in rows])   # 使用者 2026-11-06：adj_close 空就是空，不退回 close
+    days = set(calendar)
+    gdates = sorted(d for d in raw["global"] if d in days)
+    for column in cfg["features"]["teacher_global"]:
+        j = crawler.GLOBAL_COLUMNS.index(column)
+        out[series_name(column)] = (gdates, [crawler.to_float(raw["global"][d][j]) for d in gdates])
+    return out
+
+
+def hourly_switch(hourly, cfg: dict) -> date:
+    """從這天起只用小時資料：config 的 hourly_from 和 1h 檔第一個可用日較晚的那個。"""
+    am = cfg["features"]["usd_twd_am"]
+    floor = date.fromisoformat(am["hourly_from"])
+    if not hourly:
+        return floor
+    first_end = (hourly[0]["start"] + HOURLY_BAR).astimezone(TAIPEI)
+    at = dtime.fromisoformat(am["at"])
+    first_day = first_end.date() if first_end.time() <= at else first_end.date() + timedelta(days=1)
+    return max(floor, first_day)
+
+
+def usd_twd_am_values(days: list, raw: dict, cfg: dict) -> list:
+    """每個日期 d 的 usd_twd_am：分界日起取「結束時間 ≤ 台北 d 日 at」的最後一根 1h 的 close（最多往回
+    lookback_days 天），取不到就空白；分界日之前用 usd_twd 那天日K的 close。"""
+    am = cfg["features"]["usd_twd_am"]
+    hourly = raw["hourly"] or []
+    switch = hourly_switch(hourly, cfg)
+    ends = [r["start"] + HOURLY_BAR for r in hourly]
+    at = dtime.fromisoformat(am["at"])
+    lookback = timedelta(days=am["lookback_days"])
+    daily = {r["date"]: r["close"] for r in raw["yfinance"].get(am["daily"], [])}
+    out = []
+    for d in days:
+        day = date.fromisoformat(d)
+        if day < switch:
+            out.append(daily.get(d))
+            continue
+        target = datetime.combine(day, at, TAIPEI)
+        j = bisect_right(ends, target) - 1
+        out.append(hourly[j]["close"] if j >= 0 and ends[j] > target - lookback else None)
+    return out
+
+
+# ---------------------------------------------------------------- 特徵表
+
+
+def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
+    """回傳 pandas DataFrame（欄位見檔案開頭）。t 是預測日：給了就只留早於 t 的交易日，最後加 t 那列。
 
     只能用 t 之前的資料。t 當天的價格、成交量、法人、技術指標和 y 都不能進特徵；
-    global 表的 ^TWII、^KS11、TX_OI 是當天收盤後的值，只能用日期早於 t 的最後一列。
+    global 表的 ^TWII、^KS11、TX_OI 是當天收盤後的值，只會用到 i 和更早的列。
     """
-    raise NotImplementedError
+    lags = cfg["features"]["lags"]
+    stocks = raw["stocks"]
+    calendar = crawler.trading_days(stocks, cfg["crawler"]["min_stocks_filled"], cfg["crawler"]["closed_days"])
+    if t is not None:
+        check_date(t, "--date")
+        calendar = [d for d in calendar if d < t]
+    days = calendar + ([t] if t is not None else [])
+    if not days:
+        raise FeatureError("沒有任何台股交易日")
+    pos = {d: j for j, d in enumerate(calendar)}
+    prev_day = [calendar[j - 1] if j >= 1 else None for j in (bisect_left(calendar, d) for d in days)]
+
+    def at_prev_day(values: dict) -> np.ndarray:
+        return np.array([values.get(i, np.nan) if i else np.nan for i in prev_day], dtype=float)
+
+    codes = sorted(stocks)
+    n_days, n_codes = len(days), len(codes)
+    data = {"date": np.repeat(days, n_codes), "stock_id": np.tile(codes, n_days),
+            "is_top50": np.tile([int(c in raw["top50"]) for c in codes], n_days)}
+
+    # 股票自己：只用交易日上填好的列
+    own = {}
+    for c in codes:
+        ds = [d for d in sorted(stocks[c]) if d in pos and crawler.row_filled(stocks[c][d])]
+        prices = [crawler.to_float(stocks[c][d][crawler.COL_CLOSE]) for d in ds]
+        own[c] = {k: at_prev_day(k_returns(ds, prices, k)) for k in lags}
+    for k in lags:
+        data[f"stock_ret_lag{k}"] = np.stack([own[c][k] for c in codes], axis=1).reshape(-1)
+
+    for name, (ds, prices) in market_sources(raw, cfg, calendar).items():
+        for k in lags:
+            data[f"{name}_ret_lag{k}"] = np.repeat(at_prev_day(k_returns(ds, prices, k)), n_codes)
+
+    x = usd_twd_am_values(days, raw, cfg)   # t 自己的值當 cur
+    for k in lags:
+        values = k_returns(days, x, k)
+        data[f"usd_twd_am_ret_lag{k}"] = np.repeat([values.get(d, np.nan) for d in days], n_codes)
+
+    label_y, label_ret = [], []
+    for d in days:
+        for c in codes:
+            row = stocks[c].get(d)
+            if d == t or not crawler.row_filled(row):
+                label_y.append(None)
+                label_ret.append(np.nan)
+            else:
+                label_y.append(int(crawler.to_float(row[crawler.COL_Y])))
+                label_ret.append(crawler.to_float(row[crawler.COL_CLOSE]) / crawler.to_float(row[crawler.COL_OPEN]) - 1)
+    df = pd.DataFrame(data)
+    df["label_y"] = pd.array(label_y, dtype="Int64")
+    df["label_intraday_return"] = np.array(label_ret, dtype=float)
+    unknown = set(model_columns(cfg)) - set(df.columns)
+    if unknown:
+        raise FeatureError(f"features.model_series 有不存在的序列：{sorted(unknown)}")
+    return df
 
 
-def main(argv=None):
-    """load_raw → build_features → 寫 data/processed/features.csv.gz。"""
-    raise NotImplementedError
+def model_columns(cfg: dict) -> list:
+    """模型要用的特徵欄：features.model_series 每個序列的每個 lag。train.py、predict.py 只讀這些欄。"""
+    return [f"{s}_ret_lag{k}" for s in cfg["features"]["model_series"] for k in cfg["features"]["lags"]]
+
+
+def to_csv_gz(df: pd.DataFrame) -> bytes:
+    """CSV（UTF-8、LF、浮點數用最短可還原的寫法）壓成 gzip，mtime 固定，同樣的內容得到同樣的位元組。"""
+    text = df.to_csv(index=False, lineterminator="\n")
+    return gzip.compress(text.encode("utf-8"), compresslevel=6, mtime=0)
+
+
+def main(argv=None) -> int:
+    """load_raw → build_features → 寫 data/processed/features.csv.gz 和 cleaning.json。"""
+    parser = argparse.ArgumentParser(description="data/raw/ → data/processed/features.csv.gz")
+    parser.add_argument("--date", help="預測日 t（YYYY-MM-DD）：交易日只留早於 t 的，加上 t 那列")
+    args = parser.parse_args(argv)
+    if args.date and not crawler.is_iso_date(args.date):
+        parser.error("--date 要是 YYYY-MM-DD")
+    cfg = utils.load_config()
+    log = utils.get_logger("features", args.date or utils.taipei_now().date().isoformat())
+    raw = load_raw(cfg)
+    for message in raw["warnings"]:
+        log.warning(message)
+    df = build_features(raw, cfg, args.date)
+    out_dir = utils.ROOT / cfg["data"]["processed_dir"]
+    crawler.write_atomic(out_dir / cfg["features"]["output"], to_csv_gz(df))
+    counts = {}
+    for r in raw["cleaning"]:
+        counts[r["rule"]] = counts.get(r["rule"], 0) + 1
+    report = {"target_date": args.date, "rows": len(df), "dates": int(df["date"].nunique()),
+              "last_date": df["date"].iloc[-1], "counts": counts, "warnings": raw["warnings"], "records": raw["cleaning"]}
+    crawler.write_atomic(out_dir / "cleaning.json",
+                         (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode())
+    log.info("特徵表：%d 列、%d 天，最後一天 %s；清理紀錄 %s", len(df), report["dates"], report["last_date"], counts)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    sys.exit(main())

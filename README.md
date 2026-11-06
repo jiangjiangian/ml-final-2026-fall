@@ -31,10 +31,10 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   ├── raw/                   爬蟲抓下來的原始資料，原樣保存
 │   │   ├── teacher/           老師 Training ZIP 解開的檔案（一開始從 data-collection 分支搬來）
 │   │   ├── teacher_live/      老師 Live ZIP 解開的檔案（一開始從 data-collection 搬來，之後每次下載覆蓋）
-│   │   ├── yfinance/          19 個額外指標，一個序列一個 CSV
+│   │   ├── yfinance/          19 個額外指標，一個序列一個 CSV；usd_twd_1h.csv 是匯率的 1 小時K棒
 │   │   ├── phase2_days.json   課程網站的交易日清單（/api/state 的 phase2Days）
 │   │   └── manifest.json      下載紀錄
-│   ├── processed/             features.csv.gz（可以重算，不進 Git）
+│   ├── processed/             features.csv.gz 和清理紀錄 cleaning.json（可以重算，不進 Git）
 │   ├── reference/
 │   │   └── data-collection/   data-collection 分支的凍結快照，只給對照測試用，不要改
 │   │       ├── extra/                 清理過的 yfinance 19 個序列和 manifest.json（清理紀錄）
@@ -60,6 +60,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   └── utils.py               讀設定和帳密、台北時間、截止檢查、log
 └── tests/
     ├── test_crawler.py            爬蟲的離線測試（假伺服器、假時鐘）
+    ├── test_features.py           清理、交易日、lag，以及和 data-collection 凍結資料的對照測試
     ├── test_no_future_data.py     特徵只能用 t 之前的資料
     └── test_submission_format.py  CSV 的欄位、列數、0/1
 ```

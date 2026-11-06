@@ -2,22 +2,28 @@
 
 ## 狀態
 
-- 2026-11-06：規劃中，等使用者確認後才寫程式。
+- 2026-11-06：寫好了。對照測試 (a)、(a2) 都通過（`tests/test_features.py`）：50 個 lag 欄、label、is_top50 和舊長表逐格相同；(a2) 的 56 筆紀錄日期和規則都相同，adj_close 最大相對差 6.7e-7。(b) 等第一次連網。
+- `usd_twd_am` 要等爬蟲存 `data/raw/yfinance/usd_twd_1h.csv`（第 4 步）。檔案欄位是 `features.HOURLY_COLUMNS`：`start,open,high,low,close,volume`，`start` 是K棒開始時間、ISO 格式帶時區。沒有這個檔時，2024-01-22 起整欄空白，cleaning.json 和 log 記一筆警告。
+- 每天的用法：`python -m src.features --date t`，只留早於 t 的交易日，再加 t 那列（label 一定空白）。用凍結資料跑一次約 20 秒。
 - 這份的內容來自 data-collection 的交接文件（`origin/claude/data-collection` `cb03a34` 的 `memory/projects/handoff-stock-market-challenger.md`）。data-collection 之後不再更新，所以要用的部分都抄到這裡。數字除了標「推論」的，都是那邊實際量過的。
 
 ## 使用者的決定
 
 - 2026-11-06：lag 只用 lag1、lag2，不用 lag5。使用者和組員都同意。`configs/config.yaml` 的 `features.lags` 是 `[1, 2]`。
-- 2026-11-06：組員要的 12 個序列確定之前，先把 25 個序列（個股自己加 24 個市場序列）的 lag1、lag2 都產出來，之後由模型挑欄。
+- 2026-11-06：`features.csv.gz` 放全部序列（個股自己、19 個 yfinance、老師 global 5 個、`usd_twd_am`）的 lag1、lag2。`configs/config.yaml` 的 `features.model_series` 列出模型要用的序列，`train.py`、`predict.py` 只讀這些欄。之後換序列只改 config。
+- 2026-11-06：組員給的 12 個指標：SOX、台積電 ADR、NVDA、Nasdaq、S&P 500、VIX、0050、美元兌台幣、黃金、道瓊、原油、美國短期和長期債利率。對到序列是 sox、tsm_adr、nvda、teacher_ixic、teacher_gspc、teacher_vix、etf_0050、usd_twd_am、gold、dji、wti、us13w、us10y，共 13 個（債利率是兩個序列；這個對應是 Claude 整理的）。
+- 2026-11-06：模型用這 13 個序列加個股自己，各 lag1、lag2，共 28 欄（使用者選的）。沒有個股自己的特徵時，同一天 50 檔的值都一樣，模型每天只會給一個答案。
+- 凍結的 6 個股票和 ETF 檔沒有空的 adj_close（2026-11-06 數過），所以決定 3 不會讓對照測試 (a) 和舊長表不同。
+- 2026-11-06：lag2 定案用累積版。組員 notebook 寫 `the stock's own 2- and 5-day returns`，他用的 `panel_lag.csv.gz` 也是累積版。
 - 2026-11-06：交易日照下面「交易日和 i」那條規則，取代「以 `phase2Days` 為準」。
 - 2026-11-06：台幣匯率另外加一個和美股收盤同步的序列 `usd_twd_am`：台北日期 d 的值是 TWD=X 小時資料在台北 d 日 06:00 的報價（05:00 開始那根 1h 的 close）。組員要求「跟美股收盤同步、變成預測那天早上的指標」，使用者交給 Claude 決定。
   - 06:00 在美股收盤之後（冬令 05:00、夏令 04:00），07:10 的爬蟲一定抓得到，不用 08:00 後再抓。
   - 這個序列的 lag 用 t 自己的值當 cur：lag_k(t) = (x_t − x_{t 往回第 k 個台股交易日}) / 那個值。值在 t 開盤前就知道，不算用到 t 當天的資料。
-  - Yahoo 小時資料從 2024-01-22 開始，更早的列空白。舊的 `usd_twd`（日期 i 那根日K，台北 i 日 08:00）照樣保留。
+  - 取法（Claude 2026-11-06 改定，使用者看過後同意開始寫）：取「結束時間 ≤ 台北 d 日 06:00」的最後一根 1h 的 close，最多往回 4 天。平常就是 05:00 開始那根。冬令的週一，外匯市場要到紐約週日 17:00（台北週一 06:00）才開，05:00 那根不存在，會取到週五收盤，剛好和美股的 i（週五）對齊。
+  - Yahoo 小時資料從 2024-01-22 開始。使用者 2026-11-06 決定更早的日子用 d 那根日K的 close 補。那根 close 是倫敦 d 日 00:00～01:00 那一小時的報價，換成台北是夏令 07:00～08:00、冬令 08:00～09:00，都在台股開盤前，但確切是哪一刻還沒驗證（第一次連網時對 2024 年以後的冬、夏各一天）。留空白的話，組員的 LogisticRegression 和 MLP 在訓練期間整段早於 2024-01-22 的 fold 會報錯。
+  - 分界日取「config 的 2024-01-22」和「存下來的 1h 檔第一天」較晚的那個，Yahoo 的小時資料往前滾時也不會中間空一段。分界日起只用小時資料，取不到就空白，不退回日K。還沒有 1h 檔時（爬蟲第 4 步之前），分界日起整段空白，log 記一筆警告。
+  - 舊的 `usd_twd`（日期 i 那根日K，台北 i 日 08:00）照樣保留。
   - 爬蟲要多抓並保存 1h 序列，Yahoo 只給大約兩年多，所以要合併舊檔、不能整個蓋掉（第 4 步的爬蟲計畫裡處理）。
-- 還在等：
-  - lag2 的意思。2026-11-04 定的是「到 i 為止兩天的累積報酬」，另一種讀法是「i 前一天的單日報酬」。使用者已經問組員，回覆前照累積版做。
-  - 組員要哪 12 個序列（見「組員的特徵」）。
 
 ## 資料來源
 
@@ -175,6 +181,7 @@ R4 修正台股之後立刻做（Yahoo 對分割前的除息只調了約 1/n）�
 
 ## 組員的特徵
 
-- 組員的 notebook 是 `feature_switch_2.ipynb`（不在 repo），讀他自己用 `build_dataset.py` 產生的 `train_data_v2.csv`，lag 欄來自 data-collection 的長表。資料搬過來後，他的腳本要改讀新位置。
-- notebook 裡的集合：`us_tech`（sox、tsm_adr、nvda、teacher_ixic 的 lag2）、`key_lag2`（再加 teacher_gspc、teacher_vix、etf_0050、usd_twd，共 8 個）、`all`（24 個市場序列的 lag2、lag5）、另外 `stock_ret_lag2`、`stock_ret_lag5`。
-- 組員說要 12 個序列 × lag1、lag2。2026-11-06 傳給組員確認的猜測：`key_lag2` 的 8 個，加 `XGB_TOP20` 裡排最前、又不在 key_lag2 的 gdaxi、n225、etf_0055、stoxx50e。備選是 gold。還不知道 `stock_ret` 算不算在這 24 欄裡。
+- 組員的 notebook：`notebooks/feature_switch.ipynb`（使用者放進來的，沒進 Git）。讀他自己用 `build_dataset.py` 產生的 `train_data_v2.csv`，lag 欄來自 data-collection 的長表。資料搬過來後，他的腳本要改讀新位置。
+- 他的 36 個特徵裡，技術指標 9、老師原始欄位 14、前一天報酬 3 是他自己從老師資料算的；從 GitHub 拿的只有 lag 欄。
+- notebook 裡的集合：`us_tech`（sox、tsm_adr、nvda、teacher_ixic 的 lag2）、`key_lag2`（us_tech 的 4 個再加 teacher_gspc、teacher_vix、etf_0050、usd_twd，共 8 個，目前選這個）、`all`（24 個市場序列的 lag2、lag5）、另外 `USE_STOCK_LAG` 開關的 `stock_ret_lag2`、`stock_ret_lag5`。
+- 2026-11-06 組員給的 12 個指標見「使用者的決定」。

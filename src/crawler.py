@@ -430,21 +430,35 @@ def stock_rows(parsed: dict) -> dict:
             for rel, rows in parsed.items() if rel.startswith("market/")}
 
 
+def row_filled(row) -> bool:
+    """老師個股的一列填好了：y 是 0 或 1，還原開盤價、收盤價都 > 0。法人欄的 -1 不看。"""
+    if not row:
+        return False
+    y, open_, close = to_float(row[COL_Y]), to_float(row[COL_OPEN]), to_float(row[COL_CLOSE])
+    return y in (0.0, 1.0) and open_ is not None and open_ > 0 and close is not None and close > 0
+
+
 def unfilled_stocks(stocks: dict, d: str) -> list:
-    """d 那天沒填好的代號：沒有那列、y 不是 0 或 1、或還原開盤價、收盤價不是 > 0。法人欄的 -1 不看。"""
-    out = []
-    for code, rows in stocks.items():
-        row = rows.get(d)
-        y, open_, close = ((to_float(row[COL_Y]), to_float(row[COL_OPEN]), to_float(row[COL_CLOSE]))
-                           if row else (None, None, None))
-        if y not in (0.0, 1.0) or not open_ or open_ <= 0 or not close or close <= 0:
-            out.append(code)
-    return sorted(out)
+    """d 那天沒填好的代號：沒有那列，或那列沒填好（見 row_filled）。"""
+    return sorted(code for code, rows in stocks.items() if not row_filled(rows.get(d)))
 
 
 def day_filled(stocks: dict, d: str, min_stocks: int) -> bool:
     """d 那天至少 min_stocks 檔填好。個別股票停牌（沒有列）不會讓整天算沒填；10-23 那種整天 -1 會。"""
     return bool(stocks) and len(stocks) - len(unfilled_stocks(stocks, d)) >= min_stocks
+
+
+def trading_days(stocks: dict, min_stocks: int, closed_days=()) -> list:
+    """台股交易日：老師個股資料裡至少 min_stocks 檔填好的日子，依日期排序。爬蟲和 features.py 都用這個。
+
+    還是 -1 的日子（休市的 10-23、當天早上的 t）不算。closed_days 是 config 的 crawler.closed_days：
+    Live 有建列但台股休市的日子。這些日子出現任何一檔填好的列，代表當初的判斷錯了，丟 CrawlerError。
+    """
+    for d in closed_days:
+        if any(row_filled(rows.get(d)) for rows in stocks.values()):
+            raise CrawlerError(f"休市日 {d} 出現填好的資料，和 config 的 closed_days 矛盾")
+    dates = sorted({d for rows in stocks.values() for d in rows})
+    return [d for d in dates if day_filled(stocks, d, min_stocks)]
 
 
 def live_check(stocks: dict, t: str, phase2_days, min_stocks: int) -> dict:

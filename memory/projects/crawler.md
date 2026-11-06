@@ -201,6 +201,8 @@
 - 2026-11-06 data-collection 交接加的：
   - `run.http_requests`：沒有快取時約 40，有快取約 20。78 代表 cookie 沒存起來。
   - TWD=X：07:10 存一份 1d 和最近 5 天的 1h，10:00 左右和隔天早上各再抓一次，看 i 那根的 close 三次是否相同、是否等於倫敦 i 日 00:00 那一小時的 close。
+  - `usd_twd_am` 補值用的日K：2024 年以後冬令、夏令各挑一天，把日K close 和台北 07:00、08:00 開始的 1h 比，確認它是哪一刻的報價（2026-11-06 加）。
+  - 冬令週一 05:00（台北）那根 1h 是不是真的不存在（2026-11-06 加）。
   - 07:10 時 Live t 那列的 `^VIX` 是不是 `-1`。
   - `git diff data/raw/teacher` 要是空的；`data/raw/teacher_live` 只多新的列。
   - 跑完做 `features.py` 的對照測試 (b)（見 `memory/projects/features.md`）。
@@ -214,6 +216,10 @@
 5. 1,660 天裡有 282 天（17.0%）至少一個序列沒有 i 那根，多半是外國放假。現在每次都等 60 秒重抓、標 `stale`、回傳 3。最近會遇到 t = 2026-11-24 缺 N225、t = 2026-11-27 缺 9 個美國相關序列。建議只有 `no_bar_i` 時不設 `stale`，另記 `run.no_bar_i`，回傳 3 留給真的失敗。由使用者決定。
 6. `run.http_requests` 只算 Yahoo。建議改名 `yahoo_requests`，另加 `site_requests`。
 7. 過時的註解（`config.yaml` 的期貨防線、`lags`）2026-11-06 已改。
+
+寫 `features.py` 時多出來、也要放進第 4 步計畫的事（2026-11-06）：
+- 交易日規則已經寫成 `crawler.trading_days()`（和 `row_filled()`），`features.py` 在用。`live_check` 還是舊的「`phase2Days` 早於 t 的最後一天」，要改成呼叫 `trading_days()`，並讀 `crawler.closed_days`。
+- 匯率 1h：每次抓 TWD=X 的 1h，和舊的 `data/raw/yfinance/usd_twd_1h.csv` 合併（Yahoo 只給大約兩年多，不能整個蓋掉），只留結束時間早於爬蟲開始時間的K棒。欄位照 `features.HOURLY_COLUMNS`。
 
 ### 爬蟲要跑多久（data-collection 2026-11-06 量的）
 

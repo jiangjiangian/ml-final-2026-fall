@@ -463,6 +463,10 @@ def fake_repo(tmp_path, monkeypatch, days):
     write_csv(teacher / "global" / "global_data.csv", crawler.GLOBAL_COLUMNS,
               [[d, str(20 + j), "1", "2", "3", "4", "5"] for j, d in enumerate(days)])
     (teacher / "info.json").write_text(json.dumps({"Top50@Y": ["A"], "Top100@Y": ["A", "B"]}))
+    yf = tmp_path / "data" / "raw" / "yfinance"
+    write_csv(yf / "usd_twd.csv", crawler.YF_COLUMNS, [[d] + [str(30.0 + j)] * 5 + ["0"] for j, d in enumerate(days)])
+    write_csv(yf / "usd_twd_1h.csv", crawler.HOURLY_COLUMNS,
+              [[f"{d}T05:00:00+08:00"] + [str(31.0 + j)] * 4 + ["0"] for j, d in enumerate(days)])
     cfg = small_cfg()
     monkeypatch.setattr(utils, "ROOT", tmp_path)
     monkeypatch.setattr(utils, "load_config", lambda *a: cfg)
@@ -476,6 +480,7 @@ def test_main_writes_months_and_manifest(tmp_path, monkeypatch):
     processed = tmp_path / "data" / "processed"
     info = json.loads((processed / "manifest.json").read_text())
     assert info["months"] == ["2025-10", "2025-11"] and info["last_date"] == "2025-11-05"
+    assert info["warnings"] == []
     assert info["model_columns"] == features.model_columns(cfg)
     back = features.load_features(processed)
     expected = features.build_features(features.load_raw(cfg), cfg, "2025-11-05")
@@ -496,3 +501,16 @@ def test_main_takes_t_from_crawler_manifest(tmp_path, monkeypatch):
     features.main([])
     info = json.loads((tmp_path / "data" / "processed" / "manifest.json").read_text())
     assert info["target_date"] == info["last_date"] == "2025-11-05"
+
+
+def test_missing_input_does_not_freeze_old_months(tmp_path, monkeypatch):
+    """yfinance 檔不見（例如還沒爬過就先跑 features）：只寫最後兩個月，舊月份不建立，manifest 只列有檔的月份。"""
+    fake_repo(tmp_path, monkeypatch, ["2025-08-29", "2025-09-30", "2025-10-31", "2025-11-03"])
+    (tmp_path / "data" / "raw" / "yfinance" / "usd_twd.csv").unlink()
+    features.main(["--date", "2025-11-04"])
+    processed = tmp_path / "data" / "processed"
+    assert sorted(p.name for p in (processed / "features").iterdir()) == ["2025-10.csv.gz", "2025-11.csv.gz"]
+    info = json.loads((processed / "manifest.json").read_text())
+    assert info["months"] == ["2025-10", "2025-11"] and info["warnings"]
+    with pytest.raises(features.FeatureError, match="rebuild"):
+        features.main(["--date", "2025-11-04", "--rebuild"])

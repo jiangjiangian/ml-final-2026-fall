@@ -211,6 +211,8 @@
   - 07:10 時 Live t 那列的 `^VIX` 是不是 `-1`。
   - `git diff data/raw/teacher` 要是空的；`data/raw/teacher_live` 只多新的列。
   - 跑完做 `features.py` 的對照測試 (b)（見 `memory/projects/features.md`）。
+  - 1h 第一次用 `period="730d"`、`prepost=True` 抓（`prepost=True` 還沒對真的 Yahoo 試過）：第一根約在 2024-01，平日一天約 24 根，`has_value_t` 是 true（2026-11-06 加）。
+  - 跑完 features 後，`data/processed/manifest.json` 的 `warnings` 要是空的，才 commit `data/processed/`（2026-11-06 加）。
 
 ### data-collection 交接：要調整的地方（2026-11-06 都做完了）
 

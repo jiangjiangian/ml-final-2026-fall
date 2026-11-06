@@ -496,12 +496,15 @@ def to_csv_gz(df: pd.DataFrame) -> bytes:
     return gzip.compress(text.encode("utf-8"), compresslevel=6, mtime=0)
 
 
-def write_months(df: pd.DataFrame, out_dir: Path, rewrite: int, rebuild: bool = False) -> list:
+def write_months(df: pd.DataFrame, out_dir: Path, rewrite: int, rebuild: bool = False, complete: bool = True) -> list:
     """照月份寫 out_dir/features/YYYY-MM.csv.gz，回傳真的寫了的月份。
 
     最後 rewrite 個月、還沒有檔的月份、rebuild 時的所有月份才寫；內容和舊檔一樣就不寫（mtime 固定，位元組會一樣）。
-    rebuild 時刪掉 df 裡沒有的月份。
+    rebuild 時刪掉 df 裡沒有的月份。complete 是 False（有 yfinance 檔不見，某些欄整欄空白）時只寫最後 rewrite
+    個月：過去的月份寫了就不再動，不能讓空白欄凍在裡面。
     """
+    if rebuild and not complete:
+        raise FeatureError("有輸入檔不見，不能 --rebuild（過去的月份會凍住空白欄）")
     month_dir = out_dir / "features"
     months = df["date"].str[:7]
     all_months = sorted(months.unique())
@@ -509,7 +512,7 @@ def write_months(df: pd.DataFrame, out_dir: Path, rewrite: int, rebuild: bool = 
     written = []
     for m in all_months:
         path = month_dir / f"{m}.csv.gz"
-        if not (rebuild or m in recent or not path.exists()):
+        if not (rebuild or m in recent or (complete and not path.exists())):
             continue
         payload = to_csv_gz(df[months == m])
         if not path.exists() or path.read_bytes() != payload:
@@ -563,12 +566,17 @@ def main(argv=None) -> int:
         stored = None
     if stored and last < stored and not args.rebuild:
         raise FeatureError(f"特徵表已經到 {stored}，這次只到 {last}；要用舊的 t 覆蓋請加 --rebuild")
-    written = write_months(df, out_dir, cfg["features"]["rewrite_months"], args.rebuild)
+    complete = not raw["warnings"]
+    written = write_months(df, out_dir, cfg["features"]["rewrite_months"], args.rebuild, complete)
+    if not complete:
+        log.warning("有輸入檔不見，只更新最後 %d 個月，沒有檔的舊月份先不建立", cfg["features"]["rewrite_months"])
     counts = {}
     for r in raw["cleaning"]:
         counts[r["rule"]] = counts.get(r["rule"], 0) + 1
     report = {"target_date": t, "last_date": last, "rows": len(df), "dates": int(df["date"].nunique()),
-              "months": sorted(df["date"].str[:7].unique()), "model_columns": model_columns(cfg),
+              "months": sorted(m for m in df["date"].str[:7].unique()
+                               if (out_dir / "features" / f"{m}.csv.gz").exists()),
+              "model_columns": model_columns(cfg),
               "cleaning_counts": counts, "warnings": raw["warnings"], "cleaning": raw["cleaning"]}
     crawler.write_atomic(out_dir / "manifest.json", (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode())
     log.info("特徵表：%d 列、%d 天，最後一天 %s；寫了 %s；清理紀錄 %s", len(df), report["dates"], last,

@@ -22,6 +22,16 @@
 - 這個分支把 `submit.enabled` 改成 `true` 之前，要先跟使用者確認舊排程已經停了。不然兩套程式會搶著交答案、用掉上傳次數。
 - `system-completion`、`dev`、`deep-research` 使用者 2026-11-05 已在 GitHub 刪掉；`live-data` 還在。
 
+## 每天的資料誰 commit、push
+
+- 現在沒有任何步驟會 commit 或 push `data/raw/`、`data/processed/`。README 給組員的網址要等有人 push 之後才讀得到。
+- 排程或 `run_daily.py` 要在 features 之後 commit、push 這兩個資料夾（只加這兩個路徑），寫到排程那一步再問。
+
+## 組員的腳本要改讀新資料
+
+- 組員的 `build_dataset.py` 和 Kaggle 的 `notebooks/kaggle/data/twfeat.py` 還在讀 data-collection 的 `panel_lag.csv.gz`（欄名 `ticker`、lag2 和 lag5、日K的 `usd_twd`）。
+- 要改成 README 的網址，欄名是 `stock_id`、lag1 和 lag2、`usd_twd_am`，模型欄看 manifest 的 `model_columns`。第一次連網試跑、push 特徵表之後再通知組員。
+
 ## 正式流程用哪位組員的帳號
 
 還沒決定。帳號密碼只放 `.env` 或執行環境的 secret。

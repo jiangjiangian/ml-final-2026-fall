@@ -6,6 +6,7 @@
 - `usd_twd_am` 要等爬蟲存 `data/raw/yfinance/usd_twd_1h.csv`（第 4 步）。檔案欄位是 `features.HOURLY_COLUMNS`：`start,open,high,low,close,volume`，`start` 是K棒開始時間、ISO 格式帶時區。沒有這個檔時，2024-01-22 起整欄空白，cleaning.json 和 log 記一筆警告。
 - 每天的用法：`python -m src.features --date t`，只留早於 t 的交易日，再加 t 那列（label 一定空白）。不給 `--date` 時用爬蟲 `data/raw/manifest.json` 的 `target_date`。跑一次約 20 秒。
 - 2026-11-06 使用者決定輸出一個月一檔，進 Git，組員用網址讀（README 有範例）：`data/processed/features/YYYY-MM.csv.gz` 加 `data/processed/manifest.json`（months、model_columns、last_date、清理紀錄）。每天只重寫最後兩個月（`features.rewrite_months`），內容沒變不寫，repo 每年約多 10 MB。整張壓成一個 .gz 的話每天都是新的 7 MB，Git 存不了差異。
+- 有 yfinance 檔不見時（`warnings` 不是空的）只寫最後兩個月，沒有檔的舊月份先不建立，不能 `--rebuild`：過去的月份寫了就不再動，不能讓空白欄凍在裡面。
 - t 比 manifest 的 `last_date` 早時丟 `FeatureError`，不蓋掉較新的月份；特徵定義改了用 `--rebuild` 全部重寫。`load_features()` 讀回全部月份。
 - 這份的內容來自 data-collection 的交接文件（`origin/claude/data-collection` `cb03a34` 的 `memory/projects/handoff-stock-market-challenger.md`）。data-collection 之後不再更新，所以要用的部分都抄到這裡。數字除了標「推論」的，都是那邊實際量過的。
 

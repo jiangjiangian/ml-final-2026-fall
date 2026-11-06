@@ -40,8 +40,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   │       ├── extra/                 清理過的 yfinance 19 個序列和 manifest.json（清理紀錄）
 │   │       ├── yfinance_raw_0820473/  還沒清理的 Yahoo 原樣（到 2026-08-31），測清理用
 │   │       ├── teacher_live/          長表用的那份 Live（eea89fce，9/1～11/5）
-│   │       ├── features/              market_features.csv
-│   │       ├── transform/             lag2、lag5 和長表 panel_lag.csv.gz（2020-01-02～2026-11-04）
+│   │       ├── transform/             長表 panel_lag.csv.gz（2020-01-02～2026-11-04），對照測試 (a) 的標準答案
 │   │       └── schema.json            所有欄位的定義和驗證紀錄
 │   └── submission/            每天的產出
 │       ├── submission_YYYY-MM-DD.csv   要上傳的 0/1

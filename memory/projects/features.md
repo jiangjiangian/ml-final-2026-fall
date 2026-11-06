@@ -27,7 +27,7 @@
 
 ## 資料來源
 
-2026-11-06 從 data-collection `a806959` 搬來（這個分支的 commit `Move data-collection's data/ into this branch`），commit 後 8 個 tree hash 都核對過：
+2026-11-06 從 data-collection `a806959` 搬來（這個分支的 commit `Move data-collection's data/ into this branch`），commit 後 8 個 tree hash 都核對過。2026-11-06 使用者決定刪掉沒有人讀的 `features/` 和 `transform/lag2`、`transform/lag5`（約 15 MB，和長表重複），原檔在 data-collection `a806959`：
 
 | 來源 | 這個分支 | tree hash |
 |---|---|---|
@@ -35,8 +35,7 @@
 | `a806959:data/teacher_live/` | `data/raw/teacher_live/` | `50225f19…` |
 | `a806959:data/teacher_live/` | `data/reference/data-collection/teacher_live/` | `50225f19…` |
 | `a806959:data/extra/` | `data/reference/data-collection/extra/` | `281446bd…` |
-| `a806959:data/features/` | `data/reference/data-collection/features/` | `08b5cb3e…` |
-| `a806959:data/transform/` | `data/reference/data-collection/transform/` | `9747c7bc…` |
+| `a806959:data/transform/panel_lag.csv.gz` | `data/reference/data-collection/transform/panel_lag.csv.gz` | blob `b8b905c5…` |
 | `a806959:schema.json` | `data/reference/data-collection/schema.json` | blob `19b27071…` |
 | `0820473:data/extra/yfinance/` | `data/reference/data-collection/yfinance_raw_0820473/` | `d2257778…` |
 

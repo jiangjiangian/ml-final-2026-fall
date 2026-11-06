@@ -200,6 +200,46 @@ def live_fake(zip_bytes, login=None):
     })
 
 
+TAIFEX_PATH = "/cht/3/futDataDown"
+
+
+def tx_line(day, session, close, expiry="202611", contract="TX"):
+    """期交所 CSV 的一列（20 格，最後一格空的，和真的一樣）。close 是 None 時寫 '-'。"""
+    c = "-" if close is None else str(close)
+    settle = c if session == "一般" else "-"
+    cells = [day.replace("-", "/"), contract, f"{expiry}  ", c, c, c, c, "1", "0.01%", "10", settle,
+             "100" if session == "一般" else "-", c, c, "50000", "20000", "", session, ""]
+    return ",".join(cells) + ","
+
+
+def tx_days(start="2026-10-01", end="2026-11-30"):
+    d, out = datetime.fromisoformat(start), []
+    while d <= datetime.fromisoformat(end):
+        if d.weekday() < 5:
+            out.append(d.date().isoformat())
+        d += timedelta(days=1)
+    return out
+
+
+def taifex_body(lines) -> bytes:
+    return ("\r\n".join([",".join(crawler.TAIFEX_COLUMNS)] + list(lines)) + "\r\n").encode("cp950")
+
+
+def taifex_fake(days=None, skip=(), extra=()):
+    """假的期交所：每個平日都有日盤和夜盤，只回請求區間裡的列。skip 是不要出現的 (日期, 時段)。"""
+    days = tx_days() if days is None else days
+    lines = [(d, tx_line(d, s, 40000 + j)) for j, d in enumerate(days) for s in ("一般", "盤後") if (d, s) not in skip]
+    lines += [(line.split(",")[0].replace("/", "-"), line) for line in extra]
+
+    def route(kwargs):
+        form = kwargs["data"]
+        a, b = (form[k].replace("/", "-") for k in ("queryStartDate", "queryEndDate"))
+        assert form["commodity_id"] == "TX" and form["down_type"] == "1"
+        return FakeResp(200, taifex_body(line for d, line in lines if a <= d <= b))
+
+    return FakeHttp({("POST", TAIFEX_PATH): route})
+
+
 class SequenceHttp:
     """依序回 responses 的假 requests.Session，記下每個請求的方法、網址和 kwargs。"""
 
@@ -847,13 +887,15 @@ def test_yfinance_failure_near_deadline_does_not_retry(tmp_path, cfg):
 
 
 def crawl(tmp_path, cfg, clock, *, t="2026-11-17", daily=True, course=None, live=None, yahoo=None, secrets=SECRETS,
-          fallback=None):
+          fallback=None, taifex=None):
     run = make_run(tmp_path, cfg, clock, t=t, daily=daily)
     course = crawler.course_client(cfg, clock.sleep, course or course_fake())
     live = crawler.live_client(cfg, clock.sleep, live or live_fake(make_zip(live_members(LIVE_DATES, {"2026-11-17"}))))
     if fallback is not None:
         live = [live, crawler.live_client(cfg, clock.sleep, fallback, fallback=True)]
-    code = crawler.crawl(run, secrets, course=course, live=live, yf_session=yahoo or default_yahoo(clock))
+    taifex = crawler.taifex_client(cfg, clock.sleep, taifex or taifex_fake())
+    code = crawler.crawl(run, secrets, course=course, live=live, yf_session=yahoo or default_yahoo(clock),
+                         taifex=taifex)
     return code, run
 
 
@@ -1218,4 +1260,176 @@ def test_live_both_entries_fail(tmp_path, cfg):
     with pytest.raises(crawler.CrawlerError):
         crawl(tmp_path, cfg, clock, live=live_fake(b"", login=FakeResp(200, b"<p>wrong</p>")), fallback=fallback_only)
     assert cfg["crawler"]["live_wait_seconds"] not in clock.sleeps   # 兩個都是金鑰被拒，不會自己好，不重抓
+
+
+
+
+# ---------------------------------------------------------------- 台指期（期交所）
+
+
+def test_parse_taifex_keeps_monthly_contracts():
+    body = taifex_body([tx_line("2026-11-05", "一般", 41915), tx_line("2026-11-05", "盤後", 43404),
+                        tx_line("2026-11-05", "一般", 30, expiry="202611/202612"),   # 價差單
+                        tx_line("2026-11-05", "一般", 900, contract="MTX"),
+                        tx_line("2026-11-06", "盤後", None, expiry="202703")])
+    rows = crawler.parse_taifex(body, "TX")
+    assert [(r[0], r[2], r[6], r[17]) for r in rows] == [
+        ("2026-11-05", "202611", "41915", "一般"), ("2026-11-05", "202611", "43404", "盤後"),
+        ("2026-11-06", "202703", "-", "盤後")]
+    assert all(len(r) == len(crawler.TAIFEX_COLUMNS) for r in rows)
+    assert crawler.parse_taifex(taifex_body([]), "TX") == []   # 沒有交易的區間只有表頭
+
+
+@pytest.mark.parametrize("body", ['<script>alert("查詢區間不可超過一個月")</script>'.encode("utf-8"),
+                                  "<html>查詢區間</html>".encode("cp950"), b"", b"x" * 200_000,
+                                  taifex_body(['2026/11/05,TX,"202611']) + b"y" * 200_000])
+def test_parse_taifex_rejects_pages_that_are_not_csv(body):
+    with pytest.raises(crawler.CrawlerError):
+        crawler.parse_taifex(body, "TX")
+
+
+def test_taifex_chunks_never_cross_a_month():
+    from datetime import date
+    chunks = crawler.taifex_chunks(date(2020, 1, 1), date(2020, 3, 5))
+    assert chunks == [(date(2020, 1, 1), date(2020, 1, 31)), (date(2020, 2, 1), date(2020, 2, 29)),
+                      (date(2020, 3, 1), date(2020, 3, 5))]
+    assert len(crawler.taifex_chunks(date(2020, 1, 1), date(2026, 11, 17))) == 83
+
+
+def test_taifex_first_run_backfills_month_by_month(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    fake = taifex_fake()
+    code, run = crawl(tmp_path, cfg, clock, taifex=fake)
+    assert code == 0 and run.no_bar_i == []
+    assert len(fake.calls) == 83 and clock.sleeps.count(cfg["tx_futures"]["taifex"]["min_interval_seconds"]) >= 82
+    entry = json.loads((run.raw_dir / "manifest.json").read_text())["taifex"]
+    assert entry["status"] == "ok" and entry["requests"] == 83 and entry["has_day_i"] and entry["has_night_t"]
+    assert entry["file"] == "taifex/tx.csv" and entry["start"] == "2020-01-01"
+    assert entry["dropped"] == {"day_on_or_after_t": 1, "night_after_t": 0, "night_t_not_ready": 0}   # 只抓到今天
+    rows = crawler.read_taifex(run.raw_dir / "taifex" / "tx.csv")
+    assert max(r[0] for r in rows if r[17] == "一般") == "2026-11-16"   # t 當天的日盤不存
+    assert max(r[0] for r in rows if r[17] == "盤後") == "2026-11-17"   # t 的夜盤（05:00 收盤）要存
+    text = (run.raw_dir / "taifex" / "tx.csv").read_text(encoding="utf-8")
+    assert text.startswith("交易日期,契約,") and "2026-11-16,TX,202611," in text
+
+
+def test_taifex_keep_drops_what_is_not_known_before_the_open():
+    rows = crawler.parse_taifex(taifex_body([tx_line(d, s, 1) for d in ("2026-11-16", "2026-11-17", "2026-11-18")
+                                             for s in ("一般", "盤後")]), "TX")
+    kept, dropped = crawler.taifex_keep(rows, "2026-11-17", at("2026-11-17", "05:20"), "05:15")
+    assert [(r[0], r[17]) for r in kept] == [("2026-11-16", "一般"), ("2026-11-16", "盤後"), ("2026-11-17", "盤後")]
+    assert dropped == {"day_on_or_after_t": 2, "night_after_t": 1, "night_t_not_ready": 0}
+    kept, dropped = crawler.taifex_keep(rows, "2026-11-17", at("2026-11-17", "05:10"), "05:15")
+    assert ("2026-11-17", "盤後") not in [(r[0], r[17]) for r in kept] and dropped["night_t_not_ready"] == 1
+
+
+def test_taifex_second_run_only_refetches_the_last_week(tmp_path, cfg):
+    crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")))
+    fake = taifex_fake()
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-18", "07:10")), t="2026-11-18", taifex=fake,
+                      live=live_fake(make_zip(live_members(LIVE_DATES + ["2026-11-18"], {"2026-11-18"}))))
+    entry = json.loads((run.raw_dir / "manifest.json").read_text())["taifex"]
+    assert code == 0 and len(fake.calls) == 1 and entry["start"] == "2026-11-10"
+    assert entry["has_day_i"] and entry["has_night_t"]
+
+
+def test_taifex_night_row_of_t_waits_until_it_closes(tmp_path, cfg):
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "04:30")), daily=False)
+    entry = json.loads((run.raw_dir / "manifest.json").read_text())["taifex"]
+    assert entry["dropped"]["night_t_not_ready"] == 1 and not entry["has_night_t"]
+    assert "tx_night" in run.no_bar_i and "tx_day" not in run.no_bar_i
+    assert code == 0   # 沒有那根不算失敗
+
+
+def test_taifex_failure_keeps_old_file(tmp_path, cfg):
+    crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")))
+    path = tmp_path / "raw" / "taifex" / "tx.csv"
+    before = path.read_bytes()
+    clock = Clock(at("2026-11-17", "07:10"))
+    down = FakeHttp({("POST", TAIFEX_PATH): FakeResp(503)})
+    code, run = crawl(tmp_path, cfg, clock, taifex=down)
+    entry = json.loads((run.raw_dir / "manifest.json").read_text())["taifex"]
+    assert code == 3 and entry["status"] == "failed" and entry["kept_previous_file"]
+    assert path.read_bytes() == before and entry["has_night_t"]   # 舊檔裡已經有 t 的夜盤
+    assert len(down.calls) == 1 + cfg["tx_futures"]["taifex"]["retries"]
+    for wait in cfg["tx_futures"]["taifex"]["retry_wait_seconds"]:
+        assert wait in clock.sleeps
+
+
+def test_taifex_returning_fewer_days_than_the_old_file_is_a_failure(tmp_path, cfg):
+    crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")))
+    path = tmp_path / "raw" / "taifex" / "tx.csv"
+    before = path.read_bytes()
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")),
+                      taifex=taifex_fake(skip={("2026-11-12", "一般"), ("2026-11-12", "盤後")}))
+    entry = json.loads((run.raw_dir / "manifest.json").read_text())["taifex"]
+    assert code == 3 and entry["status"] == "failed" and "比舊檔少" in entry["error"]
+    assert path.read_bytes() == before
+
+
+def test_taifex_missing_night_of_t_rechecks_once(tmp_path, cfg):
+    crawl(tmp_path, cfg, Clock(at("2026-11-16", "07:10")), t="2026-11-16",
+          live=live_fake(make_zip(live_members(LIVE_DATES[:-1], {"2026-11-16"}))))
+    late = taifex_fake(skip={("2026-11-17", "盤後")})
+    ready = taifex_fake()
+    calls = []
+
+    def route(kwargs):
+        calls.append(kwargs)
+        return (late if len(calls) == 1 else ready).routes[("POST", TAIFEX_PATH)](kwargs)
+
+    clock = Clock(at("2026-11-17", "07:10"))
+    code, run = crawl(tmp_path, cfg, clock, taifex=FakeHttp({("POST", TAIFEX_PATH): route}))
+    entry = json.loads((run.raw_dir / "manifest.json").read_text())["taifex"]
+    assert code == 0 and entry["rechecked"] and entry["has_night_t"] and len(calls) == 2
+    assert cfg["yfinance"]["recheck_wait_seconds"] in clock.sleeps
+
+
+def test_taifex_after_deadline_tries_once(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "08:31"))
+    down = FakeHttp({("POST", TAIFEX_PATH): FakeResp(503)})
+    code, run = crawl(tmp_path, cfg, clock, taifex=down)
+    entry = json.loads((run.raw_dir / "manifest.json").read_text())["taifex"]
+    assert code == 3 and entry["status"] == "failed" and len(down.calls) == 1
+
+
+def test_tx_source_gate(tmp_path, cfg):
+    cfg["tx_futures"]["source"] = "yfinance"
+    course = course_fake()
+    with pytest.raises(crawler.CrawlerError, match="沒有填代號"):
+        crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")), course=course)
+    assert course.calls == []   # 送出任何請求前就停下
+    cfg["tx_futures"]["source"] = "nope"
+    with pytest.raises(crawler.CrawlerError, match="只能是"):
+        crawler.tx_source(cfg)
+    cfg["tx_futures"]["source"] = "yfinance"
+    cfg["tx_futures"]["yfinance"] = {"day": "TXF=F", "night": None}
+    assert crawler.yf_series(cfg) == {**cfg["yfinance"]["tickers"], "tx_day": "TXF=F"}
+    cfg["tx_futures"]["yfinance"] = {"day": "TXF=F", "night": "TXN=F"}
+    with pytest.raises(crawler.CrawlerError, match="夜盤"):
+        crawler.tx_source(cfg)
+    cfg["tx_futures"]["yfinance"] = {"day": "TXF=F", "night": None}
+    cfg["tx_futures"]["source"] = "taifex"
+    assert crawler.yf_series(cfg) == cfg["yfinance"]["tickers"]
+
+
+def test_broken_old_taifex_file_fails_only_that_step(tmp_path, cfg):
+    path = tmp_path / "raw" / "taifex" / "tx.csv"
+    path.parent.mkdir(parents=True)
+    path.write_text(",".join(crawler.TAIFEX_COLUMNS) + "\n2026-11-12,TX,202611\n", encoding="utf-8")
+    before = path.read_bytes()
+    fake = taifex_fake()
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")), taifex=fake)
+    manifest = json.loads((run.raw_dir / "manifest.json").read_text())
+    entry = manifest["taifex"]
+    assert code == 3 and entry["status"] == "failed" and "壞掉" in entry["error"] and fake.calls == []
+    assert path.read_bytes() == before and manifest["yfinance"]["sox"]["status"] == "ok"
+    assert {"tx_day", "tx_night"} <= set(run.no_bar_i)
+
+
+def test_taifex_without_prev_day_does_not_count_as_missing(tmp_path, cfg):
+    secrets = {k: v for k, v in SECRETS.items() if k != "COURSE_LIVE_KEY"}
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")), daily=False, secrets=secrets)
+    entry = json.loads((run.raw_dir / "manifest.json").read_text())["taifex"]
+    assert entry["has_day_i"] is None and entry["has_night_t"] and "tx_day" not in run.no_bar_i
 

@@ -8,6 +8,9 @@
     data/raw/yfinance/<名稱>.csv   19 個額外指標各一檔：date, open, high, low, close, adj_close, volume
     data/raw/yfinance/usd_twd_1h.csv  TWD=X 的 1 小時K棒（yfinance.hourly）：start, open, high, low, close, volume，
                                    start 是K棒開始時間（台北，ISO 帶時區）。每次和舊檔合併，Yahoo 只給大約兩年多
+    data/raw/taifex/tx.csv         台指期（tx_futures.source 是 taifex 時）：期交所「期貨每日交易行情」的 TX 列，
+                                   欄位和期交所一樣（TAIFEX_COLUMNS），只留單月合約，日期改成 YYYY-MM-DD、去掉格子
+                                   前後的空白、存成 UTF-8。每次和舊檔合併
     data/raw/manifest.json         最近一次執行的紀錄：每個檔案的 sha256、筆數、狀態、錯誤類別
 
 兩種模式：
@@ -45,8 +48,19 @@ yfinance：
     - yfinance 1.7.0 讀到壞掉的 cookie 快取（沒有 A3）會丟 KeyError，而且每次都壞。setup_yfinance 把它包起來，
       讀不懂就當成沒有快取，重新拿一個。
 
+台指期（tx_futures，使用者 2026-11-06 加）：
+    - 開關 tx_futures.source：taifex（預設，期交所網站下載）或 yfinance（用 tx_futures.yfinance 填的代號，當成
+      yfinance 序列 tx_day 抓）。切到 yfinance 但沒填代號，或填了夜盤代號（還沒查證 Yahoo 怎麼標夜盤的日期，
+      而且 t 那根會被「日期 < t」丟掉），一開始就丟 CrawlerError。
+    - 期交所一次最多查一個月，所以照月份切成好幾個請求，每個請求至少間隔 tx_futures.taifex.min_interval_seconds。
+      第一次從 data.start 抓起（約 83 個請求），之後從舊檔最後一天往前 overlap_days 天抓到今天。
+    - 交易時段「一般」是日盤（08:45～13:45），「盤後」是夜盤。標 d 日的盤後列是 d 的前一個營業日 15:00 開始、隔天
+      05:00 收盤的夜盤（平常就是 d 日 05:00；連假後那天標的是連假前最後一晚的夜盤）。
+      只存 t 之前的日盤；夜盤存到 t 那列為止，而且 t 那列要等到 t 當天 night_ready（05:15）以後才存。
+    - 期交所失敗：舊檔留著，manifest 記 failed，回傳 3，流程繼續。沒有 i 的日盤或 t 的夜盤就列在 run.no_bar_i。
+
 截止（crawler.deadline，08:30）：
-    - 過了截止就不再等待、不再重試，每一步只試一次；yfinance 還沒抓的序列直接沿用舊檔。
+    - 過了截止就不再等待、不再重試，每一步只試一次；yfinance 還沒抓的序列直接沿用舊檔。期交所只試一次。
     - 課程網站和 Live 的每個請求，從送出到下載完最多 course_site.total_timeout_seconds 秒。
 
 失敗時：
@@ -111,6 +125,11 @@ GLOBAL_COLUMNS = ("date", "^VIX", "^IXIC", "^GSPC", "^TWII", "^KS11", "TX_OI")
 YF_COLUMNS = ("date", "open", "high", "low", "close", "adj_close", "volume")
 HOURLY_COLUMNS = ("start", "open", "high", "low", "close", "volume")   # start：K棒開始時間，ISO 格式帶時區
 HOURLY_BAR = timedelta(hours=1)
+TAIFEX_COLUMNS = ("交易日期", "契約", "到期月份(週別)", "開盤價", "最高價", "最低價", "收盤價", "漲跌價", "漲跌%", "成交量",
+                  "結算價", "未沖銷契約數", "最後最佳買價", "最後最佳賣價", "歷史最高價", "歷史最低價",
+                  "是否因訊息面暫停交易", "交易時段", "價差對單式委託成交量")
+TAIFEX_SESSIONS = {"一般": "day", "盤後": "night"}   # 日盤、夜盤
+TX_SERIES = {"day": "tx_day", "night": "tx_night"}   # 台指期在特徵表和 run.no_bar_i 裡的序列名稱
 COL_CLOSE, COL_OPEN, COL_Y = STOCK_COLUMNS.index("etl:adj_close"), STOCK_COLUMNS.index("etl:adj_open"), STOCK_COLUMNS.index("y")
 
 
@@ -970,8 +989,10 @@ def has_bar(rows: list, d: str, need_volume: bool) -> bool:
 
 
 def download_yfinance(run: Run, session: PacedSession):
-    """依 cfg["yfinance"]["tickers"] 逐一下載日K，再抓 yfinance.hourly 的 1h，最後檢查每個序列有沒有 i 那根。"""
+    """依 yf_series()（yfinance.tickers，開關切到 yfinance 時加上台指期）逐一下載日K，再抓 yfinance.hourly 的 1h，
+    最後檢查每個序列有沒有 i 那根。"""
     conf = run.cfg["yfinance"]
+    tickers = yf_series(run.cfg)
     out_dir = run.raw_dir / "yfinance"
     setup_yfinance(session, utils.ROOT / conf["cache_dir"])
     entries = run.manifest.setdefault("yfinance", {})
@@ -1002,7 +1023,7 @@ def download_yfinance(run: Run, session: PacedSession):
         entries[sid] = entry
         run.save()
 
-    for sid, ticker in conf["tickers"].items():
+    for sid, ticker in tickers.items():
         span = old_span(read_series(out_dir / f"{sid}.csv"), run.t)
         if breaker >= conf["breaker_series"]:
             record(sid, ticker, "failed", error="skipped_rate_limit_breaker")
@@ -1063,13 +1084,13 @@ def download_yfinance(run: Run, session: PacedSession):
     run.no_bar_i = [sid for sid in conf.get("hourly", {}) if not entries[sid]["has_value_t"]]
     if not run.prev_day:
         run.log.warning("不知道前一個交易日，跳過「有沒有那根K棒」的檢查")
-        for sid in conf["tickers"]:
+        for sid in tickers:
             entries[sid]["has_bar_i"] = None
     else:
         need_volume = set(conf["volume_required"])
 
         def missing():
-            return [sid for sid, ticker in conf["tickers"].items()
+            return [sid for sid, ticker in tickers.items()
                     if entries[sid]["status"] == "ok"
                     and not has_bar(data.get(sid, []), run.prev_day, ticker in need_volume)]
 
@@ -1081,16 +1102,16 @@ def download_yfinance(run: Run, session: PacedSession):
                 if run.past_deadline():
                     run.log.warning("到了爬蟲截止，不再重抓")
                     break
-                ticker = conf["tickers"][sid]
+                ticker = tickers[sid]
                 rows, dropped, attempts, _, _ = fetch_series(run, session, ticker, old_span(data.get(sid, []), run.t),
                                                              retries=0)
                 if rows is not None:
                     record(sid, ticker, "ok", rows, dropped, entries[sid]["attempts"] + attempts)
-        for sid, ticker in conf["tickers"].items():
+        for sid, ticker in tickers.items():
             entries[sid]["has_bar_i"] = sid in data and has_bar(data[sid], run.prev_day, ticker in need_volume)
-        run.no_bar_i = [sid for sid in conf["tickers"] if not entries[sid]["has_bar_i"]] + run.no_bar_i
+        run.no_bar_i = [sid for sid in tickers if not entries[sid]["has_bar_i"]] + run.no_bar_i
     for sid in run.no_bar_i:
-        if sid in conf["tickers"]:
+        if sid in tickers:
             run.log.warning("%s 沒有 %s 那根K棒，這個特徵當天會是空白", sid, run.prev_day)
         else:
             run.log.warning("%s 在 %s %s 前 %d 天內沒有K棒，usd_twd_am 當天會是空白", sid, run.t, am["at"],
@@ -1101,12 +1122,255 @@ def download_yfinance(run: Run, session: PacedSession):
         run.stale = True
 
 
+# ---------------------------------------------------------------- 台指期（期交所）
+
+
+def tx_source(cfg) -> str:
+    """tx_futures.source 的開關（使用者 2026-11-06）。切到 yfinance 但沒填代號就丟 CrawlerError。"""
+    tx = cfg["tx_futures"]
+    if tx["source"] not in ("taifex", "yfinance"):
+        raise CrawlerError("tx_futures.source 只能是 taifex 或 yfinance")
+    if tx["source"] == "yfinance":
+        tickers = tx.get("yfinance") or {}
+        if not any(tickers.values()):
+            raise CrawlerError("tx_futures.source 是 yfinance，但 tx_futures.yfinance 沒有填代號")
+        if tickers.get("night"):
+            # 一般的 yfinance 序列只留日期 < t 的K棒，t 那根夜盤會被丟掉；Yahoo 用哪一天標夜盤也還沒查證，
+            # 標成開始那天的話歷史列會用到開盤後的資料（2026-11-06 審查）。查清楚之前不開放。
+            raise CrawlerError("tx_futures.yfinance.night 還不支援：要先查證 Yahoo 夜盤K棒標的日期")
+    return tx["source"]
+
+
+def yf_series(cfg) -> dict:
+    """要用 yfinance 抓的日K {名稱: 代號}：yfinance.tickers，加上開關切到 yfinance 時的台指期代號。"""
+    out = dict(cfg["yfinance"]["tickers"])
+    if tx_source(cfg) == "yfinance":
+        for session, ticker in cfg["tx_futures"]["yfinance"].items():
+            if ticker:
+                out[TX_SERIES[session]] = ticker
+    return out
+
+
+def taifex_path(raw_dir: Path, cfg) -> Path:
+    return raw_dir / "taifex" / f'{cfg["tx_futures"]["taifex"]["commodity"].lower()}.csv'
+
+
+def taifex_client(cfg, sleep=time.sleep, session=None, clock=time.monotonic) -> SiteClient:
+    conf = cfg["tx_futures"]["taifex"]
+    parts = urlsplit(conf["url"])
+    return SiteClient(f"{parts.scheme}://{parts.netloc}", conf["timeout_seconds"], conf["max_mb"] * 2**20, session,
+                      sleep, cfg["course_site"]["total_timeout_seconds"], clock)
+
+
+def parse_taifex(data: bytes, commodity: str) -> list:
+    """期交所下載的 CSV（CP950）→ 只留 commodity 的單月合約列，每列 19 格，日期 YYYY-MM-DD、去掉前後空白。
+
+    表頭要和 TAIFEX_COLUMNS 一樣，否則多半是「區間太長」之類的提示頁，丟 CrawlerError。沒有交易的區間只有表頭，
+    回傳空清單。價差單（到期月份像 202611/202612）不存。
+    """
+    try:
+        text = data.decode("cp950")
+    except UnicodeDecodeError:
+        raise CrawlerError("期交所：回應不是 CP950 的文字（可能是提示頁）") from None
+    try:
+        rows = list(csv.reader(io.StringIO(text, newline="")))
+    except csv.Error:
+        raise CrawlerError("期交所：回應不是正常的 CSV") from None
+    n = len(TAIFEX_COLUMNS)
+    if not rows or tuple(c.strip() for c in rows[0]) != TAIFEX_COLUMNS:
+        raise CrawlerError("期交所：回應的表頭和預期不一樣（區間太長或查詢被拒）")
+    out = []
+    for r in rows[1:]:
+        cells = [c.strip() for c in r]
+        if not any(cells):
+            continue
+        if len(cells) < n or any(cells[n:]):
+            raise CrawlerError("期交所：有列的欄數不對")
+        cells = cells[:n]
+        cells[0] = cells[0].replace("/", "-")
+        if not is_iso_date(cells[0]):
+            raise CrawlerError("期交所：有看不懂的日期")
+        if cells[1] != commodity or not re.fullmatch(r"\d{6}", cells[2]):
+            continue
+        if cells[17] not in TAIFEX_SESSIONS:
+            raise CrawlerError("期交所：有看不懂的交易時段")
+        out.append(cells)
+    return out
+
+
+def read_taifex(path: Path) -> list:
+    """讀舊的 tx.csv。沒有檔、或表頭不對（當成沒有）回傳空清單；有壞掉的列丟 CrawlerError。"""
+    if not path.exists():
+        return []
+    try:
+        with open(path, encoding="utf-8", newline="") as f:
+            rows = list(csv.reader(f))
+    except (OSError, UnicodeError, csv.Error):
+        raise CrawlerError(f"{path.name}：讀不了") from None
+    if not rows or tuple(rows[0]) != TAIFEX_COLUMNS:
+        return []
+    body = [r for r in rows[1:] if r]
+    for r in body:
+        if len(r) != len(TAIFEX_COLUMNS) or not is_iso_date(r[0]) or r[17] not in TAIFEX_SESSIONS:
+            raise CrawlerError(f"{path.name}：有壞掉的列")
+    return body
+
+
+def taifex_to_csv(rows: list) -> bytes:
+    buf = io.StringIO(newline="")
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(TAIFEX_COLUMNS)
+    writer.writerows(rows)
+    return buf.getvalue().encode()
+
+
+def taifex_chunks(start: date, end: date) -> list:
+    """[start, end] 照月份切開：[(開始, 結束), ...]，每段不跨月（期交所一次最多查一個月）。"""
+    out, cur = [], start
+    while cur <= end:
+        month_end = (cur.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        stop = min(month_end, end)
+        out.append((cur, stop))
+        cur = stop + timedelta(days=1)
+    return out
+
+
+def taifex_start(old: list, cfg) -> date:
+    """從哪天開始抓：沒有舊檔就從 data.start；有的話從舊檔最後一天往前 overlap_days 天（不早於 data.start）。"""
+    first = date.fromisoformat(cfg["data"]["start"])
+    if not old:
+        return first
+    last = date.fromisoformat(max(r[0] for r in old))
+    return max(first, last - timedelta(days=cfg["tx_futures"]["taifex"]["overlap_days"]))
+
+
+def taifex_keep(rows: list, t: str, now: datetime, ready: str):
+    """只留開盤前已經知道的列：t 之前的日盤；夜盤到 t 那列為止，t 那列要 now 過了 t 當天 ready（夜盤 05:00 收盤）。"""
+    night_ok = now >= datetime.combine(date.fromisoformat(t), dtime.fromisoformat(ready), TAIPEI)
+    kept, dropped = [], {"day_on_or_after_t": 0, "night_after_t": 0, "night_t_not_ready": 0}
+    for r in rows:
+        day, session = r[0], TAIFEX_SESSIONS[r[17]]
+        if session == "day" and day >= t:
+            dropped["day_on_or_after_t"] += 1
+        elif session == "night" and day > t:
+            dropped["night_after_t"] += 1
+        elif session == "night" and day == t and not night_ok:
+            dropped["night_t_not_ready"] += 1
+        else:
+            kept.append(r)
+    return kept, dropped
+
+
+def merge_taifex(old: list, new: list, start: str, end: str) -> list:
+    """[start, end] 裡的日子用新抓的列，其他日子留舊檔；照日期、到期月份、交易時段（日盤先）排序。"""
+    rows = {(r[0], r[2], r[17]): r for r in old if not start <= r[0] <= end}
+    rows.update({(r[0], r[2], r[17]): r for r in new})
+    return [rows[k] for k in sorted(rows, key=lambda k: (k[0], k[1], k[2] != "一般"))]
+
+
+def taifex_has(rows: list, d: str, session: str) -> bool:
+    """d 那天的 session（day 或 night）有沒有收盤價。"""
+    return any(r[0] == d and TAIFEX_SESSIONS[r[17]] == session and to_float(r[6]) is not None for r in rows)
+
+
+def download_taifex(run: Run, client: SiteClient):
+    """期交所的台指期，和舊檔合併存到 data/raw/taifex/。失敗時舊檔留著、記 failed，不中斷。"""
+    cfg = run.cfg
+    if tx_source(cfg) != "taifex":
+        return
+    conf = cfg["tx_futures"]["taifex"]
+    url = urlsplit(conf["url"])
+    path = taifex_path(run.raw_dir, cfg)
+    entry = {"source": url.netloc + url.path, "file": path.relative_to(run.raw_dir).as_posix(), "status": "failed",
+             "requests": 0, "error": None}
+    run.manifest["taifex"] = entry
+    try:
+        old = read_taifex(path)
+    except CrawlerError as e:
+        # 舊檔壞了：這一步算失敗、檔案不動，流程繼續（壞檔要人修，不能自動蓋掉）
+        entry["error"] = str(e)
+        run.stale = True
+        run.log.warning("期交所舊檔有問題（%s），這次不抓", e)
+        old, path_ok = [], False
+    else:
+        path_ok = True
+    retries = 0 if run.past_deadline() else conf["retries"]
+    sent = [0]
+
+    def request(a: date, b: date) -> list:
+        form = {"down_type": "1", "commodity_id": conf["commodity"], "commodity_id2": "",
+                "queryStartDate": a.strftime("%Y/%m/%d"), "queryEndDate": b.strftime("%Y/%m/%d")}
+        for attempt in range(retries + 1):
+            if sent[0]:
+                run.sleep(conf["min_interval_seconds"])
+            sent[0] += 1
+            entry["requests"] = sent[0]
+            try:
+                return parse_taifex(client.read("POST", url.path, data=form), conf["commodity"])
+            except TransientError as e:
+                wait = conf["retry_wait_seconds"][min(attempt, len(conf["retry_wait_seconds"]) - 1)]
+                if attempt == retries or not run.can_wait(wait):
+                    raise
+                run.log.warning("期交所 %s～%s：%s，%d 秒後重試", a, b, e, wait)
+                run.sleep(wait)
+
+    def fetch(start: date, end: date) -> list:
+        rows = [r for a, b in taifex_chunks(start, end) for r in request(a, b)]
+        kept, dropped = taifex_keep(rows, run.t, run.now(), conf["night_ready"])
+        missing = {r[0] for r in old if start.isoformat() <= r[0] <= end.isoformat()} - {r[0] for r in kept}
+        if missing:
+            raise CrawlerError(f"期交所回傳的日子比舊檔少 {len(missing)} 天，不覆蓋舊檔")
+        entry["dropped"] = dropped
+        return merge_taifex(old, kept, start.isoformat(), end.isoformat())
+
+    rows = old
+    start, end = taifex_start(old, cfg), min(run.now().date(), date.fromisoformat(run.t))
+    entry["start"] = start.isoformat()
+    try:
+        if not path_ok:
+            raise CrawlerError(entry["error"])
+        rows = fetch(start, end)
+        write_atomic(path, taifex_to_csv(rows))
+        entry["status"] = "ok"
+    except (CrawlerError, csv.Error, ValueError, IndexError, KeyError) as e:
+        # 期交所失敗不能讓整支爬蟲停下（舊檔留著、回傳 3）；不是自己寫的錯誤只記類別
+        entry["error"] = str(e) if isinstance(e, CrawlerError) else type(e).__name__
+        run.stale = True
+        run.log.warning("期交所失敗（%s），沿用舊檔", entry["error"])
+    wait = cfg["yfinance"]["recheck_wait_seconds"]
+    if entry["status"] == "ok" and run.daily and not taifex_has(rows, run.t, "night") and run.can_wait(wait):
+        # 夜盤 05:00 收盤，期交所什麼時候放上網站還沒確認：沒有 t 的夜盤就等一下重抓最近幾天一次
+        run.log.info("期交所還沒有 %s 的夜盤，%d 秒後重抓一次", run.t, wait)
+        run.sleep(wait)
+        old = rows
+        try:
+            rows = fetch(max(start, end - timedelta(days=conf["overlap_days"])), end)
+            write_atomic(path, taifex_to_csv(rows))
+            entry["rechecked"] = True
+        except (CrawlerError, csv.Error, ValueError, IndexError, KeyError) as e:
+            entry["recheck_error"] = str(e) if isinstance(e, CrawlerError) else type(e).__name__
+            run.log.warning("期交所重抓失敗（%s），用第一次抓到的", entry["recheck_error"])
+    if path.exists():
+        entry.update(kept_previous_file=entry["status"] != "ok", rows=len(rows),
+                     date_max=max((r[0] for r in rows), default=None), sha256=sha256_bytes(path.read_bytes()))
+    # 不知道 i 的時候（研究模式沒有 Live 金鑰）和 yfinance 一樣記 None，不算缺
+    entry["has_day_i"] = taifex_has(rows, run.prev_day, "day") if run.prev_day else None
+    entry["has_night_t"] = taifex_has(rows, run.t, "night")
+    for session, ok in (("day", entry["has_day_i"]), ("night", entry["has_night_t"])):
+        if ok is False:
+            run.no_bar_i.append(TX_SERIES[session])
+            run.log.warning("台指期沒有%s，%s 當天會是空白", f" {run.prev_day} 的日盤" if session == "day"
+                            else f" {run.t} 的夜盤", TX_SERIES[session])
+    run.save()
+
+
 # ---------------------------------------------------------------- 主程式
 
 
-def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None) -> int:
-    """依序：/api/state → Training → Live → yfinance → 寫 manifest。回傳 0 或 3，不能繼續就丟 CrawlerError。"""
+def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None, taifex=None) -> int:
+    """依序：/api/state → Training → Live → yfinance → 期交所 → 寫 manifest。回傳 0 或 3，不能繼續就丟 CrawlerError。"""
     cfg = run.cfg
+    tx_source(cfg)   # 開關設錯就在送出任何請求前停下
     now = run.now()
     if run.daily and now < run.at(cfg["crawler"]["start_time"]):
         raise CrawlerError(f"每日模式要在 {run.t} {cfg['crawler']['start_time']}（台北）之後才跑")
@@ -1129,6 +1393,8 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None) -
         run.log.warning("已經過了爬蟲截止 %s：每一步只試一次，不再等待或重試", cfg["crawler"]["deadline"])
     yf_session = yf_session or PacedSession(cfg["yfinance"]["min_interval_seconds"],
                                             cfg["yfinance"]["jitter_seconds"], cfg["yfinance"]["max_redirects"])
+    taifex = taifex or taifex_client(cfg, run.sleep)
+    taifex.can_wait = run.can_wait
     try:
         course_login(course, cfg, secrets)
         try:
@@ -1152,6 +1418,7 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None) -
         run.save()
         download_teacher(run, secrets, course, live)
         download_yfinance(run, yf_session)
+        download_taifex(run, taifex)
     except BaseException as e:
         # CrawlerError 的訊息是自己寫的短句；其他例外（OSError、Ctrl-C…）只記類別，訊息可能帶路徑或伺服器內容
         error = str(e) if isinstance(e, CrawlerError) else type(e).__name__
@@ -1165,10 +1432,12 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None) -
         for client in lives:
             client.close()
         yf_session.close()
+        taifex.close()
     run.manifest["run"].update({"status": "stale" if run.stale else "ok", "prev_day": run.prev_day,
                                 "no_bar_i": run.no_bar_i, "finished_at": run.now().isoformat(timespec="seconds"),
                                 "yahoo_requests": yf_session.requests, "yahoo_redirects": yf_session.redirects,
-                                "site_requests": course.requests + sum(client.requests for client in lives)})
+                                "site_requests": course.requests + sum(client.requests for client in lives),
+                                "taifex_requests": taifex.requests})
     run.save()
     run.log.info("爬蟲完成：%s", run.manifest["run"]["status"])
     return 3 if run.stale else 0

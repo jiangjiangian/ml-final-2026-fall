@@ -2,7 +2,7 @@
 
 這是課程 ML 期末專案（2026 秋）的比賽主程式，分支 `claude/stock-market-challenger`，repo `jiangjiangian/ml-final-2026-fall`。每個台股交易日的台北 09:00 前，預測 50 檔股票當天會不會「收盤高於開盤」（`y = 1` 代表 `adj_close > adj_open`），把 0/1 寫成 CSV 上傳課程網站。
 
-`src/crawler.py`（含 2026-11-06 data-collection 交接的調整和匯率 1h）、`src/features.py`（特徵表一個月一檔）已實作，離線測試通過（features 的對照測試 (a)、(a2) 也過了），還沒連網試跑。`src/` 其他檔案是骨架：寫好用途、輸入、輸出和函式介面，函式本體是 `NotImplementedError`。2026-11-06 起爬資料全部在這個分支，data-collection 的資料搬到 `data/raw/teacher/` 和 `tests/fixtures/data-collection/`。接下來是第一次連網試跑（`submit.enabled` 維持 false），跑之前先問使用者。
+`src/crawler.py`、`src/features.py` 已實作，離線測試通過。2026-11-06 第一次連網試跑（研究模式，t = 11/06，沒有上傳）：老師 Training／Live（Live 用原本的網址、只信任 `configs/live_ca.pem`）、yfinance、期交所台指期都抓到，特徵表 32 個模型欄，兩輪獨立檢查沒有 blocker，`data/raw/`、`data/processed/` 已推上去給組員。`src/` 其他檔案（train、predict、submit、run_daily）還是骨架：寫好用途、輸入、輸出和函式介面，函式本體是 `NotImplementedError`。排程決定用雲端小主機的 cron（細節在 `memory/context/open-questions.md`）。`submit.enabled` 維持 false。
 
 ## 先讀哪個檔
 

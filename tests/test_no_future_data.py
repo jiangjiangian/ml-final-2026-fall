@@ -10,7 +10,10 @@ from tests.test_features import hour, small_cfg, small_raw, stock_row, weekdays
 
 def raw_with_hourly(days):
     hourly = [hour(f"{d}T05:00:00+08:00", 30 + j / 10) for j, d in enumerate(days)]
-    return small_raw(days, hourly), small_cfg(hourly_from=days[0])
+    raw = small_raw(days, hourly)
+    raw["tx"] = [{"date": d, "expiry": "202501", "session": s, "close": 100.0 + j + (s == "night")}
+                 for j, d in enumerate(days) for s in ("day", "night")]
+    return raw, small_cfg(hourly_from=days[0])
 
 
 def feature_columns(df):
@@ -31,12 +34,15 @@ def test_changing_day_t_does_not_change_its_features():
         if r["date"] == d:
             r["close"] = 999.0
     changed["hourly"] = sorted(changed["hourly"] + [hour(f"{d}T06:00:00+08:00", 999.0)], key=lambda r: r["start"])
+    for r in changed["tx"]:
+        if r["date"] == d and r["session"] == "day":   # d 的日盤（13:45 收盤）；d 的夜盤 05:00 就收了，d 那列可以用
+            r["close"] = 999.0
     before, after = features.build_features(raw, cfg), features.build_features(changed, cfg)
     cols = feature_columns(before)
     upto = before["date"] <= d
     pd.testing.assert_frame_equal(before.loc[upto, cols], after.loc[upto, cols])
     later = before["date"] == days[5]
-    for c in ("stock_ret_lag1", "teacher_vix_ret_lag1", "usd_twd_ret_lag1"):
+    for c in ("stock_ret_lag1", "teacher_vix_ret_lag1", "usd_twd_ret_lag1", "tx_day_ret_lag1", "tx_night_ret_lag1"):
         assert not before.loc[later, c].equals(after.loc[later, c]), c
     # usd_twd_am 只用 06:00 以前結束的 1h，d 那根 06:00 開始的K棒哪一列都不會用到
     assert before["usd_twd_am_ret_lag1"].equals(after["usd_twd_am_ret_lag1"])

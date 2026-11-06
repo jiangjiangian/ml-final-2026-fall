@@ -17,13 +17,18 @@
 
 ## 每天的資料誰 commit、push
 
-- 現在沒有任何步驟會 commit 或 push `data/raw/`、`data/processed/`。README 給組員的網址要等有人 push 之後才讀得到。
+- 2026-11-06 第一次連網試跑之後，`data/raw/`、`data/processed/` 是手動 commit、push 的（研究模式，t = 11/06）。之後每天還沒有步驟會做這件事。
 - 雲端主機上的 `run_daily.py` 要在 features 之後 commit、push 這兩個資料夾（只加這兩個路徑），寫到排程那一步再問。
 
 ## 組員的腳本要改讀新資料
 
-- 組員的 `build_dataset.py` 和 Kaggle 的 `notebooks/kaggle/data/twfeat.py` 還在讀 data-collection 的 `panel_lag.csv.gz`（欄名 `ticker`、lag2 和 lag5、日K的 `usd_twd`）。
-- 要改成 README 的網址，欄名是 `stock_id`、lag1 和 lag2、`usd_twd_am`，模型欄看 manifest 的 `model_columns`。第一次連網試跑、push 特徵表之後再通知組員。
+- 組員的 `build_dataset.py`（其實是 `notebooks/build_model.ipynb` 前 5 格）和 Kaggle 的 `notebooks/kaggle/data/twfeat.py`、`build_dataset.sh` 還在讀 data-collection 的 `panel_lag.csv.gz`（欄名 `ticker`、lag2 和 lag5、日K的 `usd_twd`、清理過的 `extra/yfinance/`）。
+- 要改成 README 的網址，欄名是 `stock_id`、lag1 和 lag2、`usd_twd_am`、`tx_day`、`tx_night`，模型欄看 manifest 的 `model_columns`（32 欄）。`date` 要日期型態就加 `parse_dates`（README 的範例已經加）。`data/raw/yfinance/` 是 Yahoo 原樣、沒清理（0052 分割前的價格沒除），不能拿舊程式直接讀。`feature_switch.ipynb` 的 `STOCK_LAG_GROUP` 要改成 lag1、lag2。push 特徵表之後通知組員（2026-11-06 第一輪檢查整理）。
+
+## 老師 Live 的 ^VIX 和 ^GSPC 最近對不太起來
+
+- 2026-11-06 檢查發現（原因沒查證）：Training 1,506 列裡同一列 ^VIX 和 ^GSPC 的日變化相關 −0.709，任何 44 天的窗都低於 −0.4；Live 45 列只有 −0.345，10 月中以後 −0.159。11/06 那列 ^GSPC −4.36%、^IXIC −5.52%，^VIX 卻 −9.2%；10/20、10/21 的 ^VIX 一樣（18.62）。
+- 可能是老師建列時抓的盤中值、沒更新或錯位。`teacher_vix` 在模型欄裡。要決定：留著、換成 yfinance 的 ^VIX、或拿掉。
 
 ## 正式流程用哪位組員的帳號
 

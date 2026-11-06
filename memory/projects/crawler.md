@@ -10,6 +10,13 @@
 
 - 2026-11-05：Live 用助教的 chatgpt.site 新入口，金鑰由使用者放 `.env` 的 `COURSE_LIVE_KEY`，不自動從課程網站抓。舊程式（`../ml-final-archive/archive/system-completion/ml_financial_prediction/src/finpred/ingestion/course.py`）會從課程網站首頁載入的 JS 找金鑰，這個做法不採用。舊入口 `https://140.112.31.182:8444/` 的 TLS 驗證會失敗，也不用（2026-11-06 改了，見下一條）。
 - 2026-11-06：助教說 chatgpt.site 只給自簽憑證有問題的人用，承受不了太多流量，瀏覽器進得去原本網址的話請用原本的。使用者決定：原本的網址優先，失敗再用 chatgpt.site。不關掉憑證檢查，改成只信任它那一張自簽憑證（`configs/live_ca.pem`）。切換條件（使用者 2026-11-06 確認）：原本的網址連不上、憑證不符、逾時、5xx、金鑰被拒或 ZIP 不對時，同一輪馬上改試 chatgpt.site 一次，不等待；只是還沒有 t 那列的話不換，照舊等 3 分鐘再抓原本的。manifest 的 `teacher_live.source` 記用了哪個入口，`fallback_from` 記前面入口的錯誤。程式是 `live_clients`、`live_fetch`。
+- 2026-11-06：加台指期（期交所網站下載，開關 `tx_futures.source`）。存 `data/raw/taifex/tx.csv`：期交所的欄位原樣，只留單月合約，日期改 YYYY-MM-DD、去掉空白、UTF-8。第一次從 2020-01 起照月份抓（83 個請求，間隔 2 秒，約 3 分鐘），之後從舊檔最後一天往前 7 天抓。只存 t 之前的日盤；夜盤存到 t 那列，t 那列要過了 t 當天 05:15。失敗時舊檔留著、回傳 3。每日模式沒有 t 的夜盤就等 60 秒重抓一次。過了 08:30 只試一次不重試（Claude 定的，Live 也是只試一次）。
+- 2026-11-06：第一次抓期交所（21:38 那次研究模式之後另外只跑期交所那段）：83 個請求、19,856 列。日盤 1,661 天，和老師 11/06 以前的交易日完全一樣；夜盤 1,662 天（多 11/06）。沒有清理紀錄。
+- 2026-11-06 台指期的獨立檢查和程式審查（兩組加確認，沒有 blocker）：
+  - 夜盤日期：9,584 列全部符合「標 d 日的盤後列，漲跌 = 夜盤收盤 − 同合約前一個日盤日的結算價」，另一種標法 0 列符合。連假後那天的盤後列是連假前最後一晚的夜盤。
+  - 期交所對沒有交易的區間回只有表頭的 CSV（2026-11-06 量 11/07～11/08，197 bytes），`parse_taifex` 回傳空清單。
+  - 修了：回應或舊檔讓 `csv` 出錯、舊檔有壞列時，以前會讓整支爬蟲停下，現在只算期交所這步失敗（回傳 3）；`tx_futures.yfinance.night` 填了就報錯（t 那根會被「日期 < t」丟掉，Yahoo 怎麼標夜盤日期也沒查證）；不知道 i 時 `has_day_i` 記 None，不算缺。
+  - 沒修（影響小，記著）：「回傳的日子比舊檔少」只比日期不比時段；第一次跑（沒有舊檔）時過了 08:30 還是會送完 83 個月；用比舊檔早的 t 重跑會刪掉範圍內 t 的日盤，不會洩漏，之後會補回來。
 - 2026-11-06：第一次試跑用使用者在本機建的 `.env`。GitHub Secrets 只有 GitHub 上的流程讀得到。
 - 2026-11-05：19 個 yfinance 序列都抓，爬蟲台北 07:10 開始跑。要不要用在模型上，看驗證分數。
 - 2026-11-05：輸出和 data-collection 分支（原名 peaceful-babbage）的資料對齊（2026-11-06 起 data-collection 的資料搬到這個分支，見 `memory/context/data-rules.md`）：`data/raw/teacher/training/`、`data/raw/teacher/live/`、`data/raw/yfinance/`（2026-11-06 前叫 `teacher/`、`teacher_live/`）對應舊的 `data/teacher/`、`data/teacher_live/`、`data/extra/yfinance/`，19 個代號、檔名、欄位都一樣。
@@ -216,6 +223,8 @@
   - 跑完做 `features.py` 的對照測試 (b)（見 `memory/projects/features.md`）。
   - 1h 第一次用 `period="730d"`、`prepost=True` 抓（`prepost=True` 還沒對真的 Yahoo 試過）：第一根約在 2024-01，平日一天約 24 根，`has_value_t` 是 true（2026-11-06 加）。
   - 跑完 features 後，`data/processed/manifest.json` 的 `warnings` 要是空的，才 commit `data/processed/`（2026-11-06 加）。
+  - 2026-11-06 第一次連網發現：Yahoo 的最後一根成交量之後還會改（凍結檔 11/04 那根：tsm_adr +0.51%、nvda +0.47%、wti +20.7%、gold +42.7%），而且期貨最後一根的成交量會先填成前一根的值（wti、gold 11/04 和 11/05 一樣），所以 `low_volume_last_bar_kept` 這道防線實際上不會觸發。成交量只有 R3 用到（6 個個股和 ETF），不影響特徵。
+  - 期交所 t 的夜盤幾點出現在網站上（組員說 06:00 抓得到）；07:10 那次的 `taifex.has_night_t`、`rechecked`（2026-11-06 加）。
 
 ### data-collection 交接：要調整的地方（2026-11-06 都做完了）
 

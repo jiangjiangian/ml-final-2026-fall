@@ -310,7 +310,7 @@ def small_raw(days, hourly=None):
     glob = {d: [d, str(20 + j), "", "", "", "", ""] for j, d in enumerate(days)}
     yf = [bar(d, 30 + j) for j, d in enumerate(days)]
     return {"stocks": stocks, "global": glob, "top50": {"A"}, "yfinance": {"usd_twd": yf}, "hourly": hourly,
-            "cleaning": [], "warnings": []}
+            "tx": [], "cleaning": [], "warnings": []}
 
 
 def hour(start, close):
@@ -373,11 +373,12 @@ def test_missing_hourly_file_blanks_after_switch(tmp_path):
     assert x == [30, 31, None]
 
 
-def test_model_columns_are_28():
+def test_model_columns_are_32():
     columns = features.model_columns(CFG)
-    assert len(columns) == 28
+    assert len(columns) == 32
     assert columns[:2] == ["stock_ret_lag1", "stock_ret_lag2"]
     assert "usd_twd_am_ret_lag2" in columns and "us10y_ret_lag1" in columns
+    assert columns[-4:] == ["tx_day_ret_lag1", "tx_day_ret_lag2", "tx_night_ret_lag1", "tx_night_ret_lag2"]
 
 
 def test_unknown_model_series_stops():
@@ -455,6 +456,13 @@ def test_rebuild_removes_months_that_are_gone(tmp_path):
     assert sorted(p.name for p in (tmp_path / "features").iterdir()) == ["2025-11.csv.gz"]
 
 
+def taifex_row(day, session, close, expiry="202511"):
+    """爬蟲存的期交所列（19 格，日期 YYYY-MM-DD）。close 是 None 時寫 '-'。"""
+    c = "-" if close is None else str(close)
+    return [day, "TX", expiry, c, c, c, c, "1", "0.01%", "10", c if session == "一般" else "-",
+            "100" if session == "一般" else "-", c, c, "50000", "20000", "", session, ""]
+
+
 def fake_repo(tmp_path, monkeypatch, days):
     """tmp_path 當 repo 根目錄：data/raw/teacher 放兩檔股票，config 用 small_cfg。"""
     teacher = tmp_path / "data" / "raw" / "teacher" / "training"
@@ -467,6 +475,8 @@ def fake_repo(tmp_path, monkeypatch, days):
     write_csv(yf / "usd_twd.csv", crawler.YF_COLUMNS, [[d] + [str(30.0 + j)] * 5 + ["0"] for j, d in enumerate(days)])
     write_csv(yf / "usd_twd_1h.csv", crawler.HOURLY_COLUMNS,
               [[f"{d}T05:00:00+08:00"] + [str(31.0 + j)] * 4 + ["0"] for j, d in enumerate(days)])
+    write_csv(tmp_path / "data" / "raw" / "taifex" / "tx.csv", crawler.TAIFEX_COLUMNS,
+              [taifex_row(d, s, 40000 + j) for j, d in enumerate(days) for s in ("一般", "盤後")])
     cfg = small_cfg()
     monkeypatch.setattr(utils, "ROOT", tmp_path)
     monkeypatch.setattr(utils, "load_config", lambda *a: cfg)
@@ -514,3 +524,117 @@ def test_missing_input_does_not_freeze_old_months(tmp_path, monkeypatch):
     assert info["months"] == ["2025-10", "2025-11"] and info["warnings"]
     with pytest.raises(features.FeatureError, match="rebuild"):
         features.main(["--date", "2025-11-04", "--rebuild"])
+
+
+# ---------------------------------------------------------------- 台指期
+
+
+def tx(day, session, close, expiry="202501"):
+    return {"date": day, "expiry": expiry, "session": session, "close": close}
+
+
+def tx_table(rows, days, t=None):
+    raw = small_raw(days)
+    raw["tx"] = rows
+    df = features.build_features(raw, small_cfg(), t)
+    cols = ["tx_day_ret_lag1", "tx_day_ret_lag2", "tx_night_ret_lag1", "tx_night_ret_lag2"]
+    return df[df["stock_id"] == "A"].set_index("date")[cols]
+
+
+def test_tx_day_uses_one_contract_across_the_rollover():
+    days = weekdays(6)
+    # 202501 在 days[3] 到期，之後近月換成 202502；兩個合約價格差 1000（換月的價差）
+    rows = [tx(d, "day", 100.0 + j, "202501") for j, d in enumerate(days[:4])]
+    rows += [tx(d, "day", 1100.0 + 2 * j, "202502") for j, d in enumerate(days)]
+    table = tx_table(rows, days)
+    assert table.loc[days[4], "tx_day_ret_lag1"] == (103 - 102) / 102            # i = days[3]，近月還是 202501
+    assert table.loc[days[4], "tx_day_ret_lag2"] == (103 - 101) / 101
+    assert table.loc[days[5], "tx_day_ret_lag1"] == (1108 - 1106) / 1106         # i = days[4]，換成 202502，分母也用 202502
+    assert table.loc[days[5], "tx_day_ret_lag2"] == (1108 - 1104) / 1104
+    assert np.isnan(table.loc[days[1], "tx_day_ret_lag2"])                        # 往前不夠兩天
+
+
+def test_tx_night_compares_with_the_day_close_of_the_same_contract():
+    days = weekdays(5)
+    rows = [tx(d, "day", 100.0 + j) for j, d in enumerate(days)]
+    rows += [tx(d, "night", 200.0 + j) for j, d in enumerate(days)]
+    rows += [tx(days[3], "night", 5000.0, "202502")]                              # 遠月不用
+    table = tx_table(rows, days)
+    assert table.loc[days[3], "tx_night_ret_lag1"] == (203 - 102) / 102           # 夜盤 ÷ 前一個日盤收盤
+    assert table.loc[days[3], "tx_night_ret_lag2"] == (203 - 101) / 101
+    assert np.isnan(table.loc[days[0], "tx_night_ret_lag1"])                      # 前面沒有日盤
+
+
+def test_tx_missing_rows_leave_blanks():
+    days = weekdays(5)
+    rows = [tx(d, "day", 100.0 + j) for j, d in enumerate(days) if d != days[2]]
+    rows += [tx(d, "night", 200.0 + j) for j, d in enumerate(days) if d != days[4]]
+    rows += [tx(days[1], "day", None, "202502")]                                  # 沒成交的合約
+    table = tx_table(rows, days)
+    assert np.isnan(table.loc[days[3], "tx_day_ret_lag1"])                        # i = days[2] 沒有日盤
+    assert np.isnan(table.loc[days[4], "tx_night_ret_lag1"])                      # days[4] 沒有夜盤
+    assert table.loc[days[3], "tx_night_ret_lag1"] == (203 - 101) / 101           # 夜盤比期交所自己的前一個日盤
+
+
+def test_tx_uses_only_what_is_known_before_the_open_of_t():
+    """t 當天的日盤和 t 之後的夜盤改成什麼，t 那列都不變；t 自己的夜盤（05:00 收盤）要用到。"""
+    days = weekdays(5)
+    t = "2025-01-13"
+    rows = [tx(d, "day", 100.0 + j) for j, d in enumerate(days)] + [tx(d, "night", 200.0 + j) for j, d in enumerate(days)]
+    rows += [tx(t, "night", 300.0)]
+    base = tx_table(rows, days, t).loc[t]
+    changed = rows + [tx(t, "day", 999.0), tx("2025-01-14", "night", 999.0), tx("2025-01-14", "day", 999.0)]
+    pd.testing.assert_series_equal(tx_table(changed, days, t).loc[t], base)
+    assert base["tx_night_ret_lag1"] == (300 - 104) / 104
+    assert base["tx_day_ret_lag1"] == (104 - 103) / 103
+    moved = [r if not (r["date"] == t and r["session"] == "night") else tx(t, "night", 310.0) for r in rows]
+    assert tx_table(moved, days, t).loc[t, "tx_night_ret_lag1"] == (310 - 104) / 104
+
+
+def test_read_and_clean_taifex(tmp_path):
+    path = tmp_path / "tx.csv"
+    rows = [taifex_row("2025-01-06", "一般", 100), taifex_row("2025-01-06", "盤後", 101),
+            taifex_row("2025-01-07", "一般", None), taifex_row("2025-01-07", "盤後", 0)]
+    bad = taifex_row("2025-01-08", "一般", 100)
+    bad[4], bad[5] = "90", "80"   # 最高 90、最低 80，收盤 100 是壞報價
+    write_csv(path, crawler.TAIFEX_COLUMNS, rows + [bad, taifex_row("2025-01-06", "一般", 102)])
+    kept, records = features.clean_taifex(features.read_taifex(path), CFG)
+    assert [(r["date"], r["session"], r["close"]) for r in kept] == [("2025-01-06", "day", 102.0),
+                                                                      ("2025-01-06", "night", 101.0)]
+    assert sorted(r["rule"] for r in records) == ["bad_tick", "duplicate", "nonpositive_close"]
+
+
+def test_missing_taifex_file_warns_and_blanks(tmp_path, monkeypatch):
+    cfg = fake_repo(tmp_path, monkeypatch, weekdays(3))
+    (tmp_path / "data" / "raw" / "taifex" / "tx.csv").unlink()
+    raw = features.load_raw(cfg)
+    assert raw["tx"] == [] and any("tx_day" in w for w in raw["warnings"])
+    assert features.build_features(raw, cfg)["tx_night_ret_lag1"].isna().all()
+
+
+def test_tx_from_yfinance_when_the_gate_says_so(tmp_path, monkeypatch):
+    days = weekdays(4)
+    cfg = fake_repo(tmp_path, monkeypatch, days)
+    cfg["tx_futures"] = {**cfg["tx_futures"], "source": "yfinance", "yfinance": {"day": "TXF=F", "night": None}}
+    write_csv(tmp_path / "data" / "raw" / "yfinance" / "tx_day.csv", crawler.YF_COLUMNS,
+              [[d] + [str(500.0 + j)] * 5 + ["10"] for j, d in enumerate(days)])
+    raw = features.load_raw(cfg)
+    assert {r["expiry"] for r in raw["tx"]} == {"yfinance"} and raw["warnings"] == []
+    table = features.build_features(raw, cfg).set_index(["date", "stock_id"])
+    assert table.loc[(days[3], "A"), "tx_day_ret_lag1"] == (502 - 501) / 501
+    assert table["tx_night_ret_lag1"].isna().all()
+
+
+def test_main_requires_rebuild_when_columns_change(tmp_path, monkeypatch):
+    days = ["2025-10-30", "2025-10-31", "2025-11-03", "2025-11-04"]
+    fake_repo(tmp_path, monkeypatch, days)
+    features.main(["--date", "2025-11-05"])
+    manifest = tmp_path / "data" / "processed" / "manifest.json"
+    info = json.loads(manifest.read_text())
+    assert info["columns"][:3] == ["date", "stock_id", "is_top50"] and "tx_night_ret_lag2" in info["columns"]
+    features.main(["--date", "2025-11-05"])   # 欄位一樣，照常
+    info["columns"] = info["columns"][:-1]
+    manifest.write_text(json.dumps(info))
+    with pytest.raises(features.FeatureError, match="rebuild"):
+        features.main(["--date", "2025-11-05"])
+    assert features.main(["--date", "2025-11-05", "--rebuild"]) == 0

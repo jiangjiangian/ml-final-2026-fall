@@ -4,8 +4,8 @@
 
 每天台北 07:10 之後跑兩步：
 
-1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live 和 yfinance 19 個指標，原樣存進 `data/raw/`。匯率另外存 1 小時K棒，和舊檔合併。
-2. 特徵 `python -m src.features`：清理 yfinance，算每檔股票和各指標的 lag1、lag2，一列是一檔股票的一天。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
+1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live、yfinance 19 個指標和期交所的台指期，原樣存進 `data/raw/`。匯率另外存 1 小時K棒；匯率和台指期都和舊檔合併。
+2. 特徵 `python -m src.features`：清理 yfinance，算每檔股票和各指標的 lag1、lag2，一列是一檔股票的一天。台指期分日盤和夜盤，夜盤清晨 05:00 收盤，當天開盤前就知道。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
 
 訓練、預測、上傳還沒寫好。
 
@@ -17,12 +17,13 @@ import pandas as pd
 
 BASE = "https://raw.githubusercontent.com/jiangjiangian/ml-final-2026-fall/claude/stock-market-challenger/data/processed"
 info = json.load(urllib.request.urlopen(f"{BASE}/manifest.json"))
-df = pd.concat(pd.read_csv(f"{BASE}/features/{m}.csv.gz", dtype={"stock_id": str}) for m in info["months"])
+df = pd.concat(pd.read_csv(f"{BASE}/features/{m}.csv.gz", dtype={"stock_id": str}, parse_dates=["date"])
+               for m in info["months"])
 train = df[df["label_y"].notna()]   # 預測日 t 那列還沒有答案
 X, y = train[info["model_columns"]], train["label_y"]
 ```
 
-`label_` 開頭的欄是答案，不能放進 X。驗證要按日期切，不能隨機拆列。第一次連網試跑之前還沒有檔案。
+`label_` 開頭的欄是答案，不能放進 X。驗證要按日期切，不能隨機拆列。`data/raw/yfinance/` 是 Yahoo 的原樣，沒有清理（0052 分割前的價格沒除），要用就用特徵表。
 
 ## 檔案樹
 
@@ -60,6 +61,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   │   │   ├── training/      網站的 Training ZIP 解開（不會再變）
 │   │   │   └── live/          網站的 Live ZIP 解開，每天整包換新（Live 本身每天多一列）
 │   │   ├── yfinance/          19 個額外指標，一個序列一個 CSV；usd_twd_1h.csv 是匯率的 1 小時K棒
+│   │   ├── taifex/            tx.csv：期交所的台指期，日盤和夜盤，只留單月合約
 │   │   ├── phase2_days.json   課程網站的交易日清單（/api/state 的 phase2Days）
 │   │   └── manifest.json      下載紀錄
 │   ├── processed/             特徵表，組員從這裡拿資料

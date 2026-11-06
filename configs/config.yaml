@@ -36,6 +36,22 @@ crawler:
   min_stocks_filled: 90          # 100 檔裡有幾檔有 t 那列、i 那天填好就算數；個別停牌的那幾檔自己的特徵空白
   closed_days: ["2026-10-23"]    # Live 有建列但台股休市的日子（10/23 颱風假）。之後這天出現填好的資料就報錯停下。爬蟲和 features.py 共用
 
+tx_futures:                      # 台指期（使用者 2026-11-06 加）。日盤、夜盤的價格 yfinance 和老師的資料都沒有
+  source: taifex                 # 開關：taifex（期交所網站下載）或 yfinance（使用者 2026-11-06：預設用期交所）
+  yfinance: {day: null, night: null}   # source 是 yfinance 時用的 Yahoo 代號，日盤存成 yfinance/tx_day.csv。
+                                 # Yahoo 現在沒有有歷史的台指期（2026-11-06 查），沒填時切過去會報錯；
+                                 # 夜盤代號還不支援（要先查證 Yahoo 怎麼標夜盤的日期），填了也會報錯
+  taifex:
+    url: https://www.taifex.com.tw/cht/3/futDataDown   # 期貨每日交易行情下載：POST，一次最多一個月，回 CP950 的 CSV
+    commodity: TX                # 臺股期貨；存成 data/raw/taifex/tx.csv
+    min_interval_seconds: 2      # 每個請求至少間隔幾秒
+    timeout_seconds: [10, 60]
+    max_mb: 10
+    retries: 2                   # 逾時、連不上、429、5xx 再試幾次（過了爬蟲截止不重試）
+    retry_wait_seconds: [5, 10]
+    overlap_days: 7              # 從舊檔最後一天往前幾天開始重抓
+    night_ready: "05:15"         # t 當天這個時間以後才收 t 的夜盤列（夜盤 05:00 收盤）
+
 data:
   start: "2020-01-01"
   raw_dir: data/raw
@@ -89,8 +105,9 @@ features:
   rewrite_months: 2
   # 模型用的序列（使用者和組員 2026-11-06 定）：個股自己＋組員的 12 個指標（債利率是 us13w、us10y 兩個序列）。
   # 特徵表裡有全部序列；train.py、predict.py 只讀這些序列的 lag 欄（manifest.json 的 model_columns）。
+  # 使用者 2026-11-06 加台指期日盤 tx_day、夜盤 tx_night，共 16 個序列、32 欄。
   model_series: [stock, sox, tsm_adr, nvda, teacher_ixic, teacher_gspc, teacher_vix, etf_0050, usd_twd_am,
-                 gold, dji, wti, us13w, us10y]
+                 gold, dji, wti, us13w, us10y, tx_day, tx_night]
   usd_twd_am:                    # 和美股收盤同步的匯率：台北 d 日 06:00 前最後一根 1h 的 close
     daily: usd_twd               # 小時資料開始之前，用這個序列 d 那根日K的 close 補
     hourly: usd_twd_1h           # yfinance.hourly 的名稱，檔案是 data/raw/yfinance/usd_twd_1h.csv（欄位見 crawler.HOURLY_COLUMNS）

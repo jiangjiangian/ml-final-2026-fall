@@ -18,6 +18,12 @@
     - usd_twd_am：台北 d 日 06:00 前最後一根 TWD=X 1h 的 close，和美股收盤同步。這個序列的 lag 用 t 自己的值：
       (x_t − x_(t 往回第 k 個交易日)) / x_(t 往回第 k 個交易日)。x_t 在 t 開盤前就知道。
       小時資料開始之前用 usd_twd 那天日K的 close 補（使用者 2026-11-06 決定）。
+    - tx_day、tx_night：台指期（使用者 2026-11-06 加，來源看 tx_futures.source）。用近月合約（到期月最早的），
+      分子分母用同一個合約，換月那天不會多出一段假的漲跌。i−k 數的是台指期自己的日盤日子。
+      tx_day：日盤（08:45～13:45）收盤，和其他序列一樣，要有 i 那天的日盤。
+      tx_night：標 t 日的夜盤收盤（t 的前一個營業日 15:00 開始、隔天 05:00 收盤；平常就是 t 日 05:00，連假後是
+      連假前最後一晚的夜盤），t 開盤前就知道。分母是日盤收盤：
+      lag1 比 t 之前最後一個日盤（通常是 i），lag2 比再前一個（使用者 2026-11-06 決定「比日盤收盤」）。
 
 台股交易日（使用者 2026-11-06 決定，和爬蟲共用 crawler.trading_days）：
     100 檔裡至少 crawler.min_stocks_filled 檔填好的日子：y 是 0 或 1，etl:adj_open、etl:adj_close > 0。
@@ -34,7 +40,8 @@ yfinance 清理：照舊爬蟲的 R0～R5 依序做（規則、測試資料、�
 輸出（使用者 2026-11-06：一個月一檔，只往後加，repo 不會越來越肥；都進 Git，組員用網址讀）：
     features/YYYY-MM.csv.gz   那個月的列。每天只重寫最後 features.rewrite_months 個月（月初要補上個月最後一天
                               的答案），內容沒變就不寫；過去的月份不動。特徵定義改了用 --rebuild 全部重寫。
-    manifest.json             months（有哪些月份）、model_columns（模型用的欄）、last_date、清理紀錄、警告。
+    manifest.json             months（有哪些月份）、columns（全部欄位）、model_columns（模型用的欄）、last_date、
+                              清理紀錄、警告。欄位和上次不一樣時一定要 --rebuild，不然新舊月份的欄位會對不起來。
     t 比已經存的最後一天早時（例如拿舊的 t 做研究）丟 FeatureError，不會把較新的月份蓋掉；要蓋掉加 --rebuild。
 
 用法：
@@ -314,23 +321,59 @@ def clean_hourly(rows: list, cfg: dict):
     return [by_start[k] for k in sorted(by_start)], records
 
 
+def read_taifex(path: Path) -> list:
+    """爬蟲存的期交所檔（crawler.TAIFEX_COLUMNS）→ [{date, expiry, session, close, low, high}]，'-' 是 None。"""
+    out = []
+    for r in read_csv_rows(path, crawler.TAIFEX_COLUMNS):
+        if r[17] not in crawler.TAIFEX_SESSIONS:
+            raise FeatureError(f"{path.name} 有看不懂的交易時段")
+        row = {"date": check_date(r[0], path.name), "expiry": r[2], "session": crawler.TAIFEX_SESSIONS[r[17]]}
+        for key, j in (("close", 6), ("low", 5), ("high", 4)):
+            row[key] = None if r[j] in ("", "-") else num(r[j], path.name)
+        out.append(row)
+    return out
+
+
+def clean_taifex(rows: list, cfg: dict):
+    """期交所是官方資料，只擋明顯不對的：close ≤ 0、close 超出 [low, high]（R1 的容差）、同一天同一合約同一時段
+    重複（留最後一列）。沒成交（close 是 '-'）不算紀錄，直接不用。回傳 (列, 紀錄)。"""
+    tol = cfg["features"]["cleaning"]["bad_tick_tolerance"]
+    records, by_key = [], {}
+    for row in rows:
+        close, lo, hi = row["close"], row["low"], row["high"]
+        where = {"series": "tx", "date": row["date"], "expiry": row["expiry"], "session": row["session"]}
+        if close is None:
+            continue
+        if close <= 0:
+            records.append({**where, "rule": "nonpositive_close"})
+        elif lo is not None and hi is not None and lo <= hi and (close < lo - tol * abs(lo) or close > hi + tol * abs(hi)):
+            records.append({**where, "rule": "bad_tick", "close": close})
+        else:
+            key = (row["date"], row["expiry"], row["session"])
+            if key in by_key:
+                records.append({**where, "rule": "duplicate"})
+            by_key[key] = row
+    return [by_key[k] for k in sorted(by_key)], records
+
+
 # ---------------------------------------------------------------- 讀 data/raw/
 
 
-def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None) -> dict:
+def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None, tx_path=None) -> dict:
     """讀 data/raw/，yfinance 清理過。路徑沒給就用 config 的 data.raw_dir（測試會改成凍結資料）。
 
     回傳 {"stocks", "global", "top50", "yfinance": {名稱: 列}, "hourly": 列或 None,
-          "cleaning": [紀錄], "warnings": [訊息]}。
-    yfinance 某個檔不存在時，那個序列整欄空白，記一筆警告，不中斷（每天的流程要全自動）。
+          "tx": [{date, expiry, session, close}], "cleaning": [紀錄], "warnings": [訊息]}。
+    yfinance 某個檔不存在時，那個序列整欄空白，記一筆警告，不中斷（每天的流程要全自動）。台指期也一樣。
     """
     raw_dir = utils.ROOT / cfg["data"]["raw_dir"]
     teacher_dir = Path(teacher_dir) if teacher_dir else raw_dir / "teacher" / "training"
     live_dir = Path(live_dir) if live_dir else raw_dir / "teacher" / "live"
     yf_dir = Path(yf_dir) if yf_dir else raw_dir / "yfinance"
     stocks, global_rows, top50 = load_teacher(teacher_dir, live_dir)
-    out = {"stocks": stocks, "global": global_rows, "top50": top50, "yfinance": {}, "hourly": None,
+    out = {"stocks": stocks, "global": global_rows, "top50": top50, "yfinance": {}, "hourly": None, "tx": [],
            "cleaning": [], "warnings": []}
+    load_tx(out, cfg, Path(tx_path) if tx_path else crawler.taifex_path(raw_dir, cfg), yf_dir)
     for name, ticker in cfg["yfinance"]["tickers"].items():
         path = yf_dir / f"{name}.csv"
         if not path.exists():
@@ -348,6 +391,32 @@ def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None) -> dict
         out["warnings"].append(f"沒有 yfinance/{hourly.name}，usd_twd_am 從 "
                                f"{cfg['features']['usd_twd_am']['hourly_from']} 起空白")
     return out
+
+
+def load_tx(out: dict, cfg: dict, tx_path: Path, yf_dir: Path):
+    """台指期放進 out["tx"]：開關是 taifex 時讀期交所檔；是 yfinance 時讀 yfinance/tx_day.csv、tx_night.csv，
+    當成只有一個合約（expiry 寫 yfinance）。"""
+    tx = cfg["tx_futures"]
+    if crawler.tx_source(cfg) == "taifex":
+        if not tx_path.exists():
+            out["warnings"].append(f"沒有 {tx_path.parent.name}/{tx_path.name}，tx_day、tx_night 的特徵整欄空白")
+            return
+        out["tx"], records = clean_taifex(read_taifex(tx_path), cfg)
+        out["cleaning"].extend(records)
+        return
+    adj_kinds = cfg["features"]["adj_close_kinds"]
+    for session, ticker in tx["yfinance"].items():
+        name = crawler.TX_SERIES[session]
+        if not ticker:
+            continue
+        path = yf_dir / f"{name}.csv"
+        if not path.exists():
+            out["warnings"].append(f"沒有 yfinance/{name}.csv，{name} 的特徵整欄空白")
+            continue
+        rows, records = clean_series(read_yfinance(path), name, ticker, cfg)
+        out["cleaning"].extend(records)
+        key = "adj_close" if ticker in adj_kinds else "close"
+        out["tx"].extend({"date": r["date"], "expiry": "yfinance", "session": session, "close": r[key]} for r in rows)
 
 
 # ---------------------------------------------------------------- lag
@@ -419,6 +488,47 @@ def usd_twd_am_values(days: list, raw: dict, cfg: dict) -> list:
     return out
 
 
+def ratio(cur, base):
+    return (cur - base) / base if cur is not None and base is not None and cur > 0 and base > 0 else np.nan
+
+
+def tx_values(days: list, prev_day: list, last: str, tx_rows: list, lags: list) -> dict:
+    """台指期的特徵欄 {欄名: [每個日期的值]}（定義見檔案開頭）。
+
+    日盤只用日期 ≤ last（t 之前最後一個交易日）的列，所以 t 當天的日盤一定用不到；夜盤只用標同一天的那列。
+    """
+    day, night = {}, {}
+    for r in tx_rows:
+        if r["close"] is None:
+            continue
+        if r["session"] == "day" and r["date"] <= last:
+            day.setdefault(r["expiry"], {})[r["date"]] = r["close"]
+        elif r["session"] == "night":
+            night.setdefault(r["date"], {})[r["expiry"]] = r["close"]
+    tx_days = sorted({d for closes in day.values() for d in closes})
+    near = {}
+    for expiry in sorted(day, reverse=True):   # 最後蓋上去的是到期月最早的
+        for d in day[expiry]:
+            near[d] = expiry
+    out = {f"tx_{kind}_ret_lag{k}": [] for kind in ("day", "night") for k in lags}
+    for d, i in zip(days, prev_day):
+        j = bisect_left(tx_days, i) if i in near else None
+        n = night.get(d)
+        before = bisect_left(tx_days, d)   # tx_days 裡早於 d 的有幾天
+        for k in lags:
+            if j is not None and j - k >= 0:
+                c = near[i]
+                out[f"tx_day_ret_lag{k}"].append(ratio(day[c][i], day[c].get(tx_days[j - k])))
+            else:
+                out[f"tx_day_ret_lag{k}"].append(np.nan)
+            if n and before - k >= 0:
+                c = min(n)
+                out[f"tx_night_ret_lag{k}"].append(ratio(n[c], day.get(c, {}).get(tx_days[before - k])))
+            else:
+                out[f"tx_night_ret_lag{k}"].append(np.nan)
+    return out
+
+
 # ---------------------------------------------------------------- 特徵表
 
 
@@ -465,6 +575,9 @@ def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
     for k in lags:
         values = k_returns(days, x, k)
         data[f"usd_twd_am_ret_lag{k}"] = np.repeat([values.get(d, np.nan) for d in days], n_codes)
+
+    for column, values in tx_values(days, prev_day, calendar[-1] if calendar else "", raw["tx"], lags).items():
+        data[column] = np.repeat(np.array(values, dtype=float), n_codes)
 
     label_y, label_ret = [], []
     for d in days:
@@ -561,11 +674,16 @@ def main(argv=None) -> int:
     out_dir = utils.ROOT / cfg["data"]["processed_dir"]
     last = df["date"].iloc[-1]
     try:
-        stored = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))["last_date"]
-    except (OSError, ValueError, KeyError, TypeError):
-        stored = None
+        previous = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        previous = {}
+    previous = previous if isinstance(previous, dict) else {}
+    stored = previous.get("last_date")
     if stored and last < stored and not args.rebuild:
         raise FeatureError(f"特徵表已經到 {stored}，這次只到 {last}；要用舊的 t 覆蓋請加 --rebuild")
+    has_months = any((out_dir / "features").glob("*.csv.gz")) if (out_dir / "features").exists() else False
+    if has_months and previous.get("columns") != list(df.columns) and not args.rebuild:
+        raise FeatureError("特徵欄和上次不一樣，舊月份的欄位會對不起來；請加 --rebuild 全部重寫")
     complete = not raw["warnings"]
     written = write_months(df, out_dir, cfg["features"]["rewrite_months"], args.rebuild, complete)
     if not complete:
@@ -576,7 +694,7 @@ def main(argv=None) -> int:
     report = {"target_date": t, "last_date": last, "rows": len(df), "dates": int(df["date"].nunique()),
               "months": sorted(m for m in df["date"].str[:7].unique()
                                if (out_dir / "features" / f"{m}.csv.gz").exists()),
-              "model_columns": model_columns(cfg),
+              "columns": list(df.columns), "model_columns": model_columns(cfg),
               "cleaning_counts": counts, "warnings": raw["warnings"], "cleaning": raw["cleaning"]}
     crawler.write_atomic(out_dir / "manifest.json", (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode())
     log.info("特徵表：%d 列、%d 天，最後一天 %s；寫了 %s；清理紀錄 %s", len(df), report["dates"], last,

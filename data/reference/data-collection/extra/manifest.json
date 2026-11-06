@@ -1,0 +1,1185 @@
+{
+  "schema_version": "yfinance-extra-manifest-v2",
+  "source": "Yahoo Finance via yfinance",
+  "library": "https://github.com/ranaroussi/yfinance",
+  "library_version": "1.7.0",
+  "terms_note": "Yahoo 非官方介面，僅供課程研究；再散布授權未核實。",
+  "range": {
+    "start": "2020-01-01",
+    "end_inclusive": "2026-11-04",
+    "request_end_exclusive": "2026-11-05"
+  },
+  "request_options": {
+    "interval": "1d",
+    "auto_adjust": false,
+    "actions": false,
+    "repair": false
+  },
+  "date_semantics": "date＝該日K的交易所當地原生交易日；不是發布或可用時間",
+  "cleaning_rules": {
+    "bad_tick": "所有序列：close 超出 [low, high] 0.5% 以上 → 刪除該列",
+    "bond_holiday_bar": "殖利率：美國債市休市（哥倫布日、退伍軍人節，週六提前／週日順延）的平盤K棒 → 刪除",
+    "placeholder_bar": "股票／ETF：OHLC 相同，且（成交量 0 並等於前一收盤，或成交量 < 前 21 筆中位數的 1%）→ 刪除",
+    "split_fix": "台股（.TW／.TWO）股票／ETF：前後 close 與 adj_close 比都接近整數 n（2..50，誤差 <3%）→ 之前的價格 ÷n、成交量 ×n；反向（後/前≈n）則之前的價格 ×n、成交量 ÷n。非台股只記為 suspected，不修改",
+    "split_dividend_fix": "修正分割時，分割前每個除息日的調整幅度（adj_close/close 比的跳動）乘以 n",
+    "logged_units": "被刪除列的紀錄是 Yahoo 原始單位（尚未做分割修正）"
+  },
+  "rate_limit": {
+    "config": {
+      "min_interval_seconds": 2.0,
+      "jitter_seconds": 1.0,
+      "max_retries": 5,
+      "backoff_base_seconds": 5.0,
+      "backoff_max_seconds": 120.0,
+      "rate_limited_backoff_multiplier": 3.0,
+      "request_timeout_seconds": 30.0,
+      "mode": "sequential_single_thread",
+      "scope": "每一個 HTTP 請求（時區、cookie、crumb、chart）都經過同一限流器",
+      "yfinance_internal_retries": 0,
+      "circuit_breaker": "序列因限流放棄後冷卻 backoff_max 秒；連續 3 個序列被限流即中止"
+    },
+    "last_run": {
+      "run_started_at": "2026-11-05T12:22:02+00:00",
+      "series_requested": [
+        "sox",
+        "tsm_adr",
+        "nvda",
+        "usd_twd",
+        "dxy",
+        "us10y",
+        "us13w",
+        "etf_006201",
+        "etf_0050",
+        "etf_0052",
+        "etf_0055",
+        "dji",
+        "n225",
+        "hsi",
+        "sse",
+        "stoxx50e",
+        "gdaxi",
+        "wti",
+        "gold"
+      ],
+      "http_requests": 40,
+      "paced_sleep_seconds": 92.376,
+      "circuit_breaker_cooldown_seconds": 0.0
+    }
+  },
+  "failed_last_run": [],
+  "aborted_last_run": [],
+  "missing_required": [],
+  "status": "complete",
+  "status_meaning": "complete＝全部 ok 且本次都更新；stale＝全部 ok 但本次有失敗或中止（沿用舊檔）；partial＝有序列不可用",
+  "series": {
+    "sox": {
+      "ticker": "^SOX",
+      "name": "PHLX Semiconductor Index",
+      "name_zh": "費城半導體指數",
+      "group": "M1_semiconductor",
+      "kind": "index",
+      "unit": "index_point",
+      "required": true,
+      "status": "ok",
+      "file": "yfinance/sox.csv",
+      "sha256": "d2578b718c05bee62723aa136668fdc6df0b1829fda4eeacdb2c6c4ba29902fb",
+      "rows": 1720,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "tsm_adr": {
+      "ticker": "TSM",
+      "name": "Taiwan Semiconductor ADR",
+      "name_zh": "台積電ADR",
+      "group": "M2_overseas_stock",
+      "kind": "stock",
+      "unit": "USD",
+      "required": true,
+      "status": "ok",
+      "file": "yfinance/tsm_adr.csv",
+      "sha256": "6baebf6570cb87e007f0e20112af6495c53c364e5069408bad255dce04ee71d3",
+      "rows": 1720,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "nvda": {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "name_zh": "輝達",
+      "group": "M2_overseas_stock",
+      "kind": "stock",
+      "unit": "USD",
+      "required": true,
+      "status": "ok",
+      "file": "yfinance/nvda.csv",
+      "sha256": "257f2a647c1433fe59b7ddd5d2d17dcf9913c71e8f5863f5ef15cb873b551a90",
+      "rows": 1720,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "usd_twd": {
+      "ticker": "TWD=X",
+      "name": "USD/TWD exchange rate",
+      "name_zh": "美元兌新台幣匯率",
+      "group": "M3_fx_rates",
+      "kind": "fx",
+      "unit": "TWD_per_USD",
+      "required": true,
+      "status": "ok",
+      "file": "yfinance/usd_twd.csv",
+      "sha256": "4d3437b4b547ed5c9e00f8f63318832625e7d49a40e65d2b1ccc409c3266a7e9",
+      "rows": 1779,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-01",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [
+          {
+            "date": "2020-12-08",
+            "open": 28.22209930419922,
+            "high": 28.277000427246094,
+            "low": 28.194000244140625,
+            "close": 28.0,
+            "adj_close": 28.0,
+            "volume": 0.0,
+            "reason": "close 超出 [low, high] 0.5% 以上"
+          },
+          {
+            "date": "2024-08-28",
+            "open": 31.69499969482422,
+            "high": 31.993000030517578,
+            "low": 31.872800827026367,
+            "close": 31.69499969482422,
+            "adj_close": 31.69499969482422,
+            "volume": 0.0,
+            "reason": "close 超出 [low, high] 0.5% 以上"
+          }
+        ],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "dxy": {
+      "ticker": "DX-Y.NYB",
+      "name": "US Dollar Index",
+      "name_zh": "美元指數",
+      "group": "M3_fx_rates",
+      "kind": "fx_index",
+      "unit": "index_point",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/dxy.csv",
+      "sha256": "1b6f2443c1d771628ce09f3a3f43bc5aebdc54bdd34051e300c609b5050626ab",
+      "rows": 1722,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "us10y": {
+      "ticker": "^TNX",
+      "name": "CBOE 10-Year Treasury Yield",
+      "name_zh": "美國10年期公債殖利率",
+      "group": "M3_fx_rates",
+      "kind": "yield_percent",
+      "unit": "percent_per_annum",
+      "required": true,
+      "status": "ok",
+      "file": "yfinance/us10y.csv",
+      "sha256": "0ea186be1ce260fecbb843fab1f925879b663195c7aa42bb3ef371a622923203",
+      "rows": 1708,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [
+          {
+            "date": "2020-10-12",
+            "open": 0.7770000100135803,
+            "high": 0.7770000100135803,
+            "low": 0.7770000100135803,
+            "close": 0.7770000100135803,
+            "adj_close": 0.7770000100135803,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2020-11-11",
+            "open": 0.9580000042915344,
+            "high": 0.9580000042915344,
+            "low": 0.9580000042915344,
+            "close": 0.9580000042915344,
+            "adj_close": 0.9580000042915344,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2021-10-11",
+            "open": 1.6139999628067017,
+            "high": 1.6139999628067017,
+            "low": 1.6139999628067017,
+            "close": 1.6139999628067017,
+            "adj_close": 1.6139999628067017,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2021-11-11",
+            "open": 1.559999942779541,
+            "high": 1.559999942779541,
+            "low": 1.559999942779541,
+            "close": 1.559999942779541,
+            "adj_close": 1.559999942779541,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2022-10-10",
+            "open": 3.888000011444092,
+            "high": 3.888000011444092,
+            "low": 3.888000011444092,
+            "close": 3.888000011444092,
+            "adj_close": 3.888000011444092,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2022-11-11",
+            "open": 3.812999963760376,
+            "high": 3.812999963760376,
+            "low": 3.812999963760376,
+            "close": 3.812999963760376,
+            "adj_close": 3.812999963760376,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2023-10-09",
+            "open": 4.796999931335449,
+            "high": 4.796999931335449,
+            "low": 4.796999931335449,
+            "close": 4.796999931335449,
+            "adj_close": 4.796999931335449,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2024-10-14",
+            "open": 4.0980000495910645,
+            "high": 4.0980000495910645,
+            "low": 4.0980000495910645,
+            "close": 4.0980000495910645,
+            "adj_close": 4.0980000495910645,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2024-11-11",
+            "open": 4.308000087738037,
+            "high": 4.308000087738037,
+            "low": 4.308000087738037,
+            "close": 4.308000087738037,
+            "adj_close": 4.308000087738037,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2025-10-13",
+            "open": 4.051000118255615,
+            "high": 4.051000118255615,
+            "low": 4.051000118255615,
+            "close": 4.051000118255615,
+            "adj_close": 4.051000118255615,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2025-11-11",
+            "open": 4.119999885559082,
+            "high": 4.119999885559082,
+            "low": 4.119999885559082,
+            "close": 4.119999885559082,
+            "adj_close": 4.119999885559082,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2026-10-12",
+            "open": 5.239999771118164,
+            "high": 5.239999771118164,
+            "low": 5.239999771118164,
+            "close": 5.239999771118164,
+            "adj_close": 5.239999771118164,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          }
+        ],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "us13w": {
+      "ticker": "^IRX",
+      "name": "13-Week Treasury Bill Yield",
+      "name_zh": "美國13週國庫券殖利率",
+      "group": "M3_fx_rates",
+      "kind": "yield_percent",
+      "unit": "percent_per_annum",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/us13w.csv",
+      "sha256": "25f6a13c9b7fc6f8d8f5f73aa76450d70c8e7a1433a3ab9153aee8ad6316e177",
+      "rows": 1708,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [
+          {
+            "date": "2020-10-12",
+            "open": 0.09000000357627869,
+            "high": 0.09000000357627869,
+            "low": 0.09000000357627869,
+            "close": 0.09000000357627869,
+            "adj_close": 0.09000000357627869,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2020-11-11",
+            "open": 0.09000000357627869,
+            "high": 0.09000000357627869,
+            "low": 0.09000000357627869,
+            "close": 0.09000000357627869,
+            "adj_close": 0.09000000357627869,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2021-10-11",
+            "open": 0.03999999910593033,
+            "high": 0.03999999910593033,
+            "low": 0.03999999910593033,
+            "close": 0.03999999910593033,
+            "adj_close": 0.03999999910593033,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2021-11-11",
+            "open": 0.03999999910593033,
+            "high": 0.03999999910593033,
+            "low": 0.03999999910593033,
+            "close": 0.03999999910593033,
+            "adj_close": 0.03999999910593033,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2022-10-10",
+            "open": 3.2850000858306885,
+            "high": 3.2850000858306885,
+            "low": 3.2850000858306885,
+            "close": 3.2850000858306885,
+            "adj_close": 3.2850000858306885,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2022-11-11",
+            "open": 4.063000202178955,
+            "high": 4.063000202178955,
+            "low": 4.063000202178955,
+            "close": 4.063000202178955,
+            "adj_close": 4.063000202178955,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2023-10-09",
+            "open": 5.3480000495910645,
+            "high": 5.3480000495910645,
+            "low": 5.3480000495910645,
+            "close": 5.3480000495910645,
+            "adj_close": 5.3480000495910645,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2024-10-14",
+            "open": 4.51800012588501,
+            "high": 4.51800012588501,
+            "low": 4.51800012588501,
+            "close": 4.51800012588501,
+            "adj_close": 4.51800012588501,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2024-11-11",
+            "open": 4.414999961853027,
+            "high": 4.414999961853027,
+            "low": 4.414999961853027,
+            "close": 4.414999961853027,
+            "adj_close": 4.414999961853027,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2025-10-13",
+            "open": 3.8529999256134033,
+            "high": 3.8529999256134033,
+            "low": 3.8529999256134033,
+            "close": 3.8529999256134033,
+            "adj_close": 3.8529999256134033,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2025-11-11",
+            "open": 3.7829999923706055,
+            "high": 3.7829999923706055,
+            "low": 3.7829999923706055,
+            "close": 3.7829999923706055,
+            "adj_close": 3.7829999923706055,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          },
+          {
+            "date": "2026-10-12",
+            "open": 4.050000190734863,
+            "high": 4.050000190734863,
+            "low": 4.050000190734863,
+            "close": 4.050000190734863,
+            "adj_close": 4.050000190734863,
+            "volume": 0.0,
+            "reason": "美國債市休市日（哥倫布日／退伍軍人節）的平盤K棒"
+          }
+        ],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "etf_006201": {
+      "ticker": "006201.TWO",
+      "name": "Yuanta TPEx 50 ETF",
+      "name_zh": "元大富櫃50（櫃買市場代理）",
+      "group": "M4_taiwan",
+      "kind": "etf",
+      "unit": "TWD",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/etf_006201.csv",
+      "sha256": "93fc86c60b34a0431f7b2360a10ddb33a0663072be76864dbb031dca3c3eab49",
+      "rows": 1650,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [
+          {
+            "date": "2020-03-09",
+            "open": 13.75,
+            "high": 13.75,
+            "low": 13.75,
+            "close": 13.75,
+            "adj_close": 11.395299911499023,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2020-03-13",
+            "open": 12.170000076293945,
+            "high": 12.170000076293945,
+            "low": 12.170000076293945,
+            "close": 12.170000076293945,
+            "adj_close": 10.085875511169434,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2020-03-18",
+            "open": 10.720000267028809,
+            "high": 10.720000267028809,
+            "low": 10.720000267028809,
+            "close": 10.720000267028809,
+            "adj_close": 8.884190559387207,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2024-01-15",
+            "open": 19.700000762939453,
+            "high": 19.700000762939453,
+            "low": 19.700000762939453,
+            "close": 19.700000762939453,
+            "adj_close": 18.447391510009766,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2024-03-18",
+            "open": 21.600000381469727,
+            "high": 21.600000381469727,
+            "low": 21.600000381469727,
+            "close": 21.600000381469727,
+            "adj_close": 20.226581573486328,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2024-03-20",
+            "open": 22.15999984741211,
+            "high": 22.15999984741211,
+            "low": 22.15999984741211,
+            "close": 22.15999984741211,
+            "adj_close": 20.750972747802734,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2024-03-25",
+            "open": 21.90999984741211,
+            "high": 21.90999984741211,
+            "low": 21.90999984741211,
+            "close": 21.90999984741211,
+            "adj_close": 20.516868591308594,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2024-03-26",
+            "open": 21.90999984741211,
+            "high": 21.90999984741211,
+            "low": 21.90999984741211,
+            "close": 21.90999984741211,
+            "adj_close": 20.516868591308594,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2024-11-20",
+            "open": 22.5,
+            "high": 22.5,
+            "low": 22.5,
+            "close": 22.5,
+            "adj_close": 21.77480125427246,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2026-10-23",
+            "open": 42.150001525878906,
+            "high": 42.150001525878906,
+            "low": 42.150001525878906,
+            "close": 42.150001525878906,
+            "adj_close": 42.150001525878906,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          }
+        ],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "etf_0050": {
+      "ticker": "0050.TW",
+      "name": "Yuanta Taiwan Top 50 ETF",
+      "name_zh": "元大台灣50（台灣50指數代理）",
+      "group": "M4_taiwan",
+      "kind": "etf",
+      "unit": "TWD",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/etf_0050.csv",
+      "sha256": "efa46c7262928c27658c0f53e12559d6935344444ddd8bf0e07669b5e806223a",
+      "rows": 1652,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [
+          {
+            "date": "2024-01-15",
+            "open": 33.162498474121094,
+            "high": 33.162498474121094,
+            "low": 33.162498474121094,
+            "close": 33.162498474121094,
+            "adj_close": 30.95209503173828,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2024-11-20",
+            "open": 47.86249923706055,
+            "high": 47.86249923706055,
+            "low": 47.86249923706055,
+            "close": 47.86249923706055,
+            "adj_close": 45.94759750366211,
+            "volume": 312000.0,
+            "reason": "平盤且成交量 < 前 21 筆中位數的 1%（不完整K棒）"
+          },
+          {
+            "date": "2025-06-11",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2025-06-12",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2025-06-13",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2025-06-16",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2025-06-17",
+            "open": 47.162498474121094,
+            "high": 47.162498474121094,
+            "low": 47.162498474121094,
+            "close": 47.162498474121094,
+            "adj_close": 45.901371002197266,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2026-10-23",
+            "open": 106.9000015258789,
+            "high": 106.9000015258789,
+            "low": 106.9000015258789,
+            "close": 106.9000015258789,
+            "adj_close": 106.9000015258789,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          }
+        ],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "etf_0052": {
+      "ticker": "0052.TW",
+      "name": "Fubon Taiwan Technology ETF",
+      "name_zh": "富邦科技（電子類代理）",
+      "group": "M4_taiwan",
+      "kind": "etf",
+      "unit": "TWD",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/etf_0052.csv",
+      "sha256": "71f7e3a84a2ebbc60d14066f620d5ee03fd3a4d4bbb18717008557b4dcb73b19",
+      "rows": 1652,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [
+          {
+            "date": "2024-01-15",
+            "open": 126.55000305175781,
+            "high": 126.55000305175781,
+            "low": 126.55000305175781,
+            "close": 126.55000305175781,
+            "adj_close": 122.4421615600586,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2024-11-20",
+            "open": 188.0,
+            "high": 188.0,
+            "low": 188.0,
+            "close": 188.0,
+            "adj_close": 182.94285583496094,
+            "volume": 4822.0,
+            "reason": "平盤且成交量 < 前 21 筆中位數的 1%（不完整K棒）"
+          },
+          {
+            "date": "2025-11-19",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2025-11-20",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2025-11-21",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2025-11-24",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2025-11-25",
+            "open": 35.0428581237793,
+            "high": 35.0428581237793,
+            "low": 35.0428581237793,
+            "close": 35.0428581237793,
+            "adj_close": 34.203369140625,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2026-10-23",
+            "open": 61.79999923706055,
+            "high": 61.79999923706055,
+            "low": 61.79999923706055,
+            "close": 61.79999923706055,
+            "adj_close": 61.79999923706055,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          }
+        ],
+        "split_adjustments": [
+          {
+            "yahoo_adjustment_boundary": "2025-11-17",
+            "factor": 7.0,
+            "previous_close_before_fix": 248.5,
+            "close_on_boundary": 35.57143020629883,
+            "reason": "Yahoo 只把此日起的K棒做了分割調整；更早的價格 ÷factor、成交量 ×factor（台股漲跌幅 10%，單日 2 倍以上變動只可能是公司行動）"
+          }
+        ],
+        "dividend_adjustments_rescaled": [
+          {
+            "ex_date": "2020-04-22",
+            "yahoo_fraction": 0.004235236443432822,
+            "rescaled_fraction": 0.02964665510402975
+          },
+          {
+            "ex_date": "2021-04-20",
+            "yahoo_fraction": 0.0011495333563315002,
+            "rescaled_fraction": 0.008046733494320502
+          },
+          {
+            "ex_date": "2022-04-20",
+            "yahoo_fraction": 0.012085657522357462,
+            "rescaled_fraction": 0.08459960265650224
+          },
+          {
+            "ex_date": "2023-04-21",
+            "yahoo_fraction": 0.005383242144293754,
+            "rescaled_fraction": 0.03768269501005628
+          },
+          {
+            "ex_date": "2024-04-18",
+            "yahoo_fraction": 0.005714341299665082,
+            "rescaled_fraction": 0.040000389097655575
+          },
+          {
+            "ex_date": "2025-04-23",
+            "yahoo_fraction": 0.0030158938711815075,
+            "rescaled_fraction": 0.021111257098270553
+          }
+        ],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "etf_0055": {
+      "ticker": "0055.TW",
+      "name": "Yuanta MSCI Taiwan Financials ETF",
+      "name_zh": "元大MSCI金融（金融類代理）",
+      "group": "M4_taiwan",
+      "kind": "etf",
+      "unit": "TWD",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/etf_0055.csv",
+      "sha256": "e49bc742e913e44994e866616e5dbeebe4cbbd87fb6468e2937180c97d9f58d8",
+      "rows": 1657,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [
+          {
+            "date": "2024-01-15",
+            "open": 23.829999923706055,
+            "high": 23.829999923706055,
+            "low": 23.829999923706055,
+            "close": 23.829999923706055,
+            "adj_close": 21.93063735961914,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          },
+          {
+            "date": "2024-11-20",
+            "open": 27.989999771118164,
+            "high": 27.989999771118164,
+            "low": 27.989999771118164,
+            "close": 27.989999771118164,
+            "adj_close": 26.847736358642578,
+            "volume": 514.0,
+            "reason": "平盤且成交量 < 前 21 筆中位數的 1%（不完整K棒）"
+          },
+          {
+            "date": "2026-10-23",
+            "open": 51.900001525878906,
+            "high": 51.900001525878906,
+            "low": 51.900001525878906,
+            "close": 51.900001525878906,
+            "adj_close": 51.900001525878906,
+            "volume": 0.0,
+            "reason": "零量平盤且等於前一收盤"
+          }
+        ],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "dji": {
+      "ticker": "^DJI",
+      "name": "Dow Jones Industrial Average",
+      "name_zh": "道瓊工業指數",
+      "group": "M5_global_index",
+      "kind": "index",
+      "unit": "index_point",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/dji.csv",
+      "sha256": "7e6a7ae525b55f1267de04f20950986761d9976e829feb52a835b3b54bcab5a8",
+      "rows": 1720,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "n225": {
+      "ticker": "^N225",
+      "name": "Nikkei 225",
+      "name_zh": "日經225指數",
+      "group": "M5_global_index",
+      "kind": "index",
+      "unit": "index_point",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/n225.csv",
+      "sha256": "2a399df17741884a01dbfed5052e0b77a530a839def558808b35728b4fcc0cab",
+      "rows": 1668,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-06",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "hsi": {
+      "ticker": "^HSI",
+      "name": "Hang Seng Index",
+      "name_zh": "恒生指數",
+      "group": "M5_global_index",
+      "kind": "index",
+      "unit": "index_point",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/hsi.csv",
+      "sha256": "02f69ea3cf7f03b727c2e0d5788b397eeaf2da32144f30e3807291550fcb4db1",
+      "rows": 1683,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "sse": {
+      "ticker": "000001.SS",
+      "name": "SSE Composite Index",
+      "name_zh": "上證綜合指數",
+      "group": "M5_global_index",
+      "kind": "index",
+      "unit": "index_point",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/sse.csv",
+      "sha256": "59f81fdb93c995c918b78e737b322a76457987afd03c043e9bb33aaf95415048",
+      "rows": 1656,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "stoxx50e": {
+      "ticker": "^STOXX50E",
+      "name": "EURO STOXX 50",
+      "name_zh": "歐洲斯托克50指數",
+      "group": "M5_global_index",
+      "kind": "index",
+      "unit": "index_point",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/stoxx50e.csv",
+      "sha256": "d3fc9c1b4a8dad38050e6d290cd365022d7889edc72c39adacd04fda8a21056b",
+      "rows": 1723,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-03",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "gdaxi": {
+      "ticker": "^GDAXI",
+      "name": "DAX",
+      "name_zh": "德國DAX指數",
+      "group": "M5_global_index",
+      "kind": "index",
+      "unit": "index_point",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/gdaxi.csv",
+      "sha256": "ec388b68d91605595fa87ead200cc0903458d38d8592654cdb5a6a64e2b37a16",
+      "rows": 1744,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "wti": {
+      "ticker": "CL=F",
+      "name": "WTI Crude Oil Futures",
+      "name_zh": "WTI原油期貨",
+      "group": "M5_commodity",
+      "kind": "futures",
+      "unit": "USD_per_barrel",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/wti.csv",
+      "sha256": "42fef777e4289ed243d7e3306452255819f167b453f1bba6ef2da9654cb9aa21",
+      "rows": 1722,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    },
+    "gold": {
+      "ticker": "GC=F",
+      "name": "Gold Futures",
+      "name_zh": "黃金期貨",
+      "group": "M5_commodity",
+      "kind": "futures",
+      "unit": "USD_per_troy_ounce",
+      "required": false,
+      "status": "ok",
+      "file": "yfinance/gold.csv",
+      "sha256": "516ca88b35471fecb6469efb1f957acb7a78a548a0c99acfe2f0706f1ddc0401",
+      "rows": 1723,
+      "dropped_out_of_range_or_empty": 0,
+      "date_min": "2020-01-02",
+      "date_max": "2026-11-04",
+      "fetched_at": "2026-11-05T12:22:02+00:00",
+      "attempts": 1,
+      "retry_events": [],
+      "cleaning": {
+        "bad_ticks_dropped": [],
+        "bond_holiday_bars_dropped": [],
+        "placeholder_bars_dropped": [],
+        "split_adjustments": [],
+        "dividend_adjustments_rescaled": [],
+        "suspected_splits_not_applied": []
+      }
+    }
+  }
+}

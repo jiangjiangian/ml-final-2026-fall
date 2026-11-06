@@ -1,6 +1,6 @@
 """訓練：讀特徵表，按日期驗證，再用全部資料訓練，存到 models/。
 
-輸入：data/processed/features.csv.gz 裡 label_y 有值的列。
+輸入：features.load_features() 讀回的特徵表裡 label_y 有值的列，欄位用 features.model_columns(cfg)。
 輸出：
     models/model.txt             模型（LightGBM 的文字格式）
     models/feature_columns.json  欄位順序、訓練資料的最後一天、驗證分數

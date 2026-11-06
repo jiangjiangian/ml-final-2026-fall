@@ -426,3 +426,73 @@ def test_load_teacher_joins_live_after_training(tmp_path):
     assert glob["2026-08-31"][6] == "-1"                                  # Training 的 -1 是真的數字
     assert glob["2026-09-01"][4:] == ["", "", ""]                         # Live 的 -1 是待定
     assert top50 == {"A"}
+
+
+# ---------------------------------------------------------------- 一個月一檔
+
+
+def month_df(days):
+    return features.build_features(small_raw(days), small_cfg())
+
+
+def test_write_months_leaves_old_months_alone(tmp_path):
+    days = ["2025-09-30", "2025-10-01", "2025-10-31", "2025-11-03", "2025-11-04"]
+    df = month_df(days)
+    assert features.write_months(df, tmp_path, 2) == ["2025-09", "2025-10", "2025-11"]
+    assert features.write_months(df, tmp_path, 2) == []                   # 內容沒變就不寫
+    changed = df.copy()
+    changed.loc[changed["date"] == "2025-09-30", "is_top50"] = 9
+    changed.loc[changed["date"] == "2025-11-04", "is_top50"] = 9
+    old_sep = (tmp_path / "features" / "2025-09.csv.gz").read_bytes()
+    assert features.write_months(changed, tmp_path, 2) == ["2025-11"]     # 只動最後兩個月裡真的變了的
+    assert (tmp_path / "features" / "2025-09.csv.gz").read_bytes() == old_sep
+    assert features.write_months(changed, tmp_path, 2, rebuild=True) == ["2025-09"]
+
+
+def test_rebuild_removes_months_that_are_gone(tmp_path):
+    features.write_months(month_df(["2025-10-31", "2025-11-03"]), tmp_path, 2)
+    features.write_months(month_df(["2025-11-03", "2025-11-04"]), tmp_path, 2, rebuild=True)
+    assert sorted(p.name for p in (tmp_path / "features").iterdir()) == ["2025-11.csv.gz"]
+
+
+def fake_repo(tmp_path, monkeypatch, days):
+    """tmp_path 當 repo 根目錄：data/raw/teacher 放兩檔股票，config 用 small_cfg。"""
+    teacher = tmp_path / "data" / "raw" / "teacher"
+    for c in ("A", "B"):
+        write_csv(teacher / "market" / f"{c}.csv", crawler.STOCK_COLUMNS, [stock_row(d, 10 + j) for j, d in enumerate(days)])
+    write_csv(teacher / "global" / "global_data.csv", crawler.GLOBAL_COLUMNS,
+              [[d, str(20 + j), "1", "2", "3", "4", "5"] for j, d in enumerate(days)])
+    (teacher / "info.json").write_text(json.dumps({"Top50@Y": ["A"], "Top100@Y": ["A", "B"]}))
+    cfg = small_cfg()
+    monkeypatch.setattr(utils, "ROOT", tmp_path)
+    monkeypatch.setattr(utils, "load_config", lambda *a: cfg)
+    return cfg
+
+
+def test_main_writes_months_and_manifest(tmp_path, monkeypatch):
+    days = ["2025-10-30", "2025-10-31", "2025-11-03", "2025-11-04"]
+    cfg = fake_repo(tmp_path, monkeypatch, days)
+    assert features.main(["--date", "2025-11-05"]) == 0
+    processed = tmp_path / "data" / "processed"
+    info = json.loads((processed / "manifest.json").read_text())
+    assert info["months"] == ["2025-10", "2025-11"] and info["last_date"] == "2025-11-05"
+    assert info["model_columns"] == features.model_columns(cfg)
+    back = features.load_features(processed)
+    expected = features.build_features(features.load_raw(cfg), cfg, "2025-11-05")
+    assert list(back["date"].unique()) == days + ["2025-11-05"]
+    assert np.array_equal(back["stock_ret_lag1"].to_numpy(float), expected["stock_ret_lag1"].to_numpy(float),
+                          equal_nan=True)
+    # 拿較舊的 t 跑，不會把較新的月份蓋掉
+    with pytest.raises(features.FeatureError, match="--rebuild"):
+        features.main(["--date", "2025-11-03"])
+    assert json.loads((processed / "manifest.json").read_text())["last_date"] == "2025-11-05"
+    assert features.main(["--date", "2025-11-03", "--rebuild"]) == 0
+
+
+def test_main_takes_t_from_crawler_manifest(tmp_path, monkeypatch):
+    fake_repo(tmp_path, monkeypatch, ["2025-11-03", "2025-11-04"])
+    crawler.write_atomic(tmp_path / "data" / "raw" / "manifest.json",
+                         json.dumps({"run": {"target_date": "2025-11-05"}}).encode())
+    features.main([])
+    info = json.loads((tmp_path / "data" / "processed" / "manifest.json").read_text())
+    assert info["target_date"] == info["last_date"] == "2025-11-05"

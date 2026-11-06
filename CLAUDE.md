@@ -2,7 +2,7 @@
 
 這是課程 ML 期末專案（2026 秋）的比賽主程式，分支 `claude/stock-market-challenger`，repo `jiangjiangian/ml-final-2026-fall`。每個台股交易日的台北 09:00 前，預測 50 檔股票當天會不會「收盤高於開盤」（`y = 1` 代表 `adj_close > adj_open`），把 0/1 寫成 CSV 上傳課程網站。
 
-`src/crawler.py`、`src/features.py` 已實作，離線測試通過（features 的對照測試 (a)、(a2) 也過了），還沒連網試跑。`src/` 其他檔案是骨架：寫好用途、輸入、輸出和函式介面，函式本體是 `NotImplementedError`。2026-11-06 起爬資料全部在這個分支，data-collection 的資料搬到 `data/raw/teacher*` 和 `data/reference/data-collection/`。接下來照使用者的順序：規劃 `src/crawler.py` 的調整（含匯率 1h），先講清楚、等確認；第一次連網試跑前先問使用者。
+`src/crawler.py`（含 2026-11-06 data-collection 交接的調整和匯率 1h）、`src/features.py`（特徵表一個月一檔）已實作，離線測試通過（features 的對照測試 (a)、(a2) 也過了），還沒連網試跑。`src/` 其他檔案是骨架：寫好用途、輸入、輸出和函式介面，函式本體是 `NotImplementedError`。2026-11-06 起爬資料全部在這個分支，data-collection 的資料搬到 `data/raw/teacher*` 和 `data/reference/data-collection/`。接下來是第一次連網試跑（`submit.enabled` 維持 false），跑之前先問使用者。
 
 ## 先讀哪個檔
 
@@ -20,7 +20,7 @@
 | `src/features.py` 的規劃：清理規則、交易日、lag 公式、對照測試 | `memory/projects/features.md` |
 | Kaggle 上平行訓練的模型研究（另一個 session 在用） | `memory/projects/kaggle-models.md` |
 
-`README.md` 只放檔案樹，給組員看。新增、搬動或刪除檔案時，改 `README.md` 的檔案樹；`memory/` 多了或少了檔案時，也改上面的表。`memory/` 裡的路徑都從 repo 根目錄算。
+`README.md` 給組員看：每天的流程、組員怎麼拿資料、檔案樹。新增、搬動或刪除檔案時，改 `README.md` 的檔案樹；`memory/` 多了或少了檔案時，也改上面的表。`memory/` 裡的路徑都從 repo 根目錄算。
 
 ### memory/ 怎麼維護
 

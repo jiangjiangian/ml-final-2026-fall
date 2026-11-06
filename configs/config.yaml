@@ -17,6 +17,8 @@ course_site:
   submissions: /api/submissions  # POST 上傳，JSON 格式見 src/submit.py；舊程式的研究整理出來的，還沒實際送過
   submission_file: /api/submissions/{id}?record=current   # 下載目前有效的那份；id 來自 state 的 mySubmissions
   timeout_seconds: [10, 90]      # 課程網站和 Live 的連線、讀取逾時
+  total_timeout_seconds: 120     # 每個請求從送出到下載完的總時間上限（含轉址）
+  login_retries: 2               # 登入遇到逾時、連不上、429、5xx 時再試幾次（使用者 2026-11-06）；上傳一律不重試
   max_zip_mb: 100                # 下載的 ZIP 上限
   max_unzipped_mb: 512           # ZIP 解開後的總大小上限
   live:                          # 老師 Live 資料，助教給的新入口；金鑰放 .env 的 COURSE_LIVE_KEY
@@ -49,6 +51,8 @@ yfinance:
   breaker_series: 2              # 連續幾個序列因為限流放棄，就停掉剩下的
   recheck_wait_seconds: 60       # 缺「前一個台股交易日」那根K棒的序列，等多久一起重抓一次
   cache_dir: .cache/yfinance     # yfinance 的時區和 cookie 快取，放在 repo 裡但不進 Git
+  hourly: {usd_twd_1h: TWD=X}    # 1 小時K棒（features 的 usd_twd_am 用）：名稱: Yahoo 代號，存成 <名稱>.csv，每次和舊檔合併
+  hourly_overlap_days: 7         # 1h 從舊檔最後一根往前幾天開始抓
   volume_required: [TSM, NVDA, 0050.TW, 0052.TW, 0055.TW, 006201.TWO]   # 前一個交易日那根的成交量要 > 0（只有個股和 ETF）
   futures: [CL=F, GC=F]          # 台北 07:00 後已開始下一段交易：抓取範圍截在紐約 17:30；最後一根量太小只記錄，不丟
   tickers:                       # 名稱: Yahoo 代號
@@ -78,14 +82,16 @@ features:
   stock_column: etl:adj_close    # 老師個股檔算報酬用的欄；這組特徵讓 50 檔每天的值不同
   teacher_global: ["^VIX", "^IXIC", "^GSPC", "^TWII", "^KS11"]   # 老師 global 表要算 lag 的欄
   adj_close_kinds: [TSM, NVDA, 0050.TW, 0052.TW, 0055.TW, 006201.TWO]   # 這些 yfinance 代號用 adj_close，其他用 close
-  output: features.csv.gz        # 寫在 data.processed_dir；清理紀錄寫在同一個資料夾的 cleaning.json
+  # 輸出在 data.processed_dir：features/YYYY-MM.csv.gz 一個月一檔、manifest.json（月份清單、模型欄、清理紀錄）。
+  # 都進 Git，組員用網址讀。每天只重寫最後兩個月，過去的月份不動（使用者 2026-11-06）
+  rewrite_months: 2
   # 模型用的序列（使用者和組員 2026-11-06 定）：個股自己＋組員的 12 個指標（債利率是 us13w、us10y 兩個序列）。
-  # features.csv.gz 裡有全部序列；train.py、predict.py 只讀這些序列的 lag 欄。
+  # 特徵表裡有全部序列；train.py、predict.py 只讀這些序列的 lag 欄（manifest.json 的 model_columns）。
   model_series: [stock, sox, tsm_adr, nvda, teacher_ixic, teacher_gspc, teacher_vix, etf_0050, usd_twd_am,
                  gold, dji, wti, us13w, us10y]
   usd_twd_am:                    # 和美股收盤同步的匯率：台北 d 日 06:00 前最後一根 1h 的 close
     daily: usd_twd               # 小時資料開始之前，用這個序列 d 那根日K的 close 補
-    hourly_file: usd_twd_1h.csv  # data/raw/yfinance/ 底下，爬蟲存的 TWD=X 1h（欄位見 features.HOURLY_COLUMNS）
+    hourly: usd_twd_1h           # yfinance.hourly 的名稱，檔案是 data/raw/yfinance/usd_twd_1h.csv（欄位見 crawler.HOURLY_COLUMNS）
     hourly_from: "2024-01-22"    # Yahoo 1h 最早到這天；分界取這天和 1h 檔第一天較晚的那個
     at: "06:00"                  # 台北時間；取結束時間 ≤ 這個時間的最後一根
     lookback_days: 4             # 最多往回找幾天（冬令週一 05:00 那根不存在，要取到週五收盤）

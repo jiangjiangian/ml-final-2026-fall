@@ -41,7 +41,8 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 
 ## 失敗時怎麼處理
 
-- yfinance 某個序列失敗：記在 manifest，流程繼續，那個特徵當天可能是空白。
+- yfinance 某個序列失敗：記在 manifest，流程繼續，那個特徵當天可能是空白，爬蟲回傳 3。外國放假沒有 i 那根不算失敗，記在 `run.no_bar_i`。
+- 課程網站登入遇到逾時或 5xx 再試 2 次；`/api/state` 讀不到時改用上次存的 `phase2_days.json`（要有 t）。過了 08:30 每一步只試一次。
 - 其他步驟失敗：停下，在 `data/submission/run_YYYY-MM-DD.log` 寫原因，已經產生的檔案留著。
 - 手動交：
   1. 看 `run_YYYY-MM-DD.log`，找出停在哪一步。

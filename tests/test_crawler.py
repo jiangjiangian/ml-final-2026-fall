@@ -80,6 +80,7 @@ def cfg(tmp_path):
     conf = copy.deepcopy(utils.load_config())
     conf["yfinance"]["tickers"] = {"sox": "^SOX", "etf_0050": "0050.TW"}
     conf["yfinance"]["cache_dir"] = str(tmp_path / "yfcache")
+    conf["yfinance"]["hourly"] = {}   # 1h 另外測
     return conf
 
 
@@ -393,6 +394,70 @@ def test_site_size_limit():
     assert type(e.value) is crawler.CrawlerError
 
 
+class SlowResp(FakeResp):
+    """每給一塊資料，假時鐘就往後撥 seconds 秒。"""
+
+    def __init__(self, clock, seconds, chunks):
+        super().__init__(200, b"".join(chunks))
+        self.clock, self.seconds, self.chunks = clock, seconds, chunks
+
+    def iter_content(self, chunk_size=65536):
+        for chunk in self.chunks:
+            self.clock.sleep(self.seconds)
+            yield chunk
+
+
+def test_site_total_time_limit():
+    clock = Clock(at("2026-11-17", "07:10"))
+    http = SequenceHttp([SlowResp(clock, 50, [b"a", b"b", b"c"])])
+    client = crawler.SiteClient("https://site.example", (10, 90), 1000, http, clock.sleep, total_seconds=120,
+                                clock=clock.monotonic)
+    with pytest.raises(crawler.TransientError, match="總時間"):
+        client.read("GET", "/data.zip", retries=0)
+
+
+def test_site_counts_requests_and_stops_retrying_after_deadline():
+    client, http = site([FakeResp(303, headers={"Location": "/data.zip"}), FakeResp(200, b"zip")])
+    client.read("POST", "/login", data={"key": "k"})
+    assert client.requests == 2   # 轉址也算
+    client, http = site([FakeResp(503), FakeResp(200, b"ok")])
+    client.can_wait = lambda seconds: False   # 過了爬蟲截止
+    with pytest.raises(crawler.TransientError):
+        client.read("GET", "/data.zip")
+    assert len(http.calls) == 1
+
+
+def login_ok():
+    return FakeResp(200, b'{"success": true}')
+
+
+def test_login_retries_transient_errors(cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    client, http = site([FakeResp(503), FakeResp(502), login_ok()], clock)
+    crawler.course_login(client, cfg, SECRETS)
+    assert len(http.calls) == 3 and clock.sleeps == [1, 2]
+    client, http = site([FakeResp(503), FakeResp(503), FakeResp(503), login_ok()], clock)
+    with pytest.raises(crawler.TransientError):
+        crawler.course_login(client, cfg, SECRETS)
+    assert len(http.calls) == cfg["course_site"]["login_retries"] + 1
+
+
+@pytest.mark.parametrize("first", [FakeResp(401), FakeResp(200, b'{"success": false}')])
+def test_login_does_not_retry_rejection(cfg, first):
+    client, http = site([first, login_ok()])
+    with pytest.raises(crawler.CrawlerError) as e:
+        crawler.course_login(client, cfg, SECRETS)
+    assert type(e.value) is crawler.CrawlerError and len(http.calls) == 1
+
+
+def test_login_does_not_retry_after_deadline(cfg):
+    client, http = site([FakeResp(503), login_ok()])
+    client.can_wait = lambda seconds: False
+    with pytest.raises(crawler.TransientError):
+        crawler.course_login(client, cfg, SECRETS)
+    assert len(http.calls) == 1
+
+
 # ================================================================ Live 有沒有更新到 t
 
 
@@ -433,6 +498,15 @@ def test_live_check_never_filled_day_falls_back():
     assert check["prev_day"] == "2026-10-22"
     assert check["prev_day_planned"] == "2026-10-23"
     assert check["prev_day_never_filled"] is True
+
+
+def test_live_check_closed_day_is_not_never_filled():
+    stocks = live_stocks(["2026-10-21", "2026-10-22", "2026-10-23", "2026-10-27"], pending={"2026-10-23", "2026-10-27"})
+    check = crawler.live_check(stocks, "2026-10-27", days("2026-10-22", "2026-10-23", "2026-10-27"), 90, ["2026-10-23"])
+    assert check["prev_day"] == "2026-10-22" and check["prev_day_never_filled"] is False
+    filled = live_stocks(["2026-10-21", "2026-10-22", "2026-10-23", "2026-10-27"], pending={"2026-10-27"})
+    with pytest.raises(crawler.CrawlerError):
+        crawler.live_check(filled, "2026-10-27", days("2026-10-22", "2026-10-23", "2026-10-27"), 90, ["2026-10-23"])
 
 
 def test_live_check_does_not_filter_enabled():
@@ -683,12 +757,14 @@ def test_bar_i_check_rechecks_once(tmp_path, cfg):
     run.sleep = sleep
     crawler.download_yfinance(run, s)
     entries = run.manifest["yfinance"]
-    assert {sid: e["status"] for sid, e in entries.items()} == {"sox": "ok", "nvda": "no_bar_i", "tsm_adr": "ok"}
+    assert {sid: e["status"] for sid, e in entries.items()} == {"sox": "ok", "nvda": "ok", "tsm_adr": "ok"}
+    assert {sid: e["has_bar_i"] for sid, e in entries.items()} == {"sox": True, "nvda": False, "tsm_adr": True}
     assert entries["tsm_adr"]["attempts"] == 2
     assert clock.sleeps.count(wait) == 1
     # 只重抓缺的：^SOX 1 次，NVDA、TSM 各 2 次
     assert [len(s.history(x)) for x in ("^SOX", "NVDA", "TSM")] == [1, 2, 2]
-    assert run.stale is True
+    # 使用者 2026-11-06：沒有 i 那根（外國放假）不算失敗，另外記在 no_bar_i，不回傳 3
+    assert run.no_bar_i == ["nvda"] and run.stale is False
 
 
 def test_recheck_stops_at_deadline(tmp_path, cfg):
@@ -783,6 +859,8 @@ def test_daily_run_happy_path_and_training_skip(tmp_path, cfg):
     raw = run.raw_dir
     manifest = json.loads((raw / "manifest.json").read_text())
     assert manifest["run"]["status"] == "ok" and manifest["run"]["prev_day"] == "2026-11-16"
+    assert manifest["run"]["no_bar_i"] == [] and manifest["run"]["site_requests"] == 5   # 登入、state、Training、Live 登入、Live ZIP
+    assert manifest["run"]["yahoo_requests"] > 0 and "http_requests" not in manifest["run"]
     assert manifest["teacher"]["action"] == "downloaded"
     assert {e["status"] for e in manifest["yfinance"].values()} == {"ok"}
     assert (raw / "teacher" / "info.json").exists() and (raw / "teacher_live" / "market" / "1101.csv").exists()
@@ -811,6 +889,7 @@ def test_daily_run_happy_path_and_training_skip(tmp_path, cfg):
 
 def test_failed_run_keeps_training_fingerprint(tmp_path, cfg):
     crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")))
+    (tmp_path / "raw" / "phase2_days.json").unlink()   # 沒有快取的清單，/api/state 讀不到就停
     broken = course_fake()
     broken.routes[("GET", "/api/state")] = FakeResp(500)
     with pytest.raises(crawler.CrawlerError):
@@ -893,7 +972,12 @@ def test_missing_live_key(tmp_path, cfg):
     assert run.manifest["teacher_live"]["status"] == "skipped" and code == 0
 
 
-def test_never_filled_prev_day_continues_with_3(tmp_path, cfg):
+@pytest.mark.parametrize("closed_days, code, never_filled", [
+    (["2026-10-23"], 0, False),   # config 寫明的休市日：照常，不回傳 3
+    ([], 3, True),                # 沒寫明的話，代表那天老師還沒填，回傳 3
+])
+def test_unfilled_prev_day_falls_back(tmp_path, cfg, closed_days, code, never_filled):
+    cfg["crawler"]["closed_days"] = closed_days
     clock = Clock(at("2026-10-27", "07:10"))
     dates = ["2026-10-21", "2026-10-22", "2026-10-23", "2026-10-27"]
     live = live_fake(make_zip(live_members(dates, {"2026-10-23", "2026-10-27"})))
@@ -901,10 +985,32 @@ def test_never_filled_prev_day_continues_with_3(tmp_path, cfg):
     ny = "America/New_York"
     yahoo = FakeYahoo(clock, {"^SOX": (ny, "INDEX", bars_on(["2026-10-21", "2026-10-22"], ny, volume=0)),
                               "0050.TW": ("Asia/Taipei", "ETF", bars_on(["2026-10-21", "2026-10-22"], "Asia/Taipei", "09:00"))})
-    code, run = crawl(tmp_path, cfg, clock, t="2026-10-27", course=course, live=live, yahoo=yahoo)
-    assert code == 3
-    assert run.prev_day == "2026-10-22" and run.manifest["teacher_live"]["prev_day_never_filled"] is True
+    got, run = crawl(tmp_path, cfg, clock, t="2026-10-27", course=course, live=live, yahoo=yahoo)
+    assert got == code
+    assert run.prev_day == "2026-10-22" and run.manifest["teacher_live"]["prev_day_never_filled"] is never_filled
     assert {e["status"] for e in run.manifest["yfinance"].values()} == {"ok"}
+
+
+def test_closed_day_with_values_stops(tmp_path, cfg):
+    clock = Clock(at("2026-10-27", "07:10"))
+    dates = ["2026-10-21", "2026-10-22", "2026-10-23", "2026-10-27"]
+    live = live_fake(make_zip(live_members(dates, {"2026-10-27"})))   # 10-23 被填了值
+    with pytest.raises(crawler.CrawlerError, match="closed_days"):
+        crawl(tmp_path, cfg, clock, t="2026-10-27", live=live,
+              course=course_fake(state_days=["2026-10-22", "2026-10-23", "2026-10-27"]))
+
+
+def test_state_failure_uses_cached_phase2_days(tmp_path, cfg):
+    crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")))
+    broken = course_fake()
+    broken.routes[("GET", "/api/state")] = FakeResp(500)
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:20")), course=broken)
+    assert code == 3 and run.manifest["phase2_days"]["status"] == "cached"
+    assert run.prev_day == "2026-11-16"
+    # 快取的清單裡沒有 t：停下
+    crawler.write_atomic(tmp_path / "raw" / "phase2_days.json", json.dumps(days("2026-11-13", "2026-11-16")).encode())
+    with pytest.raises(crawler.CrawlerError, match="phase2_days.json"):
+        crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:30")), course=broken)
 
 
 def test_secrets_never_leak(tmp_path, cfg, caplog):
@@ -935,3 +1041,102 @@ def test_main_returns_code_without_system_exit(monkeypatch, tmp_path, cfg):
     monkeypatch.setattr(crawler, "crawl", fake_crawl)
     assert crawler.main(["--date", "2026-11-17"]) == 3
     assert seen == {"t": "2026-11-17", "daily": True}
+
+
+# ================================================================ cookie 快取壞掉
+
+
+def test_broken_cookie_cache_is_treated_as_missing(tmp_path, monkeypatch):
+    """快取裡的 cookie 沒有 A3：yfinance 1.7.0 原本丟 KeyError，19 個序列全部失敗；包過之後當成沒有快取。"""
+    import yfinance.cache
+    from yfinance.data import YfData
+
+    class BrokenCache:
+        def lookup(self, key):
+            return {"cookie": {".yahoo.com": {"/": {}}}}
+
+        def store(self, key, value):
+            pass
+
+    monkeypatch.setattr(yfinance.cache, "get_cookie_cache", lambda: BrokenCache())
+    clock = Clock(at("2026-11-17", "07:10"))
+    s = default_yahoo(clock)
+    crawler.setup_yfinance(s, tmp_path / "yfc")
+    with pytest.raises(KeyError):
+        YfData._load_cookie_curlCffi.__wrapped__(YfData())   # 證明假快取真的會觸發原本的 bug
+    assert YfData()._load_cookie_curlCffi() is False
+    crawler.setup_yfinance(s, tmp_path / "yfc")              # 再呼叫一次不會包兩層
+    assert not getattr(YfData._load_cookie_curlCffi.__wrapped__, "tolerant", False)
+    assert [r[0] for r in crawler.fetch_once(s, "^SOX", "2020-01-01", "2026-11-17", 30)][-1] == "2026-11-16"
+
+
+# ================================================================ 匯率 1h
+
+
+def hour_row(start, close="32.0"):
+    return [start, close, close, close, close, "0"]
+
+
+def test_merge_hourly_prefers_new_and_drops_unfinished_bars():
+    old = [hour_row("2026-11-16T04:00:00+08:00", "31.0"), hour_row("2026-11-16T05:00:00+08:00", "31.1")]
+    new = [hour_row("2026-11-16T05:00:00+08:00", "31.2"), hour_row("2026-11-17T05:00:00+08:00", "31.3"),
+           hour_row("2026-11-17T06:00:00+08:00", "31.4")]   # 07:00 才結束
+    merged = crawler.merge_hourly(old, new, at("2026-11-17", "06:00"))
+    assert [(r[0][:16], r[4]) for r in merged] == [("2026-11-16T04:00", "31.0"), ("2026-11-16T05:00", "31.2"),
+                                                   ("2026-11-17T05:00", "31.3")]
+
+
+def test_hourly_start():
+    assert crawler.hourly_start([], "2026-11-17", 7) is None
+    assert crawler.hourly_start([hour_row("2026-11-16T05:00:00+08:00")], "2026-11-17", 7) == "2026-11-09"
+    assert crawler.hourly_start([hour_row("2024-01-22T05:00:00+08:00")], "2026-11-17", 7) is None   # 太舊，重抓 730d
+
+
+def test_hourly_has_value():
+    friday_close = [hour_row("2026-11-14T05:00:00+08:00")]   # 紐約週五 16:00 那根，台北週六 06:00 結束
+    assert crawler.hourly_has_value(friday_close, at("2026-11-16", "06:00"), 4)       # 冬令週一用週五收盤
+    assert not crawler.hourly_has_value(friday_close, at("2026-11-19", "06:00"), 4)   # 太舊
+    assert not crawler.hourly_has_value([hour_row("2026-11-16T05:00:00+08:00", "")], at("2026-11-16", "06:00"), 4)
+
+
+def twd_yahoo(clock, hours=30):
+    start = datetime(2026, 11, 15, 21, 0, tzinfo=ZoneInfo("UTC"))   # 台北 11-16 05:00 開始
+    bars = [(start + timedelta(hours=h), 32.0 + h / 100, 32.5, 31.5, 32.0 + h / 100, 32.0 + h / 100, 0)
+            for h in range(hours)]
+    return FakeYahoo(clock, {"TWD=X": ("Europe/London", "CURRENCY", bars)})
+
+
+def test_download_hourly_merges_with_old_file(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {}
+    cfg["yfinance"]["hourly"] = {"usd_twd_1h": "TWD=X"}
+    run = make_run(tmp_path, cfg, clock)
+    path = run.raw_dir / "yfinance" / "usd_twd_1h.csv"
+    old = [hour_row("2024-01-22T05:00:00+08:00", "31.0"), hour_row("2026-11-16T05:00:00+08:00", "99.0")]
+    crawler.write_atomic(path, crawler.hourly_to_csv(old))
+    s = twd_yahoo(clock)
+    crawler.download_yfinance(run, s)
+    rows = crawler.read_hourly(path)
+    assert rows[0] == old[0]                                   # Yahoo 已經不給的舊K棒留著
+    assert rows[1][0] == "2026-11-16T05:00:00+08:00" and rows[1][4] == "32.0"   # 同一個時間用新的
+    assert rows[-1][0] == "2026-11-17T05:00:00+08:00"          # t 那天 06:00 以後的K棒不存
+    entry = run.manifest["yfinance"]["usd_twd_1h"]
+    assert entry["status"] == "ok" and entry["has_value_t"] is True and entry["start"] == "2026-11-09"
+    assert run.no_bar_i == [] and run.stale is False
+
+
+def test_download_hourly_failure_keeps_old_file(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {}
+    cfg["yfinance"]["hourly"] = {"usd_twd_1h": "TWD=X"}
+    run = make_run(tmp_path, cfg, clock, daily=False)
+    path = run.raw_dir / "yfinance" / "usd_twd_1h.csv"
+    old = crawler.hourly_to_csv([hour_row("2026-11-13T05:00:00+08:00")])
+    crawler.write_atomic(path, old)
+    s = twd_yahoo(clock)
+    s.chart_status["TWD=X"] = 500
+    crawler.download_yfinance(run, s)
+    assert path.read_bytes() == old
+    entry = run.manifest["yfinance"]["usd_twd_1h"]
+    assert entry["status"] == "failed" and entry["kept_previous_file"] is True
+    assert entry["has_value_t"] is False and run.no_bar_i == ["usd_twd_1h"] and run.stale is True

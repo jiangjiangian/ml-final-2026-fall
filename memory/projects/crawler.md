@@ -102,7 +102,7 @@
   - `impersonate="chrome"`、`retry=0`。
   - 一律把 `allow_redirects` 改成 False。遇到 3xx 自己跟過去，每一跳也經過限流器，最多 5 跳，303 改用 GET。
   - chart 回 429 就丟 `YFRateLimitError`。
-  - 只數請求數和轉址次數，寫進 manifest 的 `run.http_requests`、`run.redirects`。
+  - 只數請求數和轉址次數，寫進 manifest 的 `run.yahoo_requests`、`run.yahoo_redirects`（2026-11-06 從 `http_requests`、`redirects` 改名）。課程網站和 Live 的請求數記在 `run.site_requests`。
 - 開始前：`yf.set_tz_cache_location(".cache/yfinance")`、`yf.config.network.retries = 0`、`yf.config.debug.hide_exceptions = False`、`YfData(session=paced)`。
 - 每個序列：`cache_clear()` 後 `yf.Ticker(代號, session=paced).history(start="2020-01-01", end=t, interval="1d", auto_adjust=False, actions=False, repair=False)`。每天重抓完整歷史。
 - CL=F、GC=F 的 `end` 改用帶時區的時間：「t 那天台北 00:00」換算成紐約的日期，再取那天紐約 17:30。這在下一段交易（18:00 ET）開始之前，yfinance 會先丟掉時間戳 ≥ end 的列，再做同日合併，所以盤中那列進不來（離線 probe 驗證過；Yahoo 那邊怎麼處理沒驗證）。
@@ -124,7 +124,7 @@
 1. 19 個序列都抓完後，檢查每個序列有沒有日期 = i 的K棒。i 和 Live 檢查用的是同一天，也是 `features.py` 實際會用的那根。
 2. TSM、NVDA、四檔台灣 ETF 的那根另外要成交量 > 0。
 3. 沒過的序列合起來，等 60 秒、`cache_clear()` 後各重抓一次。
-4. 還是沒過就標 `no_bar_i`（可能是那個市場放假），流程繼續，這個特徵當天空白。
+4. 還是沒過就列在 `run.no_bar_i`、那個序列記 `has_bar_i: false`（可能是那個市場放假），流程繼續，這個特徵當天空白。使用者 2026-11-06 決定這不算失敗，不回傳 3。
 
 ### manifest
 
@@ -133,7 +133,8 @@
 ```json
 {
   "run": {"started_at": "2026-11-17T07:10:02+08:00", "target_date": "2026-11-17", "mode": "daily",
-          "status": "ok", "prev_day": "2026-11-16", "finished_at": "…", "http_requests": 45, "redirects": 0},
+          "status": "ok", "prev_day": "2026-11-16", "no_bar_i": [], "finished_at": "…",
+          "yahoo_requests": 45, "yahoo_redirects": 0, "site_requests": 5},
   "teacher": {"status": "ok", "action": "skipped_unchanged", "zip_sha256": "7433b271…", "files_sha256": "…"},
   "phase2_days": {"status": "ok", "file": "phase2_days.json", "days": 30},
   "teacher_live": {"status": "ok", "source": "fin-pred-daily.jiangxuehaokeai.chatgpt.site/data.zip",
@@ -143,16 +144,20 @@
   "yfinance": {
     "sox": {"ticker": "^SOX", "status": "ok", "file": "yfinance/sox.csv", "attempts": 1, "error": null,
             "dropped": {"on_or_after_t": 0, "weekend": 0, "low_volume_last_bar_kept": false},
-            "rows": 1730, "date_max": "2026-11-16", "sha256": "…"},
+            "rows": 1730, "date_max": "2026-11-16", "sha256": "…", "has_bar_i": true},
     "wti": {"ticker": "CL=F", "status": "failed", "file": "yfinance/wti.csv", "attempts": 4,
             "error": "JSONDecodeError", "kept_previous_file": true, "rows": 1729, "date_max": "2026-11-13",
-            "sha256": "…", "end": "2026-11-16T17:30:00-05:00"}
+            "sha256": "…", "end": "2026-11-16T17:30:00-05:00", "has_bar_i": true},
+    "usd_twd_1h": {"ticker": "TWD=X", "interval": "1h", "file": "yfinance/usd_twd_1h.csv", "attempts": 1,
+                   "error": null, "status": "ok", "fetched_rows": 170, "start": "2026-11-09", "rows": 16900,
+                   "first": "2024-01-22T05:00:00+08:00", "last": "2026-11-17T05:00:00+08:00", "sha256": "…",
+                   "has_value_t": true}
   }
 }
 ```
 
-- 序列的 `status`：`ok`、`no_bar_i`（抓到了但沒有 i 那根）、`failed`（沒抓到，舊檔留著）。
-- `run.status`：全部 `ok` 是 `ok`，否則 `stale`；丟出例外時是 `failed`，`error` 是自己寫的短訊息或例外類別名稱。
+- 序列的 `status`：`ok`、`failed`（沒抓到，舊檔留著）。有沒有 i 那根另外記在 `has_bar_i`，1h 記 `has_value_t`。
+- `run.status`：序列都 `ok`、沒有改用快取的 phase2Days、沒有 `prev_day_never_filled` 是 `ok`，否則 `stale`（回傳 3）；丟出例外時是 `failed`，`error` 是自己寫的短訊息或例外類別名稱。
 - 失敗時 `teacher` 那筆照抄上一次的，下次還認得本機的 Training，不用重新下載。指紋不算點開頭的檔（`.DS_Store`）。
 - sha256 用檔案原始位元組算。`.gitattributes` 的 `data/raw/** -text`、`data/reference/** -text` 讓 Git 不改換行。
 - 2026-11-06 從 data-collection 搬來 `data/raw/teacher*` 後，`manifest.json` 還不存在，所以第一次會下載 Training 一次再整包換進去，內容一樣，`git diff data/raw/teacher` 應該是空的。新算法的 `files_sha256`：Training `1c17e27f…`、Live `4675ae4d…`。舊分支的 `members_sha256`（`31bbdc99…`）算法不同（路徑帶 `data/`、先把 CRLF 換成 LF），不能互相比。
@@ -197,9 +202,9 @@
 
 - 台北 07:10～13:00 之間跑一次（`submit.enabled` 還是 false），確認 wti、gold 有 i 那根，`dropped.low_volume_last_bar_kept` 有沒有動作。
 - `/api/state` 的 `phase2Days` 裡，過去的日子 `enabled` 是多少；10-23 在不在裡面。
-- 轉址實際有沒有發生（manifest 的 `run.redirects`）。
+- 轉址實際有沒有發生（manifest 的 `run.yahoo_redirects`）。
 - 2026-11-06 data-collection 交接加的：
-  - `run.http_requests`：沒有快取時約 40，有快取約 20。78 代表 cookie 沒存起來。
+  - `run.yahoo_requests`：沒有快取時約 40，有快取約 20（加 1h 會多一兩個）。78 代表 cookie 沒存起來。
   - TWD=X：07:10 存一份 1d 和最近 5 天的 1h，10:00 左右和隔天早上各再抓一次，看 i 那根的 close 三次是否相同、是否等於倫敦 i 日 00:00 那一小時的 close。
   - `usd_twd_am` 補值用的日K：2024 年以後冬令、夏令各挑一天，把日K close 和台北 07:00、08:00 開始的 1h 比，確認它是哪一刻的報價（2026-11-06 加）。
   - 冬令週一 05:00（台北）那根 1h 是不是真的不存在（2026-11-06 加）。
@@ -207,7 +212,12 @@
   - `git diff data/raw/teacher` 要是空的；`data/raw/teacher_live` 只多新的列。
   - 跑完做 `features.py` 的對照測試 (b)（見 `memory/projects/features.md`）。
 
-### data-collection 交接：要調整的地方（2026-11-06，等使用者確認）
+### data-collection 交接：要調整的地方（2026-11-06 都做完了）
+
+使用者 2026-11-06 的決定：第 1 點登入暫時性錯誤重試 2 次，`/api/state` 讀不到改用快取（要有 t）；第 5 點沒有 i 那根不算失敗，另記 `run.no_bar_i`；其他照建議做；`crawler.py` 維持一個檔，不拆。
+截止的做法：過了 08:30 不直接放棄，每一步只試一次、不等待不重試（課程網站、Live、登入的重試都看 `run.can_wait`），每個請求最多 `course_site.total_timeout_seconds`（120）秒。還有 30 分鐘可以交，放棄只會確定漏交。
+
+原本的清單：
 
 1. 課程網站登入的 POST 只送一次，逾時或 5xx 整次就停。每日模式讀不到 `/api/state` 也停。登入不是上傳，可以考慮暫時性錯誤重試 2 次，但和「POST 失敗不自動重試」有關，由使用者決定。`/api/state` 失敗時可以改用快取的 `data/raw/phase2_days.json`（裡面要有 t）。
 2. 截止（08:30）在登入、`/api/state`、Training、Live 第一次嘗試之前都沒檢查。串流下載的 (10, 90) 秒逾時只限制兩塊資料之間的等待，整個下載沒有總時間上限。yfinance 開始前最壞約 38 分鐘（推論）。建議每一步之前檢查截止，每個請求加總時間上限。

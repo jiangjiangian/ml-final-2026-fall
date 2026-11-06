@@ -5,6 +5,8 @@
     data/raw/teacher/              老師 Training ZIP 解開：info.json、global/global_data.csv、market/<代號>.csv
     data/raw/teacher_live/         老師 Live ZIP 解開：global/global_data.csv、market/<代號>.csv（沒有 info.json），每次覆蓋
     data/raw/yfinance/<名稱>.csv   19 個額外指標各一檔：date, open, high, low, close, adj_close, volume
+    data/raw/yfinance/usd_twd_1h.csv  TWD=X 的 1 小時K棒（yfinance.hourly）：start, open, high, low, close, volume，
+                                   start 是K棒開始時間（台北，ISO 帶時區）。每次和舊檔合併，Yahoo 只給大約兩年多
     data/raw/manifest.json         最近一次執行的紀錄：每個檔案的 sha256、筆數、狀態、錯誤類別
 
 兩種模式：
@@ -13,8 +15,9 @@
 
 名詞：
     t   預測日。
-    i   t 的前一個台股交易日：phase2Days 裡早於 t 的最後一天（不篩 enabled）。phase2Days 沒有早於 t 的日子時，
-        取 Live 裡早於 t、已經填好的最後一天。特徵用的就是 i 那天的值。程式和 manifest 裡叫 prev_day。
+    i   t 的前一個台股交易日：Live 裡早於 t 的最後一個交易日（trading_days()，和 features.py 同一條規則：
+        100 檔裡至少 crawler.min_stocks_filled 檔填好）。特徵用的就是 i 那天的值。程式和 manifest 裡叫 prev_day。
+        phase2Days 早於 t 的最後一天記成 prev_day_planned，只拿來比對。
 
 老師資料：
     - 兩個 ZIP 裡的路徑開頭都多一層 data/，解壓時拿掉，其他位元組原樣寫出（Live 的 CRLF 也保留）。
@@ -23,8 +26,8 @@
       t 當天 22:05 前陸續填完。所以早上的 Live 已經有 t 那列，i 那列也填好了。
     - 「有 t 那列」「i 那天填好」都是看 100 檔裡有沒有 crawler.min_stocks_filled（90）檔做到。個別股票停牌
       不會擋住流程，manifest 記 prev_day_missing_stocks，那幾檔自己的特徵當天空白。
-    - 每日模式要求 Live 有 t 那列；i 那天沒填好（例如 10-23 颱風假，整天 -1），就改用早於 t 最後一個
-      填好的日子當 i，manifest 記 prev_day_never_filled。
+    - 每日模式要求 Live 有 t 那列。phase2Days 的前一天比 i 晚、又不在 crawler.closed_days 裡（老師還沒填），
+      manifest 記 prev_day_never_filled，回傳 3。closed_days（10-23 颱風假）那天出現填好的資料就停下。
     - -1 不處理。只有 Live 待定格的 -1 是「還沒有」，Training 法人欄有真的 -1。清理留給 features.py。
 
 yfinance：
@@ -34,21 +37,33 @@ yfinance：
     - 只留日期 < t 的K棒（一天的開高低收和成交量），也丟掉週末日期的K棒。end 只限制請求的範圍，擋不住 Yahoo 附在最後的盤中資料。
     - 期貨（CL=F、GC=F）台北 07:00 後已經開始下一段交易：end 截在紐約 17:30。最後一根成交量低於前 21 根
       中位數的 10% 時只在 manifest 記 low_volume_last_bar_kept，不丟（換月日、Yahoo 量 0 的真結算K棒也會這樣）。
-    - 抓完檢查每個序列有沒有 i 那根（個股和 ETF 另外要成交量 > 0）。沒有的一起等一下重抓一次，還是沒有就標
-      no_bar_i，那個特徵當天空白。
+    - 抓完檢查每個序列有沒有 i 那根（個股和 ETF 另外要成交量 > 0），記在 has_bar_i。沒有的一起等一下重抓一次，
+      還是沒有就列在 run.no_bar_i，那個特徵當天空白。外國放假時常這樣，不算失敗（使用者 2026-11-06）。
+    - 1h 只留結束時間不晚於「現在」和「t 那天 features.usd_twd_am.at（06:00）」的K棒；has_value_t 記 t 那天
+      06:00 前 lookback_days 天內有沒有K棒。
+    - yfinance 1.7.0 讀到壞掉的 cookie 快取（沒有 A3）會丟 KeyError，而且每次都壞。setup_yfinance 把它包起來，
+      讀不懂就當成沒有快取，重新拿一個。
+
+截止（crawler.deadline，08:30）：
+    - 過了截止就不再等待、不再重試，每一步只試一次；yfinance 還沒抓的序列直接沿用舊檔。
+    - 課程網站和 Live 的每個請求，從送出到下載完最多 course_site.total_timeout_seconds 秒。
 
 失敗時：
+    - 課程網站登入遇到逾時、連不上、429、5xx，最多再試 course_site.login_retries 次（使用者 2026-11-06）。
+    - /api/state 讀不到時，改用上次存的 phase2_days.json，前提是裡面有 t；沒有 t 就停下（每日模式）。
     - yfinance 某個序列失敗：舊檔留著，manifest 記 failed，繼續。main 回傳 3。
     - 抓回來是空的、開頭比舊檔晚，或最後一天比舊檔裡早於 t 的最後一天還早（歷史被截短）：當成失敗，不覆蓋舊檔。
     - 老師資料拿不到、Live 沒更新到 t、每日模式讀不到 /api/state、還沒到開始時間：丟 CrawlerError。
       已經寫好的檔案和舊檔都留著。
-    - main 回傳 0（全部正常）或 3（有東西不正常但可以繼續），不呼叫 sys.exit。
+    - main 回傳 0（全部正常）或 3（有東西真的失敗但可以繼續：序列抓失敗、改用快取的 phase2Days、
+      prev_day_never_filled），不呼叫 sys.exit。只是沒有 i 那根不回傳 3。
 
 帳密、金鑰、cookie、crumb、網址 ? 後面的部分和伺服器回應的內容，都不寫進 manifest 和 log。
 """
 
 import argparse
 import csv
+import functools
 import hashlib
 import io
 import json
@@ -93,6 +108,8 @@ STOCK_COLUMNS = (
 )
 GLOBAL_COLUMNS = ("date", "^VIX", "^IXIC", "^GSPC", "^TWII", "^KS11", "TX_OI")
 YF_COLUMNS = ("date", "open", "high", "low", "close", "adj_close", "volume")
+HOURLY_COLUMNS = ("start", "open", "high", "low", "close", "volume")   # start：K棒開始時間，ISO 格式帶時區
+HOURLY_BAR = timedelta(hours=1)
 COL_CLOSE, COL_OPEN, COL_Y = STOCK_COLUMNS.index("etl:adj_close"), STOCK_COLUMNS.index("etl:adj_open"), STOCK_COLUMNS.index("y")
 
 
@@ -188,6 +205,7 @@ class Run:
     prev_day: str | None = None
     phase2_days: list | None = None
     stale: bool = False
+    no_bar_i: list = field(default_factory=list)
 
     def at(self, hhmm: str) -> datetime:
         hour, minute = (int(x) for x in hhmm.split(":"))
@@ -215,17 +233,23 @@ class Run:
 class SiteClient:
     """課程網站和 Live 共用的 HTTP。
 
-    每個請求都有逾時，邊下載邊數位元組，只跟隨同一個主機的轉址。GET 遇到 429、5xx 或連線錯誤重試 2 次；
-    POST（登入）不重試。錯誤訊息只寫路徑和狀態碼，不寫回應內容。
+    每個請求都有逾時和總時間上限（total_seconds），邊下載邊數位元組，只跟隨同一個主機的轉址。GET 遇到 429、5xx
+    或連線錯誤重試 2 次，但 can_wait 說不能等（過了爬蟲截止）就不重試；POST 在這一層不重試（登入的重試在
+    course_login）。錯誤訊息只寫路徑和狀態碼，不寫回應內容。requests 數送出的請求（含轉址）。
     """
 
-    def __init__(self, base_url: str, timeout, max_bytes: int, session=None, sleep=time.sleep):
+    def __init__(self, base_url: str, timeout, max_bytes: int, session=None, sleep=time.sleep, total_seconds=None,
+                 clock=time.monotonic):
         self.base = base_url.rstrip("/")
         self.timeout = tuple(timeout)
         self.max_bytes = max_bytes
         self.session = session or requests.Session()
         self.session.headers.update({"User-Agent": USER_AGENT, "Accept": "*/*"})
         self.sleep = sleep
+        self.total_seconds = total_seconds
+        self.clock = clock
+        self.can_wait = lambda seconds: True   # crawl() 換成 run.can_wait
+        self.requests = 0
 
     def close(self):
         self.session.close()
@@ -237,18 +261,20 @@ class SiteClient:
             try:
                 return self._read_once(method, path, limit, label, **kwargs)
             except TransientError:
-                if method != "GET" or attempt == retries:
+                if method != "GET" or attempt == retries or not self.can_wait(2 ** attempt):
                     raise
                 self.sleep(2 ** attempt)
         raise TransientError(f"{label}：重試用完")
 
     def _read_once(self, method, path, limit, label, **kwargs) -> bytes:
+        started = self.clock()
         origin = urlsplit(self.base)
         url = urljoin(self.base + "/", path.lstrip("/"))
         for _ in range(5):
             parts = urlsplit(url)
             if (parts.scheme, parts.netloc) != (origin.scheme, origin.netloc):
                 raise CrawlerError(f"{label}：轉址到別的主機，不跟")
+            self.requests += 1
             try:
                 resp = self.session.request(method, url, timeout=self.timeout, allow_redirects=False,
                                             stream=True, **kwargs)
@@ -273,6 +299,8 @@ class SiteClient:
                     size += len(chunk)
                     if size > limit:
                         raise CrawlerError(f"{label}：超過大小上限 {limit} bytes")
+                    if self.total_seconds is not None and self.clock() - started > self.total_seconds:
+                        raise TransientError(f"{label}：超過總時間上限 {self.total_seconds} 秒")
                     chunks.append(chunk)
                 return b"".join(chunks)
             except requests.RequestException as e:
@@ -282,20 +310,32 @@ class SiteClient:
         raise CrawlerError(f"{label}：轉址太多次")
 
 
-def course_client(cfg, sleep=time.sleep, session=None) -> SiteClient:
+def course_client(cfg, sleep=time.sleep, session=None, clock=time.monotonic) -> SiteClient:
     site = cfg["course_site"]
-    return SiteClient(site["base_url"], site["timeout_seconds"], site["max_zip_mb"] * 2**20, session, sleep)
+    return SiteClient(site["base_url"], site["timeout_seconds"], site["max_zip_mb"] * 2**20, session, sleep,
+                      site["total_timeout_seconds"], clock)
 
 
-def live_client(cfg, sleep=time.sleep, session=None) -> SiteClient:
+def live_client(cfg, sleep=time.sleep, session=None, clock=time.monotonic) -> SiteClient:
     site = cfg["course_site"]
-    return SiteClient(site["live"]["base_url"], site["timeout_seconds"], site["max_zip_mb"] * 2**20, session, sleep)
+    return SiteClient(site["live"]["base_url"], site["timeout_seconds"], site["max_zip_mb"] * 2**20, session, sleep,
+                      site["total_timeout_seconds"], clock)
 
 
 def course_login(course: SiteClient, cfg, secrets):
-    raw = course.read("POST", cfg["course_site"]["login"], max_bytes=2**20,
-                      json={"email": secrets["COURSE_EMAIL"], "password": secrets["COURSE_PASSWORD"]},
-                      headers={"Origin": course.base, "Referer": course.base + "/login"})
+    """登入課程網站。逾時、連不上、429、5xx 時最多再試 course_site.login_retries 次（使用者 2026-11-06：登入
+    不是上傳，重送沒有副作用）。密碼錯（4xx）、回應說拒絕、過了爬蟲截止都不重試。"""
+    retries = cfg["course_site"]["login_retries"]
+    for attempt in range(retries + 1):
+        try:
+            raw = course.read("POST", cfg["course_site"]["login"], max_bytes=2**20,
+                              json={"email": secrets["COURSE_EMAIL"], "password": secrets["COURSE_PASSWORD"]},
+                              headers={"Origin": course.base, "Referer": course.base + "/login"})
+            break
+        except TransientError:
+            if attempt == retries or not course.can_wait(2 ** attempt):
+                raise
+            course.sleep(2 ** attempt)
     try:
         result = json.loads(raw)
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -321,6 +361,17 @@ def fetch_phase2_days(course: SiteClient, cfg) -> list:
             raise CrawlerError("/api/state：phase2Days 的日期格式不對或重複")
         out[d] = {"tradingDate": d, "enabled": item.get("enabled"), "isCompetition": item.get("isCompetition")}
     return [out[d] for d in sorted(out)]
+
+
+def cached_phase2_days(raw_dir: Path):
+    """上次存的 phase2_days.json；讀不到或格式不對回傳 None。"""
+    try:
+        days = json.loads((raw_dir / "phase2_days.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(days, list) or not all(isinstance(d, dict) and is_iso_date(d.get("tradingDate")) for d in days):
+        return None
+    return sorted(days, key=lambda d: d["tradingDate"])
 
 
 def live_download(live: SiteClient, cfg, key: str) -> bytes:
@@ -461,23 +512,22 @@ def trading_days(stocks: dict, min_stocks: int, closed_days=()) -> list:
     return [d for d in dates if day_filled(stocks, d, min_stocks)]
 
 
-def live_check(stocks: dict, t: str, phase2_days, min_stocks: int) -> dict:
+def live_check(stocks: dict, t: str, phase2_days, min_stocks: int, closed_days=()) -> dict:
     """回傳 has_t_row、prev_day（實際用的 i）、prev_day_planned、prev_day_never_filled、prev_day_missing_stocks。
 
-    has_t_row：至少 min_stocks 檔有 t 那列。prev_day_missing_stocks：i 那天沒填好的代號（多半是停牌），
-    這幾檔自己的特徵當天會是空白。
+    has_t_row：至少 min_stocks 檔有 t 那列。prev_day：trading_days() 裡早於 t 的最後一天（和 features.py 同一條規則）。
+    prev_day_planned：phase2Days 早於 t 的最後一天（不篩 enabled），只拿來比對。它比 i 晚、又不在 closed_days 裡，
+    代表那天老師還沒填，記 prev_day_never_filled。prev_day_missing_stocks：i 那天沒填好的代號（多半是停牌），
+    這幾檔自己的特徵當天會是空白。closed_days 那天出現填好的資料時，trading_days() 丟 CrawlerError。
     """
     has_t = sum(t in rows for rows in stocks.values()) >= min_stocks
+    earlier = [d for d in trading_days(stocks, min_stocks, closed_days) if d < t]
+    prev = earlier[-1] if earlier else None
     planned = None
     if phase2_days:
-        earlier = [d["tradingDate"] for d in phase2_days if d["tradingDate"] < t]
-        planned = earlier[-1] if earlier else None
-    if planned and day_filled(stocks, planned, min_stocks):
-        prev, never_filled = planned, False
-    else:
-        dates = sorted({d for rows in stocks.values() for d in rows if d < t})
-        filled = [d for d in dates if day_filled(stocks, d, min_stocks)]
-        prev, never_filled = (filled[-1] if filled else None), planned is not None
+        scheduled = [d["tradingDate"] for d in phase2_days if d["tradingDate"] < t]
+        planned = scheduled[-1] if scheduled else None
+    never_filled = planned is not None and (prev is None or planned > prev) and planned not in closed_days
     return {"has_t_row": has_t, "prev_day": prev, "prev_day_planned": planned, "prev_day_never_filled": never_filled,
             "prev_day_missing_stocks": unfilled_stocks(stocks, prev) if prev else []}
 
@@ -528,7 +578,8 @@ def download_teacher(run: Run, secrets: dict, course: SiteClient, live: SiteClie
         try:
             live_blob = live_download(live, cfg, secrets["COURSE_LIVE_KEY"])
             live_files, live_parsed = unpack_zip(live_blob, "live", stock_ids, max_bytes, max_unzipped)
-            check = live_check(stock_rows(live_parsed), run.t, run.phase2_days, cfg["crawler"]["min_stocks_filled"])
+            check = live_check(stock_rows(live_parsed), run.t, run.phase2_days, cfg["crawler"]["min_stocks_filled"],
+                               cfg["crawler"]["closed_days"])
             if run.daily and not check["has_t_row"]:
                 raise TransientError(f"Live 還沒有 {run.t} 那列")
             break
@@ -619,14 +670,35 @@ class PacedSession(CurlSession):
         return resp
 
 
+COOKIE_ERRORS = (KeyError, IndexError, AttributeError, TypeError)
+
+
+def tolerant_cookie_loader(load):
+    """yfinance 1.7.0 的 _load_cookie_curlCffi 遇到快取裡的 cookie 沒有 A3 時丟 KeyError（data.py），19 個序列
+    全部失敗，而且之後每次都壞，直到有人刪掉快取。包一層：讀不懂就當成沒有快取（回傳 False），yfinance 會重新拿
+    cookie 再存回去。"""
+
+    @functools.wraps(load)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return load(self, *args, **kwargs)
+        except COOKIE_ERRORS:
+            return False
+
+    wrapper.tolerant = True
+    return wrapper
+
+
 def setup_yfinance(session: PacedSession, cache_dir: Path):
-    """把 yfinance 的快取放到 cache_dir、關掉內建重試、出錯要丟例外、所有請求都走 session。
+    """把 yfinance 的快取放到 cache_dir、關掉內建重試、出錯要丟例外、所有請求都走 session，壞掉的 cookie 快取當成沒有。
 
     不要打開 yf.config.debug.logging，也不要把 root logger 設成 DEBUG：yfinance 會印出 crumb 和整個回應。
     """
     import yfinance as yf
     from yfinance.data import YfData
 
+    if not getattr(YfData._load_cookie_curlCffi, "tolerant", False):
+        YfData._load_cookie_curlCffi = tolerant_cookie_loader(YfData._load_cookie_curlCffi)
     cache_dir.mkdir(parents=True, exist_ok=True)
     yf.set_tz_cache_location(str(cache_dir))
     yf.config.network.retries = 0
@@ -642,25 +714,36 @@ def yf_end(ticker: str, t: str, cfg):
     return t
 
 
+def num_cell(x) -> str:
+    x = float(x)
+    return repr(x) if math.isfinite(x) else ""
+
+
+def volume_cell(x) -> str:
+    x = float(x)
+    return str(int(x)) if math.isfinite(x) else ""
+
+
 def frame_to_rows(df) -> list:
     """yfinance 的 DataFrame → [[date, open, high, low, close, adj_close, volume], ...]，日期是交易所當地日期。"""
     need = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
     missing = [c for c in need if c not in df.columns]
     if missing:
         raise ValueError(f"yfinance 少了欄位 {missing}")
-
-    def num(x):
-        x = float(x)
-        return repr(x) if math.isfinite(x) else ""
-
-    def vol(x):
-        x = float(x)
-        return str(int(x)) if math.isfinite(x) else ""
-
     rows = []
     for ts, rec in zip(df.index, df[need].itertuples(index=False)):
-        rows.append([ts.date().isoformat()] + [num(v) for v in rec[:5]] + [vol(rec[5])])
+        rows.append([ts.date().isoformat()] + [num_cell(v) for v in rec[:5]] + [volume_cell(rec[5])])
     return rows
+
+
+def hourly_frame_rows(df) -> list:
+    """yfinance 1h 的 DataFrame → [[start, open, high, low, close, volume], ...]，start 換成台北時間的 ISO 字串。"""
+    need = ["Open", "High", "Low", "Close", "Volume"]
+    missing = [c for c in need if c not in df.columns]
+    if missing:
+        raise ValueError(f"yfinance 少了欄位 {missing}")
+    return [[ts.tz_convert(TAIPEI).isoformat()] + [num_cell(v) for v in rec[:4]] + [volume_cell(rec[4])]
+            for ts, rec in zip(df.index, df[need].itertuples(index=False))]
 
 
 class EmptyResult(ValueError):
@@ -719,31 +802,41 @@ def rows_to_csv(rows: list) -> bytes:
     return buf.getvalue().encode()
 
 
-def fetch_once(session: PacedSession, ticker: str, start: str, end, timeout) -> list:
+def yf_ticker(session: PacedSession, ticker: str):
     import yfinance as yf
     from yfinance.data import YfData
 
     YfData.cache_get.cache_clear()
     if YfData()._session is not session:
         raise CrawlerError("yfinance 用的 session 被換掉了，限流會失效")
-    df = yf.Ticker(ticker, session=session).history(start=start, end=end, interval="1d", auto_adjust=False,
-                                                    actions=False, repair=False, timeout=timeout)
+    return yf.Ticker(ticker, session=session)
+
+
+def fetch_once(session: PacedSession, ticker: str, start: str, end, timeout) -> list:
+    df = yf_ticker(session, ticker).history(start=start, end=end, interval="1d", auto_adjust=False,
+                                            actions=False, repair=False, timeout=timeout)
     return frame_to_rows(df)
 
 
-def fetch_series(run: Run, session: PacedSession, ticker: str, span=None, retries=None):
-    """抓一個序列，失敗照設定重試。回傳 (rows 或 None, dropped, 嘗試次數, 錯誤種類, 錯誤類別名稱)。"""
+def fetch_hourly_once(session: PacedSession, ticker: str, start, timeout) -> list:
+    """抓 1h。start 是 None 時抓 Yahoo 給的最長一段（730d）。外匯沒有盤前盤後，prepost=True 讓 yfinance
+    不再用交易時段過濾K棒。"""
+    opts = {"interval": "1h", "auto_adjust": False, "actions": False, "repair": False, "prepost": True,
+            "timeout": timeout}
+    tk = yf_ticker(session, ticker)
+    df = tk.history(period="730d", **opts) if start is None else tk.history(start=start, **opts)
+    return hourly_frame_rows(df)
+
+
+def with_retries(run: Run, label: str, fetch, retries: int):
+    """呼叫 fetch()，失敗照 yfinance 的設定重試。回傳 (結果或 None, 嘗試次數, 錯誤種類, 錯誤類別名稱)。"""
     from yfinance.exceptions import YFRateLimitError
 
     conf = run.cfg["yfinance"]
-    retries = conf["max_retries"] if retries is None else retries
-    end = yf_end(ticker, run.t, run.cfg)
     kind = name = None
     for attempt in range(1, retries + 2):
         try:
-            rows = fetch_once(session, ticker, run.cfg["data"]["start"], end, conf["timeout_seconds"])
-            rows, dropped = filter_rows(rows, ticker, run.t, run.cfg, span)
-            return rows, dropped, attempt, None, None
+            return fetch(), attempt, None, None
         except CrawlerError:
             raise
         except YFRateLimitError:
@@ -757,9 +850,68 @@ def fetch_series(run: Run, session: PacedSession, ticker: str, span=None, retrie
         if not run.can_wait(wait):
             name += "（到了爬蟲截止）"
             break
-        run.log.warning("%s：%s，%d 秒後重試", ticker, name, wait)
+        run.log.warning("%s：%s，%d 秒後重試", label, name, wait)
         run.sleep(wait)
-    return None, None, attempt, kind, name
+    return None, attempt, kind, name
+
+
+def fetch_series(run: Run, session: PacedSession, ticker: str, span=None, retries=None):
+    """抓一個序列，失敗照設定重試。回傳 (rows 或 None, dropped, 嘗試次數, 錯誤種類, 錯誤類別名稱)。"""
+    conf = run.cfg["yfinance"]
+    end = yf_end(ticker, run.t, run.cfg)
+
+    def fetch():
+        rows = fetch_once(session, ticker, run.cfg["data"]["start"], end, conf["timeout_seconds"])
+        return filter_rows(rows, ticker, run.t, run.cfg, span)
+
+    result, attempt, kind, name = with_retries(run, ticker, fetch, conf["max_retries"] if retries is None else retries)
+    if result is None:
+        return None, None, attempt, kind, name
+    return result[0], result[1], attempt, None, None
+
+
+def read_hourly(path: Path) -> list:
+    if not path.exists():
+        return []
+    with open(path, encoding="utf-8", newline="") as f:
+        rows = list(csv.reader(f))
+    return rows[1:] if rows and tuple(rows[0]) == HOURLY_COLUMNS else []
+
+
+def hourly_to_csv(rows: list) -> bytes:
+    buf = io.StringIO(newline="")
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(HOURLY_COLUMNS)
+    writer.writerows(rows)
+    return buf.getvalue().encode()
+
+
+def hourly_start(old: list, t: str, overlap_days: int):
+    """1h 從哪天開始抓：舊檔最後一根往前 overlap_days 天。沒有舊檔、或舊檔停在 600 天以前，回傳 None（抓 730d）。"""
+    if not old:
+        return None
+    last = datetime.fromisoformat(old[-1][0]).astimezone(TAIPEI).date()
+    if (date.fromisoformat(t) - last).days > 600:
+        return None
+    return (last - timedelta(days=overlap_days)).isoformat()
+
+
+def merge_hourly(old: list, new: list, cutoff: datetime) -> list:
+    """舊檔和新抓的合併，同一個開始時間用新的；只留結束時間 ≤ cutoff 的K棒，依時間排序。"""
+    by_start = {r[0]: r for r in old}
+    by_start.update({r[0]: r for r in new})
+    keep = [r for r in by_start.values() if datetime.fromisoformat(r[0]) + HOURLY_BAR <= cutoff]
+    return sorted(keep, key=lambda r: datetime.fromisoformat(r[0]))
+
+
+def hourly_has_value(rows: list, target: datetime, lookback_days: int) -> bool:
+    """target 之前 lookback_days 天內，有沒有結束時間 ≤ target、close 有值的K棒（features 的 usd_twd_am 取得到值）。"""
+    for r in reversed(rows):
+        end = datetime.fromisoformat(r[0]) + HOURLY_BAR
+        close = to_float(r[4])
+        if end <= target and close is not None and close > 0:
+            return end > target - timedelta(days=lookback_days)
+    return False
 
 
 def has_bar(rows: list, d: str, need_volume: bool) -> bool:
@@ -772,7 +924,7 @@ def has_bar(rows: list, d: str, need_volume: bool) -> bool:
 
 
 def download_yfinance(run: Run, session: PacedSession):
-    """依 cfg["yfinance"]["tickers"] 逐一下載日K，最後檢查每個序列有沒有 i 那根。"""
+    """依 cfg["yfinance"]["tickers"] 逐一下載日K，再抓 yfinance.hourly 的 1h，最後檢查每個序列有沒有 i 那根。"""
     conf = run.cfg["yfinance"]
     out_dir = run.raw_dir / "yfinance"
     setup_yfinance(session, utils.ROOT / conf["cache_dir"])
@@ -821,9 +973,52 @@ def download_yfinance(run: Run, session: PacedSession):
             breaker = 0
             record(sid, ticker, "ok", rows, dropped, attempts)
 
-    # 檢查有沒有 i 那根
+    # 1h：和舊檔合併，只留結束時間不晚於現在和 t 那天 06:00 的K棒
+    am = run.cfg["features"]["usd_twd_am"]
+    target = run.at(am["at"])
+    for sid, ticker in conf.get("hourly", {}).items():
+        path = out_dir / f"{sid}.csv"
+        rows = read_hourly(path)
+        entry = {"ticker": ticker, "interval": "1h", "file": f"yfinance/{sid}.csv", "attempts": 0, "error": None}
+        if breaker >= conf["breaker_series"]:
+            entry.update(status="failed", error="skipped_rate_limit_breaker")
+        elif run.past_deadline():
+            entry.update(status="failed", error="skipped_deadline")
+        else:
+            start = hourly_start(rows, run.t, conf["hourly_overlap_days"])
+
+            def fetch():
+                new = fetch_hourly_once(session, ticker, start, conf["timeout_seconds"])
+                if not new:
+                    raise EmptyResult("沒有資料")
+                return new
+
+            new, attempts, kind, name = with_retries(run, f"{ticker} 1h", fetch, conf["max_retries"])
+            entry["attempts"] = attempts
+            if new is None:
+                breaker = breaker + 1 if kind == "rate_limited" else 0
+                run.log.warning("%s 1h 失敗（%s），沿用舊檔", ticker, name)
+                entry.update(status="failed", error=name)
+            else:
+                breaker = 0
+                rows = merge_hourly(rows, new, min(run.now(), target))
+                write_atomic(path, hourly_to_csv(rows))
+                entry.update(status="ok", fetched_rows=len(new), start=start)
+        if entry["status"] == "failed" and path.exists():
+            entry["kept_previous_file"] = True
+        if path.exists():
+            entry.update(rows=len(rows), first=rows[0][0] if rows else None, last=rows[-1][0] if rows else None,
+                         sha256=sha256_bytes(path.read_bytes()))
+        entry["has_value_t"] = hourly_has_value(rows, target, am["lookback_days"])
+        entries[sid] = entry
+        run.save()
+
+    # 檢查有沒有 i 那根。沒有的不算失敗（外國放假常這樣），列在 run.no_bar_i（使用者 2026-11-06）
+    run.no_bar_i = [sid for sid in conf.get("hourly", {}) if not entries[sid]["has_value_t"]]
     if not run.prev_day:
         run.log.warning("不知道前一個交易日，跳過「有沒有那根K棒」的檢查")
+        for sid in conf["tickers"]:
+            entries[sid]["has_bar_i"] = None
     else:
         need_volume = set(conf["volume_required"])
 
@@ -845,11 +1040,16 @@ def download_yfinance(run: Run, session: PacedSession):
                                                              retries=0)
                 if rows is not None:
                     record(sid, ticker, "ok", rows, dropped, entries[sid]["attempts"] + attempts)
-            todo = missing()
-        for sid in todo:
-            entries[sid]["status"] = "no_bar_i"
-            run.log.warning("%s 沒有 %s 那根K棒，這個特徵當天會是空白", conf["tickers"][sid], run.prev_day)
-        run.save()
+        for sid, ticker in conf["tickers"].items():
+            entries[sid]["has_bar_i"] = sid in data and has_bar(data[sid], run.prev_day, ticker in need_volume)
+        run.no_bar_i = [sid for sid in conf["tickers"] if not entries[sid]["has_bar_i"]] + run.no_bar_i
+    for sid in run.no_bar_i:
+        if sid in conf["tickers"]:
+            run.log.warning("%s 沒有 %s 那根K棒，這個特徵當天會是空白", sid, run.prev_day)
+        else:
+            run.log.warning("%s 在 %s %s 前 %d 天內沒有K棒，usd_twd_am 當天會是空白", sid, run.t, am["at"],
+                            am["lookback_days"])
+    run.save()
 
     if any(e["status"] != "ok" for e in entries.values()):
         run.stale = True
@@ -875,6 +1075,9 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None) -
         run.manifest["teacher"] = run.previous["teacher"]
     course = course or course_client(cfg, run.sleep)
     live = live or live_client(cfg, run.sleep)
+    course.can_wait = live.can_wait = run.can_wait   # 過了爬蟲截止，課程網站和 Live 都不再重試
+    if run.past_deadline():
+        run.log.warning("已經過了爬蟲截止 %s：每一步只試一次，不再等待或重試", cfg["crawler"]["deadline"])
     yf_session = yf_session or PacedSession(cfg["yfinance"]["min_interval_seconds"],
                                             cfg["yfinance"]["jitter_seconds"], cfg["yfinance"]["max_redirects"])
     try:
@@ -885,10 +1088,18 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None) -
                          (json.dumps(run.phase2_days, ensure_ascii=False, indent=2) + "\n").encode())
             run.manifest["phase2_days"] = {"status": "ok", "file": "phase2_days.json", "days": len(run.phase2_days)}
         except CrawlerError as e:
-            if run.daily:
-                raise
-            run.manifest["phase2_days"] = {"status": "failed", "error": str(e)}
-            run.log.warning("讀不到 phase2Days（%s），研究模式繼續", e)
+            cached = cached_phase2_days(run.raw_dir)
+            if cached and any(d["tradingDate"] == run.t for d in cached):
+                # 使用者 2026-11-06：/api/state 讀不到時改用上次存的清單，前提是裡面有 t
+                run.phase2_days, run.stale = cached, True
+                run.manifest["phase2_days"] = {"status": "cached", "error": str(e), "file": "phase2_days.json",
+                                               "days": len(cached)}
+                run.log.warning("讀不到 phase2Days（%s），改用上次存的清單", e)
+            elif run.daily:
+                raise CrawlerError(f"{e}；上次存的 phase2_days.json 裡也沒有 {run.t}") from None
+            else:
+                run.manifest["phase2_days"] = {"status": "failed", "error": str(e)}
+                run.log.warning("讀不到 phase2Days（%s），研究模式繼續", e)
         run.save()
         download_teacher(run, secrets, course, live)
         download_yfinance(run, yf_session)
@@ -905,8 +1116,9 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None) -
         live.close()
         yf_session.close()
     run.manifest["run"].update({"status": "stale" if run.stale else "ok", "prev_day": run.prev_day,
-                                "finished_at": run.now().isoformat(timespec="seconds"),
-                                "http_requests": yf_session.requests, "redirects": yf_session.redirects})
+                                "no_bar_i": run.no_bar_i, "finished_at": run.now().isoformat(timespec="seconds"),
+                                "yahoo_requests": yf_session.requests, "yahoo_redirects": yf_session.redirects,
+                                "site_requests": course.requests + live.requests})
     run.save()
     run.log.info("爬蟲完成：%s", run.manifest["run"]["status"])
     return 3 if run.stale else 0

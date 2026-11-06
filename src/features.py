@@ -1,4 +1,4 @@
-"""特徵工程：data/raw/ → data/processed/features.csv.gz 和 cleaning.json。
+"""特徵工程：data/raw/ → data/processed/features/YYYY-MM.csv.gz（一個月一檔）和 data/processed/manifest.json。
 
 一列＝一檔股票（老師資料的 100 檔）× 一個日期。日期是全部台股交易日；給了預測日 t 時，只留早於 t 的
 交易日，最後再加 t 那天。欄位：
@@ -29,11 +29,18 @@
     Training 法人欄有真的 -1，但法人欄不進特徵，也不影響「填好了」的判斷。
 
 yfinance 清理：照舊爬蟲的 R0～R5 依序做（規則、測試資料、使用者的決定見 memory/projects/features.md）。
-    刪掉的列整列拿掉，不留空白的一列。每一筆都記在 cleaning.json。
+    刪掉的列整列拿掉，不留空白的一列。每一筆都記在 manifest.json 的 cleaning。
+
+輸出（使用者 2026-11-06：一個月一檔，只往後加，repo 不會越來越肥；都進 Git，組員用網址讀）：
+    features/YYYY-MM.csv.gz   那個月的列。每天只重寫最後 features.rewrite_months 個月（月初要補上個月最後一天
+                              的答案），內容沒變就不寫；過去的月份不動。特徵定義改了用 --rebuild 全部重寫。
+    manifest.json             months（有哪些月份）、model_columns（模型用的欄）、last_date、清理紀錄、警告。
+    t 比已經存的最後一天早時（例如拿舊的 t 做研究）丟 FeatureError，不會把較新的月份蓋掉；要蓋掉加 --rebuild。
 
 用法：
-    python -m src.features                    全部交易日
-    python -m src.features --date 2026-11-17  每日模式：交易日只留早於 t 的，加上 t 那列
+    python -m src.features                    t 用爬蟲 data/raw/manifest.json 的 target_date；沒有就不加 t 那列
+    python -m src.features --date 2026-11-17  指定 t：交易日只留早於 t 的，加上 t 那列
+    python -m src.features --rebuild          所有月份都重寫，刪掉多出來的月份
 """
 
 import argparse
@@ -52,8 +59,8 @@ import pandas as pd
 from src import crawler, utils
 
 TAIPEI = utils.TAIPEI
-HOURLY_COLUMNS = ("start", "open", "high", "low", "close", "volume")   # start：K棒開始時間，ISO 格式要帶時區
-HOURLY_BAR = timedelta(hours=1)
+HOURLY_COLUMNS = crawler.HOURLY_COLUMNS   # start：K棒開始時間，ISO 格式帶時區
+HOURLY_BAR = crawler.HOURLY_BAR
 PRICE_KEYS = ("open", "high", "low", "close", "adj_close")
 LABELS = ("label_y", "label_intraday_return")
 
@@ -333,7 +340,7 @@ def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None) -> dict
         rows, records = clean_series(read_yfinance(path), name, ticker, cfg)
         out["yfinance"][name] = rows
         out["cleaning"].extend(records)
-    hourly = yf_dir / cfg["features"]["usd_twd_am"]["hourly_file"]
+    hourly = yf_dir / f'{cfg["features"]["usd_twd_am"]["hourly"]}.csv'
     if hourly.exists():
         out["hourly"], records = clean_hourly(read_hourly(hourly), cfg)
         out["cleaning"].extend(records)
@@ -489,29 +496,83 @@ def to_csv_gz(df: pd.DataFrame) -> bytes:
     return gzip.compress(text.encode("utf-8"), compresslevel=6, mtime=0)
 
 
+def write_months(df: pd.DataFrame, out_dir: Path, rewrite: int, rebuild: bool = False) -> list:
+    """照月份寫 out_dir/features/YYYY-MM.csv.gz，回傳真的寫了的月份。
+
+    最後 rewrite 個月、還沒有檔的月份、rebuild 時的所有月份才寫；內容和舊檔一樣就不寫（mtime 固定，位元組會一樣）。
+    rebuild 時刪掉 df 裡沒有的月份。
+    """
+    month_dir = out_dir / "features"
+    months = df["date"].str[:7]
+    all_months = sorted(months.unique())
+    recent = set(all_months[-rewrite:])
+    written = []
+    for m in all_months:
+        path = month_dir / f"{m}.csv.gz"
+        if not (rebuild or m in recent or not path.exists()):
+            continue
+        payload = to_csv_gz(df[months == m])
+        if not path.exists() or path.read_bytes() != payload:
+            crawler.write_atomic(path, payload)
+            written.append(m)
+    if rebuild and month_dir.exists():
+        for path in month_dir.glob("*.csv.gz"):
+            if path.name[:7] not in all_months:
+                path.unlink()
+    return written
+
+
+def load_features(processed_dir: Path | None = None) -> pd.DataFrame:
+    """讀回 features/ 的所有月份（manifest.json 的 months），date、stock_id 當字串。train.py、predict.py 用這個。"""
+    processed_dir = processed_dir or utils.ROOT / utils.load_config()["data"]["processed_dir"]
+    info = json.loads((processed_dir / "manifest.json").read_text(encoding="utf-8"))
+    frames = [pd.read_csv(processed_dir / "features" / f"{m}.csv.gz", dtype={"date": str, "stock_id": str},
+                          float_precision="round_trip") for m in info["months"]]
+    return pd.concat(frames, ignore_index=True)
+
+
+def crawler_target_date(raw_dir: Path):
+    """爬蟲上次跑的 t（data/raw/manifest.json 的 run.target_date）；沒有就回傳 None。"""
+    try:
+        t = json.loads((raw_dir / "manifest.json").read_text(encoding="utf-8"))["run"]["target_date"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return t if crawler.is_iso_date(t) else None
+
+
 def main(argv=None) -> int:
-    """load_raw → build_features → 寫 data/processed/features.csv.gz 和 cleaning.json。"""
-    parser = argparse.ArgumentParser(description="data/raw/ → data/processed/features.csv.gz")
-    parser.add_argument("--date", help="預測日 t（YYYY-MM-DD）：交易日只留早於 t 的，加上 t 那列")
+    """load_raw → build_features → 照月份寫 data/processed/features/ 和 manifest.json。"""
+    parser = argparse.ArgumentParser(description="data/raw/ → data/processed/features/YYYY-MM.csv.gz")
+    parser.add_argument("--date", help="預測日 t（YYYY-MM-DD）；不給就用爬蟲上次的 t")
+    parser.add_argument("--rebuild", action="store_true", help="所有月份都重寫（特徵定義改了的時候）")
     args = parser.parse_args(argv)
     if args.date and not crawler.is_iso_date(args.date):
         parser.error("--date 要是 YYYY-MM-DD")
     cfg = utils.load_config()
-    log = utils.get_logger("features", args.date or utils.taipei_now().date().isoformat())
+    t = args.date or crawler_target_date(utils.ROOT / cfg["data"]["raw_dir"])
+    log = utils.get_logger("features", t or utils.taipei_now().date().isoformat())
     raw = load_raw(cfg)
     for message in raw["warnings"]:
         log.warning(message)
-    df = build_features(raw, cfg, args.date)
+    df = build_features(raw, cfg, t)
     out_dir = utils.ROOT / cfg["data"]["processed_dir"]
-    crawler.write_atomic(out_dir / cfg["features"]["output"], to_csv_gz(df))
+    last = df["date"].iloc[-1]
+    try:
+        stored = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))["last_date"]
+    except (OSError, ValueError, KeyError, TypeError):
+        stored = None
+    if stored and last < stored and not args.rebuild:
+        raise FeatureError(f"特徵表已經到 {stored}，這次只到 {last}；要用舊的 t 覆蓋請加 --rebuild")
+    written = write_months(df, out_dir, cfg["features"]["rewrite_months"], args.rebuild)
     counts = {}
     for r in raw["cleaning"]:
         counts[r["rule"]] = counts.get(r["rule"], 0) + 1
-    report = {"target_date": args.date, "rows": len(df), "dates": int(df["date"].nunique()),
-              "last_date": df["date"].iloc[-1], "counts": counts, "warnings": raw["warnings"], "records": raw["cleaning"]}
-    crawler.write_atomic(out_dir / "cleaning.json",
-                         (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode())
-    log.info("特徵表：%d 列、%d 天，最後一天 %s；清理紀錄 %s", len(df), report["dates"], report["last_date"], counts)
+    report = {"target_date": t, "last_date": last, "rows": len(df), "dates": int(df["date"].nunique()),
+              "months": sorted(df["date"].str[:7].unique()), "model_columns": model_columns(cfg),
+              "cleaning_counts": counts, "warnings": raw["warnings"], "cleaning": raw["cleaning"]}
+    crawler.write_atomic(out_dir / "manifest.json", (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode())
+    log.info("特徵表：%d 列、%d 天，最後一天 %s；寫了 %s；清理紀錄 %s", len(df), report["dates"], last,
+             written or "沒有月份變動", counts)
     return 0
 
 

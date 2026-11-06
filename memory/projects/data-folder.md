@@ -59,6 +59,13 @@
     - yfinance 19 序列限流重抓；9/30 以前的值只有 Yahoo 還原價的浮點漂移（長表 ≤ 8.5e-7、market_features ≤ 9.6e-7，缺值位置不變）。
     - 10/1～11/4 用 Yahoo 核對：個股 2200/2200、^IXIC／^GSPC／^TWII 22/22、^KS11 21/22（韓國休市）。^VIX 13/22 列是前一個美股日的盤中值，不是收盤，開盤前就定下，沒有洩漏，記在 schema。
     - 測試照本分支規則放在 session 暫存區，沒有 commit：10/23 跳過、其他 -1 照舊報錯、休市日被填值時報錯，11 個通過。
+28. 2026-11-06：爬資料交給 `claude/stock-market-challenger`，`data/` 集中搬過去；lag 只用 lag1、lag2（使用者和組員）。交接內容寫在 `memory/projects/handoff-stock-market-challenger.md`：
+    - 搬法在暫存 clone 演練過：老師資料逐位元組等於課程 ZIP，放進那邊的 `data/raw/`；清理過的 yfinance、features、transform、schema、Live `eea89fce` 和 `0820473` 的 Yahoo 原樣放進 `data/reference/data-collection/`（凍結，只給對照測試）。每個子樹的 tree hash 和來源相同，那邊的測試 52 passed、4 skipped。
+    - 舊爬蟲的 6 條清理規則（R0～R5）逐條寫出門檻和順序，附 62 筆紀錄和反例當測試資料。
+    - 對照測試：凍結檔重算 lag2、lag5 和長表 0 個不符；`0820473` 原樣重新清理後，日期、開高低收、成交量和凍結檔相同，adj_close 只差 8.2e-7。
+    - 那邊爬蟲要改的地方：登入不重試、截止沒擋到課程網站那幾步、Yahoo cookie 沒有 A3 時 KeyError 會一直壞（yfinance 1.7.0 重現）、約 17% 的日子缺 i 那根就回傳 3、10/23 三套規則要統一。
+    - 爬一次約 2 分鐘，七成在等限流（40 個請求、等 92 秒）；只抓一小段日期省不到時間。
+    - 組員的 notebook `feature_switch_2.ipynb` 只有 4、8、48 欄三種市場集合，沒有 12 個序列那組；猜的清單已傳給組員確認。
 
 ## 做法摘要
 - 單一 `crawler.py`（只依賴 yfinance＋標準函式庫），一次完成：限流下載 → 清理 → 老師資料 → market_features → transform → schema。

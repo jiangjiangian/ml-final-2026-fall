@@ -1,11 +1,14 @@
 # 專案記憶（hot cache）
 
 更多細節在 `memory/`：術語 → `memory/glossary.md`；資料決策 → `memory/context/data-decisions.md`；
-環境、分支與 skills → `memory/context/environment.md`；本分支歷程、審查與已知限制 → `memory/projects/data-folder.md`。
+環境、分支與 skills → `memory/context/environment.md`；本分支歷程、審查與已知限制 → `memory/projects/data-folder.md`；
+交接給 `claude/stock-market-challenger`（搬資料、清理規則、lag、對照測試、爬蟲要改的地方）→ `memory/projects/handoff-stock-market-challenger.md`。
 
 ## 這個分支是什麼
 課程 ML 期末專案（2026 秋）：預測台股 50 檔「盤中方向」`y = 1{adj_close > adj_open}`。
 本分支 `claude/data-collection` 放資料整合成果，另有 `archive/`。完整程式（特徵管線、模型、每日提交）原本在 `system-completion`，2026-11-05 封存到 `archive/system-completion/`。使用者要讓 repo 只剩 claude 分支（本分支、`claude/hopeful-brahmagupta-wikys1`、2026-11-05 新開的 `claude/stock-market-challenger`）和空的 `main`（預設分支），其他分支由使用者自己刪。
+
+2026-11-06 使用者決定：爬資料全部交給 `claude/stock-market-challenger`（它的 `src/crawler.py` 是每日版），`data/` 集中搬過去。本分支之後不再爬、不再更新資料，只留著當對照；`data/` 要不要從這裡刪掉還沒決定。lag 改成只用 lag1、lag2，由那邊的 `features.py` 產生；本分支的 lag2／lag5 檔留著給對照測試用。
 
 | 路徑 | 內容 |
 |---|---|

@@ -22,7 +22,7 @@
 - 只有 Live 待定列的 `-1` 代表「還沒有資料」。
 - Training 法人欄有 83 格是真的 `-1`（剛好買賣超 1 股），要保留。
 - 10/23 那列一直是 `-1`：使用者 2026-11-05 確認是颱風假，台股休市。
-- 交易日曆：以 `/api/state` 的 `phase2Days` 為準。歷史部分以老師個股檔出現過的日期為準。global 表缺很多台股日（Training 少 112 天），不能當日曆。
+- 交易日曆（使用者 2026-11-06 決定，取代「以 `phase2Days` 為準」）：老師 100 檔裡至少 `crawler.min_stocks_filled`（90）檔填好（`y` 是 0 或 1，還原開盤、收盤價 > 0）的日子才算交易日。i 是 t 之前最後一個這樣的日子；還是 `-1` 的列（10/23、當天早上 t 那列）不算，那天 global 的列也不用。`phase2Days` 只用來決定 t。config 的 `closed_days` 列 10/23，那天之後出現數值就停下。爬蟲和 `features.py` 呼叫同一個函式。細節見 `memory/projects/features.md`。global 表缺很多台股日（Training 少 112 天），不能當日曆。
 
 ## 驗證按日期切
 
@@ -33,7 +33,7 @@
 - 每個請求至少間隔 2 秒，yfinance 自己送的請求（取 cookie、crumb、時區）也算。
 - 下載時設 `auto_adjust=False`，才會同時有 `close` 和 `adj_close`。
 - `end` 不含那一天，但它只限制請求的範圍。期貨在台北 07:00 後就開始下一個交易日，Yahoo 可能把盤中資料標成前一天。不存到還沒收完的K棒，要靠爬蟲自己丟掉日期 ≥ t 和週末的K棒，再檢查期貨最後一根的成交量（見 `memory/projects/crawler.md`）。
-- 前一天的K棒收完時間（台北）：美股約 05:30、期貨 06:00、DXY 07:00、TWD=X 保守估 08:00。
+- 前一天的K棒收完時間（台北）：美股約 05:30、期貨 06:00、DXY 07:00、TWD=X 保守估 08:00。TWD=X 日期 d 那根的 close 是台北 d 日 08:00 的報價（2026-11-06 用 1h 資料對過），所以另外用 1h 取台北 t 日 06:00 的匯率（`usd_twd_am`，見 `memory/projects/features.md`）。
 - 時區快取放 `configs/config.yaml` 的 `yfinance.cache_dir`（`.cache/yfinance`，不進 Git）。
 
 ## 資料放在這個分支

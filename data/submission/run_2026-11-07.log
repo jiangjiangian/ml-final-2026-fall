@@ -7,3 +7,12 @@
 2026-11-07 00:11:05,911 finpred.run_daily_test INFO 網站上目前有效的那份（2026-11-06T10:34:55.080Z，分數 0.0027731792355257675）存到 data/submission/backup/phase1_phase1_20261106T103455Z.csv
 2026-11-07 00:11:05,913 finpred.run_daily_test INFO submit.enabled 是 false，不上傳。會送出：phase=1 tradingDate=None fileName=submission_phase1_2026-11-07.csv，50 檔，猜漲的比例 0.303，還能上傳 10 次
 2026-11-07 00:11:05,928 finpred.run_daily_test INFO 結束：dry_run
+2026-11-07 01:07:31,054 finpred.run_daily_test INFO 開始：Phase 1，t = 2026-11-07，--dry-run（執行代號 309106d7）
+2026-11-07 01:07:31,290 finpred.run_daily_test INFO 2026-11-07 不跑爬蟲和特徵（休市），用現有的特徵表
+2026-11-07 01:07:48,341 finpred.run_daily_test INFO 讀特徵 完成（17 秒）
+2026-11-07 01:09:18,059 finpred.run_daily_test INFO 模型 完成（89 秒）
+2026-11-07 01:09:18,266 finpred.run_daily_test INFO Phase 1 本機分數：{'cells': 4200, 'score': 0.0012354357122170373, 'all_0': -0.00020391905575190195, 'all_1': 0.00020391905575190195, 'accuracy': 0.534047619047619, 'pred_up': 0.30333333333333334}
+2026-11-07 01:09:18,291 finpred.run_daily_test INFO 寫好 data/submission/submission_phase1_2026-11-07.csv：50 檔 × 84 天，猜漲 0.303
+2026-11-07 01:09:18,392 finpred.run_daily_test INFO 網站上目前有效的那份（2026-11-06T10:34:55.080Z，分數 0.0027731792355257675）存到 data/submission/backup/phase1_phase1_20261106T103455Z.csv
+2026-11-07 01:09:18,394 finpred.run_daily_test INFO submit.enabled 是 false，不上傳。會送出：phase=1 tradingDate=None fileName=submission_phase1_2026-11-07.csv，50 檔，猜漲的比例 0.303，還能上傳 10 次
+2026-11-07 01:09:18,421 finpred.run_daily_test INFO 結束：dry_run

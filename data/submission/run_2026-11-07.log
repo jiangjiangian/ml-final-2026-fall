@@ -27,3 +27,6 @@
 2026-11-07 07:11:56,700 finpred.run_daily_test INFO 上傳送出，網站回 200
 2026-11-07 07:11:56,780 finpred.run_daily_test INFO 核對完成：網站上的版本 d3279a40-cbfb-4817-aca7-03a86081301c 和送出的逐格一樣（上傳時間 2026-11-06T23:11:56.681Z，分數 0.0012354357122170393）
 2026-11-07 07:11:56,796 finpred.run_daily_test INFO 結束：done
+2026-11-07 07:40:07,825 finpred.run_daily_test INFO 開始：Phase 1，t = 2026-11-07，--sync（執行代號 90ad2123）
+2026-11-07 07:40:08,043 finpred.run_daily_test INFO 網站上已經有這次的提交（submission_phase1_2026-11-07.csv，2026-11-06T23:11:56.681Z 交），結束
+2026-11-07 07:40:08,046 finpred.run_daily_test INFO 結束：already_submitted

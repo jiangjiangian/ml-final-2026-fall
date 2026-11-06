@@ -1,0 +1,384 @@
+{
+  "run": {
+    "started_at": "2026-11-06T21:38:41+08:00",
+    "target_date": "2026-11-06",
+    "mode": "research",
+    "status": "ok",
+    "prev_day": "2026-11-05",
+    "no_bar_i": [],
+    "finished_at": "2026-11-06T21:40:27+08:00",
+    "yahoo_requests": 38,
+    "yahoo_redirects": 0,
+    "site_requests": 6,
+    "taifex_requests": 83,
+    "taifex_added_at": "2026-11-06T22:18:01+08:00"
+  },
+  "phase2_days": {
+    "status": "ok",
+    "file": "phase2_days.json",
+    "days": 18
+  },
+  "teacher": {
+    "status": "ok",
+    "action": "downloaded",
+    "zip_sha256": "7433b27103107c630e293708a7ca4b7bfcec524e91ea6dc5be3e9b7d885b90e2",
+    "files_sha256": "1c17e27f7dc30d973c02940ad322ef07544a3e4f0abccbd561e83cbfb169f30b"
+  },
+  "teacher_live": {
+    "status": "ok",
+    "source": "140.112.31.182:8444/data.zip",
+    "attempts": 1,
+    "fallback_from": null,
+    "error": null,
+    "zip_sha256": "49c379919a575a368d8128fb4f2c10d594baf65c279f3e1ffedbfc42bee03d96",
+    "files_sha256": "c146853e98833eed2ff458ca10acaaf7a279920924f642a8af63e224e2536e63",
+    "date_max": "2026-11-06",
+    "has_t_row": true,
+    "prev_day": "2026-11-05",
+    "prev_day_planned": "2026-11-05",
+    "prev_day_never_filled": false,
+    "prev_day_missing_stocks": []
+  },
+  "yfinance": {
+    "sox": {
+      "ticker": "^SOX",
+      "status": "ok",
+      "file": "yfinance/sox.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1721,
+      "date_max": "2026-11-05",
+      "sha256": "350a4194806e1373f5522a6b82aaf96c3f009de991263eeb2305fe85cae9c24e",
+      "has_bar_i": true
+    },
+    "tsm_adr": {
+      "ticker": "TSM",
+      "status": "ok",
+      "file": "yfinance/tsm_adr.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1721,
+      "date_max": "2026-11-05",
+      "sha256": "345cf94da6074fcbd3977ba875c0bd39ed6b0b0e2340f23f09d6c5c973af9a80",
+      "has_bar_i": true
+    },
+    "nvda": {
+      "ticker": "NVDA",
+      "status": "ok",
+      "file": "yfinance/nvda.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1721,
+      "date_max": "2026-11-05",
+      "sha256": "a212355bd4ca5b8b223439cf2d5e47b7c136bb8bbd12c5e1d1f14e38db08b23a",
+      "has_bar_i": true
+    },
+    "usd_twd": {
+      "ticker": "TWD=X",
+      "status": "ok",
+      "file": "yfinance/usd_twd.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1782,
+      "date_max": "2026-11-05",
+      "sha256": "9e775053602871e35dbea374c41b60a51178b32a2172e5e00082430ef3c62d06",
+      "has_bar_i": true
+    },
+    "dxy": {
+      "ticker": "DX-Y.NYB",
+      "status": "ok",
+      "file": "yfinance/dxy.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1723,
+      "date_max": "2026-11-05",
+      "sha256": "a2b2389f143ed5344f170924ba306b79187e7aa3a3d402e425733b94535c1f57",
+      "has_bar_i": true
+    },
+    "us10y": {
+      "ticker": "^TNX",
+      "status": "ok",
+      "file": "yfinance/us10y.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1721,
+      "date_max": "2026-11-05",
+      "sha256": "55d1813d94c6c63e7d0d7b64c3b96cd312f3b2f273ccebb899ad1aeb2183ed58",
+      "has_bar_i": true
+    },
+    "us13w": {
+      "ticker": "^IRX",
+      "status": "ok",
+      "file": "yfinance/us13w.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1721,
+      "date_max": "2026-11-05",
+      "sha256": "0619b07ded06e9bed3458bd935d63123e4927fbe9f3a08719489df474dc3020a",
+      "has_bar_i": true
+    },
+    "etf_0050": {
+      "ticker": "0050.TW",
+      "status": "ok",
+      "file": "yfinance/etf_0050.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1661,
+      "date_max": "2026-11-05",
+      "sha256": "19dfff62fdd8ca373c66ffbb2218fa3e72ae09f151b428d72eef2e444dcf9958",
+      "has_bar_i": true
+    },
+    "etf_0052": {
+      "ticker": "0052.TW",
+      "status": "ok",
+      "file": "yfinance/etf_0052.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1661,
+      "date_max": "2026-11-05",
+      "sha256": "f907daeea79b883cc04383403f74b848ff80b53d24f4aa12f4b55c991e29e43a",
+      "has_bar_i": true
+    },
+    "etf_0055": {
+      "ticker": "0055.TW",
+      "status": "ok",
+      "file": "yfinance/etf_0055.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1661,
+      "date_max": "2026-11-05",
+      "sha256": "fd648d34ba3724712734b3a5b2c7c85ae0a9cb623e9532f3667a20aab1977557",
+      "has_bar_i": true
+    },
+    "etf_006201": {
+      "ticker": "006201.TWO",
+      "status": "ok",
+      "file": "yfinance/etf_006201.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1661,
+      "date_max": "2026-11-05",
+      "sha256": "49d7c4930af10ce8db78c1720235086a2a584d27a4127686689f67b12e32ebb7",
+      "has_bar_i": true
+    },
+    "dji": {
+      "ticker": "^DJI",
+      "status": "ok",
+      "file": "yfinance/dji.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1721,
+      "date_max": "2026-11-05",
+      "sha256": "4618597582218e5cc5dfb3374d228ac32a29d2184cf0049c80b7f77bda17d840",
+      "has_bar_i": true
+    },
+    "n225": {
+      "ticker": "^N225",
+      "status": "ok",
+      "file": "yfinance/n225.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1669,
+      "date_max": "2026-11-05",
+      "sha256": "cc9d48db7b7cfa97d6424abdc1923df679d1e85b42c3aa3b182df52151a947ac",
+      "has_bar_i": true
+    },
+    "hsi": {
+      "ticker": "^HSI",
+      "status": "ok",
+      "file": "yfinance/hsi.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1684,
+      "date_max": "2026-11-05",
+      "sha256": "f727ef63b61a1594a57fbebf1c10e1e2233b21562ec3b043037351002a8b290a",
+      "has_bar_i": true
+    },
+    "sse": {
+      "ticker": "000001.SS",
+      "status": "ok",
+      "file": "yfinance/sse.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1657,
+      "date_max": "2026-11-05",
+      "sha256": "aabeca6f665982f0036ce02b0bbc98ceb5623259d749d7beaed46b9e5d100396",
+      "has_bar_i": true
+    },
+    "stoxx50e": {
+      "ticker": "^STOXX50E",
+      "status": "ok",
+      "file": "yfinance/stoxx50e.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1724,
+      "date_max": "2026-11-05",
+      "sha256": "32b1edeb836025d66127e025926c65486ea8169c52e32aba2f6a8258198fbc85",
+      "has_bar_i": true
+    },
+    "gdaxi": {
+      "ticker": "^GDAXI",
+      "status": "ok",
+      "file": "yfinance/gdaxi.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1745,
+      "date_max": "2026-11-05",
+      "sha256": "684e83c62745f4fa0de159756a914862f242bb6e745864d26ec67ad46de7443c",
+      "has_bar_i": true
+    },
+    "wti": {
+      "ticker": "CL=F",
+      "status": "ok",
+      "file": "yfinance/wti.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1723,
+      "date_max": "2026-11-05",
+      "sha256": "924c79f01abc07f8f049bfbf14336d3b53e9b059f567bc7ea5791c5885c43bc7",
+      "end": "2026-11-05T17:30:00-05:00",
+      "has_bar_i": true
+    },
+    "gold": {
+      "ticker": "GC=F",
+      "status": "ok",
+      "file": "yfinance/gold.csv",
+      "attempts": 1,
+      "error": null,
+      "dropped": {
+        "on_or_after_t": 0,
+        "weekend": 0,
+        "low_volume_last_bar_kept": false
+      },
+      "rows": 1724,
+      "date_max": "2026-11-05",
+      "sha256": "f752e9801e031f4496c2e311a97ec30d9878637451a793fcf5a5d3f51fe76024",
+      "end": "2026-11-05T17:30:00-05:00",
+      "has_bar_i": true
+    },
+    "usd_twd_1h": {
+      "ticker": "TWD=X",
+      "interval": "1h",
+      "file": "yfinance/usd_twd_1h.csv",
+      "attempts": 1,
+      "error": null,
+      "status": "ok",
+      "fetched_rows": 16677,
+      "start": null,
+      "rows": 16661,
+      "first": "2024-01-22T08:00:00+08:00",
+      "last": "2026-11-06T05:00:00+08:00",
+      "sha256": "58776c2316b712d4be6f6d2d51a65cd8f9c4d1779a08ca1aca781000f0ddba1f",
+      "has_value_t": true
+    }
+  },
+  "taifex": {
+    "source": "www.taifex.com.tw/cht/3/futDataDown",
+    "file": "taifex/tx.csv",
+    "status": "ok",
+    "requests": 83,
+    "error": null,
+    "start": "2020-01-01",
+    "dropped": {
+      "day_on_or_after_t": 6,
+      "night_after_t": 0,
+      "night_t_not_ready": 0
+    },
+    "kept_previous_file": false,
+    "rows": 19856,
+    "date_max": "2026-11-06",
+    "sha256": "fe62ae52faa4b4558884f87e9d2bf8dedeeeaf1c8dd35c3e97d1ec8f37d6bd62",
+    "has_day_i": true,
+    "has_night_t": true
+  }
+}

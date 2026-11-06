@@ -47,7 +47,7 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
   1. 看 `run_YYYY-MM-DD.log`，找出停在哪一步。
   2. 登入課程網站，確認 t 還沒有有效的提交，不要重複送。
   3. `submission_YYYY-MM-DD.csv` 已經產生的話，在網站上手動上傳它。
-- 通知組員的管道還沒決定（見 `memory/context/open-questions.md`）。
+- 通知組員用 Email（使用者 2026-11-05 決定）：Healthchecks.io 在開始和成功時各收一次回報，沒收到成功就用它內建的信件通知。實作排程時接上。
 
 ## 檔案結構為什麼這樣
 

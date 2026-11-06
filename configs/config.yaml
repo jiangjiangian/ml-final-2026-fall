@@ -49,7 +49,7 @@ yfinance:
   recheck_wait_seconds: 60       # 缺「前一個台股交易日」那根K棒的序列，等多久一起重抓一次
   cache_dir: .cache/yfinance     # yfinance 的時區和 cookie 快取，放在 repo 裡但不進 Git
   volume_required: [TSM, NVDA, 0050.TW, 0052.TW, 0055.TW, 006201.TWO]   # 前一個交易日那根的成交量要 > 0（只有個股和 ETF）
-  futures: [CL=F, GC=F]          # 台北 07:00 後已開始下一段交易：抓取範圍截在紐約 17:30，最後一根量太小就丟掉
+  futures: [CL=F, GC=F]          # 台北 07:00 後已開始下一段交易：抓取範圍截在紐約 17:30；最後一根量太小只記錄，不丟
   tickers:                       # 名稱: Yahoo 代號
     sox: ^SOX                    # 費城半導體指數
     tsm_adr: TSM                 # 台積電 ADR
@@ -72,7 +72,7 @@ yfinance:
     gold: GC=F                   # 黃金期貨
 
 features:
-  lags: [2, 5]                   # 報酬往回看幾個交易日
+  lags: [1, 2]                   # 報酬往回看幾個交易日（使用者和組員 2026-11-06 決定只用 lag1、lag2）
   # lag k：t 那列 = (close_i − close_(i−k)) / close_(i−k)，i = t 的前一個台股交易日
   stock_column: etl:adj_close    # 老師個股檔算報酬用的欄；這組特徵讓 50 檔每天的值不同
   teacher_global: ["^VIX", "^IXIC", "^GSPC", "^TWII", "^KS11"]   # 老師 global 表要算 lag 的欄

@@ -20,7 +20,7 @@
 - 2026-11-05：GitHub 預設分支已經是空的 `main`，使用者因為 GitHub Actions 一直延遲而換掉。`system-completion` 最後一次排程是 11/05 台北 11:39，之後沒有再跑。使用者之後想用下面「外部排程叫 GitHub 執行」的做法。
 - 換之前的狀況：`system-completion` 的 `course-benchmark.yml` 每天照排程跑，上傳開關寫死成開，舊模型也通過了上傳前的檢查。台北 08:20、08:27 這兩個排程準時觸發時，它會真的上傳。
 - 這個分支把 `submit.enabled` 改成 `true` 之前，要先跟使用者確認舊排程已經停了。不然兩套程式會搶著交答案、用掉上傳次數。
-- `system-completion`、`live-data`、`dev`、`deep-research` 還在 GitHub 上，由使用者自己刪，Claude 不刪。
+- `system-completion`、`dev`、`deep-research` 使用者 2026-11-05 已在 GitHub 刪掉；`live-data` 還在。
 
 ## 正式流程用哪位組員的帳號
 
@@ -30,10 +30,6 @@
 
 - 選項：空的 `main` 只放一個 `.github/workflows/daily.yml`（去拿這個分支的程式來跑），或把預設分支改成這個分支。
 - 使用者 2026-11-05 擔心延遲。已說明：延遲來自 GitHub 的 `schedule`，和設定檔放哪裡無關；外部呼叫 `workflow_dispatch` 平常是分鐘內，2026-01-20 事故時平均晚 11 分鐘。上線前試跑一週，記錄「呼叫到開始」的秒數。寫到排程那一步再問。
-
-## 失敗時用什麼管道通知
-
-使用者 2026-11-05 選 Email：用 Healthchecks.io 內建的信件通知。實作排程時再搬到對應的檔。
 
 ## Phase 2 用哪個模型
 

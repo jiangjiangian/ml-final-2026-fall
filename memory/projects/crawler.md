@@ -10,7 +10,7 @@
 
 - 2026-11-05：Live 用助教的 chatgpt.site 新入口，金鑰由使用者放 `.env` 的 `COURSE_LIVE_KEY`，不自動從課程網站抓。舊程式（`../ml-final-archive/archive/system-completion/ml_financial_prediction/src/finpred/ingestion/course.py`）會從課程網站首頁載入的 JS 找金鑰，這個做法不採用。舊入口 `https://140.112.31.182:8444/` 的 TLS 驗證會失敗，也不用。
 - 2026-11-05：19 個 yfinance 序列都抓，爬蟲台北 07:10 開始跑。要不要用在模型上，看驗證分數。
-- 2026-11-05：輸出和 data-collection 分支（原名 peaceful-babbage）的資料對齊：`data/raw/teacher/`、`data/raw/teacher_live/`、`data/raw/yfinance/` 對應舊的 `data/teacher/`、`data/teacher_live/`、`data/extra/yfinance/`，19 個代號、檔名、欄位都一樣。
+- 2026-11-05：輸出和 data-collection 分支（原名 peaceful-babbage）的資料對齊（2026-11-06 起 data-collection 的資料搬到這個分支，見 `memory/context/data-rules.md`）：`data/raw/teacher/`、`data/raw/teacher_live/`、`data/raw/yfinance/` 對應舊的 `data/teacher/`、`data/teacher_live/`、`data/extra/yfinance/`，19 個代號、檔名、欄位都一樣。
 - 2026-11-05：成交量要 > 0 只檢查個股和 ETF（TSM、NVDA、四檔台灣 ETF），和舊分支清理規則用成交量的範圍一樣。其他序列只查日期。
 - 2026-11-05：爬蟲存 Yahoo 給的原樣，清理（壞報價、佔位K棒、0052 分割、殖利率假日K棒）放在 `features.py`，規則照舊分支。
 - 2026-11-05：t 當天早上 i 那列還是 `-1`（像 10-23）時，改用早於 t 最後一個填好的交易日當 i，照常預測上傳，manifest 記 `prev_day`（實際用的那天）和 `prev_day_never_filled: true`，通知組員。`features.py` 照同一條規則。
@@ -154,7 +154,8 @@
 - 序列的 `status`：`ok`、`no_bar_i`（抓到了但沒有 i 那根）、`failed`（沒抓到，舊檔留著）。
 - `run.status`：全部 `ok` 是 `ok`，否則 `stale`；丟出例外時是 `failed`，`error` 是自己寫的短訊息或例外類別名稱。
 - 失敗時 `teacher` 那筆照抄上一次的，下次還認得本機的 Training，不用重新下載。指紋不算點開頭的檔（`.DS_Store`）。
-- sha256 用檔案原始位元組算。加 `.gitattributes` 的 `data/raw/** -text`，Git 不改換行。
+- sha256 用檔案原始位元組算。`.gitattributes` 的 `data/raw/** -text`、`data/reference/** -text` 讓 Git 不改換行。
+- 2026-11-06 從 data-collection 搬來 `data/raw/teacher*` 後，`manifest.json` 還不存在，所以第一次會下載 Training 一次再整包換進去，內容一樣，`git diff data/raw/teacher` 應該是空的。新算法的 `files_sha256`：Training `1c17e27f…`、Live `4675ae4d…`。舊分支的 `members_sha256`（`31bbdc99…`）算法不同（路徑帶 `data/`、先把 CRLF 換成 LF），不能互相比。
 - 不記：金鑰、帳密、cookie、crumb、網址的 `?` 後面、伺服器回應的內容。錯誤只記例外類別和自己寫的短訊息。
 
 ### 失敗時
@@ -197,6 +198,29 @@
 - 台北 07:10～13:00 之間跑一次（`submit.enabled` 還是 false），確認 wti、gold 有 i 那根，`dropped.low_volume_last_bar_kept` 有沒有動作。
 - `/api/state` 的 `phase2Days` 裡，過去的日子 `enabled` 是多少；10-23 在不在裡面。
 - 轉址實際有沒有發生（manifest 的 `run.redirects`）。
+- 2026-11-06 data-collection 交接加的：
+  - `run.http_requests`：沒有快取時約 40，有快取約 20。78 代表 cookie 沒存起來。
+  - TWD=X：07:10 存一份 1d 和最近 5 天的 1h，10:00 左右和隔天早上各再抓一次，看 i 那根的 close 三次是否相同、是否等於倫敦 i 日 00:00 那一小時的 close。
+  - 07:10 時 Live t 那列的 `^VIX` 是不是 `-1`。
+  - `git diff data/raw/teacher` 要是空的；`data/raw/teacher_live` 只多新的列。
+  - 跑完做 `features.py` 的對照測試 (b)（見 `memory/projects/features.md`）。
+
+### data-collection 交接：要調整的地方（2026-11-06，等使用者確認）
+
+1. 課程網站登入的 POST 只送一次，逾時或 5xx 整次就停。每日模式讀不到 `/api/state` 也停。登入不是上傳，可以考慮暫時性錯誤重試 2 次，但和「POST 失敗不自動重試」有關，由使用者決定。`/api/state` 失敗時可以改用快取的 `data/raw/phase2_days.json`（裡面要有 t）。
+2. 截止（08:30）在登入、`/api/state`、Training、Live 第一次嘗試之前都沒檢查。串流下載的 (10, 90) 秒逾時只限制兩塊資料之間的等待，整個下載沒有總時間上限。yfinance 開始前最壞約 38 分鐘（推論）。建議每一步之前檢查截止，每個請求加總時間上限。
+3. 08:30 以後才開始跑時，19 個序列都標 `skipped_deadline`、留舊檔，檢查 i 那根只看 status 是 ok 的序列。所以 `features.py` 一定要找日期剛好是 i 的那一列。爬蟲建議每個序列都記 `has_bar_i`。
+4. Yahoo cookie 的 bug：`.cache/yfinance/cookies.db` 裡的 cookie 沒有 A3 時，yfinance 1.7.0 `data.py:211` 丟 `KeyError`，不算暫時性錯誤，19 個序列全部失敗（約 11 分鐘），之後每次都壞，直到有人刪掉快取。已重現。修法：包住 `YfData._load_cookie_curlCffi`，遇到 `KeyError` 回傳 False，加離線測試。
+5. 1,660 天裡有 282 天（17.0%）至少一個序列沒有 i 那根，多半是外國放假。現在每次都等 60 秒重抓、標 `stale`、回傳 3。最近會遇到 t = 2026-11-24 缺 N225、t = 2026-11-27 缺 9 個美國相關序列。建議只有 `no_bar_i` 時不設 `stale`，另記 `run.no_bar_i`，回傳 3 留給真的失敗。由使用者決定。
+6. `run.http_requests` 只算 Yahoo。建議改名 `yahoo_requests`，另加 `site_requests`。
+7. 過時的註解（`config.yaml` 的期貨防線、`lags`）2026-11-06 已改。
+
+### 爬蟲要跑多久（data-collection 2026-11-06 量的）
+
+- 時間花在限流：沒有快取 40 個請求，等約 92～97 秒；保留 `.cache/yfinance` 時 20 個請求，約 48 秒。
+- 只抓一小段日期省不了時間：完整歷史 165 KB 0.71 秒，兩週 2.4 KB 0.33 秒，19 個代號只省約 7 秒。
+- 正常一次 1～2 分鐘。Live 晚兩次多 6 分鐘。Yahoo 那段最壞被 08:30 擋下，約 08:33 結束（模擬）。
+- 真正會遲交的是觸發時間（GitHub Actions 11/04 晚 3 小時 42 分到 6 小時 17 分），以及第 1、2 點的單點失敗。
 
 - 2026-11-05：最後一根K棒的檢查改成「有沒有 i 那根」，取代「每個市場的前一個交易日加假日清單」。這和舊分支 `data/transform/`、`panel_lag.csv.gz` 的算法一樣（用 i 那根，沒有就空白）。
 - 2026-11-05：使用者同意照這個計畫開始寫程式和離線測試。第一次連網試跑前要先問。

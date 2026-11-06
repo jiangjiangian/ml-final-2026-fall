@@ -13,7 +13,8 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   │   ├── environment.md     本機環境、分支、舊系統封存、skills
 │   │   └── open-questions.md  還沒決定的事
 │   └── projects/
-│       └── crawler.md         src/crawler.py 的設計和進度
+│       ├── crawler.md         src/crawler.py 的設計和進度
+│       └── features.md        src/features.py 的規劃：清理規則、交易日、lag、對照測試
 ├── .claude/
 │   ├── settings.json          Claude Code 專案設定（輸出風格用 team-docs）
 │   ├── output-styles/
@@ -21,19 +22,27 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   └── skills/                graphify、humanizer（只在本機，不進 Git）
 ├── requirements.txt           套件和鎖定的版本
 ├── .gitignore                 哪些檔案不進 Git
-├── .gitattributes             data/raw/ 的檔案 Git 不改換行，manifest 的 sha256 才對得上
+├── .gitattributes             data/raw/、data/reference/ 的檔案 Git 不改換行，sha256 才對得上
 ├── .env.example               帳號密碼的範例；真的值放 .env（不進 Git）
 ├── run_daily.py               一個指令跑完一天：爬蟲 → 特徵 → 訓練 → 預測 → 上傳
 ├── configs/
 │   └── config.yaml            網站網址、yfinance 代號、特徵、模型參數、截止時間
 ├── data/
 │   ├── raw/                   爬蟲抓下來的原始資料，原樣保存
-│   │   ├── teacher/           老師 Training ZIP 解開的檔案
-│   │   ├── teacher_live/      老師 Live ZIP 解開的檔案（每次下載覆蓋）
+│   │   ├── teacher/           老師 Training ZIP 解開的檔案（一開始從 data-collection 分支搬來）
+│   │   ├── teacher_live/      老師 Live ZIP 解開的檔案（一開始從 data-collection 搬來，之後每次下載覆蓋）
 │   │   ├── yfinance/          19 個額外指標，一個序列一個 CSV
 │   │   ├── phase2_days.json   課程網站的交易日清單（/api/state 的 phase2Days）
 │   │   └── manifest.json      下載紀錄
 │   ├── processed/             features.csv.gz（可以重算，不進 Git）
+│   ├── reference/
+│   │   └── data-collection/   data-collection 分支的凍結快照，只給對照測試用，不要改
+│   │       ├── extra/                 清理過的 yfinance 19 個序列和 manifest.json（清理紀錄）
+│   │       ├── yfinance_raw_0820473/  還沒清理的 Yahoo 原樣（到 2026-08-31），測清理用
+│   │       ├── teacher_live/          長表用的那份 Live（eea89fce，9/1～11/5）
+│   │       ├── features/              market_features.csv
+│   │       ├── transform/             lag2、lag5 和長表 panel_lag.csv.gz（2020-01-02～2026-11-04）
+│   │       └── schema.json            所有欄位的定義和驗證紀錄
 │   └── submission/            每天的產出
 │       ├── submission_YYYY-MM-DD.csv   要上傳的 0/1
 │       ├── upload_log.jsonl            上傳紀錄

@@ -21,7 +21,7 @@
 
 - 只有 Live 待定列的 `-1` 代表「還沒有資料」。
 - Training 法人欄有 83 格是真的 `-1`（剛好買賣超 1 股），要保留。
-- 10/23 那列一直是 `-1`，很可能是休市日。
+- 10/23 那列一直是 `-1`：使用者 2026-11-05 確認是颱風假，台股休市。
 - 交易日曆：以 `/api/state` 的 `phase2Days` 為準。歷史部分以老師個股檔出現過的日期為準。global 表缺很多台股日（Training 少 112 天），不能當日曆。
 
 ## 驗證按日期切
@@ -38,9 +38,11 @@
 
 ## 資料放在這個分支
 
-- 使用者 2026-11-05 決定：資料、模型、上傳紀錄都放在這個分支。組員 clone 一次就拿到全部，版本也對得上。資料量小：Training 解開約 45 MB，Live 每天約多 100 列，yfinance 19 個序列約 3 MB。
+- 使用者 2026-11-05 決定：資料、模型、上傳紀錄都放在這個分支。組員 clone 一次就拿到全部，版本也對得上。`data/` 約 77 MB：`data/raw/` 約 46 MB（Training 解開約 45 MB，Live 每天約多 100 列，yfinance 19 個序列約 3 MB），`data/reference/` 約 31 MB。
+- 使用者 2026-11-06 決定：爬資料全部交給這個分支，`claude/data-collection` 不再爬也不再更新，只留著當對照。它的 `data/` 搬到這裡：老師資料放 `data/raw/teacher/`、`data/raw/teacher_live/`（和 Training ZIP `7433b271…`、Live ZIP `eea89fce…` 逐位元組相同），其他放 `data/reference/data-collection/`。搬法和 tree hash 見 `memory/projects/features.md` 的「資料來源」。
+- `data/reference/` 是凍結的快照：只給對照測試讀，每天的流程不讀，爬蟲不寫，裡面的檔都不要改。`.gitattributes` 設了 `data/reference/** -text`，Git 不改換行。清理過的 yfinance 只能放在這裡，不能放進 `data/raw/yfinance/`（那裡放 Yahoo 原樣，`features.py` 會再清理一次，0052 分割前的價格會被除兩次 7）。
 - 原始資料存解開後的 CSV，不存 ZIP。老師的 CSV 每天只多幾列，Git 只記差異；ZIP 每天會整個重存。
-- yfinance 的 `adj_close` 每次重抓都可能有小於 1e-6 的浮動，除息後還會整欄重算，所以整個檔案（和 sha256）都可能變。檔案小，影響不大。
+- yfinance 的 `adj_close` 每次重抓都可能有約 1e-6 的相對浮動（0052 實測 1.041e-6）。Yahoo 每次抓都把到抓取當下為止的所有除息套到之前每一列，所以整個檔案（和 sha256）都可能變，但不跨除息日的報酬不受影響。檔案小，影響不大。
 - `data/processed/` 可以從 `data/raw/` 重算，不進 Git。
 - 每個檔案要小於 100 MB（GitHub 的上限）。
 - 只有正式的每日流程會 commit 並推送 `data/` 和 `models/`。組員在本機跑只是測試，用 `git restore data models` 還原；推程式前先 `git pull --rebase`。

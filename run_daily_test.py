@@ -19,7 +19,7 @@ t 不是交易日（不在 phase2Days）：Phase 2 直接結束；Phase 1 不跑
 
 import argparse
 import fcntl
-import json
+import os
 import subprocess
 import sys
 import time
@@ -40,7 +40,12 @@ class StopRun(RuntimeError):
 
 
 def git(*args, timeout=180):
-    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+    """跑 git，逾時回傳 returncode 124（不丟錯，呼叫的人照失敗處理）。不會跳出問密碼的提示。"""
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+    try:
+        return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env)
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(["git", *args], 124, "", f"git {args[0]} 超過 {timeout} 秒")
 
 
 def short(text: str) -> str:
@@ -49,7 +54,9 @@ def short(text: str) -> str:
 
 def commit_data(message: str) -> bool:
     """data/raw、data/processed、data/submission 有改動就 commit，回傳有沒有 commit。"""
-    git("add", "--", *DATA_PATHS)
+    r = git("add", "--", *[p for p in DATA_PATHS if (ROOT / p).exists()])
+    if r.returncode != 0:
+        raise StopRun(f"git add 失敗：{short(r.stderr or r.stdout)}")
     if git("diff", "--cached", "--quiet").returncode == 0:
         return False
     r = git("commit", "-m", message)
@@ -76,12 +83,14 @@ def data_only(paths) -> bool:
     return all(any(p == d or p.startswith(d + "/") for d in DATA_PATHS) for p in paths if p)
 
 
-def git_start(log):
+def git_start() -> list:
     """開始前同步。data/ 以外有改動就停（不自動清掉）；data/ 裡上次留下的改動先 commit；再 pull --rebase。
 
-    pull 失敗時，如果本機多出來的 commit 只動 data/（上次推不上去的資料），就丟掉它們、對齊 origin，
-    資料這次會重抓；有別的 commit 就停下等人處理。
+    pull 失敗時，如果本機多出來的 commit 只動 data/（上次推不上去的資料），而且沒有 data/ 以外沒追蹤的檔，
+    就丟掉它們、對齊 origin，資料這次會重抓；不然停下等人處理。
+    這裡不寫 log（log 檔本身在 data/submission/，寫了會讓 pull 失敗），要記的話回傳給呼叫的人，pull 完再寫。
     """
+    notes = []
     branch = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
     if branch != BRANCH:
         raise StopRun(f"目前在 {branch}，--sync 只在 {BRANCH} 上跑")
@@ -89,19 +98,21 @@ def git_start(log):
     if not data_only(changed):
         raise StopRun(f"工作目錄有 data/ 以外的改動，不自動同步：{[p for p in changed if not data_only([p])][:5]}")
     if commit_data("Leftover data from an earlier run"):
-        log.warning("上次留下沒 commit 的資料，先 commit")
+        notes.append("上次留下沒 commit 的資料，先 commit 了")
     r = git("pull", "--rebase", "origin", BRANCH)
     if r.returncode == 0:
-        return
+        return notes
     git("rebase", "--abort")
-    git("fetch", "origin", BRANCH)
+    if git("fetch", "origin", BRANCH).returncode != 0:
+        raise StopRun(f"git pull、fetch 都失敗（網路？）：{short(r.stderr or r.stdout)}")
     ahead = git("rev-list", f"origin/{BRANCH}..HEAD").stdout.split()
     touched = git("diff", "--name-only", f"origin/{BRANCH}...HEAD").stdout.split()
-    if ahead and data_only(touched):
+    untracked = git("ls-files", "--others", "--exclude-standard").stdout.split()
+    if ahead and data_only(touched) and data_only(untracked):
         git("reset", "--hard", f"origin/{BRANCH}")
-        log.warning("git pull 失敗；本機多出的 %d 個 commit 只動 data/，丟掉並對齊 origin（%s）",
-                    len(ahead), ", ".join(c[:8] for c in ahead))
-        return
+        notes.append(f"git pull 失敗；本機多出的 {len(ahead)} 個 commit 只動 data/，丟掉並對齊 origin"
+                     f"（{', '.join(c[:8] for c in ahead)}）")
+        return notes
     raise StopRun(f"git pull --rebase 失敗：{short(r.stderr or r.stdout)}")
 
 
@@ -116,28 +127,6 @@ def already_submitted(state: dict, phase: int, t: str, today: str):
     if phase == 1 and site_api.to_taipei(site_api.parse_time(entry.get("submittedAt"))).date().isoformat() != today:
         return None
     return entry
-
-
-def unfinished_upload(cfg: dict, phase: int, key: str, today: str):
-    """upload_log 裡今天這個 (phase, key) 最後一筆「準備上傳」之後沒有「完成」，就回傳那筆。
-
-    POST 失敗（就算確認網站沒收到）也不清掉：POST 失敗後不自動重試（CLAUDE.md），留給人處理。
-    """
-    path = submit.log_path(cfg)
-    if not path.exists():
-        return None
-    last = None
-    for line in path.read_text(encoding="utf-8").splitlines():
-        try:
-            e = json.loads(line)
-        except ValueError:
-            continue
-        if e.get("phase") == phase and e.get("trading_date") == key and str(e.get("time", "")).startswith(today):
-            if e.get("status") == "prepared":
-                last = e
-            elif e.get("status") in ("done", "not_sent"):   # not_sent：push 失敗，POST 沒有送出
-                last = None
-    return last
 
 
 def phase1_dates_ok(dates: list, data) -> None:
@@ -169,7 +158,12 @@ def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
         if entry is not None:
             log.info("網站上已經有這次的提交（%s，%s 交），結束", entry.get("fileName"), entry.get("submittedAt"))
             return "already_submitted"
-        pending = unfinished_upload(cfg, phase, key, today)
+        done = submit.finished_today(cfg, phase, key, today)
+        if done is not None:
+            log.info("上傳紀錄說今天已經%s（%s），結束", "交好" if done["status"] == "done" else "和網站一樣",
+                     done.get("time"))
+            return "already_submitted"
+        pending = submit.open_prepared(cfg, phase, key, today)
         if pending is not None:
             raise StopRun(f"{pending.get('time')} {pending.get('runner')} 已經送過 {pending.get('file')} 但沒有核對完成；"
                           "不自動重送，請到網站確認後手動處理")
@@ -250,16 +244,17 @@ def main(argv=None) -> int:
 
 def locked_main(args) -> int:
     today = utils.taipei_now().date().isoformat()
-    phase = args.phase or utils.load_config()["submit"]["phase"]
     t = args.date or today
-    key = t if phase == 2 else today
-    log = utils.get_logger("run_daily_test", key)
-    log.info("開始：Phase %s，t = %s%s%s", phase, t, "，--sync" if args.sync else "", "，--dry-run" if args.dry_run else "")
-    status, code = "failed", 1
+    log = utils.get_logger("run_daily_test", t)   # 檔名用 t（Phase 1 時 t 就是今天）
+    status, code, phase = "failed", 1, args.phase
     try:
-        if args.sync:
-            git_start(log)
-        cfg = utils.load_config()   # pull 之後重讀，config 改了這次就生效
+        notes = git_start() if args.sync else []   # 先同步再寫 log，log 檔本身也在 Git 裡
+        cfg = utils.load_config()   # pull 之後才讀，推上去的 config（例如 submit.phase）這次就生效
+        phase = args.phase or cfg["submit"]["phase"]
+        log.info("開始：Phase %s，t = %s%s%s（執行代號 %s）", phase, t, "，--sync" if args.sync else "",
+                 "，--dry-run" if args.dry_run else "", submit.RUN_ID)
+        for note in notes:
+            log.warning(note)
         if args.dry_run:
             cfg["submit"]["enabled"] = False
         status = pipeline(cfg, args, phase, t, today, log)
@@ -272,7 +267,7 @@ def locked_main(args) -> int:
         log.info("結束：%s", status)
         if args.sync:
             try:
-                commit_data(f"Daily run {key}: {status}")
+                commit_data(f"Daily run {t} (Phase {phase}): {status}")
                 if not push(log):
                     log.error("資料推不上去，下次執行會再推")
                     code = code or 1

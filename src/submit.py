@@ -11,7 +11,9 @@
        上傳新的不會蓋掉最高分，但留一份比較好核對）。和這份 CSV 一樣就不再送。
     4. 寫一筆「準備上傳」，呼叫 before_post（run_daily_test.py --sync 用它先 commit、push 這筆紀錄；
        push 失敗就不上傳，不然下一次在新機器上跑看不到這筆紀錄）。
-    5. POST 一次。失敗或逾時不重試，改讀 /api/state 看網站有沒有收到。
+    5. POST 前再檢查一次：截止、網站的開放時間、網站上的提交有沒有變（別台交了就不送）、upload_log 裡別次執行
+       有沒有也在準備上傳（before_post 的 pull 會帶來別台的紀錄）。
+       然後 POST 一次。失敗或逾時不重試，改讀 /api/state 看網站有沒有收到。
     6. 拿到 200 也要把網站上的版本下載回來逐格比對，一致才寫「完成」。
 
 submit.enabled 是 false 時只印出要送的內容，不真的上傳。
@@ -28,6 +30,7 @@ import json
 import os
 import socket
 import sys
+import uuid
 from pathlib import Path
 
 from src import crawler, site_api, utils
@@ -104,13 +107,57 @@ def runner_name() -> str:
     return os.environ.get("RUNNER_NAME") or ("mac" if sys.platform == "darwin" else socket.gethostname())
 
 
+RUN_ID = uuid.uuid4().hex[:8]   # 這次執行的代號：同一台、同一天跑兩次也分得開
+RESOLVED = ("done", "not_sent")   # 「準備上傳」之後有這兩種結果才算結束（not_sent：POST 沒送出）
+
+
 def append_log(cfg: dict, entry: dict):
     """upload_log.jsonl 多一行。這個檔只會往後加，兩台機器同時加時 Git 用 union 合併（.gitattributes）。"""
-    entry = {"time": utils.taipei_now().isoformat(timespec="seconds"), "runner": runner_name(), **entry}
+    entry = {"time": utils.taipei_now().isoformat(timespec="seconds"), "runner": runner_name(), "run_id": RUN_ID,
+             **entry}
     path = log_path(cfg)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def today_entries(cfg: dict, phase: int, key: str, day: str) -> list:
+    """upload_log 裡 day（台北）這個 (phase, key) 的紀錄。"""
+    path = log_path(cfg)
+    if not path.exists():
+        return []
+    out = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        if (isinstance(e, dict) and e.get("phase") == phase and e.get("trading_date") == key
+                and str(e.get("time", "")).startswith(day)):
+            out.append(e)
+    return out
+
+
+def open_prepared(cfg: dict, phase: int, key: str, day: str, exclude_run=None):
+    """day 這天有「準備上傳」、同一次執行卻沒有 done 或 not_sent 的紀錄，回傳其中一筆；沒有回傳 None。
+
+    POST 失敗（就算確認網站沒收到）也不算結束：POST 失敗後不自動重試（CLAUDE.md），留給人處理。
+    用 run_id 配對，不看行的先後（兩台的紀錄 union 合併後順序不一定）。
+    """
+    entries = today_entries(cfg, phase, key, day)
+    resolved = {e.get("run_id") for e in entries if e.get("status") in RESOLVED}
+    for e in entries:
+        if e.get("status") == "prepared" and e.get("run_id") != exclude_run and e.get("run_id") not in resolved:
+            return e
+    return None
+
+
+def finished_today(cfg: dict, phase: int, key: str, day: str):
+    """day 這天已經 done（上傳並核對完成）或 same（網站上已經一樣）就回傳那筆。"""
+    for e in today_entries(cfg, phase, key, day):
+        if e.get("status") in ("done", "same"):
+            return e
+    return None
 
 
 def backup(cfg: dict, rows: list, phase: int, entry: dict) -> Path:
@@ -141,21 +188,32 @@ def check_window(state: dict, phase: int, t: str | None, now):
     return None if start <= now < end else f"不在 {t} 的開放時間（{start} ～ {end}）"
 
 
-def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, before_post=None, now=None) -> str:
-    """照檔案開頭的順序上傳。回傳狀態：done、same、closed、dry_run；不能上傳或核對失敗就丟錯。"""
+def same_entry(a, b) -> bool:
+    if a is None or b is None:
+        return a is None and b is None
+    return a.get("id") == b.get("id") and a.get("submittedAt") == b.get("submittedAt")
+
+
+def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, before_post=None, clock=None) -> str:
+    """照檔案開頭的順序上傳。回傳狀態：done、same、closed、dry_run、already_submitted；不能上傳或核對失敗就丟錯。
+
+    clock() 回傳現在時間（測試時換掉）。截止和網站的開放時間在 POST 前會再檢查一次，
+    因為 before_post（推資料）可能花好幾分鐘。
+    """
+    clock = clock or utils.taipei_now
     csv_path = Path(csv_path)
     if phase == 2:
-        utils.check_deadline(cfg, t, now, key="upload_cutoff")
+        utils.check_deadline(cfg, t, clock(), key="upload_cutoff")
     rows = read_rows(csv_path)
     # 網站前端在 Phase 1 不帶 tradingDate（undefined 不會出現在 JSON 裡），這裡也一樣
     body = {"phase": phase, **({"tradingDate": t} if phase == 2 else {}), "fileName": csv_path.name,
             "payload": payload(rows, phase), "note": "auto: run_daily_test.py"}
     digest = hashlib.sha256(csv_path.read_bytes()).hexdigest()
-    base = {"phase": phase, "trading_date": site_api.submission_key(phase, t), "file": csv_path.name, "sha256": digest}
+    key = site_api.submission_key(phase, t)
+    base = {"phase": phase, "trading_date": key, "file": csv_path.name, "sha256": digest}
 
     state = site.state()
-    now = utils.taipei_now(now)
-    problem = check_window(state, phase, t, now)
+    problem = check_window(state, phase, t, clock())
     if problem == "closed":
         log.info("%s 不在網站的交易日清單，休市，不上傳", t)
         append_log(cfg, {**base, "status": "closed"})
@@ -170,14 +228,19 @@ def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, befo
 
     current = site_api.current_entry(state, phase, t)
     if current is not None:
-        site_rows = site.download(current["id"])
-        saved = backup(cfg, site_rows, phase, current)
-        log.info("網站上目前有效的那份（%s，分數 %s）存到 %s", current.get("submittedAt"), current.get("score"),
-                 saved.relative_to(utils.ROOT))
-        if same_cells(site_rows, rows):
-            log.info("網站上的版本和這份一樣，不再送")
-            append_log(cfg, {**base, "status": "same"})
-            return "same"
+        try:
+            site_rows = site.download(current["id"])
+        except Exception as e:   # 備份失敗不擋上傳，只是少一份備份、也沒法比對一不一樣
+            log.warning("下載網站上目前的那份失敗（%s），沒有備份，繼續", type(e).__name__)
+            site_rows = None
+        if site_rows is not None:
+            saved = backup(cfg, site_rows, phase, current)
+            log.info("網站上目前有效的那份（%s，分數 %s）存到 %s", current.get("submittedAt"), current.get("score"),
+                     saved.relative_to(utils.ROOT))
+            if same_cells(site_rows, rows):
+                log.info("網站上的版本和這份一樣，不再送")
+                append_log(cfg, {**base, "status": "same"})
+                return "same"
 
     if not cfg["submit"]["enabled"]:
         log.info("submit.enabled 是 false，不上傳。會送出：phase=%s tradingDate=%s fileName=%s，%d 檔，"
@@ -187,9 +250,39 @@ def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, befo
         return "dry_run"
 
     append_log(cfg, {**base, "status": "prepared"})
-    if before_post is not None and not before_post():
-        append_log(cfg, {**base, "status": "not_sent", "detail": "準備上傳的紀錄推不上去"})
-        raise RuntimeError("準備上傳的紀錄推不上去，這次不上傳（避免下一次看不到紀錄而重送）")
+
+    def not_sent(detail):
+        append_log(cfg, {**base, "status": "not_sent", "detail": detail})
+
+    if before_post is not None:
+        try:
+            pushed = before_post()
+        except Exception as e:
+            not_sent(f"推「準備上傳」紀錄時出錯（{type(e).__name__}）")
+            raise
+        if not pushed:
+            not_sent("準備上傳的紀錄推不上去")
+            raise RuntimeError("準備上傳的紀錄推不上去，這次不上傳（避免下一次看不到紀錄而重送）")
+
+    # POST 前最後檢查：推資料可能花了幾分鐘，別台也可能在這段時間交了
+    try:
+        if phase == 2:
+            utils.check_deadline(cfg, t, clock(), key="upload_cutoff")
+        fresh = site.state()
+        problem = check_window(fresh, phase, t, clock())
+        if problem:
+            raise site_api.SiteError(problem)
+    except Exception as e:
+        not_sent(f"POST 前最後檢查沒過：{str(e)[:200] if isinstance(e, (RuntimeError, ValueError)) else type(e).__name__}")
+        raise
+    if not same_entry(site_api.current_entry(fresh, phase, t), current):
+        not_sent("網站上的提交在這段時間變了（別台已經交了）")
+        log.info("網站上的提交在準備期間變了，應該是別台交了，這次不送")
+        return "already_submitted"
+    other = open_prepared(cfg, phase, key, clock().date().isoformat(), exclude_run=RUN_ID)
+    if other is not None:
+        not_sent(f"{other.get('runner')} 的執行 {other.get('run_id')} 也在上傳")
+        raise site_api.SiteError(f"{other.get('runner')}（{other.get('time')}）也準備上傳了同一份，這次不送")
 
     before = current
     try:

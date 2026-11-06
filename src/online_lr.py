@@ -14,6 +14,7 @@ models/ 的模型」不同，見 memory/context/pipeline.md）。
 個股特徵用老師個股檔「填好的列」算（crawler.row_filled），滾動視窗只往回看；(日期 d, 股票) 那列拿的是那檔股票
 日期早於 d 的最後一個填好的列算出的值，所以 t 當天的價格、成交量、法人都不會用到。
 Live（Training 最後一天之後）的列裡外資持股和法人欄的 -1 當成空值；Training 的 -1 是真的（買賣超 1 股），保留。
+外資持股比率待定時沿用這檔股票前一個有值的比率（使用者 2026-11-07）：t 早上 i 那列常常還沒有這個值。
 """
 
 from pathlib import Path
@@ -81,8 +82,12 @@ def teacher_table(teacher_dir: Path, live_dir: Path | None) -> pd.DataFrame:
     for c in df.columns[2:]:
         df[c] = pd.to_numeric(df[c].replace("", np.nan), errors="raise")
     live_mask = np.array(is_live, dtype=bool)
+    pending_hold = live_mask & (df["foreign_hold_pct"] == -1)
     for c in LIVE_PENDING:
         df.loc[live_mask & (df[c] == -1), c] = np.nan
+    # 使用者 2026-11-07：Live 的外資持股比率常常隔天才公布，待定時沿用這檔股票前一個有值的比率（變化就成了 0）
+    df["foreign_hold_pct"] = df["foreign_hold_pct"].where(
+        ~pending_hold, df.groupby("stock_id", sort=False)["foreign_hold_pct"].ffill())
     df["date"] = pd.to_datetime(df["date"])
     return df.sort_values(["stock_id", "date"], ignore_index=True)
 

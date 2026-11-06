@@ -2,7 +2,7 @@
 
 ## 每天的流程
 
-GCP 主機每天台北 07:10、07:40 跑 `run_daily_test.py --sync`，使用者的 Mac 08:05 備援。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑五步：
+學校主機 oop 每天台北 07:10、07:40 跑 `run_daily_test.py --sync`，使用者的 Mac 08:05 起備援（見「排程主機」）。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑五步：
 
 1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live、yfinance 19 個指標和期交所的台指期，原樣存進 `data/raw/`。匯率另外存 1 小時K棒；匯率和台指期都和舊檔合併。
 2. 特徵 `python -m src.features --date <t>`：清理 yfinance，算每檔股票和各指標的 lag1、lag2，一列是一檔股票的一天。台指期分日盤和夜盤，夜盤清晨 05:00 收盤，當天開盤前就知道。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
@@ -10,7 +10,37 @@ GCP 主機每天台北 07:10、07:40 跑 `run_daily_test.py --sync`，使用者�
 4. 上傳 `src/submit.py`：照網站範本寫 CSV，上傳後下載回來逐格核對。`configs/config.yaml` 的 `submit.phase` 決定交 Phase 1（84 天回測，測自動化用）還是 Phase 2（每天的 t）。
 5. 推資料：`data/raw/`、`data/processed/`、`data/submission/` commit 並 push 到這個分支。
 
-t 不是交易日時不跑爬蟲和特徵。主機怎麼裝見 `deploy/`。
+t 不是交易日時不跑爬蟲和特徵。
+
+## 排程主機
+
+### oop（主跑）
+
+`oop.cs.nccu.edu.tw`：Ubuntu 22.04、16 核、24 GB、時區台北。沒有 root，不能用 Docker。
+
+1. 從校外要先連政大 SSL VPN（Ivanti Secure Access，伺服器 `https://sslvpn.nccu.edu.tw`）才 SSH 得進去。cron 在主機上自己跑，不需要 VPN。
+2. oop 連不到 pypi.org（DNS 只回 IPv6），所以套件在 Mac 上下載 Linux 版，再複製過去：
+   ```bash
+   uvx --from pip==24.3.1 pip download -r requirements.txt --python-version 3.12 --implementation cp \
+     --abi cp312 --abi abi3 --abi none --platform manylinux2014_x86_64 --platform manylinux_2_17_x86_64 \
+     --platform manylinux_2_28_x86_64 --platform any --only-binary=:all: -d wheels
+   scp -r wheels nccuoop:~/wheels
+   ```
+3. 在 oop 上：
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/jiangjiangian/ml-final-2026-fall/claude/stock-market-challenger/deploy/runner_setup.sh -o runner_setup.sh
+   WHEELS=~/wheels bash runner_setup.sh
+   ```
+   第一次會建 deploy key 並印出公鑰。到 GitHub repo → Settings → Deploy keys 加上它，勾 Allow write access，再跑一次。
+4. 填 `~/ml-final-2026-fall/.env`，試跑 `.venv/bin/python run_daily_test.py --dry-run`。
+
+### Mac（備援）
+
+`bash deploy/mac/setup.sh`：另外 clone 到 `~/ml-final-runner`，launchd 每天 08:05、08:20、08:35 跑。網站上已經有今天的提交就直接結束。
+
+### GCP（備用）
+
+`deploy/gcp_setup.sh`：e2-micro 免費主機只有 1 GB 記憶體，流程高峰約 750 MB，要靠 swap，所以改用 oop。
 
 ## 組員怎麼拿資料
 
@@ -57,9 +87,10 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 ├── run_daily.py               一個指令跑完一天：爬蟲 → 特徵 → 訓練 → 預測 → 上傳（還是骨架）
 ├── run_daily_test.py          排程跑的這支（測試版）：爬蟲 → 特徵 → 組員的邏輯迴歸 → 上傳 → 推資料
 ├── deploy/
-│   ├── gcp_setup.sh           GCP 主機的安裝：時區、swap、clone、venv、cron
-│   ├── crontab.txt            GCP 主機的排程（台北 07:10、07:40）
-│   └── mac/                   Mac 備援：setup.sh 裝 launchd，com.mlfinal.backup.plist 每天 08:05 跑
+│   ├── runner_setup.sh        排程主機（學校的 oop）的安裝：deploy key、uv、clone、Python 3.12、cron，不用 sudo
+│   ├── gcp_setup.sh           GCP 主機的安裝（備用）：時區、swap、clone、venv、cron
+│   ├── crontab.txt            排程主機的 crontab（台北 07:10、07:40）
+│   └── mac/                   Mac 備援：setup.sh 裝 launchd，com.mlfinal.backup.plist 每天 08:05、08:20、08:35 跑
 ├── configs/
 │   ├── config.yaml            網站網址、yfinance 代號、特徵、模型參數、截止時間
 │   └── live_ca.pem            Live 原本網址的自簽憑證，爬蟲只信任這一張（公開的，不是密碼）
@@ -106,5 +137,6 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
     ├── test_no_future_data.py     特徵只能用 t 之前的資料
     ├── test_online_lr.py          組員的模型：個股特徵不偷看，每天的模式和回測一樣
     ├── test_submit.py             上傳流程：假網站，不重試、核對、跳過的規則
+    ├── test_run_daily_test.py     git 同步（假 remote）和 log 檔被換掉後重開
     └── test_submission_format.py  CSV 的欄位、列數、0/1
 ```

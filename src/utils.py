@@ -1,6 +1,7 @@
 """各步驟共用的小工具：讀設定和帳密、台北時間、截止檢查、log。"""
 
 import logging
+import logging.handlers
 import os
 import sys
 from datetime import date, datetime
@@ -89,7 +90,9 @@ def get_logger(name: str, target_date: str):
         handler.close()
     log_path.parent.mkdir(parents=True, exist_ok=True)
     fmt = logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s")
-    for handler in (logging.StreamHandler(sys.stdout), logging.FileHandler(log_path, encoding="utf-8")):
+    # WatchedFileHandler：git 換掉這個檔（pull、reset）後會重新打開，不會寫進已經刪掉的檔；delay 到第一次寫才建檔
+    for handler in (logging.StreamHandler(sys.stdout),
+                    logging.handlers.WatchedFileHandler(log_path, encoding="utf-8", delay=True)):
         handler.setFormatter(fmt)
         logger.addHandler(handler)
     return logger

@@ -44,8 +44,8 @@ def fake_raw(codes, days, seed=0):
 # ---------------------------------------------------------------- 讀老師檔
 
 
-def stock_line(d, close="10.0", foreign_net="5", y="1"):
-    cells = [d, close, "9.0", "11.0", "8.0", "100", "1000", "100", "50", foreign_net, "3", "2", "1", "55", "9.5",
+def stock_line(d, close="10.0", foreign_net="5", y="1", hold="50"):
+    cells = [d, close, "9.0", "11.0", "8.0", "100", "1000", "100", hold, foreign_net, "3", "2", "1", "55", "9.5",
              "0.1", "0.2", "11", "10", "9", y]
     assert len(cells) == len(crawler.STOCK_COLUMNS)
     return cells
@@ -62,12 +62,14 @@ def test_teacher_table_keeps_training_minus_one_and_blanks_live_minus_one(tmp_pa
               [stock_line("2026-08-28", foreign_net="-1"), stock_line("2026-08-31")])
     write_csv(train / "global" / "global_data.csv", crawler.GLOBAL_COLUMNS, [["2026-08-31", "15", "1", "2", "3", "4", "5"]])
     (train / "info.json").write_text(json.dumps({"Top50@Y": ["A"]}))
-    pending = ["2026-09-02"] + ["-1"] * (len(crawler.STOCK_COLUMNS) - 1)
+    pending = ["2026-09-03"] + ["-1"] * (len(crawler.STOCK_COLUMNS) - 1)
     write_csv(live / "market" / "A.csv", crawler.STOCK_COLUMNS,
-              [stock_line("2026-08-31", close="99"), stock_line("2026-09-01", foreign_net="-1"), pending])
+              [stock_line("2026-08-31", close="99"), stock_line("2026-09-01", foreign_net="-1", hold="51"),
+               stock_line("2026-09-02", hold="-1"), pending])
     df = online_lr.teacher_table(train, live)
     by_date = df.set_index(df["date"].dt.strftime("%Y-%m-%d"))
-    assert list(by_date.index) == ["2026-08-28", "2026-08-31", "2026-09-01"]   # 待定的 9/2 不算填好
+    assert list(by_date.index) == ["2026-08-28", "2026-08-31", "2026-09-01", "2026-09-02"]   # 待定的 9/3 不算
+    assert by_date.loc["2026-09-02", "foreign_hold_pct"] == 51                  # 外資持股待定：沿用前一天
     assert by_date.loc["2026-08-28", "foreign_net"] == -1                      # Training 的 -1 是真的
     assert np.isnan(by_date.loc["2026-09-01", "foreign_net"])                   # Live 的 -1 是待定
     assert by_date.loc["2026-08-31", "close"] == 10.0                           # Live 只取 Training 之後

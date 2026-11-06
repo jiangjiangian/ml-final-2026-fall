@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Mac 備援：每天 08:05（Mac 的時區要是台北）跑一次。deploy/mac/setup.sh 把 __REPO__ 換成路徑後裝到 ~/Library/LaunchAgents/ -->
+<!-- Mac 備援：每天 08:05、08:20、08:35（Mac 的時區要是台北）。網站上已經有今天的提交就直接結束，所以多跑幾次沒關係。
+     Mac 睡著時 launchd 醒來後補跑：先等網路（最多 5 分鐘）。過了截止就不上傳。
+     deploy/mac/setup.sh 把 __REPO__ 換成路徑後裝到 ~/Library/LaunchAgents/。 -->
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.mlfinal.backup</string>
@@ -8,9 +10,15 @@
   <array>
     <string>/bin/bash</string>
     <string>-c</string>
-    <string>cd __REPO__ &amp;&amp; .venv/bin/python run_daily_test.py --sync &gt;&gt; .cache/launchd.log 2&gt;&amp;1</string>
+    <string>for i in $(seq 30); do /sbin/ping -q -c1 -t2 github.com &gt;/dev/null 2&gt;&amp;1 &amp;&amp; break; sleep 10; done; cd __REPO__ &amp;&amp; .venv/bin/python run_daily_test.py --sync &gt;&gt; .cache/launchd.log 2&gt;&amp;1</string>
   </array>
+  <key>EnvironmentVariables</key>
+  <dict><key>GIT_TERMINAL_PROMPT</key><string>0</string><key>RUNNER_NAME</key><string>mac</string></dict>
   <key>StartCalendarInterval</key>
-  <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>5</integer></dict>
+  <array>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>20</integer></dict>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>35</integer></dict>
+  </array>
 </dict>
 </plist>

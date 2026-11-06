@@ -325,8 +325,8 @@ def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None) -> dict
     yfinance 某個檔不存在時，那個序列整欄空白，記一筆警告，不中斷（每天的流程要全自動）。
     """
     raw_dir = utils.ROOT / cfg["data"]["raw_dir"]
-    teacher_dir = Path(teacher_dir) if teacher_dir else raw_dir / "teacher"
-    live_dir = Path(live_dir) if live_dir else raw_dir / "teacher_live"
+    teacher_dir = Path(teacher_dir) if teacher_dir else raw_dir / "teacher" / "training"
+    live_dir = Path(live_dir) if live_dir else raw_dir / "teacher" / "live"
     yf_dir = Path(yf_dir) if yf_dir else raw_dir / "yfinance"
     stocks, global_rows, top50 = load_teacher(teacher_dir, live_dir)
     out = {"stocks": stocks, "global": global_rows, "top50": top50, "yfinance": {}, "hourly": None,

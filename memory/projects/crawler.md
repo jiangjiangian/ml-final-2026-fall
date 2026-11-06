@@ -10,7 +10,7 @@
 
 - 2026-11-05：Live 用助教的 chatgpt.site 新入口，金鑰由使用者放 `.env` 的 `COURSE_LIVE_KEY`，不自動從課程網站抓。舊程式（`../ml-final-archive/archive/system-completion/ml_financial_prediction/src/finpred/ingestion/course.py`）會從課程網站首頁載入的 JS 找金鑰，這個做法不採用。舊入口 `https://140.112.31.182:8444/` 的 TLS 驗證會失敗，也不用。
 - 2026-11-05：19 個 yfinance 序列都抓，爬蟲台北 07:10 開始跑。要不要用在模型上，看驗證分數。
-- 2026-11-05：輸出和 data-collection 分支（原名 peaceful-babbage）的資料對齊（2026-11-06 起 data-collection 的資料搬到這個分支，見 `memory/context/data-rules.md`）：`data/raw/teacher/`、`data/raw/teacher_live/`、`data/raw/yfinance/` 對應舊的 `data/teacher/`、`data/teacher_live/`、`data/extra/yfinance/`，19 個代號、檔名、欄位都一樣。
+- 2026-11-05：輸出和 data-collection 分支（原名 peaceful-babbage）的資料對齊（2026-11-06 起 data-collection 的資料搬到這個分支，見 `memory/context/data-rules.md`）：`data/raw/teacher/training/`、`data/raw/teacher/live/`、`data/raw/yfinance/`（2026-11-06 前叫 `teacher/`、`teacher_live/`）對應舊的 `data/teacher/`、`data/teacher_live/`、`data/extra/yfinance/`，19 個代號、檔名、欄位都一樣。
 - 2026-11-05：成交量要 > 0 只檢查個股和 ETF（TSM、NVDA、四檔台灣 ETF），和舊分支清理規則用成交量的範圍一樣。其他序列只查日期。
 - 2026-11-05：爬蟲存 Yahoo 給的原樣，清理（壞報價、佔位K棒、0052 分割、殖利率假日K棒）放在 `features.py`，規則照舊分支。
 - 2026-11-05：t 當天早上 i 那列還是 `-1`（像 10-23）時，改用早於 t 最後一個填好的交易日當 i，照常預測上傳，manifest 記 `prev_day`（實際用的那天）和 `prev_day_never_filled: true`，通知組員。`features.py` 照同一條規則。
@@ -77,7 +77,7 @@
 ### 下載和解壓（老師資料）
 
 - HTTP：搬舊 `course.py` 的 `VerifiedSession.read()`。每個請求都有逾時（連線 10 秒、讀取 90 秒），邊下載邊數位元組，超過 100 MB 就中止；只跟隨同一個主機的轉址；GET 遇到 429、5xx 重試 2 次，POST 不重試；用瀏覽器的 User-Agent。
-- Training：`data/raw/teacher/` 的檔案指紋和 manifest 一樣就不下載 ZIP。不一樣或沒有，才登入課程網站下載。
+- Training：`data/raw/teacher/training/` 的檔案指紋和 manifest 一樣就不下載 ZIP。不一樣或沒有，才登入課程網站下載。
 - Live：每次都下載。`POST /login` 帶 `COURSE_LIVE_KEY`，再 `GET /data.zip`。
 - ZIP 檢查：
   1. 壓縮檔 ≤ 100 MB，解開總大小 ≤ 512 MB。
@@ -91,7 +91,7 @@
 ### Live 有沒有更新到 t（每日模式）
 
 - 要有 t 的列，而且 i 那列已經填好：至少 90 檔有 t 那列；i 那天至少 90 檔的 `y` 是 0 或 1，`etl:adj_open`、`etl:adj_close` 都 > 0。法人欄的 `-1` 不看。沒填好的代號（多半是停牌）記在 `prev_day_missing_stocks`。
-- 沒有 t 的列，或下載遇到逾時、連不上、5xx：等 3 分鐘重抓，最多 3 次，也受爬蟲截止限制。還是不行就丟錯誤，舊的 `teacher_live/` 留著。
+- 沒有 t 的列，或下載遇到逾時、連不上、5xx：等 3 分鐘重抓，最多 3 次，也受爬蟲截止限制。還是不行就丟錯誤，舊的 `teacher/live/` 留著。
 - 有 t 的列，但 i 那列還是 `-1`（像 10-23）：不等，改用早於 t 最後一個填好的交易日當 i，回傳 3（使用者 2026-11-05 決定）。
 - `COURSE_LIVE_KEY` 是空的：每日模式丟錯誤；研究模式跳過 Live，記在 manifest。
 
@@ -159,8 +159,8 @@
 - 序列的 `status`：`ok`、`failed`（沒抓到，舊檔留著）。有沒有 i 那根另外記在 `has_bar_i`，1h 記 `has_value_t`。
 - `run.status`：序列都 `ok`、沒有改用快取的 phase2Days、沒有 `prev_day_never_filled` 是 `ok`，否則 `stale`（回傳 3）；丟出例外時是 `failed`，`error` 是自己寫的短訊息或例外類別名稱。
 - 失敗時 `teacher` 那筆照抄上一次的，下次還認得本機的 Training，不用重新下載。指紋不算點開頭的檔（`.DS_Store`）。
-- sha256 用檔案原始位元組算。`.gitattributes` 的 `data/raw/** -text`、`data/reference/** -text` 讓 Git 不改換行。
-- 2026-11-06 從 data-collection 搬來 `data/raw/teacher*` 後，`manifest.json` 還不存在，所以第一次會下載 Training 一次再整包換進去，內容一樣，`git diff data/raw/teacher` 應該是空的。新算法的 `files_sha256`：Training `1c17e27f…`、Live `4675ae4d…`。舊分支的 `members_sha256`（`31bbdc99…`）算法不同（路徑帶 `data/`、先把 CRLF 換成 LF），不能互相比。
+- sha256 用檔案原始位元組算。`.gitattributes` 的 `data/raw/** -text`、`tests/fixtures/** -text` 讓 Git 不改換行。
+- 2026-11-06 從 data-collection 搬來 `data/raw/teacher/` 後，`manifest.json` 還不存在，所以第一次會下載 Training 一次再整包換進去，內容一樣，`git diff data/raw/teacher/training` 應該是空的。新算法的 `files_sha256`：Training `1c17e27f…`、Live `4675ae4d…`。舊分支的 `members_sha256`（`31bbdc99…`）算法不同（路徑帶 `data/`、先把 CRLF 換成 LF），不能互相比。
 - 不記：金鑰、帳密、cookie、crumb、網址的 `?` 後面、伺服器回應的內容。錯誤只記例外類別和自己寫的短訊息。
 
 ### 失敗時
@@ -190,7 +190,7 @@
 - 空的或變短的回應：舊檔位元組不變，manifest 是 `failed`。
 - i 那根的檢查：^SOX 成交量 0 要通過、NVDA 成交量 0 要不通過、沒有 i 那根的序列只重抓一輪。
 - ZIP：多一個成員、少一個成員、名稱重複、表頭不對、Live 有 `info.json`、超過大小，都要拒絕；拿掉 `data/` 前綴；換行 CRLF 原樣保留。
-- 解壓失敗時，舊的 `teacher_live/` 位元組不變。
+- 解壓失敗時，舊的 `teacher/live/` 位元組不變。
 - Training 指紋一樣時不下載 Training ZIP。
 - Live 沒有 t 的列時會重抓再丟錯誤；`COURSE_LIVE_KEY` 空的時，每日模式丟錯誤、研究模式跳過。
 - 每日模式在 07:00 前執行會丟錯誤。
@@ -209,7 +209,7 @@
   - `usd_twd_am` 補值用的日K：2024 年以後冬令、夏令各挑一天，把日K close 和台北 07:00、08:00 開始的 1h 比，確認它是哪一刻的報價（2026-11-06 加）。
   - 冬令週一 05:00（台北）那根 1h 是不是真的不存在（2026-11-06 加）。
   - 07:10 時 Live t 那列的 `^VIX` 是不是 `-1`。
-  - `git diff data/raw/teacher` 要是空的；`data/raw/teacher_live` 只多新的列。
+  - `git diff data/raw/teacher/training` 要是空的；`data/raw/teacher/live` 只多新的列。
   - 跑完做 `features.py` 的對照測試 (b)（見 `memory/projects/features.md`）。
   - 1h 第一次用 `period="730d"`、`prepost=True` 抓（`prepost=True` 還沒對真的 Yahoo 試過）：第一根約在 2024-01，平日一天約 24 根，`has_value_t` 是 true（2026-11-06 加）。
   - 跑完 features 後，`data/processed/manifest.json` 的 `warnings` 要是空的，才 commit `data/processed/`（2026-11-06 加）。

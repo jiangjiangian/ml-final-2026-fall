@@ -2,8 +2,9 @@
 
 輸出：
     data/raw/phase2_days.json      課程網站 /api/state 的 phase2Days（只存日期、enabled、isCompetition）
-    data/raw/teacher/              老師 Training ZIP 解開：info.json、global/global_data.csv、market/<代號>.csv
-    data/raw/teacher_live/         老師 Live ZIP 解開：global/global_data.csv、market/<代號>.csv（沒有 info.json），每次覆蓋
+    data/raw/teacher/training/     老師 Training ZIP 解開：info.json、global/global_data.csv、market/<代號>.csv
+    data/raw/teacher/live/         老師 Live ZIP 解開：global/global_data.csv、market/<代號>.csv（沒有 info.json），
+                                   每次整包換新。Live 本身從 9/1 到 t，每天多一列，所以在 Git 裡看起來是往後加
     data/raw/yfinance/<名稱>.csv   19 個額外指標各一檔：date, open, high, low, close, adj_close, volume
     data/raw/yfinance/usd_twd_1h.csv  TWD=X 的 1 小時K棒（yfinance.hourly）：start, open, high, low, close, volume，
                                    start 是K棒開始時間（台北，ISO 帶時區）。每次和舊檔合併，Yahoo 只給大約兩年多
@@ -21,7 +22,7 @@
 
 老師資料：
     - 兩個 ZIP 裡的路徑開頭都多一層 data/，解壓時拿掉，其他位元組原樣寫出（Live 的 CRLF 也保留）。
-    - Training 不會再變。data/raw/teacher/ 的檔案指紋和上次的 manifest 一樣，就不下載 ZIP。
+    - Training 不會再變。data/raw/teacher/training/ 的檔案指紋和上次的 manifest 一樣，就不下載 ZIP。
     - Live 每次都下載。t 那列在 t 當天 00:00 新增、先填 -1，^IXIC、^GSPC 約 05:05 前填好，其他欄和 y 在
       t 當天 22:05 前陸續填完。所以早上的 Live 已經有 t 那列，i 那列也填好了。
     - 「有 t 那列」「i 那天填好」都是看 100 檔裡有沒有 crawler.min_stocks_filled（90）檔做到。個別股票停牌
@@ -540,7 +541,7 @@ def download_teacher(run: Run, secrets: dict, course: SiteClient, live: SiteClie
     cfg = run.cfg
     site = cfg["course_site"]
     max_bytes, max_unzipped = site["max_zip_mb"] * 2**20, site["max_unzipped_mb"] * 2**20
-    teacher_dir, live_dir = run.raw_dir / "teacher", run.raw_dir / "teacher_live"
+    teacher_dir, live_dir = run.raw_dir / "teacher" / "training", run.raw_dir / "teacher" / "live"
 
     # Training
     old = run.previous.get("teacher")

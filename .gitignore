@@ -26,4 +26,4 @@ data/raw/**/.*.tmp
 .claude/settings.local.json
 graphify-out/
 
-# data/raw/、data/processed/、data/reference/、data/submission/、models/ 都要進 Git（原因見 memory/context/data-rules.md「資料放在這個分支」）
+# data/raw/、data/processed/、data/submission/、models/、tests/fixtures/ 都要進 Git（原因見 memory/context/data-rules.md「資料放在這個分支」）

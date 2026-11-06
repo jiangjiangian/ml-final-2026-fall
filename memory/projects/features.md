@@ -34,18 +34,20 @@
 
 | 來源 | 這個分支 | tree hash |
 |---|---|---|
-| `a806959:data/teacher/` | `data/raw/teacher/` | `61da1df7…` |
-| `a806959:data/teacher_live/` | `data/raw/teacher_live/` | `50225f19…` |
-| `a806959:data/teacher_live/` | `data/reference/data-collection/teacher_live/` | `50225f19…` |
-| `a806959:data/extra/` | `data/reference/data-collection/extra/` | `281446bd…` |
-| `a806959:data/transform/panel_lag.csv.gz` | `data/reference/data-collection/transform/panel_lag.csv.gz` | blob `b8b905c5…` |
-| `a806959:schema.json` | `data/reference/data-collection/schema.json` | blob `19b27071…` |
-| `0820473:data/extra/yfinance/` | `data/reference/data-collection/yfinance_raw_0820473/` | `d2257778…` |
+| `a806959:data/teacher/` | `data/raw/teacher/training/` | `61da1df7…` |
+| `a806959:data/teacher_live/` | `data/raw/teacher/live/` | `50225f19…` |
+| `a806959:data/teacher_live/` | `tests/fixtures/data-collection/teacher_live/` | `50225f19…` |
+| `a806959:data/extra/` | `tests/fixtures/data-collection/extra/` | `281446bd…` |
+| `a806959:data/transform/panel_lag.csv.gz` | `tests/fixtures/data-collection/transform/panel_lag.csv.gz` | blob `b8b905c5…` |
+| `a806959:schema.json` | `tests/fixtures/data-collection/schema.json` | blob `19b27071…` |
+| `0820473:data/extra/yfinance/` | `tests/fixtures/data-collection/yfinance_raw_0820473/` | `d2257778…` |
 
-- `data/raw/teacher/` 和 Training ZIP `7433b271…` 逐位元組相同（LF），`data/raw/teacher_live/` 和 Live ZIP `eea89fce…` 相同（CRLF）。
-- `data/raw/teacher_live/` 帶金鑰連網跑時會被新的 Live 蓋掉，對照測試要用 `reference/` 那份。
+使用者 2026-11-06 決定整理資料夾：`data/raw/teacher/`、`teacher_live/` 改成 `data/raw/teacher/training/`、`live/`，`data/reference/data-collection/` 搬到 `tests/fixtures/data-collection/`。搬完 tree hash 都沒變。
+
+- `data/raw/teacher/training/` 和 Training ZIP `7433b271…` 逐位元組相同（LF），`data/raw/teacher/live/` 和 Live ZIP `eea89fce…` 相同（CRLF）。
+- `data/raw/teacher/live/` 帶金鑰連網跑時會被新的 Live 蓋掉，對照測試要用 `tests/fixtures/` 那份。
 - `yfinance_raw_0820473/` 是還沒清理的 Yahoo 原樣，2026-11-04 07:35 UTC 抓的，資料到 8/31。
-- `schema.json`、`extra/manifest.json` 裡的路徑是舊 repo 的（`data/extra/…`）。比對前要換：`data/teacher` → `data/raw/teacher`，`data/{extra,features,transform,teacher_live}` → `data/reference/data-collection/…`。
+- `schema.json`、`extra/manifest.json` 裡的路徑是舊 repo 的（`data/extra/…`）。比對前要換：`data/teacher` → `data/raw/teacher/training`，`data/{extra,transform,teacher_live}` → `tests/fixtures/data-collection/…`。
 
 ## 交易日和 i（使用者 2026-11-06 決定照交接文件改）
 
@@ -134,7 +136,7 @@ R4 修正台股之後立刻做（Yahoo 對分割前的除息只調了約 1/n）�
 
 ### 測試資料
 
-凍結的 `data/reference/data-collection/extra/manifest.json` 有 62 筆紀錄，每筆都有原始值：
+凍結的 `tests/fixtures/data-collection/extra/manifest.json` 有 62 筆紀錄，每筆都有原始值：
 - 壞報價 2：usd_twd 2020-12-08、2024-08-28。
 - 債市假日 24：^TNX、^IRX 各 12 天（2020-10-12、2020-11-11、2021-10-11、2021-11-11、2022-10-10、2022-11-11、2023-10-09、2024-10-14、2024-11-11、2025-10-13、2025-11-11、2026-10-12）。
 - 佔位 29：成交量 0 的 26 筆（006201 10、0050 7、0052 7、0055 2，含 2026-10-23 颱風假的 4 筆），不完整的 3 筆（0050、0052、0055 都在 2024-11-20）。
@@ -160,7 +162,7 @@ R4 修正台股之後立刻做（Yahoo 對分割前的除息只調了約 1/n）�
 
 ### (a) 離線
 
-- 輸入：`data/reference/data-collection/extra/yfinance/` 的 19 個凍結檔、`data/raw/teacher/`、`data/reference/data-collection/teacher_live/`（只取 ≤ 2026-11-04，10/23 依交易日規則拿掉）。
+- 輸入：`tests/fixtures/data-collection/extra/yfinance/` 的 19 個凍結檔、`data/raw/teacher/training/`、`tests/fixtures/data-collection/teacher_live/`（只取 ≤ 2026-11-04，10/23 依交易日規則拿掉）。
 - 清理開著跑，要 0 筆紀錄（凍結檔再清一次是 0 筆，位元組不變）。
 - 日曆剛好 1,660 天，沒有 10/23。
 - `stock_ret` 和 24 個市場序列的 lag2、lag5，和 `transform/panel_lag.csv.gz` 逐格相同，空白位置也一樣。用 repr 字串比，或 `pandas.read_csv(..., float_precision="round_trip")`。

@@ -863,8 +863,8 @@ def test_daily_run_happy_path_and_training_skip(tmp_path, cfg):
     assert manifest["run"]["yahoo_requests"] > 0 and "http_requests" not in manifest["run"]
     assert manifest["teacher"]["action"] == "downloaded"
     assert {e["status"] for e in manifest["yfinance"].values()} == {"ok"}
-    assert (raw / "teacher" / "info.json").exists() and (raw / "teacher_live" / "market" / "1101.csv").exists()
-    assert b"\r\n" in (raw / "teacher_live" / "market" / "1101.csv").read_bytes()
+    assert (raw / "teacher" / "training" / "info.json").exists() and (raw / "teacher" / "live" / "market" / "1101.csv").exists()
+    assert b"\r\n" in (raw / "teacher" / "live" / "market" / "1101.csv").read_bytes()
     assert json.loads((raw / "phase2_days.json").read_text())[0]["tradingDate"] == "2026-11-12"
     etf = crawler.read_series(raw / "yfinance" / "etf_0050.csv")
     assert etf[-1][0] == "2026-11-16"  # t 那天的K棒沒有存進來
@@ -874,17 +874,17 @@ def test_daily_run_happy_path_and_training_skip(tmp_path, cfg):
     assert code == 0 and run.manifest["teacher"]["action"] == "skipped_unchanged"
     assert ("GET", "/downloads/fin_pred_data.zip") not in course.calls
 
-    (raw / "teacher" / ".DS_Store").write_bytes(b"finder")  # Finder 留下的檔不算
+    (raw / "teacher" / "training" / ".DS_Store").write_bytes(b"finder")  # Finder 留下的檔不算
     code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:50")))
     assert run.manifest["teacher"]["action"] == "skipped_unchanged"
 
-    original = (raw / "teacher" / "market" / "1101.csv").read_bytes()
-    (raw / "teacher" / "market" / "1101.csv").write_bytes(original.replace(b"101.5", b"999.9", 1))
+    original = (raw / "teacher" / "training" / "market" / "1101.csv").read_bytes()
+    (raw / "teacher" / "training" / "market" / "1101.csv").write_bytes(original.replace(b"101.5", b"999.9", 1))
     course = course_fake()
     code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:55")), course=course)
     assert run.manifest["teacher"]["action"] == "downloaded"  # 本機的檔被改過就重新下載
     assert ("GET", "/downloads/fin_pred_data.zip") in course.calls
-    assert (raw / "teacher" / "market" / "1101.csv").read_bytes() == original
+    assert (raw / "teacher" / "training" / "market" / "1101.csv").read_bytes() == original
 
 
 def test_failed_run_keeps_training_fingerprint(tmp_path, cfg):
@@ -919,7 +919,7 @@ def test_live_attempts_must_be_positive(tmp_path, cfg):
     cfg["crawler"]["live_attempts"] = 0
     with pytest.raises(crawler.CrawlerError, match="live_attempts"):
         crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")))
-    assert not (tmp_path / "raw" / "teacher_live").exists()  # 沒有把 Training 的檔寫進 teacher_live/
+    assert not (tmp_path / "raw" / "teacher" / "live").exists()  # 沒有把 Training 的檔寫進 teacher/live/
 
 
 def test_daily_run_before_start_time_refuses(tmp_path, cfg):
@@ -931,7 +931,7 @@ def test_daily_run_before_start_time_refuses(tmp_path, cfg):
 
 def test_live_without_t_row_retries_then_stops(tmp_path, cfg):
     clock = Clock(at("2026-11-17", "07:10"))
-    live_dir = tmp_path / "raw" / "teacher_live"
+    live_dir = tmp_path / "raw" / "teacher" / "live"
     live_dir.mkdir(parents=True)
     (live_dir / "old.csv").write_bytes(b"old")
     no_t = live_fake(make_zip(live_members(LIVE_DATES[:-1])))
@@ -953,7 +953,7 @@ def test_live_near_deadline_does_not_wait(tmp_path, cfg):
 
 def test_bad_live_zip_keeps_old_dir(tmp_path, cfg):
     clock = Clock(at("2026-11-17", "07:10"))
-    live_dir = tmp_path / "raw" / "teacher_live"
+    live_dir = tmp_path / "raw" / "teacher" / "live"
     live_dir.mkdir(parents=True)
     (live_dir / "old.csv").write_bytes(b"old")
     members = live_members(LIVE_DATES, {"2026-11-17"})

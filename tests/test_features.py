@@ -13,7 +13,7 @@ import pytest
 
 from src import crawler, features, utils
 
-REF = utils.ROOT / "data" / "reference" / "data-collection"
+REF = utils.ROOT / "tests" / "fixtures" / "data-collection"
 CFG = utils.load_config()
 MAIN_RULES = ("bad_tick", "bond_holiday", "placeholder", "split", "dividend")
 MANIFEST_KEYS = {"bad_ticks_dropped": ("bad_tick", "date"), "bond_holiday_bars_dropped": ("bond_holiday", "date"),
@@ -21,7 +21,7 @@ MANIFEST_KEYS = {"bad_ticks_dropped": ("bad_tick", "date"), "bond_holiday_bars_d
                  "split_adjustments": ("split", "yahoo_adjustment_boundary"),
                  "dividend_adjustments_rescaled": ("dividend", "ex_date")}
 needs_reference = pytest.mark.skipif(not (REF / "transform" / "panel_lag.csv.gz").exists(),
-                                     reason="沒有 data/reference/data-collection")
+                                     reason="沒有 tests/fixtures/data-collection")
 
 
 def cfg_with(lags=None, **crawler_overrides):
@@ -38,7 +38,7 @@ def cfg_with(lags=None, **crawler_overrides):
 @pytest.fixture(scope="module")
 def frozen():
     cfg = cfg_with(lags=[1, 2, 5])
-    raw = features.load_raw(cfg, teacher_dir=utils.ROOT / "data" / "raw" / "teacher",
+    raw = features.load_raw(cfg, teacher_dir=utils.ROOT / "data" / "raw" / "teacher" / "training",
                             live_dir=REF / "teacher_live", yf_dir=REF / "extra" / "yfinance")
     return raw, features.build_features(raw, cfg)
 
@@ -457,7 +457,7 @@ def test_rebuild_removes_months_that_are_gone(tmp_path):
 
 def fake_repo(tmp_path, monkeypatch, days):
     """tmp_path 當 repo 根目錄：data/raw/teacher 放兩檔股票，config 用 small_cfg。"""
-    teacher = tmp_path / "data" / "raw" / "teacher"
+    teacher = tmp_path / "data" / "raw" / "teacher" / "training"
     for c in ("A", "B"):
         write_csv(teacher / "market" / f"{c}.csv", crawler.STOCK_COLUMNS, [stock_row(d, 10 + j) for j, d in enumerate(days)])
     write_csv(teacher / "global" / "global_data.csv", crawler.GLOBAL_COLUMNS,

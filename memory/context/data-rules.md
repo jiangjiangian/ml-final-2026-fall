@@ -38,9 +38,9 @@
 
 ## 資料放在這個分支
 
-- 使用者 2026-11-05 決定：資料、模型、上傳紀錄都放在這個分支。組員 clone 一次就拿到全部，版本也對得上。`data/` 約 62 MB：`data/raw/` 約 46 MB（Training 解開約 45 MB，Live 每天約多 100 列，yfinance 19 個序列約 3 MB），`data/reference/` 約 15 MB（2026-11-06 刪掉沒人讀的 15 MB 後）。
-- 使用者 2026-11-06 決定：爬資料全部交給這個分支，`claude/data-collection` 不再爬也不再更新，只留著當對照。它的 `data/` 搬到這裡：老師資料放 `data/raw/teacher/`、`data/raw/teacher_live/`（和 Training ZIP `7433b271…`、Live ZIP `eea89fce…` 逐位元組相同），其他放 `data/reference/data-collection/`。搬法和 tree hash 見 `memory/projects/features.md` 的「資料來源」。
-- `data/reference/` 是凍結的快照：只給對照測試讀，每天的流程不讀，爬蟲不寫，裡面的檔都不要改。`.gitattributes` 設了 `data/reference/** -text`，Git 不改換行。清理過的 yfinance 只能放在這裡，不能放進 `data/raw/yfinance/`（那裡放 Yahoo 原樣，`features.py` 會再清理一次，0052 分割前的價格會被除兩次 7）。
+- 使用者 2026-11-05 決定：資料、模型、上傳紀錄都放在這個分支。組員 clone 一次就拿到全部，版本也對得上。`data/` 約 62 MB：`data/raw/` 約 46 MB（Training 解開約 45 MB，Live 每天約多 100 列，yfinance 19 個序列約 3 MB），`tests/fixtures/` 約 15 MB（2026-11-06 刪掉沒人讀的 15 MB 後）。
+- 使用者 2026-11-06 決定：爬資料全部交給這個分支，`claude/data-collection` 不再爬也不再更新，只留著當對照。它的 `data/` 搬到這裡：老師資料放 `data/raw/teacher/training/`、`data/raw/teacher/live/`（和 Training ZIP `7433b271…`、Live ZIP `eea89fce…` 逐位元組相同），其他放 `tests/fixtures/data-collection/`（使用者 2026-11-06 從 `data/reference/` 搬過去，`data/` 底下只留流程會讀寫的資料）。搬法和 tree hash 見 `memory/projects/features.md` 的「資料來源」。
+- `tests/fixtures/` 是凍結的快照：只給對照測試讀，每天的流程不讀，爬蟲不寫，裡面的檔都不要改。`.gitattributes` 設了 `tests/fixtures/** -text`，Git 不改換行。清理過的 yfinance 只能放在這裡，不能放進 `data/raw/yfinance/`（那裡放 Yahoo 原樣，`features.py` 會再清理一次，0052 分割前的價格會被除兩次 7）。
 - 原始資料存解開後的 CSV，不存 ZIP。老師的 CSV 每天只多幾列，Git 只記差異；ZIP 每天會整個重存。
 - yfinance 的 `adj_close` 每次重抓都可能有約 1e-6 的相對浮動（0052 實測 1.041e-6）。Yahoo 每次抓都把到抓取當下為止的所有除息套到之前每一列，所以整個檔案（和 sha256）都可能變，但不跨除息日的報酬不受影響。檔案小，影響不大。
 - `data/processed/` 進 Git（使用者 2026-11-06）：特徵表一個月一檔，每天只重寫最後兩個月，組員用網址讀。可以從 `data/raw/` 用 `python -m src.features --rebuild` 重算。

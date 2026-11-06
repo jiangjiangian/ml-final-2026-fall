@@ -48,28 +48,22 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   └── skills/                graphify、humanizer（只在本機，不進 Git）
 ├── requirements.txt           套件和鎖定的版本
 ├── .gitignore                 哪些檔案不進 Git
-├── .gitattributes             data/raw/、data/reference/ 的檔案 Git 不改換行，sha256 才對得上
+├── .gitattributes             data/raw/、tests/fixtures/ 的檔案 Git 不改換行，sha256 才對得上
 ├── .env.example               帳號密碼的範例；真的值放 .env（不進 Git）
 ├── run_daily.py               一個指令跑完一天：爬蟲 → 特徵 → 訓練 → 預測 → 上傳
 ├── configs/
 │   └── config.yaml            網站網址、yfinance 代號、特徵、模型參數、截止時間
 ├── data/
-│   ├── raw/                   爬蟲抓下來的原始資料，原樣保存
-│   │   ├── teacher/           老師 Training ZIP 解開的檔案（一開始從 data-collection 分支搬來）
-│   │   ├── teacher_live/      老師 Live ZIP 解開的檔案（一開始從 data-collection 搬來，之後每次下載覆蓋）
+│   ├── raw/                   爬蟲寫的，和來源一模一樣
+│   │   ├── teacher/
+│   │   │   ├── training/      網站的 Training ZIP 解開（不會再變）
+│   │   │   └── live/          網站的 Live ZIP 解開，每天整包換新（Live 本身每天多一列）
 │   │   ├── yfinance/          19 個額外指標，一個序列一個 CSV；usd_twd_1h.csv 是匯率的 1 小時K棒
 │   │   ├── phase2_days.json   課程網站的交易日清單（/api/state 的 phase2Days）
 │   │   └── manifest.json      下載紀錄
 │   ├── processed/             特徵表，組員從這裡拿資料
 │   │   ├── features/          YYYY-MM.csv.gz，一個月一檔，每天只更新最後兩個月
 │   │   └── manifest.json      有哪些月份、模型用哪些欄、清理紀錄
-│   ├── reference/
-│   │   └── data-collection/   data-collection 分支的凍結快照，只給對照測試用，不要改
-│   │       ├── extra/                 清理過的 yfinance 19 個序列和 manifest.json（清理紀錄）
-│   │       ├── yfinance_raw_0820473/  還沒清理的 Yahoo 原樣（到 2026-08-31），測清理用
-│   │       ├── teacher_live/          長表用的那份 Live（eea89fce，9/1～11/5）
-│   │       ├── transform/             長表 panel_lag.csv.gz（2020-01-02～2026-11-04），對照測試 (a) 的標準答案
-│   │       └── schema.json            所有欄位的定義和驗證紀錄
 │   └── submission/            每天的產出
 │       ├── submission_YYYY-MM-DD.csv   要上傳的 0/1
 │       ├── upload_log.jsonl            上傳紀錄
@@ -86,6 +80,12 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   ├── submit.py              上傳 CSV，再下載回來核對
 │   └── utils.py               讀設定和帳密、台北時間、截止檢查、log
 └── tests/
+    ├── fixtures/data-collection/  舊分支 data-collection 的凍結資料，只給對照測試用，不要改
+    │   ├── extra/                 清理過的 yfinance 19 個序列和 manifest.json（清理紀錄）
+    │   ├── yfinance_raw_0820473/  還沒清理的 Yahoo 原樣（到 2026-08-31），測清理用
+    │   ├── teacher_live/          舊長表用的那份 Live（eea89fce，9/1～11/5）
+    │   ├── transform/             舊長表 panel_lag.csv.gz（2020-01-02～2026-11-04），對照測試 (a) 的標準答案
+    │   └── schema.json            舊長表所有欄位的定義和驗證紀錄
     ├── test_crawler.py            爬蟲的離線測試（假伺服器、假時鐘）
     ├── test_features.py           清理、交易日、lag，以及和 data-collection 凍結資料的對照測試
     ├── test_no_future_data.py     特徵只能用 t 之前的資料

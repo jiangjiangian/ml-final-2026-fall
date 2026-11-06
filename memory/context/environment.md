@@ -22,7 +22,7 @@ python -m pytest               # 目前 117 passed、1 skipped
 | 分支 | 用途 |
 |---|---|
 | `claude/stock-market-challenger` | 比賽主程式（這個分支）。只在這裡 commit 和 push |
-| `claude/data-collection` | 凍結的對照（使用者 2026-11-06 決定不再爬、不再更新）：資料整合成果（到 2026-11-04）和查證紀錄，`archive/` 封存了其他分支。`data/` 已搬到這個分支的 `data/raw/teacher*` 和 `data/reference/data-collection/`。原名 `claude/peaceful-babbage-09xeie`，使用者 2026-11-05 改名 |
+| `claude/data-collection` | 凍結的對照（使用者 2026-11-06 決定不再爬、不再更新）：資料整合成果（到 2026-11-04）和查證紀錄，`archive/` 封存了其他分支。`data/` 已搬到這個分支的 `data/raw/teacher/` 和 `tests/fixtures/data-collection/`。原名 `claude/peaceful-babbage-09xeie`，使用者 2026-11-05 改名 |
 | `claude/hopeful-brahmagupta-wikys1` | 11/04 的 R4 Phase 2 模型研究（commit 訊息寫選了 E1 線性模型、LightGBM 沒贏 E1），含舊 workflows。只在選模型時參考 |
 | `main` | 空的，預設分支（2026-11-05 查到已換好，等使用者確認） |
 | `live-data` | 舊系統的共用資料分支，還在 GitHub 上；已逐位元封存在 data-collection 的 `archive/` |
@@ -46,7 +46,7 @@ git worktree add ../ml-final-archive origin/claude/data-collection
 - `memory/projects/data-folder.md` 第 23～26 條：分支封存、寫作規則、這個分支的由來、Phase 1 的模型。
 - `archive/README.md`：每個封存分支的 commit SHA 和還原方法。
 - `archive/system-completion/`：舊程式。
-- `data/transform/panel_lag.csv.gz`：整理好的 50 個 lag 特徵（2020-01-02～2026-11-04）。這個分支的 `data/reference/data-collection/transform/` 有同一份。
+- `data/transform/panel_lag.csv.gz`：整理好的 50 個 lag 特徵（2020-01-02～2026-11-04）。這個分支的 `tests/fixtures/data-collection/transform/` 有同一份。
 
 使用者希望新流程不要被舊研究牽著走，只在需要時查。
 

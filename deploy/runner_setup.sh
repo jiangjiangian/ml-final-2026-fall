@@ -46,6 +46,7 @@ else
   "$UV" pip install --python .venv/bin/python -q -r requirements.txt
 fi
 .venv/bin/python -c "import pandas, sklearn, yfinance, curl_cffi; print('套件 OK')"
+sha256sum requirements.txt > .venv/requirements.sha256   # run_daily_test.py 用它發現 requirements.txt 改了、套件要重裝
 
 echo "== 5. 帳密"
 [ -f .env ] || { cp .env.example .env; echo "   建了 .env，請填入三個值"; }

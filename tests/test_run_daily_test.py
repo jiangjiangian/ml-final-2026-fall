@@ -2,6 +2,7 @@
 
 import logging
 import subprocess
+import sys
 
 import pytest
 
@@ -95,3 +96,31 @@ def test_logger_reopens_replaced_file(tmp_path, monkeypatch):
     path.unlink()                                                             # 像 git reset 換掉檔案
     log.info("second")
     assert "second" in path.read_text() and "first" not in path.read_text()
+
+
+def test_reset_keeps_upload_log_lines_origin_lacks(repos):
+    work, other = repos
+    (other / "data" / "raw" / "x.csv").write_text("theirs\n")
+    sh(other, "commit", "-qam", "theirs")
+    sh(other, "push", "-q", "origin", BRANCH)
+    (work / "data" / "raw" / "x.csv").write_text("ours\n")
+    (work / "data" / "submission" / "upload_log.jsonl").write_text('{"status": "not_sent", "run_id": "a"}\n')
+    notes = rdt.git_start()
+    assert "upload_log 補回 1 行" in notes[-1]
+    assert "not_sent" in (work / "data" / "submission" / "upload_log.jsonl").read_text()
+    assert sh(work, "status", "--porcelain").strip() == ""                      # 補回的行也 commit 了
+
+
+def test_push_refuses_other_branches(repos):
+    work, _ = repos
+    sh(work, "checkout", "-q", "-b", "elsewhere")
+    assert rdt.push(logging.getLogger("test")) is False
+    with pytest.raises(rdt.StopRun):
+        rdt.git_start()
+
+
+def test_script_does_not_import_src_before_sync():
+    """git pull 之前不能載入 src/：不然推上去的修正這次用不到，新程式壞掉時也拿不到修正。"""
+    code = "import sys; sys.path.insert(0, '.'); import run_daily_test; print(any(m.startswith('src') for m in sys.modules))"
+    out = subprocess.run([sys.executable, "-c", code], cwd=utils.ROOT, capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == "False"

@@ -32,7 +32,8 @@
 
 - 使用者 2026-11-06：資料來源盡量只用 yfinance 和老師的資料，要加別的來源先問。
 - 台指期（2026-11-06 查）：yfinance 沒有可用的台指期。`IX0126.TW`（臺指期貨指數）Yahoo 只給最近 5 天；搜得到的 `TWN-X26.SI` 是新加坡的富時台灣期貨，一個到期月一個代號。老師 global 表只有 `TX_OI`（未平倉口數），沒有價格。期交所官網 `https://www.taifex.com.tw/cht/3/futDataDown`（POST，`down_type=1&commodity_id=TX`，一次最多一個月，CP950 編碼）有日盤和夜盤；標 t 日的「盤後」列是 i 日 15:00 到 t 日 05:00 的夜盤，漲跌是拿 i 日結算價算的。
-- 期交所 OpenAPI `https://openapi.taifex.com.tw/v1/DailyMarketReportFut` 沒有日期參數，只給一天，而且比網站慢：2026-11-06 22:09 OpenAPI 還是 11/05，網站下載已經有 11/06 的日盤和夜盤。所以每天也用網站下載（重抓最近 7 天，漏掉的日子會自己補回來）。t 的夜盤幾點出現在網站上還沒量過，第一次早上跑時記下來（組員說 06:00 抓得到）。
+- 期交所 OpenAPI `https://openapi.taifex.com.tw/v1/DailyMarketReportFut` 沒有日期參數，只給一天，而且比網站慢：2026-11-06 22:09 OpenAPI 還是 11/05，網站下載已經有 11/06 的日盤和夜盤。所以每天也用網站下載（重抓最近 7 天，漏掉的日子會自己補回來）。
+- 開關切到 yfinance 時，`tx_futures.yfinance.night` 填了會報錯：一般的 yfinance 序列只留日期 < t 的K棒，t 那根夜盤會被丟掉；Yahoo 用哪一天標夜盤也沒查證，標成開始那天的話歷史列會用到開盤後的資料。只填日盤代號時 `tx_night` 每一列都空白。要開放夜盤，先查清楚 Yahoo K棒的日期，再讓 t 那根走期交所那樣的路（照 `night_ready` 決定收不收）。t 的夜盤幾點出現在網站上還沒量過，第一次早上跑時記下來（組員說 06:00 抓得到）。
 
 ## yfinance
 

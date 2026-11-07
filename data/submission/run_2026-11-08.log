@@ -3,3 +3,6 @@
 2026-11-08 07:10:06,101 finpred.run_daily_test ERROR git pull --rebase 失敗（第 1 次）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
 2026-11-08 07:10:21,138 finpred.run_daily_test ERROR git pull --rebase 失敗（第 2 次）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
 2026-11-08 07:10:21,138 finpred.run_daily_test ERROR 資料推不上去，下次執行會再推
+2026-11-08 07:40:10,922 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-08，--sync（執行代號 14be9f17）
+2026-11-08 07:40:11,660 finpred.run_daily_test INFO 2026-11-08 不在網站的交易日清單，休市：不爬、不上傳，結束
+2026-11-08 07:40:11,662 finpred.run_daily_test INFO 結束：closed

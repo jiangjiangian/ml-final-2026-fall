@@ -150,4 +150,4 @@ online_lr:                       # 組員的方法（notebooks/feature_switch.ip
 
 submit:
   enabled: true                  # 使用者 2026-11-06 確認舊系統的排程停了才打開；false 時只印出要送的內容
-  phase: 1                       # run_daily_test.py 交哪一個：1 = Phase 1（84 天回測，測自動化用），2 = 每天的 t
+  phase: 2                       # run_daily_test.py 交哪一個：1 = Phase 1（84 天回測），2 = 每天的 t（使用者 2026-11-07：Phase 1 自動化測試成功後改 2）

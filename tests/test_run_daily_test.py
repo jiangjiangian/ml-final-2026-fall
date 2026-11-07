@@ -83,8 +83,28 @@ def test_git_timeout_is_a_failure_not_an_exception(repos, monkeypatch):
         raise subprocess.TimeoutExpired(a[0], 1)
 
     monkeypatch.setattr(rdt.subprocess, "run", slow)
+    monkeypatch.setattr(rdt, "PUSH_WAIT", 0)
+    monkeypatch.setattr(rdt, "on_branch", lambda: True)
     assert rdt.git("push").returncode == 124
     assert rdt.push(logging.getLogger("test")) is False
+
+
+def test_push_retries_once_after_a_failure(repos, monkeypatch):
+    work, _ = repos
+    (work / "data" / "raw" / "x.csv").write_text("2\n")
+    rdt.commit_data("data")
+    real, calls = rdt.git, []
+
+    def flaky(*args, **kw):
+        if args[0] == "push":
+            calls.append(1)
+            if len(calls) == 1:
+                return subprocess.CompletedProcess(args, 128, "", "Connection timed out")
+        return real(*args, **kw)
+
+    monkeypatch.setattr(rdt, "git", flaky)
+    monkeypatch.setattr(rdt, "PUSH_WAIT", 0)
+    assert rdt.push(logging.getLogger("test")) is True and len(calls) == 2
 
 
 def test_logger_reopens_replaced_file(tmp_path, monkeypatch):

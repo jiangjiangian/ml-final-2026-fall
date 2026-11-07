@@ -36,6 +36,7 @@ DATA_PATHS = ("data/raw", "data/processed", "data/submission")
 UPLOAD_LOG = "data/submission/upload_log.jsonl"   # 和 config 的 data.submission_dir 一致；git_start 在讀 config 前用
 LOCK_PATH = ROOT / ".cache" / "run_daily_test.lock"
 REEXEC_FLAG = "RUN_DAILY_TEST_REEXEC"
+PUSH_ATTEMPTS, PUSH_WAIT = 2, 15   # oop 連 GitHub 偶爾失敗（2026-11-07 看到一次），推送失敗等 15 秒再試一次
 
 crawler = features = online_lr = site_api = submit = utils = None   # import_src() 之後才有
 
@@ -84,20 +85,25 @@ def commit_data(message: str) -> bool:
 
 
 def push(log) -> bool:
-    """先 pull --rebase 再 push 到 BRANCH。不在 BRANCH 上或失敗都回傳 False（不丟錯）。"""
+    """先 pull --rebase 再 push 到 BRANCH，失敗等 PUSH_WAIT 秒再試一次（推 git 不是送 POST，重試沒有副作用）。
+    不在 BRANCH 上或都失敗回傳 False（不丟錯）。"""
     if not on_branch():
         log.error("目前不在 %s，不推", BRANCH)
         return False
-    r = git("pull", "--rebase", "--autostash", "origin", BRANCH)
-    if r.returncode != 0:
-        git("rebase", "--abort")
-        log.error("git pull --rebase 失敗：%s", short(r.stderr or r.stdout))
-        return False
-    r = git("push", "origin", f"HEAD:{BRANCH}")
-    if r.returncode != 0:
-        log.error("git push 失敗：%s", short(r.stderr or r.stdout))
-        return False
-    return True
+    for attempt in range(1, PUSH_ATTEMPTS + 1):
+        r = git("pull", "--rebase", "--autostash", "origin", BRANCH)
+        if r.returncode != 0:
+            git("rebase", "--abort")
+            what = "git pull --rebase"
+        else:
+            r = git("push", "origin", f"HEAD:{BRANCH}")
+            if r.returncode == 0:
+                return True
+            what = "git push"
+        log.error("%s 失敗（第 %d 次）：%s", what, attempt, short(r.stderr or r.stdout))
+        if attempt < PUSH_ATTEMPTS:
+            time.sleep(PUSH_WAIT)
+    return False
 
 
 def data_only(paths) -> bool:

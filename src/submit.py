@@ -185,16 +185,15 @@ def backup(cfg: dict, rows: list, phase: int, entry: dict) -> Path:
 
 
 def check_window(state: dict, phase: int, t: str | None, now):
-    """回傳 None 表示可以上傳；不能時回傳原因（休市回傳 "closed"）。"""
+    """回傳 None 表示可以上傳；不能時回傳原因。不在清單上回傳 "closed"，列出但停用回傳 "not_open"。"""
     if phase == 1:
         conf = state.get("config") or {}
         start, end = site_api.parse_time(conf.get("phase1OpenAt")), site_api.parse_time(conf.get("phase1Deadline"))
         return None if start <= now < end else f"不在 Phase 1 的開放時間（{start} ～ {end}）"
+    status = site_api.day_status(state, t)
+    if status != "open":
+        return status   # closed 或 not_open
     day = site_api.phase2_day(state, t)
-    if day is None:
-        return "closed"
-    if not day.get("enabled"):
-        return f"{t} 在網站上沒有開放"
     start, end = site_api.parse_time(day.get("openAt")), site_api.parse_time(day.get("deadline"))
     return None if start <= now < end else f"不在 {t} 的開放時間（{start} ～ {end}）"
 
@@ -232,6 +231,10 @@ def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, befo
         log.info("%s 不在網站的交易日清單，休市，不上傳", t)
         append_log(cfg, {**base, "status": "closed"})
         return "closed"
+    if problem == "not_open":
+        log.warning("%s 在網站的清單上但還沒開放（enabled = 0），這次不上傳；下一次排程會再看", t)
+        append_log(cfg, {**base, "status": "not_open"})
+        return "not_open"
     if problem:
         append_log(cfg, {**base, "status": "blocked", "detail": problem})
         raise site_api.SiteError(problem)
@@ -289,11 +292,15 @@ def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, befo
             utils.check_deadline(cfg, t, clock(), key="upload_cutoff")
         fresh = site.state()
         problem = check_window(fresh, phase, t, clock())
-        if problem:
+        if problem and problem not in ("closed", "not_open"):
             raise site_api.SiteError(problem)
     except Exception as e:
         not_sent(f"POST 前最後檢查沒過：{str(e)[:200] if isinstance(e, (RuntimeError, ValueError)) else type(e).__name__}")
         raise
+    if problem:
+        not_sent(f"推資料的這段時間 {t} 變成{'不在清單上' if problem == 'closed' else '停用'}")
+        log.warning("%s 在網站上變成%s，這次不上傳", t, "不在清單上" if problem == "closed" else "停用（enabled = 0）")
+        return problem
     if not same_entry(site_api.current_entry(fresh, phase, t), current) or (
             respect_existing and existing(fresh, phase, t, today) is not None):
         not_sent("網站上的提交在這段時間變了（別台或組員已經交了）")

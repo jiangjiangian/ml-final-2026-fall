@@ -122,6 +122,38 @@ def test_parse_time_without_zone_is_utc():
     assert site_api.parse_time("2026-11-06T10:34:55.080Z").tzinfo is not None
 
 
+def test_day_status_comes_from_the_site():
+    assert site_api.day_status(state(), T) == "open"
+    assert site_api.day_status(state(phase2=False), T) == "closed"            # 週末、假日：網站沒列
+    assert site_api.day_status(state(), "2026-11-10") == "closed"             # 網站還沒加的日子
+    disabled = state()
+    disabled["phase2Days"][0]["enabled"] = 0                                   # 列了但停用：可能還沒更新
+    assert site_api.day_status(disabled, T) == "not_open"
+
+
+def test_disabled_day_is_not_uploaded_and_does_not_block_later_runs(env, tmp_path):
+    path, _ = write_csv(tmp_path, 2)
+    disabled = state()
+    disabled["phase2Days"][0]["enabled"] = 0
+    site = FakeSite(disabled)
+    assert submit.run(env, site, 2, path, T, Log(), clock=lambda: NOW) == "not_open"
+    assert site.posts == [] and statuses(env) == ["not_open"]
+    assert submit.open_prepared(env, 2, T, T) is None and submit.finished_today(env, 2, T, T) is None
+    assert submit.run(env, FakeSite(state()), 2, path, T, Log(), clock=lambda: NOW) == "done"   # 開放後下一次照交
+
+
+def test_day_disabled_while_pushing_is_not_uploaded(env, tmp_path):
+    path, _ = write_csv(tmp_path, 2)
+    site = FakeSite(state())
+
+    def disable_during_push():
+        site.states[-1]["phase2Days"][0]["enabled"] = 0
+        return True
+
+    assert submit.run(env, site, 2, path, T, Log(), before_post=disable_during_push, clock=lambda: NOW) == "not_open"
+    assert site.posts == [] and statuses(env)[-1] == "not_sent"
+
+
 def test_quota_ignores_zero_user_limit():
     assert site_api.quota_left({"userLimit": 0, "teamLimit": 10, "userCount": 0, "teamCount": 3}) == 7
     assert site_api.quota_left({"userLimit": 0, "teamLimit": 10, "userCount": 4, "teamCount": 10}) == 0

@@ -131,6 +131,20 @@ def phase2_day(state: dict, t: str):
     return None
 
 
+def day_status(state: dict, t: str) -> str:
+    """t 這天在網站上的狀態。休市不寫死在程式裡：每次都看網站的 phase2Days。
+
+    closed：不在清單上（週末、國定假日、颱風假，或網站還沒加這天）。
+    not_open：在清單上但 enabled 不是真。我們沒看過這種狀態，可能是臨時休市，也可能是還沒更新
+              （使用者 2026-11-07 提醒），所以不當成休市：照常準備，上傳前再看一次，還是停用就這次不送。
+    open：在清單上而且 enabled。
+    """
+    day = phase2_day(state, t)
+    if day is None:
+        return "closed"
+    return "open" if day.get("enabled") else "not_open"
+
+
 def submission_key(phase: int, t: str | None) -> str:
     """mySubmissions 的 tradingDate：Phase 1 是 'phase1'，Phase 2 是日期。"""
     return "phase1" if phase == 1 else t

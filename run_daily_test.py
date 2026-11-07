@@ -193,10 +193,13 @@ def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
     site = site_api.Site(cfg, utils.load_secrets())
     try:
         state = site.state()
-        trading = site_api.phase2_day(state, t) is not None
-        if phase == 2 and not trading:
-            log.info("%s 不在網站的交易日清單，休市，結束", t)
+        day = site_api.day_status(state, t)   # 休市看網站的 phase2Days，不看星期幾或寫死的日曆
+        trading = day != "closed"
+        if phase == 2 and day == "closed":
+            log.info("%s 不在網站的交易日清單，休市：不爬、不上傳，結束", t)
             return "closed"
+        if day == "not_open":
+            log.warning("%s 在網站的清單上但還沒開放（enabled = 0）：照常準備，上傳前再看一次", t)
         entry = submit.existing(state, phase, t, today)
         if entry is not None:
             log.info("網站上已經有這次的提交（%s，%s 交），結束", entry.get("fileName"), entry.get("submittedAt"))

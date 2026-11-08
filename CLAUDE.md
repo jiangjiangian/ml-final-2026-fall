@@ -2,7 +2,7 @@
 
 這是課程 ML 期末專案（2026 秋）的比賽主程式，分支 `claude/stock-market-challenger`，repo `jiangjiangian/ml-final-2026-fall`。每個台股交易日的台北 09:00 前，預測 50 檔股票當天會不會「收盤高於開盤」（`y = 1` 代表 `adj_close > adj_open`），把 0/1 寫成 CSV 上傳課程網站。
 
-`src/crawler.py`、`src/features.py` 已實作，離線測試通過。2026-11-06 第一次連網試跑（研究模式，t = 11/06，沒有上傳）：老師 Training／Live（Live 用原本的網址、只信任 `configs/live_ca.pem`）、yfinance、期交所台指期都抓到，特徵表 32 個模型欄，兩輪獨立檢查沒有 blocker，`data/raw/`、`data/processed/` 已推上去給組員。2026-11-07：`run_daily_test.py` 串起爬蟲、特徵、組員的邏輯迴歸（`src/online_lr.py`）和上傳（`src/submit.py`、`src/site_api.py`）。排程在學校的 oop.cs.nccu.edu.tw（台北 07:10、07:40，使用者 2026-11-07 從 GCP 改過來），使用者的 Mac 08:05 起備援。`submit.enabled` 是 true，`submit.phase` 決定交 Phase 1 還是 2（細節在 `memory/context/pipeline.md`）。`train.py`、`predict.py`、`run_daily.py` 還是骨架。
+`src/crawler.py`、`src/features.py` 已實作，離線測試通過。2026-11-06 第一次連網試跑（研究模式，t = 11/06，沒有上傳）：老師 Training／Live（Live 用原本的網址、只信任 `configs/live_ca.pem`）、yfinance、期交所台指期都抓到，特徵表 32 個模型欄，兩輪獨立檢查沒有 blocker，`data/raw/`、`data/processed/` 已推上去給組員。2026-11-07：`run_daily_test.py` 串起爬蟲、特徵、組員的邏輯迴歸（`src/online_lr.py`）和上傳（`src/submit.py`、`src/site_api.py`）。排程在學校的 oop.cs.nccu.edu.tw（台北 07:10、07:25、07:40、07:55、08:05，使用者 2026-11-07 從 GCP 改過來、11-08 加到五次），使用者的 Mac 08:15 起備援。`submit.enabled` 是 true，`submit.phase` 決定交 Phase 1 還是 2（細節在 `memory/context/pipeline.md`）。`train.py`、`predict.py`、`run_daily.py` 還是骨架。
 
 ## 先讀哪個檔
 

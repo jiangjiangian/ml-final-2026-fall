@@ -2,7 +2,7 @@
 
 ## 每天的流程
 
-學校主機 oop 每天台北 07:10、07:40 跑 `run_daily_test.py --sync`，使用者的 Mac 08:05 起備援（見「排程主機」）。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑五步：
+學校主機 oop 每天台北 07:10、07:25、07:40、07:55、08:05 跑 `run_daily_test.py --sync`，使用者的 Mac 08:15 起備援（見「排程主機」）。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑五步：
 
 1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live、yfinance 19 個指標和期交所的台指期，原樣存進 `data/raw/`。匯率另外存 1 小時K棒；匯率和台指期都和舊檔合併。
 2. 特徵 `python -m src.features --date <t>`：清理 yfinance，算每檔股票和各指標的 lag1、lag2，一列是一檔股票的一天。台指期分日盤和夜盤，夜盤清晨 05:00 收盤，當天開盤前就知道。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
@@ -19,7 +19,7 @@ t 不是交易日時不跑爬蟲和特徵。
 `oop.cs.nccu.edu.tw`：Ubuntu 22.04、16 核、24 GB、時區台北。沒有 root，不能用 Docker。
 
 1. 從校外要先連政大 SSL VPN（Ivanti Secure Access，伺服器 `https://sslvpn.nccu.edu.tw`）才 SSH 得進去。cron 在主機上自己跑，不需要 VPN。
-2. oop 連不到 pypi.org（DNS 只回 IPv6），所以套件在 Mac 上下載 Linux 版，再複製過去：
+2. 2026-11-06 在 oop 上用 pip 連不到 pypi.org，所以套件在 Mac 上下載 Linux 版，再複製過去：
    ```bash
    uvx --from pip==24.3.1 pip download -r requirements.txt --python-version 3.12 --implementation cp \
      --abi cp312 --abi abi3 --abi none --platform manylinux2014_x86_64 --platform manylinux_2_17_x86_64 \
@@ -36,7 +36,7 @@ t 不是交易日時不跑爬蟲和特徵。
 
 ### Mac（備援）
 
-`bash deploy/mac/setup.sh`：另外 clone 到 `~/ml-final-runner`，launchd 每天 08:05、08:20、08:35 跑。網站上已經有今天的提交就直接結束。
+`bash deploy/mac/setup.sh`：另外 clone 到 `~/ml-final-runner`，launchd 每天 08:15、08:25、08:35 跑。網站上已經有今天的提交就直接結束。
 
 ### GCP（備用）
 
@@ -89,8 +89,8 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 ├── deploy/
 │   ├── runner_setup.sh        排程主機（學校的 oop）的安裝：deploy key、uv、clone、Python 3.12、cron，不用 sudo
 │   ├── gcp_setup.sh           GCP 主機的安裝（備用）：時區、swap、clone、venv、cron
-│   ├── crontab.txt            排程主機的 crontab（台北 07:10、07:40）
-│   └── mac/                   Mac 備援：setup.sh 裝 launchd，com.mlfinal.backup.plist 每天 08:05、08:20、08:35 跑
+│   ├── crontab.txt            排程主機的 crontab（台北 07:10 到 08:05 五次）
+│   └── mac/                   Mac 備援：setup.sh 裝 launchd，com.mlfinal.backup.plist 每天 08:15、08:25、08:35 跑
 ├── configs/
 │   ├── config.yaml            網站網址、yfinance 代號、特徵、模型參數、截止時間
 │   └── live_ca.pem            Live 原本網址的自簽憑證，爬蟲只信任這一張（公開的，不是密碼）

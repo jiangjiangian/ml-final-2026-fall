@@ -46,11 +46,6 @@
 - 組員的 `build_dataset.py`（其實是 `notebooks/build_model.ipynb` 前 5 格）和 Kaggle 的 `notebooks/kaggle/data/twfeat.py`、`build_dataset.sh` 還在讀 data-collection 的 `panel_lag.csv.gz`（欄名 `ticker`、lag2 和 lag5、日K的 `usd_twd`、清理過的 `extra/yfinance/`）。
 - 要改成 README 的網址，欄名是 `stock_id`、lag1 和 lag2、`usd_twd_am`、`tx_day`、`tx_night`，模型欄看 manifest 的 `model_columns`（32 欄）。`date` 要日期型態就加 `parse_dates`（README 的範例已經加）。`data/raw/yfinance/` 是 Yahoo 原樣、沒清理（0052 分割前的價格沒除），不能拿舊程式直接讀。`feature_switch.ipynb` 的 `STOCK_LAG_GROUP` 要改成 lag1、lag2。push 特徵表之後通知組員（2026-11-06 第一輪檢查整理）。
 
-## 老師 Live 的 ^VIX 和 ^GSPC 最近對不太起來
-
-- 2026-11-06 檢查發現（原因沒查證）：Training 1,506 列裡同一列 ^VIX 和 ^GSPC 的日變化相關 −0.709，任何 44 天的窗都低於 −0.4；Live 45 列只有 −0.345，10 月中以後 −0.159。11/06 那列 ^GSPC −4.36%、^IXIC −5.52%，^VIX 卻 −9.2%；10/20、10/21 的 ^VIX 一樣（18.62）。
-- 可能是老師建列時抓的盤中值、沒更新或錯位。`teacher_vix` 在模型欄裡。要決定：留著、換成 yfinance 的 ^VIX、或拿掉。
-
 ## 正式流程用哪位組員的帳號
 
 還沒決定。帳號密碼只放 `.env` 或執行環境的 secret。

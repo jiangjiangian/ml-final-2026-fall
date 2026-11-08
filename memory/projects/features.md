@@ -24,6 +24,11 @@
   - 期交所的列只擋 close ≤ 0、超出最高最低、重複，沒成交（'-'）直接不用。
   - 2026-11-06 獨立重算四個台指期欄，1,662 天和表逐位元相同。82 次換月都用同一個合約（直接接成連續序列，換月日中位數多 37 bp、最多 348 bp 的假漲跌）。結算日那晚的夜盤，到期的合約有在交易，表也用它。`tx_day` lag1 和 `teacher_twii` lag1 相關 0.952，`tx_night` lag1 和 sox lag1 相關 0.768。2020-01-07 起全部有值。
   - 加欄之後 `data/processed/manifest.json` 多記 `columns`，欄位和上次不一樣時 `features.py` 要 `--rebuild` 才會寫。沒有個股自己的特徵時，同一天 50 檔的值都一樣，模型每天只會給一個答案。
+- 2026-11-08 決定，還沒實作。只進長表、不進 `model_columns`，週一 09:00 之後連同回補好的原始資料和 `--rebuild` 的長表一起推：
+  - 證交所、櫃買中心 9 欄（t 那列用 i 的值）：`val_ep_lag1`（1 ÷ 本益比，虧損空白）、`val_pe_loss_lag1`、`val_log_pb_lag1`、`val_dy_lag1`（殖利率 ÷ 100）、`quote_spread_ticks_lag1`、`quote_rel_spread_lag1`、`quote_imbalance_lag1`（(委買張數 − 委賣張數) ÷ 兩者相加）、`quote_limit_up_lag1`、`quote_limit_down_lag1`。原始資料見 `memory/projects/crawler.md` 的交易所回補。
+  - 日韓開盤（使用者：「組員要啥就給啥」）：`kospi_open_gap`、`n225_open_gap` = d 那根日K的 Open ÷ 前一個當地交易日收盤 − 1，放在 d 那列。這是 t 當天的值，台北約 08:30 才看得到（Yahoo 延遲 20～30 分），所以每天早上 t 那列是空白，隔天補上，CLAUDE.md 要加一個只限這兩欄、不能進 `model_columns` 的例外。韓國休市、Yahoo 補的假K棒（開高低收相同、量 0）、韓國 10:00 才開盤的日子（高考日、每年第一個交易日）留空白。另加 yfinance `^KS11` 序列 `kospi` 的 lag1、lag2。2026-11-08 的研究：扣掉現有特徵後，開盤跳空和 50 檔平均「收盤比開盤」的相關在 ±0.02 以內，對 y 幾乎沒有新資訊。
+  - 老師 S&P 500、Nasdaq 的「不退格」版本：老師 global 的 ^GSPC、^IXIC 第 d 列放的是 d 開盤前最後一次美股收盤（2026-11-08 和 Yahoo 逐列比對，Training 1,506 列、Live 45 列沒有一列放 d 當天或更晚的收盤）。現在的 `teacher_gspc`、`teacher_ixic` 跟著 ^TWII 的規則只用 t 之前那列，所以是「前前晚」的美股，比 `dji` 晚一天。另加一組用 t 那列的欄（名稱實作時定，例如 `teacher_gspc_fresh_ret_lag1/2`、`teacher_ixic_fresh_ret_lag1/2`），給組員比較。^TWII、^KS11、TX_OI 第 d 列是 d 當天收盤，照舊只能用 t 之前那列。
+  - 順帶確認：老師 Live 的 ^GSPC 45 列都對，對不上的只有 ^VIX（10/13 起大多不對），模型已經用 yfinance 的 `vix`。Yahoo 的 ^VIX 在美國假日（2026-05-25、09-07）也有K棒，`vix_ret_lag1` 那幾天會用到它。
 - 凍結的 6 個股票和 ETF 檔沒有空的 adj_close（2026-11-06 數過），所以決定 3 不會讓對照測試 (a) 和舊長表不同。
 - 2026-11-06：lag2 定案用累積版。組員 notebook 寫 `the stock's own 2- and 5-day returns`，他用的 `panel_lag.csv.gz` 也是累積版。
 - 2026-11-06：交易日照下面「交易日和 i」那條規則，取代「以 `phase2Days` 為準」。

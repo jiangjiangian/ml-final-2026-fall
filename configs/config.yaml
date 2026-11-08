@@ -53,6 +53,31 @@ tx_futures:                      # 台指期（使用者 2026-11-06 加）。日
     overlap_days: 7              # 從舊檔最後一天往前幾天開始重抓
     night_ready: "05:15"         # t 當天這個時間以後才收 t 的夜盤列（夜盤 05:00 收盤）
 
+exchange:                        # 證交所、櫃買中心的全市場日資料（使用者 2026-11-08 同意加的來源）
+  enabled: false                 # 每日模式的開關，還沒做（要先實測）；每天的爬蟲不讀這段。研究用的回補不看這個開關
+  start: "2020-01-02"            # 回補從這天起（--start 可以改）；到哪天預設是本機老師資料最後一個交易日
+  min_interval_seconds: 6.5      # 同一個主機：上一個請求結束後至少隔幾秒才送下一個，一次一個；兩個主機各算各的
+  timeout_seconds: [10, 60]      # 連線、讀取逾時
+  total_timeout_seconds: 120     # 每個請求從送出到下載完的總時間上限
+  max_mb: 20                     # 一個回應的大小上限（MI_INDEX 約 0.3 MB）
+  retry_wait_seconds: 60         # 逾時、連不上、回 JSON 的 5xx：等這麼久再試一次，還是不行就記失敗、換下一天
+  max_failed_dates: 3            # 同一個主機連續幾天的請求都逾時、連不上或 5xx，就當成被擋，這次停下那個主機
+  flush_every_dates: 20          # 每做完幾天就寫一次檔；結束和 Ctrl-C 時也寫
+  pause: ["07:00", "09:00"]      # 台北這段時間不送請求（每天的排程在跑），睡到結束再繼續
+  state_file: exchange_backfill.json   # 回補的進度，放在 data.raw_dir 底下
+  twse:                          # 證交所（上市）
+    base_url: https://www.twse.com.tw
+    date_format: "%Y%m%d"        # 路徑裡 {date} 的寫法
+    min_stocks: 85               # 交易日的回應至少要有幾檔我們的股票（上市約 90、91 檔），不夠記 no_data、不寫
+    valuation: /rwd/zh/afterTrading/BWIBBU_d?date={date}&selectType=ALL&response=json   # 本益比、殖利率、股價淨值比
+    quotes: /rwd/zh/afterTrading/MI_INDEX?date={date}&type=ALLBUT0999&response=json     # 每日收盤行情
+  tpex:                          # 櫃買中心（上櫃）
+    base_url: https://www.tpex.org.tw
+    date_format: "%Y/%m/%d"
+    min_stocks: 8                # 上櫃約 9、10 檔（6446 在 2024 年轉上市）
+    valuation: /www/zh-tw/afterTrading/peQryDate?date={date}&response=json   # 每股股利、股利年度是回填的，不存
+    quotes: /www/zh-tw/afterTrading/otc?date={date}&type=EW&response=json    # 上櫃股票每日收盤行情
+
 data:
   start: "2020-01-01"
   raw_dir: data/raw

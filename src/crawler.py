@@ -12,10 +12,32 @@
                                    欄位和期交所一樣（TAIFEX_COLUMNS），只留單月合約，日期改成 YYYY-MM-DD、去掉格子
                                    前後的空白、存成 UTF-8。每次和舊檔合併
     data/raw/manifest.json         最近一次執行的紀錄：每個檔案的 sha256、筆數、狀態、錯誤類別
+    data/raw/twse/valuation.csv    證交所本益比、殖利率、股價淨值比（回補才寫）。長表，一列是一檔的一天
+    data/raw/twse/quotes.csv       證交所每日收盤行情：開高低收、成交股數、最後揭示買賣價量（回補才寫）
+    data/raw/tpex/valuation.csv    櫃買本益比、股價淨值比、殖利率（回補才寫，不存回填的每股股利、股利年度）
+    data/raw/tpex/quotes.csv       櫃買每日收盤行情（回補才寫）
+    data/raw/exchange_backfill.json  回補的進度：每個來源寫了幾天、no_data 的日子、失敗、請求數、有沒有被擋
 
-兩種模式：
+三種用法：
     python -m src.crawler                    研究模式：t 取台北今天，不檢查時間，Live 沒有金鑰就跳過
     python -m src.crawler --date 2026-11-17  每日模式（run_daily.py 用）：t 是預測日，07:00 前不跑，08:30 後不再重試
+    python -m src.crawler --exchange-backfill [--start 2020-01-02] [--end YYYY-MM-DD] [--markets twse,tpex]
+                          [--max-requests N]
+                                             研究用的回補：只抓證交所、櫃買，不下載老師資料和 yfinance，不寫 manifest.json
+
+證交所、櫃買中心（使用者 2026-11-08 同意加的來源，目前只有研究用的回補；exchange.enabled 是每日模式的開關，還沒做）：
+    - 四個「指定日期、全市場」的端點：證交所 BWIBBU_d（本益比等）、MI_INDEX（收盤行情），櫃買 peQryDate、otc。
+      只留老師 Top100@Y 的 100 檔，欄位照欄名對（ExchangeSpec），數字去掉千分位逗號，'-'、'N/A'、'--'、'----' 原樣留。
+    - 日期是老師的交易日曆（trading_days()），由新到舊；檔案裡已經有的日子跳過，中斷後再跑會接著做。
+    - 每個回應都檢查：HTTP 200、JSON、回應的日期等於要的日期；我們的股票夠多（證交所 85 檔、櫃買 8 檔）才寫，
+      不夠記 no_data，下次再抓。同一檔同一天出現在兩個交易所，這天記失敗、不寫。6446 在 2024 年從櫃買轉上市，
+      所以兩邊都查，股票在哪邊出現就從哪邊拿。
+    - 同一個主機上一個請求結束後至少隔 exchange.min_interval_seconds（6.5 秒），一次一個（第一個請求也先等）；
+      兩個主機同時跑。同一個交易所同時只能有一個回補程序（.cache/exchange_<市場>.lock）。
+      台北 07:00～09:00 不送請求。逾時、連不上、回 JSON 的 5xx 等 60 秒再試一次，還是不行記失敗、換下一天；
+      連續 exchange.max_failed_dates 天都這樣就當成被擋。403、429、轉址、不是 JSON（含 5xx 的 HTML 頁面）、
+      stat 說太頻繁：這個主機這次停下，不自動等。
+    - 第 d 天的值是 d 那天收盤後的量，只能當 t > d 的特徵。
 
 名詞：
     t   預測日。
@@ -82,12 +104,14 @@ import functools
 import hashlib
 import io
 import json
+import logging
 import math
 import os
 import random
 import re
 import shutil
 import statistics
+import sys
 import tempfile
 import threading
 import time
@@ -104,6 +128,11 @@ import requests
 from curl_cffi.requests import Session as CurlSession
 
 from src import utils
+
+try:
+    import fcntl   # 回補的鎖；Windows 沒有，就不鎖
+except ImportError:
+    fcntl = None
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 NEW_YORK = ZoneInfo("America/New_York")
@@ -259,7 +288,7 @@ class SiteClient:
     """
 
     def __init__(self, base_url: str, timeout, max_bytes: int, session=None, sleep=time.sleep, total_seconds=None,
-                 clock=time.monotonic):
+                 clock=time.monotonic, max_redirects=4):
         self.base = base_url.rstrip("/")
         self.timeout = tuple(timeout)
         self.max_bytes = max_bytes
@@ -268,8 +297,11 @@ class SiteClient:
         self.sleep = sleep
         self.total_seconds = total_seconds
         self.clock = clock
+        self.max_redirects = max_redirects   # 0：不跟轉址，遇到 3xx 就丟 CrawlerError（證交所、櫃買用）
         self.can_wait = lambda seconds: True   # crawl() 換成 run.can_wait
         self.requests = 0
+        self.last_status = None         # 最後一個回應的狀態碼；連不上時是 None
+        self.last_content_type = None   # 最後一個回應的 Content-Type
 
     def close(self):
         self.session.close()
@@ -290,7 +322,8 @@ class SiteClient:
         started = self.clock()
         origin = urlsplit(self.base)
         url = urljoin(self.base + "/", path.lstrip("/"))
-        for _ in range(5):
+        self.last_status = self.last_content_type = None
+        for _ in range(self.max_redirects + 1):
             parts = urlsplit(url)
             if (parts.scheme, parts.netloc) != (origin.scheme, origin.netloc):
                 raise CrawlerError(f"{label}：轉址到別的主機，不跟")
@@ -300,6 +333,8 @@ class SiteClient:
                                             stream=True, **kwargs)
             except requests.RequestException as e:
                 raise TransientError(f"{label}：連線失敗（{type(e).__name__}）") from None
+            self.last_status = resp.status_code
+            self.last_content_type = resp.headers.get("Content-Type") or resp.headers.get("content-type")
             try:
                 if resp.status_code in REDIRECT_CODES:
                     location = resp.headers.get("Location") or resp.headers.get("location")
@@ -1364,6 +1399,695 @@ def download_taifex(run: Run, client: SiteClient):
     run.save()
 
 
+# ---------------------------------------------------------------- 證交所、櫃買中心（研究用回補，使用者 2026-11-08）
+
+
+EXCHANGE_MARKETS = ("twse", "tpex")   # 證交所（上市）、櫃買中心（上櫃）
+EXCHANGE_NO_DATA_STAT = "沒有符合條件"   # 證交所休市或還沒公布時 stat 裡的字
+EXCHANGE_BLOCK_WORDS = ("頻繁", "安全")   # stat 裡有這些字代表被限流或被擋；只看 stat，不掃整個回應
+EXCHANGE_ACCEPT = {"Accept": "application/json, text/javascript, */*; q=0.01"}
+
+
+@dataclass(frozen=True)
+class ExchangeSpec:
+    """一個全市場日資料的來源。fields：存檔欄名 → 來源欄名（去掉空白和 <br> 之後）可能的寫法，第一個是 stock_id。
+    欄位照名字對，不照位置；optional 的欄來源沒有時存空字串，其他欄沒有就是格式錯誤。
+    沒對到的來源欄，名字裡有存檔欄名或開頭是 lookalike 的，當成沒見過的寫法（格式錯誤），不默默存成空白。"""
+
+    key: str        # exchange_backfill.json 和進度訊息裡的名字
+    market: str     # twse 或 tpex
+    kind: str       # valuation（本益比等）或 quotes（收盤行情），也是 config 裡路徑的鍵
+    file: str       # data.raw_dir 底下的路徑
+    fields: dict
+    optional: tuple = ()
+    required_from: dict = field(default_factory=dict)   # optional 的欄從這天（含）起一定要有 {存檔欄名: YYYY-MM-DD}
+    lookalike: tuple = ()                               # 沒對到的來源欄開頭是這些字，就是格式錯誤
+
+    @property
+    def columns(self) -> tuple:
+        return ("date",) + tuple(self.fields)
+
+
+# 櫃買本益比表的「每股股利」「股利年度」是事後回填的（看得到未來），不在 fields 裡，所以不會存
+EXCHANGE_SPECS = (
+    ExchangeSpec("twse_valuation", "twse", "valuation", "twse/valuation.csv", {
+        "stock_id": ("證券代號",), "收盤價": ("收盤價",), "殖利率(%)": ("殖利率(%)",), "本益比": ("本益比",),
+        "股價淨值比": ("股價淨值比",), "財報年/季": ("財報年/季",)}),
+    ExchangeSpec("twse_quotes", "twse", "quotes", "twse/quotes.csv", {
+        "stock_id": ("證券代號",), "開盤價": ("開盤價",), "最高價": ("最高價",), "最低價": ("最低價",),
+        "收盤價": ("收盤價",), "成交股數": ("成交股數",), "最後揭示買價": ("最後揭示買價",),
+        "最後揭示買量": ("最後揭示買量",), "最後揭示賣價": ("最後揭示賣價",), "最後揭示賣量": ("最後揭示賣量",)}),
+    ExchangeSpec("tpex_valuation", "tpex", "valuation", "tpex/valuation.csv", {
+        "stock_id": ("股票代號",), "本益比": ("本益比",), "股價淨值比": ("股價淨值比",), "殖利率(%)": ("殖利率(%)",),
+        "財報年/季": ("財報年/季",)}, optional=("財報年/季",),   # 2020 年的表沒有財報年/季，哪天開始有還沒查到
+        lookalike=("財報",)),
+    ExchangeSpec("tpex_quotes", "tpex", "quotes", "tpex/quotes.csv", {
+        "stock_id": ("代號",), "開盤": ("開盤",), "最高": ("最高",), "最低": ("最低",), "收盤": ("收盤",),
+        "成交股數": ("成交股數",), "最後買價": ("最後買價",), "最後買量": ("最後買量(千股)", "最後買量(張數)"),
+        "最後賣價": ("最後賣價",), "最後賣量": ("最後賣量(千股)", "最後賣量(張數)")},
+        optional=("最後買量", "最後賣量"),   # 2020-03-23 還沒有買賣量，2020-07-01 有；千股和張數是同一個單位
+        required_from={"最後買量": "2020-07-01", "最後賣量": "2020-07-01"}, lookalike=("最後買量", "最後賣量")),
+)
+
+
+class ExchangeBlocked(CrawlerError):
+    """主機擋人或回的不是 JSON（403、429、轉址、HTML、stat 說太頻繁）：這次不再對這個主機送請求，也不自動等。"""
+
+
+class ExchangeFormatError(CrawlerError):
+    """回應的格式和預期不一樣（缺欄位、日期不符、看不懂的 stat）：這次不再抓這個來源，不猜欄位位置。"""
+
+
+class ExchangeDayError(CrawlerError):
+    """只有這一天有問題（同一檔出現兩次）：記失敗，這天不寫，下次再抓。"""
+
+
+def exchange_field(name) -> str:
+    """來源欄名去掉 <br> 和所有空白，再拿去對 ExchangeSpec.fields（'最後買量<br>(千股)' → '最後買量(千股)'）。"""
+    return re.sub(r"\s+", "", re.sub(r"(?i)<br\s*/?>", "", str(name)))
+
+
+def exchange_cell(value) -> str:
+    """格子 → 存檔的字串：去掉前後空白，像數字的去掉千分位逗號。'-'、'N/A'、'--'、'----' 這類記號原樣留著。"""
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if "," in text and re.fullmatch(r"[+-]?\d[\d,]*(\.\d+)?", text):
+        text = text.replace(",", "")
+    return text
+
+
+def roc_date(text):
+    """民國日期 'YYY/MM/DD' → date；看不懂回傳 None。"""
+    m = re.fullmatch(r"(\d{2,3})/(\d{2})/(\d{2})", str(text).strip())
+    if not m:
+        return None
+    try:
+        return date(int(m[1]) + 1911, int(m[2]), int(m[3]))
+    except ValueError:
+        return None
+
+
+def exchange_table(spec: ExchangeSpec, payload, d: date):
+    """檢查 stat 和日期，回傳放資料的那張表（有 fields、data 的 dict）。證交所說「沒有符合條件的資料」時回傳 None。
+
+    回應的日期一定要等於要的日期：證交所看最上層的 date（YYYYMMDD），櫃買看 tables[0].date（民國）和最上層的 date。
+    證交所收盤行情的表用欄名找（有「最後揭示買價」的那張），不寫死位置。
+    """
+    if not isinstance(payload, dict):
+        raise ExchangeFormatError(f"{spec.key}：回應不是 JSON 物件")
+    stat = payload.get("stat")
+    if isinstance(stat, str) and any(word in stat for word in EXCHANGE_BLOCK_WORDS):
+        raise ExchangeBlocked(f"{spec.key}：stat 說請求太頻繁或被擋")
+    ymd = d.strftime("%Y%m%d")
+    if spec.market == "twse":
+        if stat != "OK":
+            if isinstance(stat, str) and EXCHANGE_NO_DATA_STAT in stat:
+                return None
+            raise ExchangeFormatError(f"{spec.key}：看不懂的 stat")
+        if payload.get("date") != ymd:
+            raise ExchangeFormatError(f"{spec.key}：回應的日期和要的 {d} 不一樣")
+        if spec.kind == "valuation":
+            return payload
+        tables = payload.get("tables")
+        tables = [t for t in tables if isinstance(t, dict) and isinstance(t.get("fields"), list)
+                  and "最後揭示買價" in {exchange_field(f) for f in t["fields"]}] if isinstance(tables, list) else []
+        if len(tables) != 1:
+            raise ExchangeFormatError(f"{spec.key}：有「最後揭示買價」的表有 {len(tables)} 張，應該剛好一張")
+        return tables[0]
+    if not isinstance(stat, str) or stat.lower() != "ok":
+        raise ExchangeFormatError(f"{spec.key}：看不懂的 stat")
+    tables = payload.get("tables")
+    if not isinstance(tables, list) or not tables or not isinstance(tables[0], dict):
+        raise ExchangeFormatError(f"{spec.key}：沒有 tables")
+    table = tables[0]
+    same = []
+    if "date" in payload:
+        same.append(payload["date"] == ymd)
+    if "date" in table:
+        same.append(roc_date(table["date"]) == d)
+    if not same or not all(same):
+        raise ExchangeFormatError(f"{spec.key}：回應的日期和要的 {d} 不一樣")
+    return table
+
+
+def exchange_rows(spec: ExchangeSpec, table, ids, d: date | None = None) -> dict:
+    """表裡我們的股票：{stock_id: [存檔欄位的值，不含 date、stock_id]}。沒有資料（休市、還沒公布）回傳 {}。
+
+    必要的欄沒有（含 d 已經到了 required_from 的 optional 欄）、同一欄對到兩個來源欄、沒對到的欄看起來是
+    存檔欄的別種寫法、列的長度和 fields 不一樣，丟 ExchangeFormatError；同一檔出現兩次丟 ExchangeDayError。
+    """
+    if table is None:
+        return {}
+    data = table.get("data")
+    if data is None:
+        data = []
+    if not isinstance(data, list):
+        raise ExchangeFormatError(f"{spec.key}：data 不是清單")
+    if not data:
+        return {}
+    fields = table.get("fields")
+    if not isinstance(fields, list):
+        raise ExchangeFormatError(f"{spec.key}：沒有 fields")
+    names = [exchange_field(f) for f in fields]
+    index = {}
+    for col, aliases in spec.fields.items():
+        hits = [j for j, name in enumerate(names) if name in aliases]
+        if len(hits) > 1:
+            raise ExchangeFormatError(f"{spec.key}：有 {len(hits)} 欄都對到「{col}」")
+        if hits:
+            index[col] = hits[0]
+        elif col not in spec.optional:
+            raise ExchangeFormatError(f"{spec.key}：少了「{col}」欄")
+        elif col in spec.required_from and d is not None and d.isoformat() >= spec.required_from[col]:
+            raise ExchangeFormatError(f"{spec.key}：{spec.required_from[col]} 起應該有「{col}」欄，這天沒有")
+    mapped = set(index.values())
+    for j, name in enumerate(names):
+        if j in mapped:
+            continue
+        like = [col for col in list(spec.fields)[1:] if col in name] + [p for p in spec.lookalike if name.startswith(p)]
+        if like:
+            raise ExchangeFormatError(f"{spec.key}：來源欄「{name}」像是「{like[0]}」，但不在對照表裡")
+    values = list(spec.fields)[1:]
+    out = {}
+    for row in data:
+        if not isinstance(row, list) or len(row) != len(fields):
+            raise ExchangeFormatError(f"{spec.key}：有列的欄數和 fields 不一樣")
+        sid = exchange_cell(row[index["stock_id"]])
+        if sid not in ids:
+            continue
+        if sid in out:
+            raise ExchangeDayError(f"{spec.key}：{sid} 在同一個回應裡出現兩次")
+        out[sid] = [exchange_cell(row[index[col]]) if col in index else "" for col in values]
+    return out
+
+
+def parse_exchange(spec: ExchangeSpec, body: bytes, content_type, d: date, ids) -> dict:
+    """一個 HTTP 200 的回應 → exchange_rows 的結果。Content-Type 不是 JSON、解不開（HTML、/errors 頁）丟 ExchangeBlocked。"""
+    if "json" not in (content_type or "").lower():
+        raise ExchangeBlocked(f"{spec.key}：回應不是 JSON（Content-Type）")
+    try:
+        payload = json.loads(body.decode("utf-8-sig"))
+    except (UnicodeDecodeError, ValueError):
+        raise ExchangeBlocked(f"{spec.key}：回應不是 JSON") from None
+    return exchange_rows(spec, exchange_table(spec, payload, d), ids, d)
+
+
+def teacher_stocks(raw_dir: Path) -> dict:
+    """本機老師個股 {代號: {日期: 資料列}}：Training 全部的列，接上 Live 在 Training 最後一天之後的列
+    （和 features.load_teacher 一樣），交給 trading_days() 算交易日曆。"""
+    stocks = {}
+    for path in sorted((raw_dir / "teacher" / "training" / "market").glob("*.csv")):
+        stocks[path.stem] = {r[0]: r for r in check_csv(path.name, path.read_bytes(), STOCK_COLUMNS)}
+    if not stocks:
+        raise CrawlerError("本機沒有老師 Training 的個股檔")
+    boundary = max(d for rows in stocks.values() for d in rows)
+    for path in sorted((raw_dir / "teacher" / "live" / "market").glob("*.csv")):
+        if path.stem not in stocks:
+            raise CrawlerError(f"Live 有 Training 沒有的代號 {path.stem}")
+        for r in check_csv(f"live/{path.name}", path.read_bytes(), STOCK_COLUMNS):
+            if r[0] > boundary:
+                stocks[path.stem][r[0]] = r
+    return stocks
+
+
+def exchange_pause(now: datetime, window) -> float:
+    """台北時間落在 window（["07:00", "09:00"]）裡時，要睡幾秒才到結束；不在裡面回傳 0。"""
+    if not window:
+        return 0.0
+    local = now.astimezone(TAIPEI)
+    start, end = (datetime.combine(local.date(), dtime.fromisoformat(x), TAIPEI) for x in window)
+    return (end - local).total_seconds() if start <= local < end else 0.0
+
+
+def read_exchange_csv(path: Path, columns: tuple) -> list:
+    """讀回補的長表。沒有檔回傳空清單；表頭不對或有壞列丟 CrawlerError（不覆蓋看不懂的檔）。"""
+    if not path.exists():
+        return []
+    try:
+        rows = list(csv.reader(io.StringIO(path.read_text(encoding="utf-8"), newline="")))
+    except (OSError, UnicodeError, csv.Error):
+        raise CrawlerError(f"{path.parent.name}/{path.name}：讀不了") from None
+    if not rows:
+        return []
+    if tuple(rows[0]) != columns:
+        raise CrawlerError(f"{path.parent.name}/{path.name}：表頭和預期不一樣，不覆蓋")
+    body = [r for r in rows[1:] if r]
+    for r in body:
+        if len(r) != len(columns) or not is_iso_date(r[0]) or not r[1]:
+            raise CrawlerError(f"{path.parent.name}/{path.name}：有壞掉的列")
+    return body
+
+
+def exchange_to_csv(rows: list, columns: tuple) -> bytes:
+    """照 date、stock_id 排序，寫成 UTF-8、LF 的 CSV。"""
+    buf = io.StringIO(newline="")
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(columns)
+    writer.writerows(sorted(rows, key=lambda r: (r[0], r[1])))
+    return buf.getvalue().encode("utf-8")
+
+
+def exchange_client(cfg, market: str, session=None, clock=time.monotonic) -> SiteClient:
+    """證交所或櫃買的 HTTP：沿用 SiteClient，但不跟轉址（轉到 /errors 就當成被擋）。重試由回補自己管。"""
+    conf = cfg["exchange"]
+    return SiteClient(conf[market]["base_url"], conf["timeout_seconds"], conf["max_mb"] * 2**20, session,
+                      total_seconds=conf["total_timeout_seconds"], clock=clock, max_redirects=0)
+
+
+@dataclass
+class ExchangeSource:
+    """一個來源這次執行的狀態。ids_by_date 是檔案裡已經有的日子 {日期: {stock_id}}，有的日子不再抓。"""
+
+    spec: ExchangeSpec
+    path: Path
+    ids_by_date: dict
+    pending: dict = field(default_factory=dict)     # 還沒寫進檔的 {日期: {stock_id: 值}}
+    attempted: set = field(default_factory=set)     # 這次拿到結果（寫入、no_data、失敗）的日子
+    no_data: dict = field(default_factory=dict)     # {日期: 回應裡我們的股票有幾檔}
+    failures: dict = field(default_factory=dict)    # {日期: 錯誤}
+    requests: int = 0
+    written: int = 0                                # 這次新寫進檔的日子數
+    stopped: str | None = None                      # 這次停掉的原因（被擋、格式不對）
+    blocked: bool = False
+    stop_logged: bool = False
+
+    def done(self, d: str) -> bool:
+        return d in self.ids_by_date or d in self.pending
+
+
+@dataclass
+class ExchangeHost:
+    market: str
+    client: SiteClient
+    conf: dict
+    sources: list
+    stopped: str | None = None      # 被擋、請求數用完、中斷
+    stop_logged: bool = False
+    failed_dates: int = 0           # 連續幾天這個主機的請求都逾時、連不上或 5xx（有任何回應就歸零）
+
+
+class ExchangeBackfill:
+    """證交所、櫃買中心的回補（研究模式）。
+
+    日期由新到舊，一天一天做。兩個主機各一個執行緒同時跑，每個主機一次只送一個請求，上一個請求結束後至少等
+    exchange.min_interval_seconds 才送下一個。兩邊都回來後，才檢查同一檔有沒有同一天出現在兩個交易所，再放進
+    待寫的列；每 flush_every_dates 天和結束時（含 Ctrl-C）和舊檔合併、排序、整份換新。
+    """
+
+    def __init__(self, cfg, raw_dir: Path, markets, dates, ids, *, clients=None, now=utils.taipei_now, sleep=None,
+                 log=None, max_requests=None, parallel=True, start=None, end=None, lock_dir=None):
+        self.cfg, self.conf, self.raw_dir = cfg, cfg["exchange"], raw_dir
+        self.lock_dir = lock_dir   # exchange_state.lock 放這裡；None 就不鎖（測試直接建 job 時）
+        self.dates = sorted(dates, reverse=True)
+        self.ids = set(ids)
+        self.now, self._sleep = now, sleep
+        self.log = log or logging.getLogger("finpred.exchange")
+        self.max_requests, self.parallel = max_requests, parallel
+        self.range = (start, end)
+        self.stop = threading.Event()
+        self.lock = threading.Lock()
+        self.sent_total = 0
+        self.started = now()
+        self.status = "running"
+        self.state_path = raw_dir / self.conf["state_file"]
+        self.previous = self.read_state()
+        # 四個來源都讀：只跑一個交易所時，也要拿另一個交易所的舊檔檢查同一檔有沒有出現在兩邊。
+        # 這次不跑的交易所的檔讀不了時只警告，不拿它檢查；這次要跑的讀不了就停（不覆蓋看不懂的檔）
+        self.warnings = []
+        self.sources = {}
+        for spec in EXCHANGE_SPECS:
+            by_date = {}
+            try:
+                rows = read_exchange_csv(raw_dir / spec.file, spec.columns)
+            except CrawlerError as e:
+                if spec.market in markets:
+                    raise
+                self.warnings.append(f"{e}；這次不拿它檢查同一檔有沒有出現在兩個交易所")
+                self.log.warning("%s", self.warnings[-1])
+                rows = []
+            for r in rows:
+                by_date.setdefault(r[0], set()).add(r[1])
+            self.sources[spec.key] = ExchangeSource(spec, raw_dir / spec.file, by_date)
+        clients = clients or {}
+        self.hosts = [ExchangeHost(m, clients.get(m) or exchange_client(cfg, m), self.conf[m],
+                                   [self.sources[s.key] for s in EXCHANGE_SPECS if s.market == m]) for m in markets]
+
+    # ---- 等待和請求
+
+    def sleep(self, seconds: float):
+        """測試換掉 sleep；正式跑時用 stop.wait，Ctrl-C 之後不會卡在長的等待裡。"""
+        if seconds <= 0:
+            return
+        if self._sleep is not None:
+            self._sleep(seconds)
+        else:
+            self.stop.wait(seconds)
+
+    def wait_turn(self, host: ExchangeHost, seconds: float):
+        """送下一個請求前：先等 seconds，台北 07:00～09:00 再睡到 09:00，最後扣請求數。
+        回傳 None 代表可以送；不能送時回傳原因（interrupted、max_requests）。"""
+        self.sleep(seconds)
+        pause = exchange_pause(self.now(), self.conf["pause"])
+        if pause > 0 and not self.stop.is_set():
+            self.log.info("%s：台北 %s～%s 不送請求，睡 %d 秒", host.market, *self.conf["pause"], round(pause))
+            self.sleep(pause)
+        if self.stop.is_set():
+            return "interrupted"
+        with self.lock:
+            if self.max_requests is not None and self.sent_total >= self.max_requests:
+                return "max_requests"
+            self.sent_total += 1
+        return None
+
+    def fetch(self, host: ExchangeHost, src: ExchangeSource, d: str):
+        """抓一個來源的一天，回傳 (狀態, 值)：ok（{stock_id: 值}）、failed（這天有問題）、transient（逾時、連不上、
+        5xx，重試也不行）、format、blocked、stopped（不能再送）。
+        逾時、連不上、回 JSON 的 5xx 等 retry_wait_seconds 再試一次；429、403、轉址、不是 JSON（含 5xx 的 HTML
+        頁面，例如 Cloudflare 的驗證頁）都算被擋，不重試。每個請求前（含這次執行的第一個）都至少等
+        min_interval_seconds，剛停掉又馬上重跑也一樣。"""
+        spec = src.spec
+        path = host.conf[spec.kind].format(date=date.fromisoformat(d).strftime(host.conf["date_format"]))
+        gap = self.conf["min_interval_seconds"]
+        for attempt in (1, 2):
+            reason = self.wait_turn(host, max(self.conf["retry_wait_seconds"], gap) if attempt == 2 else gap)
+            if reason:
+                return "stopped", reason
+            src.requests += 1
+            try:
+                body = host.client.read("GET", path, retries=0, headers=EXCHANGE_ACCEPT)
+            except TransientError as e:
+                status = host.client.last_status
+                if status == 429:
+                    return "blocked", f"{spec.key}：HTTP 429（請求太頻繁）"
+                if status is not None and status >= 500 and "json" not in (host.client.last_content_type or "").lower():
+                    return "blocked", f"{spec.key}：HTTP {status}，回的不是 JSON（可能是擋人的頁面）"
+                if attempt == 1:
+                    self.log.warning("%s %s：%s，%d 秒後再試一次", d, spec.key, e, self.conf["retry_wait_seconds"])
+                    continue
+                return "transient", str(e)
+            except CrawlerError as e:
+                return "blocked", f"{spec.key}：{e}"
+            try:
+                return "ok", parse_exchange(spec, body, host.client.last_content_type, date.fromisoformat(d), self.ids)
+            except ExchangeBlocked as e:
+                return "blocked", str(e)
+            except ExchangeFormatError as e:
+                return "format", str(e)
+            except ExchangeDayError as e:
+                return "failed", str(e)
+        return "transient", "重試用完"
+
+    def block_host(self, host: ExchangeHost, reason: str):
+        host.stopped = reason
+        for s in host.sources:
+            s.blocked, s.stopped = True, s.stopped or reason
+
+    def fetch_day(self, host: ExchangeHost, d: str) -> dict:
+        """一個主機的一天：依序抓它還沒有這天的來源。回傳 {來源: (狀態, 值)}，只放 ok 和 failed。
+
+        這個主機連續 exchange.max_failed_dates 天、每個請求都逾時、連不上或 5xx（重試也不行），就當成被擋：
+        這次停下這個主機，不自動等。中間只要有一個回應（ok、no_data、格式錯誤都算）就重新算。
+        """
+        out, answered, transient = {}, False, False
+        for src in host.sources:
+            if host.stopped:
+                break
+            if src.stopped or src.done(d):
+                continue
+            status, value = self.fetch(host, src, d)
+            if status == "stopped":
+                host.stopped = value
+            elif status == "blocked":
+                self.block_host(host, value)
+            elif status == "format":
+                src.stopped = value
+                answered = True
+            elif status == "transient":
+                out[src.spec.key] = ("failed", value)
+                transient = True
+            else:
+                out[src.spec.key] = (status, value)
+                answered = True
+        if answered:
+            host.failed_dates = 0
+        elif transient and not host.stopped:
+            host.failed_dates += 1
+            limit = self.conf["max_failed_dates"]
+            if host.failed_dates >= limit:
+                self.block_host(host, f"{host.market}：連續 {limit} 天的請求都逾時、連不上或 5xx，可能被擋")
+        return out
+
+    def run_day(self, hosts: list, d: str) -> dict:
+        results = {}
+
+        def work(host):
+            try:
+                results[host.market] = self.fetch_day(host, d)
+            except Exception as e:   # 程式沒想到的錯誤：停掉這個主機（回傳 3），不讓另一個也跟著停
+                self.log.exception("%s %s：沒想到的錯誤", d, host.market)
+                host.stopped = f"{host.market}：{type(e).__name__}"
+                for s in host.sources:
+                    s.stopped = s.stopped or host.stopped
+                results[host.market] = {}
+
+        if self.parallel and len(hosts) > 1:
+            threads = [threading.Thread(target=work, args=(h,), daemon=True, name=f"exchange-{h.market}")
+                       for h in hosts]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+        else:
+            for h in hosts:
+                work(h)
+        return results
+
+    # ---- 收結果和寫檔
+
+    def accept(self, d: str, results: dict):
+        """一天的結果：同一檔同一天出現在兩個交易所就整天記失敗；我們的股票不夠就記 no_data；其他放進待寫。"""
+        fetched = {key: value for r in results.values() for key, (status, value) in r.items() if status == "ok"}
+        found = {}
+        for market in EXCHANGE_MARKETS:
+            found[market] = set()
+            for spec in EXCHANGE_SPECS:
+                if spec.market == market:
+                    found[market] |= self.sources[spec.key].ids_by_date.get(d, set()) | set(fetched.get(spec.key, {}))
+        both = sorted(found["twse"] & found["tpex"])
+        if both:
+            on_disk = [key for key, src in self.sources.items() if d in src.ids_by_date]
+            self.log.warning("%s：%s 同一天出現在證交所和櫃買，這天不寫%s", d, both,
+                             f"；檔案裡已經有這天的 {on_disk} 要人檢查" if on_disk else "")
+        for r in results.values():
+            for key, (status, value) in r.items():
+                src = self.sources[key]
+                src.attempted.add(d)
+                need = self.conf[src.spec.market]["min_stocks"]
+                if both:
+                    src.failures[d] = f"{both} 同一天出現在證交所和櫃買"
+                    self.log.info("%s %s：失敗（同一檔出現在兩個交易所）", d, key)
+                elif status == "failed":
+                    src.failures[d] = value
+                    self.log.info("%s %s：失敗（%s）", d, key, value)
+                elif len(value) < need:
+                    src.no_data[d] = len(value)
+                    self.log.info("%s %s：no_data（我們的股票 %d 檔，要 %d 檔以上），不寫", d, key, len(value), need)
+                else:
+                    src.pending[d] = value
+                    src.no_data.pop(d, None)
+                    src.failures.pop(d, None)
+                    self.log.info("%s %s：%d 檔", d, key, len(value))
+        for host in self.hosts:
+            if host.stopped and not host.stop_logged:
+                host.stop_logged = True
+                self.log.warning("%s 停下：%s", host.market, host.stopped)
+            for src in host.sources:
+                if src.stopped and not src.stop_logged and src.stopped != host.stopped:
+                    src.stop_logged = True
+                    self.log.warning("%s 停下：%s", src.spec.key, src.stopped)
+
+    def flush(self):
+        """待寫的列和舊檔合併、排序，整份換新（write_atomic），再更新 exchange_backfill.json。"""
+        for src in self.sources.values():
+            if not src.pending:
+                continue
+            try:
+                old = read_exchange_csv(src.path, src.spec.columns)
+            except CrawlerError as e:
+                src.stopped = src.stopped or str(e)
+                self.log.error("%s 寫不進去：%s", src.spec.key, e)
+                continue
+            new = [[d, sid, *vals] for d, rows in src.pending.items() for sid, vals in rows.items()]
+            keep = [r for r in old if r[0] not in src.pending]
+            write_atomic(src.path, exchange_to_csv(keep + new, src.spec.columns))
+            for d, rows in src.pending.items():
+                src.ids_by_date[d] = set(rows)
+            src.written += len(src.pending)
+            src.pending.clear()
+        self.save_state()
+
+    def read_state(self) -> dict:
+        try:
+            state = json.loads(self.state_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return state if isinstance(state, dict) else {}
+
+    def source_state(self, src: ExchangeSource, host: ExchangeHost) -> dict:
+        """exchange_backfill.json 裡一個來源的紀錄。上次記的 no_data、失敗，這次沒重抓又還沒寫進檔的留著。"""
+        prev = (self.previous.get("sources") or {}).get(src.spec.key)
+        prev = prev if isinstance(prev, dict) else {}
+
+        def still_open(d):
+            return isinstance(d, str) and d not in src.attempted and d not in src.ids_by_date
+
+        no_data = {d for d in prev.get("no_data") or [] if still_open(d)} | set(src.no_data)
+        failures = {f["date"]: f.get("error") for f in prev.get("failures") or []
+                    if isinstance(f, dict) and still_open(f.get("date"))}
+        failures.update(src.failures)
+        done = sorted(src.ids_by_date)
+        total = prev.get("requests_total")
+        return {
+            "file": src.spec.file, "host": urlsplit(host.conf["base_url"]).netloc,
+            "done_dates": len(done), "first_date": done[0] if done else None, "last_date": done[-1] if done else None,
+            "rows": sum(len(ids) for ids in src.ids_by_date.values()), "new_dates_last_run": src.written,
+            "no_data": sorted(no_data), "failures": [{"date": d, "error": failures[d]} for d in sorted(failures)],
+            "requests": src.requests, "requests_total": (total if isinstance(total, int) else 0) + src.requests,
+            "blocked": src.blocked, "stopped": src.stopped or host.stopped, "last_run": self.started.isoformat(timespec="seconds"),
+        }
+
+    def save_state(self):
+        """只換掉這次有跑的來源；另一個交易所上次的紀錄留著。讀和寫之間拿 exchange_state.lock，
+        兩個程序分別跑 twse、tpex 時不會互相蓋掉。"""
+        if self.lock_dir is None or fcntl is None:
+            return self.write_state()
+        self.lock_dir.mkdir(parents=True, exist_ok=True)
+        with open(self.lock_dir / "exchange_state.lock", "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            self.write_state()
+
+    def write_state(self):
+        state = self.read_state()
+        sources = state.get("sources") if isinstance(state.get("sources"), dict) else {}
+        for host in self.hosts:
+            for src in host.sources:
+                sources[src.spec.key] = self.source_state(src, host)
+        run = {"started_at": self.started.isoformat(timespec="seconds"), "status": self.status,
+               "markets": [h.market for h in self.hosts], "start": self.range[0], "end": self.range[1],
+               "dates": len(self.dates), "max_requests": self.max_requests, "requests": self.sent_total,
+               "warnings": self.warnings}
+        if self.status != "running":
+            run["finished_at"] = self.now().isoformat(timespec="seconds")
+        write_atomic(self.state_path, (json.dumps({"last_run": run, "sources": dict(sorted(sources.items()))},
+                                                  ensure_ascii=False, indent=2) + "\n").encode())
+
+    # ---- 主迴圈
+
+    def run(self) -> int:
+        """回傳 0（沒有被擋、格式錯誤、失敗）、3（有）、130（Ctrl-C）。no_data 不算失敗，下次會再抓。"""
+        flush_every = self.conf["flush_every_dates"]
+        since_flush = 0
+        self.save_state()
+        try:
+            for d in self.dates:
+                if all(h.stopped for h in self.hosts):
+                    break
+                hosts = [h for h in self.hosts if not h.stopped
+                         and any(not s.stopped and not s.done(d) for s in h.sources)]
+                if not hosts:
+                    continue
+                self.accept(d, self.run_day(hosts, d))
+                since_flush += 1
+                if since_flush >= flush_every:
+                    self.flush()
+                    since_flush = 0
+            self.status = "done"
+        except KeyboardInterrupt:
+            self.status = "interrupted"
+            self.log.warning("收到中斷，寫完已經抓到的再停")
+        finally:
+            self.stop.set()
+            if self.status == "running":
+                self.status = "failed"
+            self.flush()
+            if self.status != "interrupted":
+                for host in self.hosts:
+                    host.client.close()
+        sources = [src for host in self.hosts for src in host.sources]
+        for host in self.hosts:
+            for src in host.sources:
+                state = self.source_state(src, host)
+                self.log.info("%s：檔案裡 %d 天（%s～%s），這次新寫 %d 天、no_data %d 天、失敗 %d 天、請求 %d 次%s",
+                              src.spec.key, state["done_dates"], state["first_date"], state["last_date"], src.written,
+                              len(src.no_data), len(src.failures), src.requests,
+                              f"；停下：{state['stopped']}" if state["stopped"] else "")
+        if self.status == "interrupted":
+            return 130
+        return 3 if any(src.blocked or src.stopped or src.failures for src in sources) else 0
+
+
+def exchange_locks(lock_dir: Path, markets) -> list:
+    """每個交易所一個鎖（lock_dir/exchange_<市場>.lock，和 run_daily_test.py 一樣用 flock）。已經有別的回補
+    在跑同一個交易所就丟 CrawlerError，免得兩個程序對同一個主機各自限流、請求變兩倍。回傳開著的鎖檔，關掉就放開。"""
+    if fcntl is None:   # Windows 沒有 flock：不鎖
+        return []
+    lock_dir.mkdir(parents=True, exist_ok=True)
+    held = []
+    try:
+        for market in markets:
+            lock = open(lock_dir / f"exchange_{market}.lock", "w")
+            held.append(lock)
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise CrawlerError(f"另一個回補還在跑 {market}，這次不跑（同一個主機一次只能有一個程序）") from None
+    except BaseException:
+        for lock in held:
+            lock.close()
+        raise
+    return held
+
+
+def exchange_backfill(cfg, raw_dir: Path, *, start=None, end=None, markets=EXCHANGE_MARKETS, max_requests=None,
+                      clients=None, now=utils.taipei_now, sleep=None, log=None, parallel=True, lock_dir=None) -> int:
+    """研究模式的回補：老師交易日曆裡 [start, end] 的每一天（新的先），抓證交所、櫃買的四個日資料，只留老師的 100 檔。
+
+    start 預設 exchange.start，end 預設本機老師資料最後一個交易日。休市日（不在老師日曆裡）不送請求。
+    lock_dir 預設 .cache/：同一個交易所已經有回補在跑就丟 CrawlerError。
+    不碰 manifest.json 和每日流程。回傳值見 ExchangeBackfill.run。
+    """
+    lock_dir = Path(lock_dir) if lock_dir else utils.ROOT / ".cache"
+    held = exchange_locks(lock_dir, markets)
+    try:
+        stocks = teacher_stocks(raw_dir)
+        ids = read_info((raw_dir / "teacher" / "training" / "info.json").read_bytes())["Top100@Y"]
+        calendar = trading_days(stocks, cfg["crawler"]["min_stocks_filled"], cfg["crawler"]["closed_days"])
+        if not calendar:
+            raise CrawlerError("老師資料裡沒有交易日")
+        start, end = start or cfg["exchange"]["start"], end or calendar[-1]
+        dates = [d for d in calendar if start <= d <= end]
+        job = ExchangeBackfill(cfg, raw_dir, markets, dates, ids, clients=clients, now=now, sleep=sleep, log=log,
+                               max_requests=max_requests, parallel=parallel, start=start, end=end, lock_dir=lock_dir)
+        job.log.info("回補 %s～%s 共 %d 個交易日（%s），日期由新到舊", start, end, len(dates), ",".join(markets))
+        return job.run()
+    finally:
+        for lock in held:
+            lock.close()
+
+
+def stdout_logger(name: str = "finpred.exchange"):
+    """只印到畫面的 logger。回補會印幾千行進度，不寫進每天的 data/submission/run_<t>.log。"""
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+        logger.addHandler(handler)
+    return logger
+
+
 # ---------------------------------------------------------------- 主程式
 
 
@@ -1447,9 +2171,32 @@ def main(argv=None) -> int:
     """研究模式不給 --date；每日模式由 run_daily.py 傳 --date t。回傳 0 或 3，不能繼續就丟 CrawlerError。"""
     parser = argparse.ArgumentParser(description="下載老師資料和 yfinance 額外指標到 data/raw/")
     parser.add_argument("--date", help="每日模式：預測日 t（YYYY-MM-DD）。不給就是研究模式，t 取台北今天")
+    parser.add_argument("--exchange-backfill", action="store_true",
+                        help="研究用：回補證交所、櫃買的日資料到 data/raw/twse/、data/raw/tpex/（不跑其他步驟）")
+    parser.add_argument("--start", help="回補從這天起（YYYY-MM-DD），預設 exchange.start")
+    parser.add_argument("--end", help="回補到這天（YYYY-MM-DD），預設本機老師資料最後一個交易日")
+    parser.add_argument("--markets", help="回補哪些交易所，逗號分開：twse,tpex（預設兩個都跑）")
+    parser.add_argument("--max-requests", type=int, help="這次最多送幾個請求（兩個主機合計），試跑用")
     args = parser.parse_args(argv)
     if args.date and not is_iso_date(args.date):
         parser.error("--date 要是 YYYY-MM-DD")
+    if args.exchange_backfill:
+        # 回補不用帳密，也不寫每天的 log 和 manifest.json
+        if args.date:
+            parser.error("--exchange-backfill 不能和 --date 一起用")
+        for name in ("start", "end"):
+            if getattr(args, name) and not is_iso_date(getattr(args, name)):
+                parser.error(f"--{name} 要是 YYYY-MM-DD")
+        markets = tuple(m.strip() for m in (args.markets or ",".join(EXCHANGE_MARKETS)).split(",") if m.strip())
+        if not markets or len(set(markets)) != len(markets) or not set(markets) <= set(EXCHANGE_MARKETS):
+            parser.error("--markets 只能是 twse、tpex，用逗號分開")
+        if args.max_requests is not None and args.max_requests < 1:
+            parser.error("--max-requests 至少要 1")
+        cfg = utils.load_config()
+        return exchange_backfill(cfg, utils.ROOT / cfg["data"]["raw_dir"], start=args.start, end=args.end,
+                                 markets=markets, max_requests=args.max_requests, log=stdout_logger())
+    if args.start or args.end or args.markets or args.max_requests is not None:
+        parser.error("--start、--end、--markets、--max-requests 只能和 --exchange-backfill 一起用")
     cfg = utils.load_config()
     secrets = utils.load_secrets()
     t = args.date or utils.taipei_now().date().isoformat()
@@ -1459,6 +2206,4 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    import sys
-
     sys.exit(main())

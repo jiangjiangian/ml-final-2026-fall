@@ -8,6 +8,7 @@
 - 老師 global 表的 `^TWII`、`^KS11` 是當天收盤；`TX_OI` 疑似含收盤後才公布的資訊。這三欄只能用日期早於 t 的最後一列。
 - global 表的 `^VIX`、`^IXIC`、`^GSPC`：Training 每一列放的是前一個 global 列日期的美股收盤；Live 每一列放的是日期早於該列的最後一個美股收盤。這三欄在 t 那列已經是開盤前就知道的值。
 - 證據：`../ml-final-archive/memory/context/data-decisions.md` 的「時間對齊驗證」，用 Yahoo 原始資料逐值比對過。
+- 證交所、櫃買的日資料（`data/raw/twse/`、`data/raw/tpex/`，使用者 2026-11-08）：第 d 天的值是 d 那天收盤後的量（收盤價、本益比、殖利率、最後揭示買賣價量），只能當 t > d 的特徵，t 那列最多用到 i 那天。櫃買本益比表的「每股股利」「股利年度」是事後回填的，爬蟲不存，也不能從別的地方補來用。查過櫃買的殖利率、本益比是當天的值，股價淨值比還沒查（見 `memory/projects/crawler.md` 的「有沒有偷看未來」）。
 
 ## 美股的日期
 
@@ -31,6 +32,7 @@
 ## 資料來源
 
 - 使用者 2026-11-06：資料來源盡量只用 yfinance 和老師的資料，要加別的來源先問。
+- 使用者 2026-11-08 同意加證交所（`www.twse.com.tw`）和櫃買中心（`www.tpex.org.tw`）：`BWIBBU_d`、`MI_INDEX`、`peQryDate`、`otc` 四個「指定日期、全市場」的端點，只留老師的 100 檔。目前只有研究用的回補（`python -m src.crawler --exchange-backfill`），只收資料，特徵表還沒用。每日模式的開關 `exchange.enabled` 是 false，要先實測資料幾點公布再做。端點、欄位和檢查見 `memory/projects/crawler.md` 的「證交所、櫃買的回補」。
 - 台指期（2026-11-06 查）：yfinance 沒有可用的台指期。`IX0126.TW`（臺指期貨指數）Yahoo 只給最近 5 天；搜得到的 `TWN-X26.SI` 是新加坡的富時台灣期貨，一個到期月一個代號。老師 global 表只有 `TX_OI`（未平倉口數），沒有價格。期交所官網 `https://www.taifex.com.tw/cht/3/futDataDown`（POST，`down_type=1&commodity_id=TX`，一次最多一個月，CP950 編碼）有日盤和夜盤；標 t 日的「盤後」列是 i 日 15:00 到 t 日 05:00 的夜盤，漲跌是拿 i 日結算價算的。
 - 期交所 OpenAPI `https://openapi.taifex.com.tw/v1/DailyMarketReportFut` 沒有日期參數，只給一天，而且比網站慢：2026-11-06 22:09 OpenAPI 還是 11/05，網站下載已經有 11/06 的日盤和夜盤。所以每天也用網站下載（重抓最近 7 天，漏掉的日子會自己補回來）。
 - 開關切到 yfinance 時，`tx_futures.yfinance.night` 填了會報錯：一般的 yfinance 序列只留日期 < t 的K棒，t 那根夜盤會被丟掉；Yahoo 用哪一天標夜盤也沒查證，標成開始那天的話歷史列會用到開盤後的資料。只填日盤代號時 `tx_night` 每一列都空白。要開放夜盤，先查清楚 Yahoo K棒的日期，再讓 t 那根走期交所那樣的路（照 `night_ready` 決定收不收）。t 的夜盤幾點出現在網站上還沒量過，第一次早上跑時記下來（組員說 06:00 抓得到）。

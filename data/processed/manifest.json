@@ -1,8 +1,8 @@
 {
-  "target_date": "2026-11-06",
-  "last_date": "2026-11-06",
-  "rows": 166200,
-  "dates": 1662,
+  "target_date": "2026-11-09",
+  "last_date": "2026-11-09",
+  "rows": 166300,
+  "dates": 1663,
   "months": [
     "2020-01",
     "2020-02",
@@ -490,7 +490,7 @@
       "high": 33.162498474121094,
       "low": 33.162498474121094,
       "close": 33.162498474121094,
-      "adj_close": 30.952096939086914,
+      "adj_close": 30.95210075378418,
       "volume": 0.0
     },
     {
@@ -684,29 +684,29 @@
       "series": "etf_0052",
       "rule": "dividend",
       "date": "2023-04-21",
-      "yahoo_fraction": 0.00538324505323351,
-      "rescaled_fraction": 0.03768271537263457
+      "yahoo_fraction": 0.005383167859268845,
+      "rescaled_fraction": 0.03768217501488191
     },
     {
       "series": "etf_0052",
       "rule": "dividend",
       "date": "2022-04-20",
-      "yahoo_fraction": 0.012085723342478816,
-      "rescaled_fraction": 0.08460006339735171
+      "yahoo_fraction": 0.012085525882114756,
+      "rescaled_fraction": 0.08459868117480329
     },
     {
       "series": "etf_0052",
       "rule": "dividend",
       "date": "2021-04-20",
-      "yahoo_fraction": 0.001149470289483645,
-      "rescaled_fraction": 0.008046292026385515
+      "yahoo_fraction": 0.0011495333563315002,
+      "rescaled_fraction": 0.008046733494320502
     },
     {
       "series": "etf_0052",
       "rule": "dividend",
       "date": "2020-04-22",
-      "yahoo_fraction": 0.00423517694389175,
-      "rescaled_fraction": 0.029646238607242248
+      "yahoo_fraction": 0.0042350510375132044,
+      "rescaled_fraction": 0.02964535726259243
     },
     {
       "series": "etf_0055",

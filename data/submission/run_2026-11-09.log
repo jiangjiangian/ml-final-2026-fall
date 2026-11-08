@@ -1,0 +1,9 @@
+2026-11-09 07:10:08,355 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-09，--sync（執行代號 f4e39bbc）
+2026-11-09 07:10:09,586 finpred.crawler INFO Training：本機的檔案和上次一樣，不下載
+2026-11-09 07:11:49,234 finpred.crawler INFO 爬蟲完成：ok
+2026-11-09 07:11:49,236 finpred.run_daily_test INFO 爬蟲 完成（100 秒）
+2026-11-09 07:11:56,391 finpred.features INFO 特徵表：166300 列、1663 天，最後一天 2026-11-09；寫了 ['2026-10', '2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 24, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-09 07:11:56,782 finpred.run_daily_test INFO 特徵 完成（8 秒）
+2026-11-09 07:12:22,839 finpred.run_daily_test INFO 讀特徵 完成（26 秒）
+2026-11-09 07:12:28,169 finpred.run_daily_test INFO 模型 完成（5 秒）
+2026-11-09 07:12:28,175 finpred.run_daily_test INFO 寫好 data/submission/submission_2026-11-09.csv：50 檔 × 1 天，猜漲 0.000

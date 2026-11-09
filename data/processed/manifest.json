@@ -1,8 +1,8 @@
 {
-  "target_date": "2026-11-09",
-  "last_date": "2026-11-09",
-  "rows": 166300,
-  "dates": 1663,
+  "target_date": "2026-11-10",
+  "last_date": "2026-11-10",
+  "rows": 166400,
+  "dates": 1664,
   "months": [
     "2020-01",
     "2020-02",
@@ -209,7 +209,8 @@
     "bond_holiday": 24,
     "placeholder": 29,
     "split": 1,
-    "dividend": 6
+    "dividend": 6,
+    "empty_close": 5
   },
   "warnings": [],
   "notes": [],
@@ -508,7 +509,7 @@
       "high": 33.162498474121094,
       "low": 33.162498474121094,
       "close": 33.162498474121094,
-      "adj_close": 30.95210075378418,
+      "adj_close": 30.952098846435547,
       "volume": 0.0
     },
     {
@@ -519,7 +520,7 @@
       "high": 47.86249923706055,
       "low": 47.86249923706055,
       "close": 47.86249923706055,
-      "adj_close": 45.94759750366211,
+      "adj_close": 45.947601318359375,
       "volume": 312000.0
     },
     {
@@ -723,8 +724,19 @@
       "series": "etf_0052",
       "rule": "dividend",
       "date": "2020-04-22",
-      "yahoo_fraction": 0.0042350510375132044,
-      "rescaled_fraction": 0.02964535726259243
+      "yahoo_fraction": 0.004235112839486299,
+      "rescaled_fraction": 0.029645789876404094
+    },
+    {
+      "series": "etf_0055",
+      "rule": "empty_close",
+      "date": "2026-11-09",
+      "open": 49.56999969482422,
+      "high": 50.900001525878906,
+      "low": 49.08000183105469,
+      "close": null,
+      "adj_close": null,
+      "volume": 1061770.0
     },
     {
       "series": "etf_0055",
@@ -822,7 +834,7 @@
       "high": 22.15999984741211,
       "low": 22.15999984741211,
       "close": 22.15999984741211,
-      "adj_close": 20.750972747802734,
+      "adj_close": 20.750974655151367,
       "volume": 0.0
     },
     {
@@ -867,6 +879,50 @@
       "low": 42.150001525878906,
       "close": 42.150001525878906,
       "adj_close": 42.150001525878906,
+      "volume": 0.0
+    },
+    {
+      "series": "n225",
+      "rule": "empty_close",
+      "date": "2026-11-09",
+      "open": 57960.69921875,
+      "high": 59440.1796875,
+      "low": 57775.16015625,
+      "close": null,
+      "adj_close": null,
+      "volume": 0.0
+    },
+    {
+      "series": "hsi",
+      "rule": "empty_close",
+      "date": "2026-11-09",
+      "open": 24625.7109375,
+      "high": 24738.880859375,
+      "low": 24421.109375,
+      "close": null,
+      "adj_close": null,
+      "volume": 0.0
+    },
+    {
+      "series": "sse",
+      "rule": "empty_close",
+      "date": "2026-11-09",
+      "open": 3659.016845703125,
+      "high": 3679.090087890625,
+      "low": 3653.045654296875,
+      "close": null,
+      "adj_close": null,
+      "volume": 4117520036.0
+    },
+    {
+      "series": "gdaxi",
+      "rule": "empty_close",
+      "date": "2026-11-09",
+      "open": 25815.30078125,
+      "high": 26276.08984375,
+      "low": 25793.060546875,
+      "close": null,
+      "adj_close": null,
       "volume": 0.0
     }
   ]

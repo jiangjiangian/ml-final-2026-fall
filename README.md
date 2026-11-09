@@ -56,7 +56,7 @@ train = df[df["label_y"].notna()]   # 預測日 t 那列還沒有答案
 X, y = train[info["model_columns"]], train["label_y"]
 ```
 
-`label_` 開頭的欄是答案，不能放進 X。`*_open_gap` 也不能放：歷史列有值，但每天早上 t 那列一定是空白，模型預測時只會看到空值。交易所的 `val_*`、`quote_*` 在 `exchange.enabled` 打開前，i 晚於 2026-11-06 的列也是空白（回補只到 11-06）；`kospi_*` 在爬蟲第一次抓到 `kospi.csv` 之前整欄空白，抓到之後要再 `--rebuild` 才會補齊過去的月份。驗證要按日期切，不能隨機拆列。`data/raw/yfinance/` 是 Yahoo 的原樣，沒有清理（0052 分割前的價格沒除），要用就用特徵表。
+`label_` 開頭的欄是答案，不能放進 X。`*_open_gap` 也不能放：歷史列有值，但每天早上 t 那列一定是空白，模型預測時只會看到空值。交易所的 `val_*`、`quote_*` 在 `exchange.enabled` 打開前，i 晚於 2026-11-06 的列也是空白（回補只到 11-06）。驗證要按日期切，不能隨機拆列。`data/raw/yfinance/` 是 Yahoo 的原樣，沒有清理（0052 分割前的價格沒除），要用就用特徵表。
 
 ## 特徵表的欄位
 

@@ -9,13 +9,11 @@
 - 有 yfinance 檔不見時（`warnings` 不是空的）只寫最後兩個月，沒有檔的舊月份先不建立，不能 `--rebuild`：過去的月份寫了就不再動，不能讓空白欄凍在裡面。
 - t 比 manifest 的 `last_date` 早時丟 `FeatureError`，不蓋掉較新的月份；特徵定義改了用 `--rebuild` 全部重寫。`load_features()` 讀回全部月份。
 - 2026-11-09：使用者 2026-11-08 決定的 17 欄做完（見「使用者的決定」2026-11-08 那條），含三個審查後的修正，全部離線測試 333 個通過。長表從 63 欄變 80 欄。用本機 11-06 的 `data/raw` 跑 `load_raw` 加 `build_features(t=2026-11-06)`，和 HEAD 的 `data/processed` 比：166,200 列，原本 63 欄逐月寫成 CSV 後和 HEAD 逐字相同，32 個模型欄 5,318,400 格完全相同，所以程式沒有改到模型欄。在更新的 `data/raw` 上 `--rebuild` 時，舊月份的還原價序列會有 1e-6 級的變動，那是 Yahoo 重抓造成的，和程式無關（見 `memory/context/pipeline.md`「特徵欄位變了怎麼推」第 4 步）。本機建全表從 4.7 秒變約 9 秒，多的主要是交易所欄。
-- 推送：程式（含 `42ba1f8`）、`configs/config.yaml` 和 pull 之後 `--rebuild` 的 `data/processed/` 一定要同一次推；`data/raw/twse/`、`data/raw/tpex/` 強烈建議一起推；`data/raw/exchange_backfill.json` 可有可無，每天的流程不讀它。欄位和 manifest 的 `columns` 不同時，沒加 `--rebuild` 的每天 `features.main(["--date", t])` 會丟 `FeatureError`，那天交不出去。步驟和時間在 `memory/context/pipeline.md` 的「特徵欄位變了怎麼推」。`kospi.csv` 不見時只記在 notes，warnings 是空的，所以現在就能 `--rebuild`。
+- 推送（2026-11-09 下午做完）：程式、`configs/config.yaml`、pull 之後 `--rebuild` 的 `data/processed/`、`data/raw/twse/`、`data/raw/tpex/`、`data/raw/exchange_backfill.json`、`data/raw/yfinance/kospi.csv` 同一次推。重建用 oop 11-09 的 `data/raw`（t = 11-09）：166,300 列、80 欄，`warnings`、`notes` 都是空的。和 origin 原本的表比：只有還原價序列（`tsm_adr`、`nvda`、`etf_*`）有差，最多 1.6e-6，沒有格子從有值變空白；股票、老師、`usd_twd_am`、台指期的欄沒變。t = 11-09 的 50 檔 0／1 和重建前相同，機率最多差 0.0011。之後欄位再變，照 `memory/context/pipeline.md` 的「特徵欄位變了怎麼推」。
 - 待辦（2026-11-09 審查）：
-  - 爬蟲第一次連網抓到 `data/raw/yfinance/kospi.csv` 之後要再 `--rebuild` 一次，步驟同上。每天只重寫最後兩個月，不重建的話更早月份的 `kospi_*` 一直是空白。
-  - 抓到 `kospi.csv` 時看兩件事：每年第一根K棒是不是 KRX 真正的第一個交易日；量 0 的K棒有幾根、長什麼樣子。開盤跳空的「跳過佔位K棒」和「每年第一個交易日」到現在只用合成資料測過，`n225.csv` 沒有佔位K棒。
   - `exchange.enabled` 打開的日子離 2026-11-06 超過 `exchange.gapfill_days`（10 個交易日）時，每天的爬蟲補不到中間那段。先用 `--exchange-backfill` 補上再 `--rebuild`，不然那段的 `val_*`、`quote_*` 會凍成空白。
   - 只進長表的輸入缺檔時，log 的那行會寫「檔案補齊後要 --rebuild」。每天看一次 manifest 的 `notes`。
-- manifest 多 `notes`（2026-11-09）：只進長表的輸入（`features.optional_inputs` 的 yfinance 序列，現在只有 `kospi`，和證交所、櫃買的四個檔）不見或讀不了時記在這裡，log 用 warning 等級，不算缺檔，不擋 `--rebuild`。`kospi.csv` 抓到之前，每天的 log 都會多一行。
+- manifest 多 `notes`（2026-11-09）：只進長表的輸入（`features.optional_inputs` 的 yfinance 序列，現在只有 `kospi`，和證交所、櫃買的四個檔）不見或讀不了時記在這裡，log 用 warning 等級，不算缺檔，不擋 `--rebuild`。
 - 這份的內容來自 data-collection 的交接文件（`origin/claude/data-collection` `cb03a34` 的 `memory/projects/handoff-stock-market-challenger.md`）。data-collection 之後不再更新，所以要用的部分都抄到這裡。數字除了標「推論」的，都是那邊實際量過的。
 
 ## 使用者的決定
@@ -46,6 +44,7 @@
     - 交易所的格子算不出來（算術溢位、看不懂的字串）時那張表的欄空白，不丟例外；大得離譜的價格（例如 `1e307`）檔數空白。交易所的檔每天由爬蟲照回應寫入，內容不能擋住每天的流程。
     - 欄的順序：鍵、stock、yfinance（照 `yfinance.tickers`）、老師 global、`usd_twd_am`、台指期、fresh 4 欄、開盤跳空 2 欄、交易所 9 欄、答案。`kospi_ret` 排在 `vix` 後面，所以 `teacher_vix` 到 `tx_night` 往後移 2 格，用位置取欄的腳本會錯。
   - 實際資料的檢查（2026-11-09）：買價 ≥ 賣價的列是 0。t = 11/06 那列有 15 檔價差空白，因為 11/05 這 15 檔跌停鎖住，沒有買價。
+  - `kospi.csv` 的真資料（2026-11-09 研究模式抓的，2020-01-02～2026-11-06，1,678 根）：每年第一根都是 KRX 的第一個交易日，只有 2022 年 Yahoo 少了 01-03 那根，第一根變成 01-04，那天的跳空也設成空白（多擋一天，01-04 是正常 09:00 開盤）。量 0 的K棒只有 2 根（2024-09-12、2026-06-29），開高低收都相同，當成佔位K棒。大學入學考試日 2020～2025 的 6 天 Yahoo 都有K棒，照 config 設成空白。
   - 順帶確認：老師 Live 的 ^GSPC 45 列都對，對不上的只有 ^VIX（10/13 起大多不對），模型已經用 yfinance 的 `vix`。Yahoo 的 ^VIX 在美國假日（2026-05-25、09-07）也有K棒，`vix_ret_lag1` 那幾天會用到它。
 - 凍結的 6 個股票和 ETF 檔沒有空的 adj_close（2026-11-06 數過），所以決定 3 不會讓對照測試 (a) 和舊長表不同。
 - 2026-11-06：lag2 定案用累積版。組員 notebook 寫 `the stock's own 2- and 5-day returns`，他用的 `panel_lag.csv.gz` 也是累積版。

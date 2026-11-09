@@ -1,0 +1,83 @@
+{
+  "last_run": {
+    "started_at": "2026-11-09T00:18:00+08:00",
+    "status": "done",
+    "markets": [
+      "twse",
+      "tpex"
+    ],
+    "start": "2020-01-02",
+    "end": "2026-11-06",
+    "dates": 1662,
+    "max_requests": null,
+    "requests": 6644,
+    "warnings": [],
+    "finished_at": "2026-11-09T06:36:57+08:00"
+  },
+  "sources": {
+    "tpex_quotes": {
+      "file": "tpex/quotes.csv",
+      "host": "www.tpex.org.tw",
+      "done_dates": 1662,
+      "first_date": "2020-01-02",
+      "last_date": "2026-11-06",
+      "rows": 15949,
+      "new_dates_last_run": 1661,
+      "no_data": [],
+      "failures": [],
+      "requests": 1661,
+      "requests_total": 1662,
+      "blocked": false,
+      "stopped": null,
+      "last_run": "2026-11-09T00:18:00+08:00"
+    },
+    "tpex_valuation": {
+      "file": "tpex/valuation.csv",
+      "host": "www.tpex.org.tw",
+      "done_dates": 1662,
+      "first_date": "2020-01-02",
+      "last_date": "2026-11-06",
+      "rows": 15949,
+      "new_dates_last_run": 1661,
+      "no_data": [],
+      "failures": [],
+      "requests": 1661,
+      "requests_total": 1662,
+      "blocked": false,
+      "stopped": null,
+      "last_run": "2026-11-09T00:18:00+08:00"
+    },
+    "twse_quotes": {
+      "file": "twse/quotes.csv",
+      "host": "www.twse.com.tw",
+      "done_dates": 1662,
+      "first_date": "2020-01-02",
+      "last_date": "2026-11-06",
+      "rows": 150218,
+      "new_dates_last_run": 1661,
+      "no_data": [],
+      "failures": [],
+      "requests": 1661,
+      "requests_total": 1662,
+      "blocked": false,
+      "stopped": null,
+      "last_run": "2026-11-09T00:18:00+08:00"
+    },
+    "twse_valuation": {
+      "file": "twse/valuation.csv",
+      "host": "www.twse.com.tw",
+      "done_dates": 1662,
+      "first_date": "2020-01-02",
+      "last_date": "2026-11-06",
+      "rows": 150218,
+      "new_dates_last_run": 1661,
+      "no_data": [],
+      "failures": [],
+      "requests": 1661,
+      "requests_total": 1662,
+      "blocked": false,
+      "stopped": null,
+      "last_run": "2026-11-09T00:18:00+08:00"
+    }
+  }
+}

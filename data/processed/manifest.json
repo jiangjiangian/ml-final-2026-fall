@@ -134,6 +134,8 @@
     "gold_ret_lag2",
     "vix_ret_lag1",
     "vix_ret_lag2",
+    "kospi_ret_lag1",
+    "kospi_ret_lag2",
     "teacher_vix_ret_lag1",
     "teacher_vix_ret_lag2",
     "teacher_ixic_ret_lag1",
@@ -150,6 +152,21 @@
     "tx_day_ret_lag2",
     "tx_night_ret_lag1",
     "tx_night_ret_lag2",
+    "teacher_gspc_fresh_ret_lag1",
+    "teacher_gspc_fresh_ret_lag2",
+    "teacher_ixic_fresh_ret_lag1",
+    "teacher_ixic_fresh_ret_lag2",
+    "kospi_open_gap",
+    "n225_open_gap",
+    "val_ep_lag1",
+    "val_pe_loss_lag1",
+    "val_log_pb_lag1",
+    "val_dy_lag1",
+    "quote_spread_ticks_lag1",
+    "quote_rel_spread_lag1",
+    "quote_imbalance_lag1",
+    "quote_limit_up_lag1",
+    "quote_limit_down_lag1",
     "label_y",
     "label_intraday_return"
   ],
@@ -195,6 +212,7 @@
     "dividend": 6
   },
   "warnings": [],
+  "notes": [],
   "cleaning": [
     {
       "series": "usd_twd",

@@ -90,7 +90,7 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 
 ### 同一次 push 要有的東西
 
-- 一定要有：本機還沒推的 `42ba1f8`、工作目錄的 `src/crawler.py`（`features.py` 用到 `crawler.EXCHANGE_SPECS`）、`src/features.py` 和 `configs/config.yaml`（兩個要一起：新程式讀 `features.tick_table`，新 config 配舊程式會多出 `kospi_ret` 兩欄），以及 pull 之後用 `--rebuild` 重建的整個 `data/processed/`（`manifest.json` 和全部月份檔）。
+- 一定要有：改過的程式和 `configs/config.yaml`，以及 pull 之後用 `--rebuild` 重建的整個 `data/processed/`（`manifest.json` 和全部月份檔）。2026-11-09 那次程式是 `src/crawler.py` 和 `src/features.py`（`features.py` 用到 `crawler.EXCHANGE_SPECS`），config 也要一起（新程式讀 `features.tick_table`，新 config 配舊程式會多出 `kospi_ret` 兩欄）。
 - 強烈建議：`data/raw/twse/`、`data/raw/tpex/`。不推不會出錯，但 oop 每天重寫最後兩個月時，交易所 9 欄會變空白，只記在 notes。
 - 可有可無：`data/raw/exchange_backfill.json`。`exchange.enabled` 是 false 時每天的流程不讀它。
 - 測試和文件跟著程式一起 commit。
@@ -114,5 +114,5 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 
 ### 之後還要再重建的時候
 
-- `kospi.csv` 第一次抓到之後：新的爬蟲推上去後，oop 下一次每天的流程會從 `data.start` 抓完整的 `^KS11`，`--sync` 用 `git add data/raw` 把新檔一起 commit。之後照上面第 2～8 步再 `--rebuild` 一次，不然過去月份的 `kospi_*` 一直是空白（每天只重寫最後兩個月）。
+- 新加 yfinance 序列時：在第 3 步之前，先在暫存的 worktree（`git worktree add <暫存資料夾> HEAD`，連結 `.env`）用研究模式 `python -m src.crawler`（不給 `--date`）爬一次，只把新序列的 CSV 複製進這個 repo 的 `data/raw/yfinance/`，其他檔用 pull 下來的 oop 版本，再 `--rebuild`，和表一起推。研究模式會丟掉日期 ≥ t 的K棒，所以白天爬也只到 i。2026-11-09 的 `kospi` 就是這樣做。只靠 oop 每天抓的話，過去月份的新欄會一直空白（每天只重寫最後兩個月），要再重建、再推一次。
 - `exchange.enabled` 打開時：如果打開的日子離回補的最後一天（2026-11-06）超過 `exchange.gapfill_days`（10 個交易日），每天的爬蟲補不到中間那段。先在開發用的 clone 跑 `python -m src.crawler --exchange-backfill --start <回補最後一天的下一天>` 補上（不要在 oop 或 Mac 的排程 clone 跑，原因見 `README.md`「證交所、櫃買的回補」），再照第 2～8 步 `--rebuild`。

@@ -22,3 +22,6 @@
 2026-11-10 07:28:21,824 finpred.run_daily_test INFO 讀特徵 完成（29 秒）
 2026-11-10 07:28:27,682 finpred.run_daily_test INFO 模型 完成（6 秒）
 2026-11-10 07:28:27,687 finpred.run_daily_test INFO 寫好 data/submission/submission_2026-11-10.csv：50 檔 × 1 天，猜漲 0.000
+2026-11-10 07:28:34,651 finpred.run_daily_test INFO 上傳送出，網站回 200
+2026-11-10 07:28:34,723 finpred.run_daily_test INFO 核對完成：網站上的版本 cb2c9367-1c97-4bca-8a6b-689e15229245 和送出的逐格一樣（上傳時間 2026-11-09T23:28:34.636Z，分數 None）
+2026-11-10 07:28:34,765 finpred.run_daily_test INFO 結束：done

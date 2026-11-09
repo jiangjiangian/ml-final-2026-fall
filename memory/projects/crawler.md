@@ -47,8 +47,9 @@
 - 失敗、no_data、被擋、例外都只寫警告和 `manifest["exchange"]`，不設 stale，不改爬蟲的回傳值。只有 Ctrl-C 會往外丟。
 - 不寫 `exchange_backfill.json`。解析、檢查、檔數門檻、同一檔出現在兩邊、寫檔都沿用 `ExchangeBackfill`，加的參數不給就和回補一樣，回補的測試照舊通過。用真資料的副本加假主機試跑，寫出來的四個檔和回補的逐位元組相同。
 - manifest 的 `exchange`：`status`（`ok`、`incomplete`、`failed`、`skipped`）、`error`（例如 `skipped_deadline`、`locked`、`no_dates`）、`prev_day`、`markets`、`locked`、`dates`、`requests`（每個主機送了幾個），`sources` 每個來源記 `file`、`ran`、`has_prev_day`、`missing_dates`、`new_dates`、`no_data`、`failures`、`requests`、`blocked`、`stopped`、`last_date`、`sha256`（`exchange_summary()`）。
-- Claude 自己加的三個設定（等使用者決定要不要留）：`daily_retries: 0`（回補是等 60 秒再試一次）、`daily_max_failed_dates: 1`、`daily_budget_seconds: 180`。照回補的規則，主機卡住時這一步可能拖 10 分鐘以上，拖到上傳。
+- Claude 自己加的三個設定，使用者 2026-11-09 決定留著：`daily_retries: 0`（回補是等 60 秒再試一次）、`daily_max_failed_dates: 1`、`daily_budget_seconds: 180`。照回補的規則，主機卡住時這一步可能拖 10 分鐘以上，拖到上傳。
 - 多花的時間：平常約 20 秒（本機讀寫約 6 秒，兩個主機同時送、請求間隔約 13 秒）；補很多天、請求數用滿約 90 秒；最壞約 5 分鐘（3 分鐘上限加最後一個請求最多 120 秒）。
+- 什麼時候打開（使用者 2026-11-09）：等 11-10 07:10 新爬蟲第一次在 oop 正式跑完、成功上傳，而且 11-09 的公布時間量到 21:00 前資料已經出來，11-10 晚上才打開。一次只改一件事，出問題時好找原因。公布時間的量測在 oop 的 `~/pubtime/log.jsonl`（Mac 也跑一份，在 session 的 scratchpad `pubtime/log.jsonl`）：11-09 台北 14:30、16:00、18:00、21:00 各查一次四個 API，每筆記 `stat`、日期、列數、我們 100 檔有幾檔。
 - 打開 `exchange.enabled` 之前：
   - 先量證交所、櫃買每天幾點公布 i 那天的資料，確定 07:10 抓得到。
   - 先 commit、push 回補的 `data/raw/twse`、`data/raw/tpex`、`data/raw/exchange_backfill.json`，oop 和 Mac 備援 pull 下來之後再打開。不然 oop 只會補最近約 6 天（每個主機 12 個請求、一天 2 個），生出一份不完整的檔，`--sync` commit 上去後會和開發用 clone 的完整檔衝突。

@@ -2,16 +2,11 @@
 
 需要時問使用者。有答案後，把結果和日期寫進對應的檔，再從這裡刪掉那一節。
 
-## 證交所、櫃買每天的步驟什麼時候打開（2026-11-09）
-
-- `exchange.enabled` 是 false。打開前要量證交所、櫃買每天幾點公布 i 那天的資料，07:10 抓不抓得到；也要先推回補的檔（見 `memory/projects/crawler.md` 的「每天的步驟」）。
-- Claude 實作時自己加的三個設定，等使用者決定要不要留：`daily_retries: 0`、`daily_max_failed_dates: 1`、`daily_budget_seconds: 180`。
-
 ## 2026-11-09 features 實作時 Claude 定的細節，等使用者確認
 
 細節和數字在 `memory/projects/features.md` 的「實作時 Claude 定的細節」。要使用者看的是這三個：
 
-- fresh 欄怎麼往回數：照規格數台股交易日。老師 Training 有 112 個台股日沒有 global 列，那幾格空白，所以 `teacher_gspc_fresh_ret_lag1` 有值的天數是 1,445，`teacher_gspc` 是 1,548。另一種做法是像 `teacher_gspc` 那樣數 global 自己的列。
+- fresh 欄怎麼往回數：照規格數台股交易日。老師 Training 有 112 個台股日沒有 global 列，那幾格空白，所以 `teacher_gspc_fresh_ret_lag1` 有值的天數是 1,445，`teacher_gspc` 是 1,548。另一種做法是像 `teacher_gspc` 那樣數 global 自己的列。2026-11-09 問過使用者，使用者問老師為什麼缺、Claude 建議哪個：缺的原因見 `memory/context/data-rules.md`；Claude 建議維持現在的做法（跳過的做法在美國休市那 48 天剛好是一天的漲跌，但在韓國休市那 62 天會把兩天的美股漲跌算成一天，表上分不出來），使用者還沒選，沒改程式。
 - 停牌：交易所停牌那天照樣有列（開高低收 `--`、成交股數 0，估值沿用前一天）。Claude 照核准定義的「停牌空白」把這種列當成沒有列，9 欄空白，共 21 個股票日。
 - 韓國晚開盤的「每年第一個交易日」：取每年第一根和第一根有成交量的K棒，兩根都空白。2026-11-09 看過真資料：每年第一根都對，只有 2022 年 Yahoo 少了 01-03，結果擋到正常開盤的 01-04（多擋一天）。
 

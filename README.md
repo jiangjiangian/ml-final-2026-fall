@@ -2,7 +2,7 @@
 
 ## 每天的流程
 
-學校主機 oop 每天台北 07:10、07:25、07:40、07:55、08:05 跑 `run_daily_test.py --sync`，使用者的 Mac 08:15 起備援（見「排程主機」）。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑五步：
+學校主機 oop 每天台北 07:10、07:25、07:40、07:55、08:05 跑 `run_daily_test.py --sync`。Mac 08:15 起的備援寫好了，還沒裝（見「排程主機」）。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑五步：
 
 1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live、yfinance 21 個指標和期交所的台指期，原樣存進 `data/raw/`。匯率另外存 1 小時K棒；匯率和台指期都和舊檔合併。
 2. 特徵 `python -m src.features --date <t>`：清理 yfinance，算每檔股票和各指標的 lag1、lag2，一列是一檔股票的一天。台指期分日盤和夜盤，夜盤清晨 05:00 收盤，當天開盤前就知道。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
@@ -36,7 +36,7 @@ t 不是交易日時不跑爬蟲和特徵。
 
 ### Mac（備援）
 
-`bash deploy/mac/setup.sh`：另外 clone 到 `~/ml-final-runner`，launchd 每天 08:15、08:25、08:35 跑。網站上已經有今天的提交就直接結束。
+`bash deploy/mac/setup.sh`：另外 clone 到 `~/ml-final-runner`，launchd 每天 08:15、08:25、08:35 跑。網站上已經有今天的提交就直接結束。2026-11-09 還沒裝，現在只有 oop 在跑。
 
 ### GCP（備用）
 

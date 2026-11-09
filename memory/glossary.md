@@ -22,7 +22,7 @@
 
 - lag k：t 那列放的是「到 t 的前一個台股交易日 i 為止、往回 k 個交易日」的報酬，`(close_i − close_(i−k)) / close_(i−k)`。只用 lag1、lag2（使用者和組員 2026-11-06 決定）。`ret_lag1` 是 i 那天的單日報酬；`ret_lag2` 是 i 往回 2 個交易日的累積報酬，涵蓋 i−1 和 i 這兩天的漲跌（2026-11-06 定案）。
 - i：t 的前一個台股交易日。t 的特徵最晚只用到 i 收盤。
-- 額外指標：老師資料以外，用 yfinance 抓的 19 個序列（清單在 `configs/config.yaml` 的 `yfinance.tickers`）。
+- 額外指標：老師資料以外，用 yfinance 抓的 21 個序列（清單在 `configs/config.yaml` 的 `yfinance.tickers`）。
 - 台指期：期交所的臺股期貨（代號 TX）。日盤 08:45～13:45；夜盤（盤後交易時段）15:00 到隔天 05:00，期交所把它算在隔天的交易日。
 - 近月合約：到期月最早的那個合約。每月第三個週三到期，之後換成下一個月，兩個月的價格本來就有差距（價差）。
 - `tx_day`、`tx_night`：台指期日盤、夜盤的特徵，算法見 `memory/projects/features.md`。

@@ -25,13 +25,33 @@
 - 2026-11-05：t 當天早上 i 那列還是 `-1`（像 10-23）時，改用早於 t 最後一個填好的交易日當 i，照常預測上傳，manifest 記 `prev_day`（實際用的那天）和 `prev_day_never_filled: true`，通知組員。`features.py` 照同一條規則。
 - 2026-11-05：個別股票停牌不擋流程。「有 t 那列」「i 那天填好」看 100 檔裡有沒有 90 檔（`crawler.min_stocks_filled`）做到；停牌那幾檔自己的特徵當天空白（missing value），其他檔和市場特徵照常，和舊分支 panel 的規則一樣。審查發現 Training 有 44 天少 1～2 檔（例如 2327 連停 7～8 天）。
 - 2026-11-05：期貨最後一根成交量太小的防線只記錄不丟（`low_volume_last_bar_kept`）。回測時這條會誤丟換月日、量 0 的真結算K棒（黃金 19 天、原油 7 天）。
+- 2026-11-08 決定、2026-11-09 實作：`yfinance.tickers` 最後加 `kospi: ^KS11`（組員要的日韓開盤，features 用它的 open 算 `kospi_open_gap`），現在共 21 個序列。放最後，前面序列的特徵欄順序不變。不在 `volume_required`、`futures`、`model_series`（有測試）。每次多抓一個序列；韓國休市、台股開盤的日子會多等 60 秒重抓，那天 `kospi` 進 `run.no_bar_i`，不算 stale。`kospi.csv` 要等第一次連網跑爬蟲才有。
+- 2026-11-09（open-questions 2026-11-08 的建議）：抓的順序改成 1h 先，再照 `fetch_order()` 抓日K：`features.model_series` 裡的先，其他照 config 的順序；缺 i 那根的重抓也照這個順序。1h 和日K共用同一個限流斷路器，截止的規則不變。過了截止或斷路器跳開時，先被跳過的是不在模型裡的序列。`manifest.json` 的 `yfinance` 最後照 config 的順序排（日K、再 1h），每天的 diff 不會因為抓的順序變大。
+- 2026-11-09 修 `usd_twd_am` 的舊K棒（使用者 2026-11-08 同意的定義）：`hourly_has_value(rows, target, lookback_days, prev_target)` 的 `prev_target` 是 i 的 06:00。選到的K棒要在 4 天內結束，而且晚於 `prev_target`；不知道 i 時照舊只看 4 天。`has_value_t` 是 False 時，`usd_twd_1h` 進 `run.no_bar_i` 並寫警告。週一的 t、i 是週五時，週六清晨結束的那根（紐約週五收盤）晚於週五 06:00，算有。用本機的 1h 檔試算，2024-01-23 起的 673 個交易日新舊規則沒有一天不同；用本機現在的檔（最後一根 11-06 06:00 結束）算 t = 11-09 是 False，要連網抓過新的 1h 才有值。features 那邊的規則見 `memory/projects/features.md` 的 `usd_twd_am`。
 
 ## 證交所、櫃買的回補（2026-11-08）
 
 ### 狀態
 
-- 2026-11-08：使用者同意做研究用的回補，只收資料，不動 `features.py`、`online_lr.py`、`run_daily_test.py`、`data/processed/` 和每天的爬蟲。程式在 `src/crawler.py` 的「證交所、櫃買中心」那段（`ExchangeBackfill`、`exchange_backfill()`），離線測試是 `tests/test_exchange.py`。連網試跑還沒做。
-- 每日模式還沒做。`exchange.enabled` 是 false，每天的爬蟲不讀這段設定。要先量資料幾點公布、早上抓不抓得到。
+- 2026-11-08：使用者同意做研究用的回補，只收資料，不動 `features.py`、`online_lr.py`、`run_daily_test.py`、`data/processed/` 和每天的爬蟲。程式在 `src/crawler.py` 的「證交所、櫃買中心」那段（`ExchangeBackfill`、`exchange_backfill()`），離線測試是 `tests/test_exchange.py`。
+- 2026-11-09：回補跑完（台北 00:18～06:36，在開發用的 clone）。2020-01-02～2026-11-06 共 1,662 天，6,644 個請求，四個來源都沒有失敗、no_data、被擋。證交所兩個檔各 150,218 列，櫃買各 15,949 列。2026-11-08 決定的長表 9 欄讀這四個檔（見 `memory/projects/features.md`）。
+- 2026-11-09：每日模式寫好（見下面「每天的步驟」），`exchange.enabled` 還是 false。
+
+### 每天的步驟（2026-11-09 寫好，還沒打開）
+
+- `download_exchange()` 接在 `crawl()` 的期交所之後，每日模式和研究模式都跑。`crawl()` 多一個給測試用的參數 `exchange=`。
+- 關著時完全不動：不建連線、不拿鎖、不讀檔，manifest 也沒有 `exchange`。
+- 抓的日子：老師交易日曆裡早於 t 的最後 `exchange.gapfill_days`（10）天，檔案裡沒有的才抓，新的先。平常只缺 i，每個主機 2 個請求，兩個主機一共 4 個。
+- 不停 07:00～09:00（`exchange.pause` 只給回補用）。過了爬蟲截止 08:30 整步跳過；每個請求送之前，等完會過截止，或過了 `daily_budget_seconds` 就停下那個主機。
+- 每個主機最多 `daily_max_requests`（12）個請求。每個交易所各拿自己的鎖，回補正在跑的那個交易所這次跳過並寫警告。
+- 失敗、no_data、被擋、例外都只寫警告和 `manifest["exchange"]`，不設 stale，不改爬蟲的回傳值。只有 Ctrl-C 會往外丟。
+- 不寫 `exchange_backfill.json`。解析、檢查、檔數門檻、同一檔出現在兩邊、寫檔都沿用 `ExchangeBackfill`，加的參數不給就和回補一樣，回補的測試照舊通過。用真資料的副本加假主機試跑，寫出來的四個檔和回補的逐位元組相同。
+- manifest 的 `exchange`：`status`（`ok`、`incomplete`、`failed`、`skipped`）、`error`（例如 `skipped_deadline`、`locked`、`no_dates`）、`prev_day`、`markets`、`locked`、`dates`、`requests`（每個主機送了幾個），`sources` 每個來源記 `file`、`ran`、`has_prev_day`、`missing_dates`、`new_dates`、`no_data`、`failures`、`requests`、`blocked`、`stopped`、`last_date`、`sha256`（`exchange_summary()`）。
+- Claude 自己加的三個設定（等使用者決定要不要留）：`daily_retries: 0`（回補是等 60 秒再試一次）、`daily_max_failed_dates: 1`、`daily_budget_seconds: 180`。照回補的規則，主機卡住時這一步可能拖 10 分鐘以上，拖到上傳。
+- 多花的時間：平常約 20 秒（本機讀寫約 6 秒，兩個主機同時送、請求間隔約 13 秒）；補很多天、請求數用滿約 90 秒；最壞約 5 分鐘（3 分鐘上限加最後一個請求最多 120 秒）。
+- 打開 `exchange.enabled` 之前：
+  - 先量證交所、櫃買每天幾點公布 i 那天的資料，確定 07:10 抓得到。
+  - 先 commit、push 回補的 `data/raw/twse`、`data/raw/tpex`、`data/raw/exchange_backfill.json`，oop 和 Mac 備援 pull 下來之後再打開。不然 oop 只會補最近約 6 天（每個主機 12 個請求、一天 2 個），生出一份不完整的檔，`--sync` commit 上去後會和開發用 clone 的完整檔衝突。
 - 2026-11-08：兩位審查者看過。照意見加了：5xx 回的不是 JSON 當成被擋、連續 3 天逾時就停、每個交易所一個鎖、重試也至少隔 6.5 秒、對照表沒有的欄名寫法當格式錯誤、另一個交易所的檔讀不了只警告。
 
 ### 端點（2026-11-08 實測）
@@ -97,7 +117,6 @@
 ### 還沒做、要記著的
 
 - 只跑一個交易所時，如果同一檔出現在另一個交易所的舊檔，這次只是不寫、記失敗，舊檔那邊不刪，要人看。
-- 全部跑完後，更新 `memory/context/data-rules.md`「資料放在這個分支」的 `data/` 大小（預計多約 18 MB）。
 
 ## 查到的事實
 
@@ -146,9 +165,11 @@
 1. 讀 `/api/state`，把 `phase2Days` 的 `tradingDate`、`enabled`、`isCompetition` 存成 `data/raw/phase2_days.json`。`uploadQuota`、`mySubmissions` 不存。i 取 `phase2Days` 裡早於 t 的最後一天，不篩 `enabled`：舊紀錄只看到「當天開放提交的 slot 是 enabled=1」（`../ml-final-archive/archive/system-completion/ml_financial_prediction/docs/research/AUTOMATION.md` 第 18 行），看起來像提交窗口，不一定代表交易日。第一次真的讀到 `/api/state` 時要確認過去的日子 `enabled` 是多少。`phase2Days` 裡沒有早於 t 的日子時（Phase 2 第一天，或研究用的舊 t），取 Live 裡早於 t、已經填好的最後一天（至少 90 檔的 `y` 是 0 或 1，還原開盤價、收盤價都 > 0）。
 2. 老師 Training。
 3. 老師 Live。
-4. yfinance 19 個序列。
+4. yfinance：1h 先，再日K（2026-11-09 起模型用的序列先，`fetch_order()`）。
 5. 檢查每個序列有沒有 i 那根，沒有的一起重抓一次。
-6. 寫 manifest。
+6. 期交所台指期。
+7. 證交所、櫃買（`exchange.enabled` 打開才跑，見「每天的步驟」）。
+8. 寫 manifest。
 
 `--date t`：每日模式，正式流程由 `run_daily.py` 傳進來。沒給就是研究模式，t 取台北今天，不做 Live 是否更新到 t 的檢查，也不檢查時間。
 
@@ -204,7 +225,7 @@
 
 計畫第一版用「每個市場各自的前一個交易日」加各國假日清單。審查發現兩個問題：假日清單要人維護；漏掉一天時，9 個美國序列各等 2 分鐘，會把後面正常的序列擠掉。第二版改成（使用者 2026-11-05 同意）：
 
-1. 19 個序列都抓完後，檢查每個序列有沒有日期 = i 的K棒。i 和 Live 檢查用的是同一天，也是 `features.py` 實際會用的那根。
+1. 每個序列都抓完後，檢查每個序列有沒有日期 = i 的K棒。i 和 Live 檢查用的是同一天，也是 `features.py` 實際會用的那根。
 2. TSM、NVDA、四檔台灣 ETF 的那根另外要成交量 > 0。
 3. 沒過的序列合起來，等 60 秒、`cache_clear()` 後各重抓一次。
 4. 還是沒過就列在 `run.no_bar_i`、那個序列記 `has_bar_i: false`（可能是那個市場放假），流程繼續，這個特徵當天空白。使用者 2026-11-06 決定這不算失敗，不回傳 3。
@@ -239,7 +260,8 @@
 }
 ```
 
-- 序列的 `status`：`ok`、`failed`（沒抓到，舊檔留著）。有沒有 i 那根另外記在 `has_bar_i`，1h 記 `has_value_t`。
+- 序列的 `status`：`ok`、`failed`（沒抓到，舊檔留著）。有沒有 i 那根另外記在 `has_bar_i`，1h 記 `has_value_t`（2026-11-09 起要比 i 的 06:00 新才算有）。
+- `exchange`：`exchange.enabled` 打開才有，欄位見「每天的步驟」。
 - `run.status`：序列都 `ok`、沒有改用快取的 phase2Days、沒有 `prev_day_never_filled` 是 `ok`，否則 `stale`（回傳 3）；丟出例外時是 `failed`，`error` 是自己寫的短訊息或例外類別名稱。
 - 失敗時 `teacher` 那筆照抄上一次的，下次還認得本機的 Training，不用重新下載。指紋不算點開頭的檔（`.DS_Store`）。
 - sha256 用檔案原始位元組算。`.gitattributes` 的 `data/raw/** -text`、`tests/fixtures/** -text` 讓 Git 不改換行。

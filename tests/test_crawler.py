@@ -883,19 +883,106 @@ def test_yfinance_failure_near_deadline_does_not_retry(tmp_path, cfg):
     assert not [x for x in clock.sleeps if x >= 5]
 
 
+def chart_symbol(sent) -> str:
+    return unquote(sent[2].split("/v8/finance/chart/")[1])
+
+
+def old_hourly(run):
+    """有舊的 1h 檔時用 start= 抓（請求帶 period1），FakeYahoo.history() 和 chart_status 才看得到它。"""
+    crawler.write_atomic(run.raw_dir / "yfinance" / "usd_twd_1h.csv",
+                         crawler.hourly_to_csv([hour_row("2026-11-13T05:00:00+08:00")]))
+
+
+class DeadlineYahoo(FakeYahoo):
+    """抓完 after 這個代號的歷史之後，時鐘跳到 08:31（過了爬蟲截止）。"""
+
+    def __init__(self, clock, scenarios, after):
+        super().__init__(clock, scenarios)
+        self.after = after
+
+    def _send(self, method, url, **kwargs):
+        resp = super()._send(method, url, **kwargs)
+        if url.split("?")[0].endswith("/" + self.after) and "period1" in (kwargs.get("params") or {}):
+            self.clock.t = at("2026-11-17", "08:31")
+        return resp
+
+
+def test_fetch_order_hourly_then_model_series_then_the_rest(tmp_path, cfg):
+    """1h 先抓，再來是 model_series 裡的日K，最後是其他的。截止先砍到不在模型裡的序列；manifest 照 config 的順序。"""
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {"hsi": "^HSI", "sox": "^SOX", "n225": "^N225", "nvda": "NVDA"}
+    cfg["yfinance"]["hourly"] = {"usd_twd_1h": "TWD=X"}
+    assert crawler.fetch_order(cfg, cfg["yfinance"]["tickers"]) == ["sox", "nvda", "hsi", "n225"]
+    ny, days = "America/New_York", ["2026-11-13", "2026-11-16"]
+    scenarios = dict(twd_yahoo(clock).scenarios)
+    scenarios.update({"^SOX": (ny, "INDEX", bars_on(days, ny, volume=0)), "NVDA": (ny, "EQUITY", bars_on(days, ny)),
+                      "^HSI": ("Asia/Hong_Kong", "INDEX", bars_on(days, "Asia/Hong_Kong", volume=0)),
+                      "^N225": ("Asia/Tokyo", "INDEX", bars_on(days, "Asia/Tokyo", volume=0))})
+    s = DeadlineYahoo(clock, scenarios, after="NVDA")
+    run = make_run(tmp_path, cfg, clock)
+    run.prev_day = "2026-11-16"
+    old_hourly(run)
+    crawler.download_yfinance(run, s)
+    assert [chart_symbol(x) for x in s.history()] == ["TWD=X", "^SOX", "NVDA"]
+    entries = run.manifest["yfinance"]
+    assert list(entries) == ["hsi", "sox", "n225", "nvda", "usd_twd_1h"]   # config 的順序，不是抓的順序
+    assert {sid: e["status"] for sid, e in entries.items()} == {"hsi": "failed", "sox": "ok", "n225": "failed",
+                                                                 "nvda": "ok", "usd_twd_1h": "ok"}
+    assert entries["hsi"]["error"] == entries["n225"]["error"] == "skipped_deadline"
+    assert run.no_bar_i == ["hsi", "n225"]   # 日K照 config 的順序，1h 在後面
+    saved = json.loads((run.raw_dir / "manifest.json").read_text())["yfinance"]
+    assert list(saved) == list(entries)
+
+
+def test_rate_limit_breaker_counts_the_hourly_series_first(tmp_path, cfg):
+    """1h 和日K共用斷路器：1h 和第一個模型序列都被限流，後面的全部跳過。"""
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {"hsi": "^HSI", "sox": "^SOX"}
+    cfg["yfinance"]["hourly"] = {"usd_twd_1h": "TWD=X"}
+    ny = "America/New_York"
+    s = twd_yahoo(clock)
+    s.scenarios.update({"^SOX": (ny, "INDEX", bars_on(["2026-11-16"], ny, volume=0)),
+                        "^HSI": ("Asia/Hong_Kong", "INDEX", bars_on(["2026-11-16"], "Asia/Hong_Kong", volume=0))})
+    s.chart_status = {"TWD=X": 429, "^SOX": 429}
+    run = make_run(tmp_path, cfg, clock, daily=False)
+    old_hourly(run)
+    crawler.download_yfinance(run, s)
+    entries = run.manifest["yfinance"]
+    assert entries["usd_twd_1h"]["error"] == entries["sox"]["error"] == "YFRateLimitError"
+    assert entries["hsi"]["error"] == "skipped_rate_limit_breaker" and not s.history("^HSI")
+
+
+def test_config_adds_kospi_at_the_end():
+    """組員 2026-11-08 要的韓國 KOSPI：加在最後，前面 20 個序列（特徵欄）的順序不變；是指數，用 close、不查量。"""
+    conf = utils.load_config()
+    tickers = conf["yfinance"]["tickers"]
+    assert list(tickers) == ["sox", "tsm_adr", "nvda", "usd_twd", "dxy", "us10y", "us13w", "etf_0050", "etf_0052",
+                             "etf_0055", "etf_006201", "dji", "n225", "hsi", "sse", "stoxx50e", "gdaxi", "wti", "gold",
+                             "vix", "kospi"]
+    assert tickers["kospi"] == "^KS11"
+    assert "^KS11" not in conf["yfinance"]["volume_required"] and "^KS11" not in conf["features"]["adj_close_kinds"]
+    assert "^KS11" not in conf["yfinance"]["futures"] and "kospi" not in conf["features"]["model_series"]
+
+
 # ================================================================ 整個流程
 
 
 def crawl(tmp_path, cfg, clock, *, t="2026-11-17", daily=True, course=None, live=None, yahoo=None, secrets=SECRETS,
-          fallback=None, taifex=None):
+          fallback=None, taifex=None, exchange=None):
+    """exchange：{市場: 假的 requests.Session}，證交所、櫃買用（沒給也不會連網：exchange.enabled 預設 false）。"""
     run = make_run(tmp_path, cfg, clock, t=t, daily=daily)
     course = crawler.course_client(cfg, clock.sleep, course or course_fake())
     live = crawler.live_client(cfg, clock.sleep, live or live_fake(make_zip(live_members(LIVE_DATES, {"2026-11-17"}))))
     if fallback is not None:
         live = [live, crawler.live_client(cfg, clock.sleep, fallback, fallback=True)]
     taifex = crawler.taifex_client(cfg, clock.sleep, taifex or taifex_fake())
+    options = None
+    if exchange is not None:
+        options = {"clients": {m: crawler.exchange_client(cfg, m, session=http, clock=clock.monotonic)
+                               for m, http in exchange.items()},
+                   "lock_dir": tmp_path / "locks", "parallel": False}
     code = crawler.crawl(run, secrets, course=course, live=live, yf_session=yahoo or default_yahoo(clock),
-                         taifex=taifex)
+                         taifex=taifex, exchange=options)
     return code, run
 
 
@@ -1146,6 +1233,26 @@ def test_hourly_has_value():
     assert not crawler.hourly_has_value([hour_row("2026-11-16T05:00:00+08:00", "")], at("2026-11-16", "06:00"), 4)
 
 
+def test_hourly_has_value_must_be_newer_than_prev_day():
+    """使用者 2026-11-08 同意的修法：選到的K棒要晚於 i 那天的 06:00，不然是 i 那天存的舊檔（usd_twd_am 會取到 x_i）。"""
+    saved_on_i = [hour_row("2026-11-15T05:00:00+08:00"), hour_row("2026-11-16T05:00:00+08:00")]   # 停在 i（週一）06:00
+    tue, mon = at("2026-11-17", "06:00"), at("2026-11-16", "06:00")
+    assert crawler.hourly_has_value(saved_on_i, tue, 4)                     # 舊規則：4 天內有K棒就算有（bug）
+    assert not crawler.hourly_has_value(saved_on_i, tue, 4, mon)            # 新規則：沒有比 i 06:00 新的
+    assert crawler.hourly_has_value(saved_on_i + [hour_row("2026-11-17T05:00:00+08:00")], tue, 4, mon)
+    # 剛好在 i 的 06:00 結束不算新；晚一點點就算
+    assert not crawler.hourly_has_value([hour_row("2026-11-16T05:00:00+08:00")], tue, 4, mon)
+    assert crawler.hourly_has_value([hour_row("2026-11-16T05:01:00+08:00")], tue, 4, mon)
+    # 週一的 t、i 是週五：週六 07:00 結束的那根（紐約週五收盤之後）比週五 06:00 新，算有
+    fri, monday = at("2026-11-13", "06:00"), at("2026-11-16", "06:00")
+    assert crawler.hourly_has_value([hour_row("2026-11-14T06:00:00+08:00")], monday, 4, fri)
+    assert crawler.hourly_has_value([hour_row("2026-11-14T05:00:00+08:00")], monday, 4, fri)
+    assert not crawler.hourly_has_value([hour_row("2026-11-13T05:00:00+08:00")], monday, 4, fri)   # 週五存的舊檔
+    # 長假：i 比 t 早很多天時，4 天的上限照樣要過（和 features 的 usd_twd_am 一樣）
+    assert not crawler.hourly_has_value([hour_row("2026-02-17T05:00:00+08:00")], at("2026-02-23", "06:00"), 4,
+                                        at("2026-02-13", "06:00"))
+
+
 def twd_yahoo(clock, hours=30):
     start = datetime(2026, 11, 15, 21, 0, tzinfo=ZoneInfo("UTC"))   # 台北 11-16 05:00 開始
     bars = [(start + timedelta(hours=h), 32.0 + h / 100, 32.5, 31.5, 32.0 + h / 100, 32.0 + h / 100, 0)
@@ -1170,6 +1277,51 @@ def test_download_hourly_merges_with_old_file(tmp_path, cfg):
     entry = run.manifest["yfinance"]["usd_twd_1h"]
     assert entry["status"] == "ok" and entry["has_value_t"] is True and entry["start"] == "2026-11-09"
     assert run.no_bar_i == [] and run.stale is False
+
+
+@pytest.mark.parametrize("prev_day, has_value", [("2026-11-16", False), (None, True)])
+def test_hourly_kept_from_prev_day_is_reported_missing(tmp_path, cfg, caplog, prev_day, has_value):
+    """重現 open-questions 的 bug：t 是週二、i 是週一，1h 抓失敗，沿用週一 07:10 存的舊檔（最後一根在週一 06:00
+    結束）。知道 i 時 has_value_t 是 False、列進 no_bar_i、寫警告；不知道 i 時照舊規則。"""
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {}
+    cfg["yfinance"]["hourly"] = {"usd_twd_1h": "TWD=X"}
+    run = make_run(tmp_path, cfg, clock)
+    run.prev_day = prev_day
+    path = run.raw_dir / "yfinance" / "usd_twd_1h.csv"
+    old = crawler.hourly_to_csv([hour_row("2026-11-13T05:00:00+08:00"), hour_row("2026-11-16T05:00:00+08:00")])
+    crawler.write_atomic(path, old)
+    s = twd_yahoo(clock)
+    s.chart_status["TWD=X"] = 500
+    with caplog.at_level(logging.WARNING, logger="test.crawler"):
+        crawler.download_yfinance(run, s)
+    assert path.read_bytes() == old
+    entry = run.manifest["yfinance"]["usd_twd_1h"]
+    assert entry["status"] == "failed" and entry["kept_previous_file"] is True
+    assert entry["has_value_t"] is has_value
+    assert (run.no_bar_i == ["usd_twd_1h"]) is not has_value
+    assert ("usd_twd_am 當天會是空白" in caplog.text) is not has_value
+    if not has_value:
+        assert "2026-11-16 06:00" in caplog.text
+
+
+def test_download_hourly_fresh_bar_on_monday_counts(tmp_path, cfg):
+    """週一的 t、i 是週五：抓成功時最後一根是週六清晨（紐約週五收盤），比週五 06:00 新，has_value_t 是 True。"""
+    clock = Clock(at("2026-11-16", "07:10"))
+    cfg["yfinance"]["tickers"] = {}
+    cfg["yfinance"]["hourly"] = {"usd_twd_1h": "TWD=X"}
+    run = make_run(tmp_path, cfg, clock, t="2026-11-16")
+    run.prev_day = "2026-11-13"
+    start = datetime(2026, 11, 13, 0, 0, tzinfo=ZoneInfo("UTC"))   # 台北週五 08:00 開始，最後一根週六 06:00 開始
+    bars = [(start + timedelta(hours=h), 32.0, 32.5, 31.5, 32.0, 32.0, 0) for h in range(23)]
+    # 週一 07:00 開始的那根：t 那天 06:00 以後才結束，merge_hourly 不存。放在最後當墊底，因為 yfinance 用 period 抓時
+    # 會丟掉時間晚於真實現在的最後一根（history.py 的 Yahoo bug fix），測試結果才不看今天是幾號
+    bars.append((datetime(2026, 11, 15, 23, 0, tzinfo=ZoneInfo("UTC")), 32.1, 32.5, 31.5, 32.1, 32.1, 0))
+    s = FakeYahoo(clock, {"TWD=X": ("Europe/London", "CURRENCY", bars)})
+    crawler.download_yfinance(run, s)
+    rows = crawler.read_hourly(run.raw_dir / "yfinance" / "usd_twd_1h.csv")
+    assert rows[-1][0] == "2026-11-14T06:00:00+08:00"   # 週六 07:00 結束
+    assert run.manifest["yfinance"]["usd_twd_1h"]["has_value_t"] is True and run.no_bar_i == []
 
 
 def test_download_hourly_failure_keeps_old_file(tmp_path, cfg):
@@ -1433,3 +1585,43 @@ def test_taifex_without_prev_day_does_not_count_as_missing(tmp_path, cfg):
     entry = json.loads((run.raw_dir / "manifest.json").read_text())["taifex"]
     assert entry["has_day_i"] is None and entry["has_night_t"] and "tx_day" not in run.no_bar_i
 
+
+# ---------------------------------------------------------------- 證交所、櫃買（每天的爬蟲；細節在 tests/test_exchange.py）
+
+
+class ExchangeHttp:
+    """假的證交所或櫃買主機：每個請求都回 resp，記下請求數。"""
+
+    def __init__(self, resp):
+        self.resp, self.headers, self.calls = resp, {}, 0
+
+    def request(self, method, url, **kwargs):
+        self.calls += 1
+        return self.resp
+
+    def close(self):
+        pass
+
+
+def test_crawl_exchange_disabled_sends_nothing(tmp_path, cfg):
+    assert cfg["exchange"]["enabled"] is False
+    fakes = {m: ExchangeHttp(FakeResp(403)) for m in crawler.EXCHANGE_MARKETS}
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")), exchange=fakes)
+    assert code == 0 and all(f.calls == 0 for f in fakes.values())
+    assert "exchange" not in json.loads((run.raw_dir / "manifest.json").read_text())
+    assert not (tmp_path / "locks").exists() and not (run.raw_dir / "twse").exists()
+
+
+def test_crawl_exchange_failure_does_not_change_the_exit_code(tmp_path, cfg):
+    """證交所、櫃買的欄不在模型裡：兩個主機都擋人，爬蟲照樣回傳 0、run.status 是 ok。"""
+    cfg["exchange"]["enabled"] = True
+    fakes = {m: ExchangeHttp(FakeResp(403)) for m in crawler.EXCHANGE_MARKETS}
+    code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")), exchange=fakes)
+    manifest = json.loads((run.raw_dir / "manifest.json").read_text())
+    assert code == 0 and run.stale is False and manifest["run"]["status"] == "ok"
+    assert all(f.calls == 1 for f in fakes.values())   # 被擋不重試
+    entry = manifest["exchange"]
+    assert entry["status"] == "incomplete" and entry["prev_day"] == "2026-11-16"
+    assert entry["dates"][0] == "2026-11-16" and entry["requests"] == {"twse": 1, "tpex": 1}
+    assert all(s["blocked"] and s["missing_dates"] for s in entry["sources"].values())
+    assert list(manifest)[-1] == "exchange" and manifest["taifex"]["status"] == "ok"   # 期交所之後才跑

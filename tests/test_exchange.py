@@ -837,9 +837,11 @@ def test_cli_rejects_bad_arguments(argv):
 
 def test_config_exchange_section():
     conf = utils.load_config()["exchange"]
-    assert conf["enabled"] is False   # 每日模式還沒做
+    assert conf["enabled"] is False   # 每天的爬蟲預設不抓（使用者決定什麼時候打開）
     assert conf["min_interval_seconds"] >= 6.5 and conf["pause"] == ["07:00", "09:00"]
     assert conf["twse"]["min_stocks"] == 85 and conf["tpex"]["min_stocks"] == 8
+    assert conf["gapfill_days"] == 10 and conf["daily_max_requests"] == 12
+    assert conf["daily_retries"] == 0 and conf["daily_max_failed_dates"] == 1 and conf["daily_budget_seconds"] > 0
 
 
 def test_unexpected_error_stops_that_host_and_returns_3(raw, cfg):
@@ -850,3 +852,217 @@ def test_unexpected_error_stops_that_host_and_returns_3(raw, cfg):
     assert rc == 3
     assert len(fakes["tpex"].calls) == 1 and csv_days(raw, "twse_quotes") == DAYS
     assert state(raw)["sources"]["tpex_valuation"]["stopped"] == "tpex：ValueError"
+
+
+# ================================================================ 每天的爬蟲（download_exchange）
+
+
+@pytest.fixture
+def daily_cfg(cfg):
+    cfg["exchange"]["enabled"] = True
+    return cfg
+
+
+def daily_run(raw, cfg, clock, *, t="2026-11-09", prev_day="2026-11-06", daily=True):
+    run = crawler.Run(cfg=cfg, t=t, daily=daily, raw_dir=raw, log=LOG, now=clock.now, sleep=clock.sleep)
+    run.prev_day = prev_day
+    run.manifest = {"run": {}}
+    return run
+
+
+def run_daily(raw, cfg, clock, handlers=None, **kwargs):
+    """每天的爬蟲的這一步，對假主機跑；t 是 2026-11-09（週一），i 是 11-06（週五）。"""
+    fakes = {m: FakeExchange(m, clock, (handlers or {}).get(m)) for m in crawler.EXCHANGE_MARKETS}
+    clients = {m: crawler.exchange_client(cfg, m, session=fakes[m], clock=clock.monotonic) for m in fakes}
+    run = daily_run(raw, cfg, clock, **kwargs)
+    crawler.download_exchange(run, clients=clients, lock_dir=raw.parent / "locks", parallel=False)
+    return run, fakes
+
+
+def seed(raw, days):
+    """四個來源的檔案先放 days 這幾天（像回補已經做完）。"""
+    for spec in crawler.EXCHANGE_SPECS:
+        ids = TW_IDS if spec.market == "twse" else OTC_IDS
+        rows = [[d, sid] + ["1"] * (len(spec.columns) - 2) for d in days for sid in ids]
+        crawler.write_atomic(raw / spec.file, crawler.exchange_to_csv(rows, spec.columns))
+
+
+def calls(fake) -> list:
+    return [(k, d) for k, d, _ in fake.calls]
+
+
+def test_daily_disabled_sends_nothing_and_writes_nothing(raw, cfg):
+    assert cfg["exchange"]["enabled"] is False
+    run, fakes = run_daily(raw, cfg, Clock(at("2026-11-09", "07:10")))
+    assert all(f.calls == [] for f in fakes.values())
+    assert "exchange" not in run.manifest and not (raw / "manifest.json").exists()
+    assert not (raw.parent / "locks").exists() and not (raw / "twse").exists() and not (raw / "tpex").exists()
+
+
+def test_daily_normal_day_fetches_only_i(raw, daily_cfg):
+    seed(raw, DAYS[:-1])
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "07:10")))
+    for market in crawler.EXCHANGE_MARKETS:
+        assert calls(fakes[market]) == [("valuation", "2026-11-06"), ("quotes", "2026-11-06")]
+    assert all(csv_days(raw, key) == DAYS for key in SPECS)
+    entry = json.loads((raw / "manifest.json").read_text(encoding="utf-8"))["exchange"]
+    assert entry["status"] == "ok" and entry["error"] is None and entry["prev_day"] == "2026-11-06"
+    assert entry["dates"] == sorted(DAYS, reverse=True) and entry["requests"] == {"twse": 2, "tpex": 2}
+    assert entry["markets"] == ["twse", "tpex"] and entry["locked"] == []
+    for key, info in entry["sources"].items():
+        assert info["ran"] and info["has_prev_day"] is True and info["new_dates"] == ["2026-11-06"]
+        assert info["missing_dates"] == [] and info["failures"] == [] and info["no_data"] == {}
+        assert info["last_date"] == "2026-11-06" and info["sha256"] and info["blocked"] is False
+    assert not (raw / "exchange_backfill.json").exists()   # 回補的進度檔不碰
+    assert run.stale is False
+    # 同一天再跑一次（後面的時段）：都有了，一個請求都不送
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "07:25")))
+    assert all(f.calls == [] for f in fakes.values()) and run.manifest["exchange"]["status"] == "ok"
+
+
+def test_daily_fills_gaps_newest_first_within_the_window(raw, daily_cfg):
+    seed(raw, DAYS[:2])   # 11-04、11-05、11-06 都還沒有
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "07:10")))
+    expected = [(k, d) for d in ("2026-11-06", "2026-11-05", "2026-11-04") for k in ("valuation", "quotes")]
+    assert all(calls(f) == expected for f in fakes.values())
+    assert all(csv_days(raw, key) == DAYS for key in SPECS)
+    assert run.manifest["exchange"]["sources"]["tpex_quotes"]["new_dates"] == ["2026-11-04", "2026-11-05", "2026-11-06"]
+    # gapfill_days 只看老師最近幾個交易日：2 天的話 11-04 不補
+    raw2 = raw.parent / "raw2"
+    make_teacher(raw2)
+    seed(raw2, DAYS[:2])
+    daily_cfg["exchange"]["gapfill_days"] = 2
+    run, fakes = run_daily(raw2, daily_cfg, Clock(at("2026-11-09", "07:10")))
+    assert {d for f in fakes.values() for _, d in calls(f)} == {"2026-11-06", "2026-11-05"}
+    assert run.manifest["exchange"]["dates"] == ["2026-11-06", "2026-11-05"]
+    assert run.manifest["exchange"]["status"] == "ok"   # 視窗外的 11-04 不算缺
+
+
+def test_daily_does_not_pause_at_seven(raw, daily_cfg):
+    seed(raw, DAYS[:-1])
+    clock = Clock(at("2026-11-09", "07:10"))
+    _, fakes = run_daily(raw, daily_cfg, clock)
+    gap = daily_cfg["exchange"]["min_interval_seconds"]
+    times = [t for _, _, t in fakes["twse"].calls]
+    assert times[0] == at("2026-11-09", "07:10") + timedelta(seconds=gap)   # 回補會睡到 09:00，這一步不睡
+    assert max(clock.sleeps) == gap and (times[1] - times[0]).total_seconds() >= gap
+
+
+def test_daily_failures_only_warn(raw, daily_cfg, caplog):
+    """被擋、5xx、no_data 都只寫警告和 manifest，不設 stale；5xx 不重試，一天都失敗就停下那個主機。"""
+    seed(raw, DAYS[:-2])   # 11-05、11-06 要抓
+
+    def thin(kind, day):   # 櫃買 11-06 的本益比只有 5 檔：no_data
+        if kind == "valuation" and day == "2026-11-06":
+            return json_resp(payload("tpex", kind, day, ids=OTC_IDS[:5]))
+
+    clock = Clock(at("2026-11-09", "07:10"))
+    with caplog.at_level(logging.INFO, logger=LOG.name):
+        run, fakes = run_daily(raw, daily_cfg, clock, {"twse": lambda kind, day: json_503(), "tpex": thin})
+    assert run.stale is False
+    assert calls(fakes["twse"]) == [("valuation", "2026-11-06"), ("quotes", "2026-11-06")]   # 不重試，停下
+    assert len(fakes["tpex"].calls) == 4
+    entry = run.manifest["exchange"]
+    assert entry["status"] == "incomplete"
+    tw = entry["sources"]["twse_valuation"]
+    assert tw["blocked"] and "連續 1 天" in tw["stopped"] and tw["has_prev_day"] is False
+    assert [f["date"] for f in tw["failures"]] == ["2026-11-06"] and tw["missing_dates"] == ["2026-11-06", "2026-11-05"]
+    tp = entry["sources"]["tpex_valuation"]
+    assert tp["no_data"] == {"2026-11-06": 5} and tp["missing_dates"] == ["2026-11-06"] and tp["new_dates"] == ["2026-11-05"]
+    assert entry["sources"]["tpex_quotes"]["missing_dates"] == []
+    assert "還沒有" in caplog.text and daily_cfg["exchange"]["retry_wait_seconds"] not in clock.sleeps
+    assert csv_days(raw, "twse_valuation") == DAYS[:-2]
+
+
+def test_daily_skips_after_the_deadline(raw, daily_cfg):
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "08:31")))
+    assert all(f.calls == [] for f in fakes.values())
+    assert run.manifest["exchange"] == {"status": "skipped", "error": "skipped_deadline", "prev_day": "2026-11-06"}
+    assert run.stale is False
+
+
+def test_daily_stops_sending_at_the_deadline(raw, daily_cfg):
+    clock = Clock(at("2026-11-09", "08:29:50"))
+    run, fakes = run_daily(raw, daily_cfg, clock)
+    assert calls(fakes["twse"]) == [("valuation", "2026-11-06")]   # 08:29:56.5 送；下一個要等到 08:30:03，不送
+    assert fakes["tpex"].calls == []
+    assert clock.t < at("2026-11-09", "08:30")
+    entry = run.manifest["exchange"]
+    assert entry["status"] == "incomplete" and entry["sources"]["twse_quotes"]["stopped"] == "deadline"
+    assert csv_days(raw, "twse_valuation") == ["2026-11-06"]
+
+
+def test_daily_time_budget_also_applies_in_research_mode(raw, daily_cfg):
+    daily_cfg["exchange"]["daily_budget_seconds"] = 10
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "20:00")), daily=False)
+    assert sum(len(f.calls) for f in fakes.values()) == 1
+    assert run.manifest["exchange"]["sources"]["tpex_quotes"]["stopped"] == "deadline"
+
+
+def test_daily_request_cap_per_host(raw, daily_cfg):
+    daily_cfg["exchange"]["daily_max_requests"] = 3
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "07:10")))
+    expected = [("valuation", "2026-11-06"), ("quotes", "2026-11-06"), ("valuation", "2026-11-05")]
+    assert all(calls(f) == expected for f in fakes.values())
+    entry = run.manifest["exchange"]
+    assert entry["requests"] == {"twse": 3, "tpex": 3} and entry["status"] == "incomplete"
+    assert entry["sources"]["twse_quotes"]["missing_dates"] == ["2026-11-05", "2026-11-04", "2026-11-03", "2026-11-02"]
+    assert entry["sources"]["twse_valuation"]["new_dates"] == ["2026-11-05", "2026-11-06"]
+
+
+def test_daily_skips_a_market_whose_backfill_is_running(raw, daily_cfg, caplog):
+    fcntl = pytest.importorskip("fcntl")
+    seed(raw, DAYS[:-1])
+    locks = raw.parent / "locks"
+    locks.mkdir()
+    with open(locks / "exchange_twse.lock", "w") as held, caplog.at_level(logging.WARNING, logger=LOG.name):
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "07:10")))
+    assert fakes["twse"].calls == [] and len(fakes["tpex"].calls) == 2
+    entry = run.manifest["exchange"]
+    assert entry["locked"] == ["twse"] and entry["markets"] == ["tpex"] and entry["status"] == "incomplete"
+    assert entry["sources"]["twse_quotes"]["ran"] is False and entry["sources"]["tpex_quotes"]["missing_dates"] == []
+    assert "回補正在跑" in caplog.text
+    with open(locks / "exchange_tpex.lock", "w") as probe:   # 跑完會放開自己拿的鎖
+        fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def test_daily_without_prev_day_uses_the_teacher_calendar(raw, daily_cfg):
+    """研究模式沒有 Live 金鑰時不知道 i：照老師日曆最後幾天補，has_prev_day 記 None。"""
+    seed(raw, DAYS[:-1])
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "21:00")), prev_day=None, daily=False)
+    assert all(calls(f) == [("valuation", "2026-11-06"), ("quotes", "2026-11-06")] for f in fakes.values())
+    assert run.manifest["exchange"]["sources"]["twse_quotes"]["has_prev_day"] is None
+
+
+def test_daily_errors_never_escape(raw, daily_cfg):
+    crawler.write_atomic(raw / "twse" / "quotes.csv", b"date,stock_id,price\n")   # 看不懂的檔：不覆蓋，這步失敗
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "07:10")))
+    entry = run.manifest["exchange"]
+    assert entry["status"] == "failed" and "表頭" in entry["error"] and run.stale is False
+    assert all(f.calls == [] for f in fakes.values())
+    assert (raw / "twse" / "quotes.csv").read_bytes() == b"date,stock_id,price\n"
+    # 鎖有放開：下一次（檔案修好之後）照常跑
+    (raw / "twse" / "quotes.csv").unlink()
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "07:25")))
+    assert run.manifest["exchange"]["status"] == "ok"
+
+
+def test_daily_unexpected_error_in_one_host_is_contained(raw, daily_cfg):
+    def bug(kind, day):
+        raise ValueError("程式沒想到的情況")
+
+    seed(raw, DAYS[:-1])
+    run, fakes = run_daily(raw, daily_cfg, Clock(at("2026-11-09", "07:10")), {"tpex": bug})
+    entry = run.manifest["exchange"]
+    assert entry["status"] == "incomplete" and entry["sources"]["tpex_quotes"]["stopped"] == "tpex：ValueError"
+    assert entry["sources"]["twse_quotes"]["missing_dates"] == [] and run.stale is False
+
+
+def test_daily_ctrl_c_is_not_swallowed(raw, daily_cfg):
+    def interrupt(kind, day):
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        run_daily(raw, daily_cfg, Clock(at("2026-11-09", "07:10")), {"twse": interrupt})
+

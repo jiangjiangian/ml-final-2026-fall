@@ -54,7 +54,12 @@ tx_futures:                      # 台指期（使用者 2026-11-06 加）。日
     night_ready: "05:15"         # t 當天這個時間以後才收 t 的夜盤列（夜盤 05:00 收盤）
 
 exchange:                        # 證交所、櫃買中心的全市場日資料（使用者 2026-11-08 同意加的來源）
-  enabled: false                 # 每日模式的開關，還沒做（要先實測）；每天的爬蟲不讀這段。研究用的回補不看這個開關
+  enabled: false                 # 每天的爬蟲要不要抓（期交所之後補 i 和最近缺的日子）；false 時完全不碰這兩個主機。回補不看這個開關
+  gapfill_days: 10               # 每天的爬蟲：老師最近幾個交易日（含 i）裡檔案沒有的日子一起補，新的先
+  daily_max_requests: 12         # 每天的爬蟲：每個主機最多送幾個請求（含重試）；平常一天每個主機 2 個
+  daily_retries: 0               # 每天的爬蟲：逾時、連不上、回 JSON 的 5xx 再試幾次（回補是 1 次，等 retry_wait_seconds）
+  daily_max_failed_dates: 1      # 每天的爬蟲：連續幾天的請求都逾時、連不上或 5xx，就停下那個主機
+  daily_budget_seconds: 180      # 每天的爬蟲：這一步開始後過了幾秒就不再送新的請求（也不會超過 crawler.deadline）
   start: "2020-01-02"            # 回補從這天起（--start 可以改）；到哪天預設是本機老師資料最後一個交易日
   min_interval_seconds: 6.5      # 同一個主機：上一個請求結束後至少隔幾秒才送下一個，一次一個；兩個主機各算各的
   timeout_seconds: [10, 60]      # 連線、讀取逾時
@@ -63,7 +68,7 @@ exchange:                        # 證交所、櫃買中心的全市場日資料
   retry_wait_seconds: 60         # 逾時、連不上、回 JSON 的 5xx：等這麼久再試一次，還是不行就記失敗、換下一天
   max_failed_dates: 3            # 同一個主機連續幾天的請求都逾時、連不上或 5xx，就當成被擋，這次停下那個主機
   flush_every_dates: 20          # 每做完幾天就寫一次檔；結束和 Ctrl-C 時也寫
-  pause: ["07:00", "09:00"]      # 台北這段時間不送請求（每天的排程在跑），睡到結束再繼續
+  pause: ["07:00", "09:00"]      # 回補：台北這段時間不送請求（每天的排程在跑），睡到結束再繼續。每天的爬蟲不停
   state_file: exchange_backfill.json   # 回補的進度，放在 data.raw_dir 底下
   twse:                          # 證交所（上市）
     base_url: https://www.twse.com.tw
@@ -120,6 +125,7 @@ yfinance:
     wti: CL=F                    # WTI 原油期貨
     gold: GC=F                   # 黃金期貨
     vix: ^VIX                    # 波動率指數（使用者 2026-11-06：老師 Live 的 ^VIX 不是收盤，模型改用這個）
+    kospi: ^KS11                 # 韓國 KOSPI；組員 2026-11-08 要的日韓開盤，features 用它的 open 算 kospi_open_gap
 
 features:
   lags: [1, 2]                   # 報酬往回看幾個交易日（使用者和組員 2026-11-06 決定只用 lag1、lag2）
@@ -142,6 +148,24 @@ features:
     hourly_from: "2024-01-22"    # Yahoo 1h 最早到這天；分界取這天和 1h 檔第一天較晚的那個
     at: "06:00"                  # 台北時間；取結束時間 ≤ 這個時間的最後一根
     lookback_days: 4             # 最多往回找幾天（冬令週一 05:00 那根不存在，要取到週五收盤）
+                                 # 也要晚於前一個交易日的 06:00，不然是沒更新的舊K棒，空白（使用者 2026-11-08）
+  # 以下是使用者 2026-11-08 決定加的欄，只進長表，不進 model_columns。
+  optional_inputs: [kospi]       # yfinance 檔不見時只記 log 和 manifest 的 notes，不算缺檔（照樣可以 --rebuild）
+  teacher_fresh: ["^GSPC", "^IXIC"]   # 老師 global 用 t 自己那列（t 開盤前最後一次美股收盤）的版本，
+                                 # 欄名 teacher_gspc_fresh_ret_lag1 等。只能放這兩欄：^TWII、^KS11、TX_OI 是 t 當天收盤
+  open_gap:                      # 當天開盤跳空：d 那列 = d 那根的 open ÷ 前一根的 close − 1。全表唯一用到當天資料的欄，
+    series: [kospi, n225]        # 不能進 model_columns（model_columns() 會擋）。t 那列一律空白，隔天重算時補上
+    late_open:                   # 韓國 10:00（台北 09:00）才開盤的日子留空白：每年第一個交易日（從序列找）和大學入學考試日
+      kospi:
+        first_day_of_year: true
+        days: ["2020-12-03", "2021-11-18", "2022-11-17", "2023-11-16", "2024-11-14", "2025-11-13", "2026-11-19"]
+  tick_table:                    # 台股升降單位：[價格未滿多少, 一檔多少]，最後一列是以上全部。quote_spread_ticks 用
+    - [10, 0.01]
+    - [50, 0.05]
+    - [100, 0.1]
+    - [500, 0.5]
+    - [1000, 1]
+    - [null, 5]
   cleaning:                      # yfinance 清理 R0～R5 的參數，和舊爬蟲一樣（memory/projects/features.md）
     yields: [^TNX, ^IRX]         # R2 債市假日只看這兩個；它們和 yfinance.futures 的 close 可以 ≤ 0
     bad_tick_tolerance: 0.005    # R1：close 超出 [low, high] 多少比例算壞報價

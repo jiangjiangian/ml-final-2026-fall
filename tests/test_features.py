@@ -119,13 +119,16 @@ def test_suspended_stock_lag_spans_the_gap(frozen):
 # ---------------------------------------------------------------- 對照測試 (a2)：清理 Yahoo 原樣
 
 
+LATER_SERIES = {"vix", "kospi"}   # 凍結資料之後才加的序列（vix 2026-11-06、kospi 2026-11-09），凍結資料裡沒有
+
+
 @pytest.fixture(scope="module")
 def raw_0820473():
     out = {}
     for name, ticker in CFG["yfinance"]["tickers"].items():
-        if name == "vix":   # 2026-11-06 才加的序列，凍結資料裡沒有
+        if name in LATER_SERIES:
             continue
-        rows = features.read_yfinance(REF / "yfinance_raw_0820473" / f"{name}.csv")
+        rows = features.read_yfinance(REF / "yfinance_raw_0820473" / f"{name}.csv")   # 其他檔不見要失敗，不能少比
         out[name] = features.clean_series(rows, name, ticker, CFG)
     return out
 
@@ -352,11 +355,17 @@ def test_usd_twd_am_hourly_and_backfill():
 
 
 def test_usd_twd_am_lookback_cap():
-    """最多往回 4 天：週五 06:00 結束的那根，下週一還能用，下週三就太舊了。"""
+    """最多往回 4 天：週五 06:00 結束的那根，下週一還能用，下週三就太舊了。
+
+    2026-11-09 改了期望值：原本的日期 1/19、1/22、1/24 裡，1/22 選到的就是 1/19 選過的那根，照使用者 2026-11-08 的
+    舊K棒規則要空白（見 test_features_new_columns.py）。改成 1/18 開頭，1/22 那格只考 lookback。
+    """
     hourly = [hour("2024-01-19T05:00:00+08:00", 31.0)]
     raw = small_raw(["2024-01-19"], hourly)
     cfg = small_cfg(hourly_from="2024-01-01")
-    assert features.usd_twd_am_values(["2024-01-19", "2024-01-22", "2024-01-24"], raw, cfg) == [31.0, 31.0, None]
+    assert features.usd_twd_am_values(["2024-01-18", "2024-01-22", "2024-01-24"], raw, cfg) == [None, 31.0, None]
+    # 前一個交易日是 1/18，所以舊K棒規則放行，只剩 lookback：1/24 06:00 往回 4 天是 1/20 06:00，1/19 那根太舊
+    assert features.usd_twd_am_values(["2024-01-18", "2024-01-24"], raw, cfg) == [None, None]
 
 
 def test_hourly_switch_follows_the_file():

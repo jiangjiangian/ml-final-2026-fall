@@ -5,17 +5,18 @@
     data/raw/teacher/training/     老師 Training ZIP 解開：info.json、global/global_data.csv、market/<代號>.csv
     data/raw/teacher/live/         老師 Live ZIP 解開：global/global_data.csv、market/<代號>.csv（沒有 info.json），
                                    每次整包換新。Live 本身從 9/1 到 t，每天多一列，所以在 Git 裡看起來是往後加
-    data/raw/yfinance/<名稱>.csv   19 個額外指標各一檔：date, open, high, low, close, adj_close, volume
+    data/raw/yfinance/<名稱>.csv   yfinance.tickers 的額外指標各一檔：date, open, high, low, close, adj_close, volume
     data/raw/yfinance/usd_twd_1h.csv  TWD=X 的 1 小時K棒（yfinance.hourly）：start, open, high, low, close, volume，
                                    start 是K棒開始時間（台北，ISO 帶時區）。每次和舊檔合併，Yahoo 只給大約兩年多
     data/raw/taifex/tx.csv         台指期（tx_futures.source 是 taifex 時）：期交所「期貨每日交易行情」的 TX 列，
                                    欄位和期交所一樣（TAIFEX_COLUMNS），只留單月合約，日期改成 YYYY-MM-DD、去掉格子
                                    前後的空白、存成 UTF-8。每次和舊檔合併
     data/raw/manifest.json         最近一次執行的紀錄：每個檔案的 sha256、筆數、狀態、錯誤類別
-    data/raw/twse/valuation.csv    證交所本益比、殖利率、股價淨值比（回補才寫）。長表，一列是一檔的一天
-    data/raw/twse/quotes.csv       證交所每日收盤行情：開高低收、成交股數、最後揭示買賣價量（回補才寫）
-    data/raw/tpex/valuation.csv    櫃買本益比、股價淨值比、殖利率（回補才寫，不存回填的每股股利、股利年度）
-    data/raw/tpex/quotes.csv       櫃買每日收盤行情（回補才寫）
+    data/raw/twse/valuation.csv    證交所本益比、殖利率、股價淨值比（回補，和 exchange.enabled 時每天的爬蟲寫）。
+                                   長表，一列是一檔的一天
+    data/raw/twse/quotes.csv       證交所每日收盤行情：開高低收、成交股數、最後揭示買賣價量（同上）
+    data/raw/tpex/valuation.csv    櫃買本益比、股價淨值比、殖利率（同上，不存回填的每股股利、股利年度）
+    data/raw/tpex/quotes.csv       櫃買每日收盤行情（同上）
     data/raw/exchange_backfill.json  回補的進度：每個來源寫了幾天、no_data 的日子、失敗、請求數、有沒有被擋
 
 三種用法：
@@ -25,7 +26,9 @@
                           [--max-requests N]
                                              研究用的回補：只抓證交所、櫃買，不下載老師資料和 yfinance，不寫 manifest.json
 
-證交所、櫃買中心（使用者 2026-11-08 同意加的來源，目前只有研究用的回補；exchange.enabled 是每日模式的開關，還沒做）：
+證交所、櫃買中心（使用者 2026-11-08 同意加的來源）：
+    - 研究用的回補（--exchange-backfill，exchange_backfill()）和每天的爬蟲（download_exchange()，exchange.enabled
+      是 true 才跑，在期交所之後）共用下面的解析、檢查和寫檔。兩者的差別見 download_exchange 的說明。
     - 四個「指定日期、全市場」的端點：證交所 BWIBBU_d（本益比等）、MI_INDEX（收盤行情），櫃買 peQryDate、otc。
       只留老師 Top100@Y 的 100 檔，欄位照欄名對（ExchangeSpec），數字去掉千分位逗號，'-'、'N/A'、'--'、'----' 原樣留。
     - 日期是老師的交易日曆（trading_days()），由新到舊；檔案裡已經有的日子跳過，中斷後再跑會接著做。
@@ -33,8 +36,8 @@
       不夠記 no_data，下次再抓。同一檔同一天出現在兩個交易所，這天記失敗、不寫。6446 在 2024 年從櫃買轉上市，
       所以兩邊都查，股票在哪邊出現就從哪邊拿。
     - 同一個主機上一個請求結束後至少隔 exchange.min_interval_seconds（6.5 秒），一次一個（第一個請求也先等）；
-      兩個主機同時跑。同一個交易所同時只能有一個回補程序（.cache/exchange_<市場>.lock）。
-      台北 07:00～09:00 不送請求。逾時、連不上、回 JSON 的 5xx 等 60 秒再試一次，還是不行記失敗、換下一天；
+      兩個主機同時跑。同一個交易所同時只能有一個程序在抓（.cache/exchange_<市場>.lock）。
+      回補在台北 07:00～09:00 不送請求。逾時、連不上、回 JSON 的 5xx 等 60 秒再試一次，還是不行記失敗、換下一天；
       連續 exchange.max_failed_dates 天都這樣就當成被擋。403、429、轉址、不是 JSON（含 5xx 的 HTML 頁面）、
       stat 說太頻繁：這個主機這次停下，不自動等。
     - 第 d 天的值是 d 那天收盤後的量，只能當 t > d 的特徵。
@@ -65,8 +68,11 @@ yfinance：
       中位數的 10% 時只在 manifest 記 low_volume_last_bar_kept，不丟（換月日、Yahoo 量 0 的真結算K棒也會這樣）。
     - 抓完檢查每個序列有沒有 i 那根（個股和 ETF 另外要成交量 > 0），記在 has_bar_i。沒有的一起等一下重抓一次，
       還是沒有就列在 run.no_bar_i，那個特徵當天空白。外國放假時常這樣，不算失敗（使用者 2026-11-06）。
+    - 抓的順序：1h 先，再來是 features.model_series 裡的日K，最後是其他日K（fetch_order()）。過了截止或限流
+      斷路器跳開時，先被跳過的是不在模型裡的序列。config 的順序（特徵欄的順序）和 manifest 的順序不變。
     - 1h 只留結束時間不晚於「現在」和「t 那天 features.usd_twd_am.at（06:00）」的K棒；has_value_t 記 t 那天
-      06:00 前 lookback_days 天內有沒有K棒。
+      06:00 前 lookback_days 天內、而且比 i 那天 06:00 新的K棒有沒有（hourly_has_value）。沒有就列進
+      run.no_bar_i、寫警告：1h 沒抓到時沿用 i 那天存的舊檔，usd_twd_am 會取到 i 的值。
     - yfinance 1.7.0 讀到壞掉的 cookie 快取（沒有 A3）會丟 KeyError，而且每次都壞。setup_yfinance 把它包起來，
       讀不懂就當成沒有快取，重新拿一個。
 
@@ -1004,13 +1010,18 @@ def merge_hourly(old: list, new: list, cutoff: datetime) -> list:
     return sorted(keep, key=lambda r: datetime.fromisoformat(r[0]))
 
 
-def hourly_has_value(rows: list, target: datetime, lookback_days: int) -> bool:
-    """target 之前 lookback_days 天內，有沒有結束時間 ≤ target、close 有值的K棒（features 的 usd_twd_am 取得到值）。"""
+def hourly_has_value(rows: list, target: datetime, lookback_days: int, prev_target: datetime | None = None) -> bool:
+    """features 的 usd_twd_am 在 target 那天取不取得到值：結束時間 ≤ target、close 有值的最後一根K棒，要在
+    target 之前 lookback_days 天內結束，而且（知道 prev_target 時）結束時間要晚於 prev_target。
+
+    prev_target 是前一個台股交易日 i 的 usd_twd_am.at（06:00）。1h 沒抓到、沿用 i 那天存的舊檔時，最後一根在
+    i 的 06:00 結束，選到的就是 i 的值，usd_twd_am 的 lag1 會變成 0（open-questions 2026-11-08 的 bug），所以算沒有。
+    週一的 t、i 是週五時，週六清晨結束的那根（紐約週五收盤）晚於週五 06:00，算有。"""
     for r in reversed(rows):
         end = datetime.fromisoformat(r[0]) + HOURLY_BAR
         close = to_float(r[4])
         if end <= target and close is not None and close > 0:
-            return end > target - timedelta(days=lookback_days)
+            return end > target - timedelta(days=lookback_days) and (prev_target is None or end > prev_target)
     return False
 
 
@@ -1023,11 +1034,22 @@ def has_bar(rows: list, d: str, need_volume: bool) -> bool:
     return False
 
 
+def fetch_order(cfg, tickers) -> list:
+    """日K的抓取順序：features.model_series 裡有的序列先，其他的後面；兩段裡面都照 config 的順序。
+    過了爬蟲截止或限流斷路器跳開時，先被跳過的是不在模型裡的序列。config 的順序（特徵欄的順序）不變。"""
+    model = set(cfg["features"]["model_series"])
+    return [sid for sid in tickers if sid in model] + [sid for sid in tickers if sid not in model]
+
+
 def download_yfinance(run: Run, session: PacedSession):
-    """依 yf_series()（yfinance.tickers，開關切到 yfinance 時加上台指期）逐一下載日K，再抓 yfinance.hourly 的 1h，
-    最後檢查每個序列有沒有 i 那根。"""
+    """先抓 yfinance.hourly 的 1h（usd_twd_am 是模型欄），再依 fetch_order() 逐一下載 yf_series() 的日K
+    （yfinance.tickers，開關切到 yfinance 時加上台指期），最後檢查每個序列有沒有 i 那根。
+
+    限流斷路器和截止照抓的順序算：1h 和日K共用同一個斷路器，過了截止還沒抓的都沿用舊檔。
+    manifest 的 yfinance 最後照 config 的順序排（日K、再 1h），和抓的順序無關。"""
     conf = run.cfg["yfinance"]
     tickers = yf_series(run.cfg)
+    hourly = conf.get("hourly", {})
     out_dir = run.raw_dir / "yfinance"
     setup_yfinance(session, utils.ROOT / conf["cache_dir"])
     entries = run.manifest.setdefault("yfinance", {})
@@ -1058,27 +1080,13 @@ def download_yfinance(run: Run, session: PacedSession):
         entries[sid] = entry
         run.save()
 
-    for sid, ticker in tickers.items():
-        span = old_span(read_series(out_dir / f"{sid}.csv"), run.t)
-        if breaker >= conf["breaker_series"]:
-            record(sid, ticker, "failed", error="skipped_rate_limit_breaker")
-            continue
-        if run.past_deadline():
-            record(sid, ticker, "failed", error="skipped_deadline")
-            continue
-        rows, dropped, attempts, kind, name = fetch_series(run, session, ticker, span)
-        if rows is None:
-            breaker = breaker + 1 if kind == "rate_limited" else 0
-            run.log.warning("%s 失敗（%s），沿用舊檔", ticker, name)
-            record(sid, ticker, "failed", attempts=attempts, error=name)
-        else:
-            breaker = 0
-            record(sid, ticker, "ok", rows, dropped, attempts)
-
-    # 1h：和舊檔合併，只留結束時間不晚於現在和 t 那天 06:00 的K棒
+    # 1h 先抓（使用者 2026-11-08 同意的修法）：和舊檔合併，只留結束時間不晚於現在和 t 那天 06:00 的K棒。
+    # has_value_t 要有比 i 那天 06:00 新的K棒，沿用 i 那天存的舊檔不算（hourly_has_value）
     am = run.cfg["features"]["usd_twd_am"]
     target = run.at(am["at"])
-    for sid, ticker in conf.get("hourly", {}).items():
+    prev_target = (datetime.combine(date.fromisoformat(run.prev_day), dtime.fromisoformat(am["at"]), TAIPEI)
+                   if run.prev_day else None)
+    for sid, ticker in hourly.items():
         path = out_dir / f"{sid}.csv"
         rows = read_hourly(path)
         entry = {"ticker": ticker, "interval": "1h", "file": f"yfinance/{sid}.csv", "attempts": 0, "error": None}
@@ -1111,12 +1119,32 @@ def download_yfinance(run: Run, session: PacedSession):
         if path.exists():
             entry.update(rows=len(rows), first=rows[0][0] if rows else None, last=rows[-1][0] if rows else None,
                          sha256=sha256_bytes(path.read_bytes()))
-        entry["has_value_t"] = hourly_has_value(rows, target, am["lookback_days"])
+        entry["has_value_t"] = hourly_has_value(rows, target, am["lookback_days"], prev_target)
         entries[sid] = entry
         run.save()
 
+    # 日K：模型用的序列先抓
+    order = fetch_order(run.cfg, tickers)
+    for sid in order:
+        ticker = tickers[sid]
+        span = old_span(read_series(out_dir / f"{sid}.csv"), run.t)
+        if breaker >= conf["breaker_series"]:
+            record(sid, ticker, "failed", error="skipped_rate_limit_breaker")
+            continue
+        if run.past_deadline():
+            record(sid, ticker, "failed", error="skipped_deadline")
+            continue
+        rows, dropped, attempts, kind, name = fetch_series(run, session, ticker, span)
+        if rows is None:
+            breaker = breaker + 1 if kind == "rate_limited" else 0
+            run.log.warning("%s 失敗（%s），沿用舊檔", ticker, name)
+            record(sid, ticker, "failed", attempts=attempts, error=name)
+        else:
+            breaker = 0
+            record(sid, ticker, "ok", rows, dropped, attempts)
+
     # 檢查有沒有 i 那根。沒有的不算失敗（外國放假常這樣），列在 run.no_bar_i（使用者 2026-11-06）
-    run.no_bar_i = [sid for sid in conf.get("hourly", {}) if not entries[sid]["has_value_t"]]
+    run.no_bar_i = [sid for sid in hourly if not entries[sid]["has_value_t"]]
     if not run.prev_day:
         run.log.warning("不知道前一個交易日，跳過「有沒有那根K棒」的檢查")
         for sid in tickers:
@@ -1124,10 +1152,10 @@ def download_yfinance(run: Run, session: PacedSession):
     else:
         need_volume = set(conf["volume_required"])
 
-        def missing():
-            return [sid for sid, ticker in tickers.items()
+        def missing():   # 重抓也是模型用的序列先
+            return [sid for sid in order
                     if entries[sid]["status"] == "ok"
-                    and not has_bar(data.get(sid, []), run.prev_day, ticker in need_volume)]
+                    and not has_bar(data.get(sid, []), run.prev_day, tickers[sid] in need_volume)]
 
         todo = missing()
         if todo and run.can_wait(conf["recheck_wait_seconds"]):
@@ -1148,9 +1176,16 @@ def download_yfinance(run: Run, session: PacedSession):
     for sid in run.no_bar_i:
         if sid in tickers:
             run.log.warning("%s 沒有 %s 那根K棒，這個特徵當天會是空白", sid, run.prev_day)
+        elif run.prev_day:
+            run.log.warning("%s 沒有在 %s %s 前 %d 天內、又比 %s %s 新的K棒（1h 沒抓到時沿用的舊檔停在 i），"
+                            "usd_twd_am 當天會是空白", sid, run.t, am["at"], am["lookback_days"], run.prev_day, am["at"])
         else:
             run.log.warning("%s 在 %s %s 前 %d 天內沒有K棒，usd_twd_am 當天會是空白", sid, run.t, am["at"],
                             am["lookback_days"])
+    # manifest 照 config 的順序排，每天的 manifest.json 在 Git 裡的差異才不會因為抓的順序而變大
+    ordered = {sid: entries[sid] for sid in [*tickers, *hourly] if sid in entries}
+    entries.clear()
+    entries.update(ordered)
     run.save()
 
     if any(e["status"] != "ok" for e in entries.values()):
@@ -1668,6 +1703,7 @@ class ExchangeSource:
     failures: dict = field(default_factory=dict)    # {日期: 錯誤}
     requests: int = 0
     written: int = 0                                # 這次新寫進檔的日子數
+    new_dates: list = field(default_factory=list)   # 這次新寫進檔的日子（每天的爬蟲記進 manifest）
     stopped: str | None = None                      # 這次停掉的原因（被擋、格式不對）
     blocked: bool = False
     stop_logged: bool = False
@@ -1682,9 +1718,10 @@ class ExchangeHost:
     client: SiteClient
     conf: dict
     sources: list
-    stopped: str | None = None      # 被擋、請求數用完、中斷
+    stopped: str | None = None      # 被擋、請求數用完、中斷、到了截止
     stop_logged: bool = False
     failed_dates: int = 0           # 連續幾天這個主機的請求都逾時、連不上或 5xx（有任何回應就歸零）
+    sent: int = 0                   # 這次對這個主機送了幾個請求（含重試）
 
 
 class ExchangeBackfill:
@@ -1693,10 +1730,15 @@ class ExchangeBackfill:
     日期由新到舊，一天一天做。兩個主機各一個執行緒同時跑，每個主機一次只送一個請求，上一個請求結束後至少等
     exchange.min_interval_seconds 才送下一個。兩邊都回來後，才檢查同一檔有沒有同一天出現在兩個交易所，再放進
     待寫的列；每 flush_every_dates 天和結束時（含 Ctrl-C）和舊檔合併、排序、整份換新。
+
+    每天的爬蟲（download_exchange）也用這個類別，只是換掉幾個參數，回補不給就和原本一樣：
+    pause（不停）、max_per_host（每個主機的請求數上限）、can_wait（送之前問一下，說不行就停下那個主機）、
+    retries、max_failed_dates，write_state=False 不寫 exchange_backfill.json。
     """
 
     def __init__(self, cfg, raw_dir: Path, markets, dates, ids, *, clients=None, now=utils.taipei_now, sleep=None,
-                 log=None, max_requests=None, parallel=True, start=None, end=None, lock_dir=None):
+                 log=None, max_requests=None, parallel=True, start=None, end=None, lock_dir=None, pause=None,
+                 max_per_host=None, can_wait=None, retries=1, max_failed_dates=None, write_state=True):
         self.cfg, self.conf, self.raw_dir = cfg, cfg["exchange"], raw_dir
         self.lock_dir = lock_dir   # exchange_state.lock 放這裡；None 就不鎖（測試直接建 job 時）
         self.dates = sorted(dates, reverse=True)
@@ -1704,6 +1746,10 @@ class ExchangeBackfill:
         self.now, self._sleep = now, sleep
         self.log = log or logging.getLogger("finpred.exchange")
         self.max_requests, self.parallel = max_requests, parallel
+        self.pause = self.conf["pause"] if pause is None else pause
+        self.max_per_host, self.can_wait, self.retries = max_per_host, can_wait, retries
+        self.max_failed_dates = self.conf["max_failed_dates"] if max_failed_dates is None else max_failed_dates
+        self.write_state_file = write_state
         self.range = (start, end)
         self.stop = threading.Event()
         self.lock = threading.Lock()
@@ -1745,12 +1791,17 @@ class ExchangeBackfill:
             self.stop.wait(seconds)
 
     def wait_turn(self, host: ExchangeHost, seconds: float):
-        """送下一個請求前：先等 seconds，台北 07:00～09:00 再睡到 09:00，最後扣請求數。
-        回傳 None 代表可以送；不能送時回傳原因（interrupted、max_requests）。"""
+        """送下一個請求前：先等 seconds，台北 07:00～09:00（self.pause）再睡到 09:00，最後扣請求數。
+        回傳 None 代表可以送；不能送時回傳原因（interrupted、max_requests、deadline）。
+        每天的爬蟲：這個主機的請求數到了 max_per_host，或 can_wait 說等完會過截止，就不等也不送。"""
+        if self.max_per_host is not None and host.sent >= self.max_per_host:
+            return "max_requests"
+        if self.can_wait is not None and not self.can_wait(seconds):
+            return "deadline"
         self.sleep(seconds)
-        pause = exchange_pause(self.now(), self.conf["pause"])
+        pause = exchange_pause(self.now(), self.pause)
         if pause > 0 and not self.stop.is_set():
-            self.log.info("%s：台北 %s～%s 不送請求，睡 %d 秒", host.market, *self.conf["pause"], round(pause))
+            self.log.info("%s：台北 %s～%s 不送請求，睡 %d 秒", host.market, *self.pause, round(pause))
             self.sleep(pause)
         if self.stop.is_set():
             return "interrupted"
@@ -1758,19 +1809,20 @@ class ExchangeBackfill:
             if self.max_requests is not None and self.sent_total >= self.max_requests:
                 return "max_requests"
             self.sent_total += 1
+            host.sent += 1
         return None
 
     def fetch(self, host: ExchangeHost, src: ExchangeSource, d: str):
         """抓一個來源的一天，回傳 (狀態, 值)：ok（{stock_id: 值}）、failed（這天有問題）、transient（逾時、連不上、
         5xx，重試也不行）、format、blocked、stopped（不能再送）。
-        逾時、連不上、回 JSON 的 5xx 等 retry_wait_seconds 再試一次；429、403、轉址、不是 JSON（含 5xx 的 HTML
-        頁面，例如 Cloudflare 的驗證頁）都算被擋，不重試。每個請求前（含這次執行的第一個）都至少等
-        min_interval_seconds，剛停掉又馬上重跑也一樣。"""
+        逾時、連不上、回 JSON 的 5xx 等 retry_wait_seconds 再試 self.retries 次（回補 1 次，每天的爬蟲 0 次）；
+        429、403、轉址、不是 JSON（含 5xx 的 HTML 頁面，例如 Cloudflare 的驗證頁）都算被擋，不重試。
+        每個請求前（含這次執行的第一個）都至少等 min_interval_seconds，剛停掉又馬上重跑也一樣。"""
         spec = src.spec
         path = host.conf[spec.kind].format(date=date.fromisoformat(d).strftime(host.conf["date_format"]))
         gap = self.conf["min_interval_seconds"]
-        for attempt in (1, 2):
-            reason = self.wait_turn(host, max(self.conf["retry_wait_seconds"], gap) if attempt == 2 else gap)
+        for attempt in range(1, self.retries + 2):
+            reason = self.wait_turn(host, max(self.conf["retry_wait_seconds"], gap) if attempt > 1 else gap)
             if reason:
                 return "stopped", reason
             src.requests += 1
@@ -1782,7 +1834,7 @@ class ExchangeBackfill:
                     return "blocked", f"{spec.key}：HTTP 429（請求太頻繁）"
                 if status is not None and status >= 500 and "json" not in (host.client.last_content_type or "").lower():
                     return "blocked", f"{spec.key}：HTTP {status}，回的不是 JSON（可能是擋人的頁面）"
-                if attempt == 1:
+                if attempt <= self.retries:
                     self.log.warning("%s %s：%s，%d 秒後再試一次", d, spec.key, e, self.conf["retry_wait_seconds"])
                     continue
                 return "transient", str(e)
@@ -1806,7 +1858,8 @@ class ExchangeBackfill:
     def fetch_day(self, host: ExchangeHost, d: str) -> dict:
         """一個主機的一天：依序抓它還沒有這天的來源。回傳 {來源: (狀態, 值)}，只放 ok 和 failed。
 
-        這個主機連續 exchange.max_failed_dates 天、每個請求都逾時、連不上或 5xx（重試也不行），就當成被擋：
+        這個主機連續 max_failed_dates 天（回補是 exchange.max_failed_dates）、每個請求都逾時、連不上或 5xx
+        （重試也不行），就當成被擋：
         這次停下這個主機，不自動等。中間只要有一個回應（ok、no_data、格式錯誤都算）就重新算。
         """
         out, answered, transient = {}, False, False
@@ -1833,7 +1886,7 @@ class ExchangeBackfill:
             host.failed_dates = 0
         elif transient and not host.stopped:
             host.failed_dates += 1
-            limit = self.conf["max_failed_dates"]
+            limit = self.max_failed_dates
             if host.failed_dates >= limit:
                 self.block_host(host, f"{host.market}：連續 {limit} 天的請求都逾時、連不上或 5xx，可能被擋")
         return out
@@ -1924,6 +1977,7 @@ class ExchangeBackfill:
             for d, rows in src.pending.items():
                 src.ids_by_date[d] = set(rows)
             src.written += len(src.pending)
+            src.new_dates.extend(sorted(src.pending))
             src.pending.clear()
         self.save_state()
 
@@ -1959,7 +2013,9 @@ class ExchangeBackfill:
 
     def save_state(self):
         """只換掉這次有跑的來源；另一個交易所上次的紀錄留著。讀和寫之間拿 exchange_state.lock，
-        兩個程序分別跑 twse、tpex 時不會互相蓋掉。"""
+        兩個程序分別跑 twse、tpex 時不會互相蓋掉。每天的爬蟲（write_state=False）不寫，紀錄在 manifest.json。"""
+        if not self.write_state_file:
+            return
         if self.lock_dir is None or fcntl is None:
             return self.write_state()
         self.lock_dir.mkdir(parents=True, exist_ok=True)
@@ -2029,7 +2085,8 @@ class ExchangeBackfill:
 
 def exchange_locks(lock_dir: Path, markets) -> list:
     """每個交易所一個鎖（lock_dir/exchange_<市場>.lock，和 run_daily_test.py 一樣用 flock）。已經有別的回補
-    在跑同一個交易所就丟 CrawlerError，免得兩個程序對同一個主機各自限流、請求變兩倍。回傳開著的鎖檔，關掉就放開。"""
+    或每天的爬蟲（download_exchange）在跑同一個交易所就丟 CrawlerError，免得兩個程序對同一個主機各自限流、
+    請求變兩倍。回傳開著的鎖檔，關掉就放開。"""
     if fcntl is None:   # Windows 沒有 flock：不鎖
         return []
     lock_dir.mkdir(parents=True, exist_ok=True)
@@ -2041,7 +2098,7 @@ def exchange_locks(lock_dir: Path, markets) -> list:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                raise CrawlerError(f"另一個回補還在跑 {market}，這次不跑（同一個主機一次只能有一個程序）") from None
+                raise CrawlerError(f"另一個回補或每天的爬蟲還在跑 {market}，這次不跑（同一個主機一次只能有一個程序）") from None
     except BaseException:
         for lock in held:
             lock.close()
@@ -2076,6 +2133,112 @@ def exchange_backfill(cfg, raw_dir: Path, *, start=None, end=None, markets=EXCHA
             lock.close()
 
 
+def exchange_summary(job: ExchangeBackfill, dates: list, prev_day) -> dict:
+    """每天的爬蟲跑完之後，manifest.json 的 exchange.sources：每個來源寫了哪幾天、i 那天有沒有、
+    這幾天裡還缺哪幾天、no_data、失敗、有沒有被擋或停下。只看這次執行的狀態，不讀 exchange_backfill.json。"""
+    out = {}
+    hosts = {s.spec.key: h for h in job.hosts for s in h.sources}
+    for key, src in job.sources.items():
+        host = hosts.get(key)
+        entry = {"file": src.spec.file, "ran": host is not None,
+                 "has_prev_day": (prev_day in src.ids_by_date) if prev_day else None,
+                 "missing_dates": [d for d in dates if d not in src.ids_by_date],
+                 "new_dates": sorted(src.new_dates), "no_data": dict(sorted(src.no_data.items())),
+                 "failures": [{"date": d, "error": src.failures[d]} for d in sorted(src.failures)],
+                 "requests": src.requests, "blocked": src.blocked,
+                 "stopped": src.stopped or (host.stopped if host else None)}
+        if src.path.exists():
+            entry.update(last_date=max(src.ids_by_date) if src.ids_by_date else None,
+                         sha256=sha256_bytes(src.path.read_bytes()))
+        out[key] = entry
+    return out
+
+
+def download_exchange(run: Run, clients=None, lock_dir=None, parallel=True):
+    """每天的爬蟲的證交所、櫃買（exchange.enabled，使用者 2026-11-09）。在期交所之後跑，每日模式和研究模式都跑。
+
+    抓的日子：老師交易日曆（trading_days()，和回補一樣是 Training 接上 Live）裡早於 t 的最後 exchange.gapfill_days
+    天（含 i），檔案裡還沒有的那幾天，新的先。平常只有 i，每個主機 2 個請求。解析、檢查、檔數門檻、
+    同一檔出現在兩邊、寫檔都和回補一樣（ExchangeBackfill），不一樣的是：
+        - 不停 07:00～09:00（exchange.pause 是給回補避開這一步的）。
+        - 過了爬蟲截止整步不跑；每個請求送之前，等完會過截止或過了 exchange.daily_budget_seconds 就停下那個主機。
+        - 每個主機最多 exchange.daily_max_requests 個請求；逾時、連不上、5xx 重試 exchange.daily_retries 次，
+          連續 exchange.daily_max_failed_dates 天都這樣就停下那個主機。
+        - 不寫 exchange_backfill.json，紀錄放 manifest.json 的 exchange。
+        - 每個交易所拿自己的鎖；回補正在跑（拿著鎖）的那個交易所這次跳過。
+    這些欄不在模型裡：失敗、no_data、被擋、跳過都只寫警告和 manifest，不設 run.stale，不改爬蟲的回傳值，
+    也不讓例外跑出去（Ctrl-C 除外）。exchange.enabled 是 false 時什麼都不做，manifest 也不加 exchange。
+    clients（{市場: SiteClient}）、lock_dir、parallel 是給測試換的。
+    """
+    conf = run.cfg["exchange"]
+    if not conf.get("enabled"):
+        return
+    entry = {"status": "skipped", "error": None, "prev_day": run.prev_day}
+    run.manifest["exchange"] = entry
+    if run.past_deadline():
+        entry["error"] = "skipped_deadline"
+        run.log.warning("證交所、櫃買：已經過了爬蟲截止 %s，這次不抓", run.cfg["crawler"]["deadline"])
+        run.save()
+        return
+    lock_dir = Path(lock_dir) if lock_dir else utils.ROOT / ".cache"
+    held, locked = [], []
+    try:
+        for market in EXCHANGE_MARKETS:
+            try:
+                held += exchange_locks(lock_dir, [market])
+            except CrawlerError:
+                locked.append(market)
+                run.log.warning("證交所、櫃買：%s 的回補正在跑，這次跳過 %s", market, market)
+        markets = [m for m in EXCHANGE_MARKETS if m not in locked]
+        entry.update(markets=markets, locked=locked)
+        if not markets:
+            entry["error"] = "locked"
+            return
+        stocks = teacher_stocks(run.raw_dir)
+        ids = read_info((run.raw_dir / "teacher" / "training" / "info.json").read_bytes())["Top100@Y"]
+        calendar = [d for d in trading_days(stocks, run.cfg["crawler"]["min_stocks_filled"],
+                                            run.cfg["crawler"]["closed_days"]) if d < run.t]
+        dates = calendar[-conf["gapfill_days"]:]
+        if run.prev_day and run.prev_day not in dates:
+            dates.append(run.prev_day)
+        dates = sorted(dates, reverse=True)
+        entry["dates"] = dates
+        if not dates:
+            entry["error"] = "no_dates"
+            run.log.warning("證交所、櫃買：老師資料裡沒有早於 %s 的交易日，這次不抓", run.t)
+            return
+        budget_end = run.now() + timedelta(seconds=conf["daily_budget_seconds"])
+
+        def can_wait(seconds):
+            return run.can_wait(seconds) and run.now() + timedelta(seconds=seconds) < budget_end
+
+        job = ExchangeBackfill(run.cfg, run.raw_dir, markets, dates, ids, clients=clients, now=run.now,
+                               # 正式跑時（time.sleep）用回補自己的 stop.wait，Ctrl-C 之後執行緒不會卡在等待裡
+                               sleep=None if run.sleep is time.sleep else run.sleep, log=run.log, parallel=parallel,
+                               start=dates[-1], end=dates[0], pause=[], max_per_host=conf["daily_max_requests"],
+                               can_wait=can_wait, retries=conf["daily_retries"],
+                               max_failed_dates=conf["daily_max_failed_dates"], write_state=False)
+        if job.run() == 130:
+            raise KeyboardInterrupt
+        entry["requests"] = {h.market: h.sent for h in job.hosts}
+        entry["sources"] = exchange_summary(job, dates, run.prev_day)
+        ran = [s for s in entry["sources"].values() if s["ran"]]
+        entry["status"] = "ok" if not locked and all(not s["missing_dates"] for s in ran) else "incomplete"
+        for key, s in entry["sources"].items():
+            if s["ran"] and s["missing_dates"]:
+                run.log.warning("證交所、櫃買：%s 還沒有 %s（no_data、失敗、被擋或請求數用完），下次再補；這些欄不在模型裡",
+                                key, s["missing_dates"])
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:   # 這一步的任何錯誤都不能擋住每天的流程
+        entry.update(status="failed", error=str(e) if isinstance(e, CrawlerError) else type(e).__name__)
+        run.log.warning("證交所、櫃買這一步失敗（%s），不影響其他步驟", entry["error"])
+    finally:
+        for lock in held:
+            lock.close()
+        run.save()
+
+
 def stdout_logger(name: str = "finpred.exchange"):
     """只印到畫面的 logger。回補會印幾千行進度，不寫進每天的 data/submission/run_<t>.log。"""
     logger = logging.getLogger(name)
@@ -2091,8 +2254,10 @@ def stdout_logger(name: str = "finpred.exchange"):
 # ---------------------------------------------------------------- 主程式
 
 
-def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None, taifex=None) -> int:
-    """依序：/api/state → Training → Live → yfinance → 期交所 → 寫 manifest。回傳 0 或 3，不能繼續就丟 CrawlerError。"""
+def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None, taifex=None, exchange=None) -> int:
+    """依序：/api/state → Training → Live → yfinance → 期交所 → 證交所、櫃買（exchange.enabled 是 true 才跑）
+    → 寫 manifest。回傳 0 或 3，不能繼續就丟 CrawlerError。證交所、櫃買不影響回傳值。
+    exchange 是給測試的 download_exchange 參數（clients、lock_dir、parallel）。"""
     cfg = run.cfg
     tx_source(cfg)   # 開關設錯就在送出任何請求前停下
     now = run.now()
@@ -2143,6 +2308,7 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None, t
         download_teacher(run, secrets, course, live)
         download_yfinance(run, yf_session)
         download_taifex(run, taifex)
+        download_exchange(run, **(exchange or {}))
     except BaseException as e:
         # CrawlerError 的訊息是自己寫的短句；其他例外（OSError、Ctrl-C…）只記類別，訊息可能帶路徑或伺服器內容
         error = str(e) if isinstance(e, CrawlerError) else type(e).__name__

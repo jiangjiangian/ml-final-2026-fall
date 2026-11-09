@@ -5,25 +5,54 @@
     date, stock_id            鍵；stock_id 一律當字串（"2330"），不轉成數字
     is_top50                  1＝要預測的 50 檔（info.json 的 Top50@Y）
     <名稱>_ret_lag{k}        特徵，見下方；k 來自 config 的 features.lags
+    teacher_<名稱>_fresh_ret_lag{k}、<名稱>_open_gap、val_*_lag1、quote_*_lag1
+                              使用者 2026-11-08 加的欄，見下方「只進長表的欄」
     label_y                   答案：t 當天 etl:adj_close > etl:adj_open 為 1；還不知道時空白
     label_intraday_return     答案：t 當天 etl:adj_close / etl:adj_open − 1（官方分數用）；還不知道時空白
 預測日 t 那列的 label 一定空白。模型用哪些欄由 config 的 features.model_series 決定，見 model_columns()。
+欄的順序：鍵、stock、yfinance（照 yfinance.tickers）、老師 global、usd_twd_am、台指期、只進長表的欄、答案。
 
 特徵 <名稱>_ret_lag{k}：
     i 是 t 之前最後一個台股交易日。t 那列 = (close_i − close_(i−k)) / close_(i−k)，i−k 數的是該序列自己的列。
     該序列在 i 那天沒有列就留空白，不往前找。兩個端點任一是空的或 ≤ 0 也留空白。名稱有四種：
     - stock：股票自己的 etl:adj_close。這組讓 50 檔每天的值不同。
     - teacher_vix 等：老師 global 表的欄（features.teacher_global），只用交易日的列。
-    - yfinance 的 19 個序列（yfinance.tickers）：features.adj_close_kinds 的代號用 adj_close，其他用 close。
+    - yfinance 的序列（yfinance.tickers，2026-11-09 起 21 個）：features.adj_close_kinds 的代號用 adj_close，其他用 close。
     - usd_twd_am：台北 d 日 06:00 前最後一根 TWD=X 1h 的 close，和美股收盤同步。這個序列的 lag 用 t 自己的值：
       (x_t − x_(t 往回第 k 個交易日)) / x_(t 往回第 k 個交易日)。x_t 在 t 開盤前就知道。
       小時資料開始之前用 usd_twd 那天日K的 close 補（使用者 2026-11-06 決定）。
+      選到的K棒要比前一個交易日的 06:00 晚結束，不然是沒更新的舊K棒（爬蟲沒抓到新的 1h），x_d 空白（使用者 2026-11-08）。
     - tx_day、tx_night：台指期（使用者 2026-11-06 加，來源看 tx_futures.source）。用近月合約（到期月最早的），
       分子分母用同一個合約，換月那天不會多出一段假的漲跌。i−k 數的是台指期自己的日盤日子。
       tx_day：日盤（08:45～13:45）收盤，和其他序列一樣，要有 i 那天的日盤。
       tx_night：標 t 日的夜盤收盤（t 的前一個營業日 15:00 開始、隔天 05:00 收盤；平常就是 t 日 05:00，連假後是
       連假前最後一晚的夜盤），t 開盤前就知道。分母是日盤收盤：
       lag1 比 t 之前最後一個日盤（通常是 i），lag2 比再前一個（使用者 2026-11-06 決定「比日盤收盤」）。
+
+只進長表的欄（使用者 2026-11-08，都不進 model_columns）：
+    teacher_gspc_fresh_ret_lag{k}、teacher_ixic_fresh_ret_lag{k}（features.teacher_fresh）：
+        x_d 是老師 global 第 d 列的 ^GSPC（^IXIC），也就是 d 開盤前最後一次美股收盤。和 usd_twd_am 一樣用 t 自己那列：
+        (x_t − x_(t 往回第 k 個交易日)) / x_(t 往回第 k 個交易日)。沒有那列、-1、≤ 0 空白。原本的 teacher_gspc 不變。
+    kospi_open_gap、n225_open_gap（features.open_gap）：d 那列 = 序列 d 那根的 open ÷ 前一根的 close − 1。
+        這是全表唯一用到 d 當天資料的欄（台北約 08:30 才看得到），所以 t 那列一律空白，隔天重算時補上；
+        model_columns() 擋掉任何 open_gap 欄。沒有 d 那根（當地休市）、佔位K棒（開高低收相同、量 0 或空）、
+        韓國 10:00 才開盤的日子（每年第一根和第一根有成交量的K棒、config 列的大學入學考試日）空白。
+        前一根跳過佔位K棒。
+    證交所、櫃買中心（data/raw/twse/、data/raw/tpex/，欄位見 crawler.EXCHANGE_SPECS），t 那列用 i 那天的值：
+        股票 i 那天在兩個交易所的檔都沒有列（停牌、還沒抓）就空白，不往前找；停牌那天交易所照樣有列
+        （開高低收是 '--' 或 '----'、成交股數 0，估值沿用前一天），也當成沒有列。6446 2024-01-25 從櫃買轉上市，
+        哪邊有就用哪邊。價格是交易所的原始價（沒還原），不和老師的還原價混用。
+        val_ep_lag1         1 ÷ 本益比（> 0 時），其他空白
+        val_pe_loss_lag1    本益比是虧損記號（證交所 '-'、櫃買 'N/A'）是 1，是數字是 0，沒有列空白
+        val_log_pb_lag1     ln(股價淨值比)（> 0 時）
+        val_dy_lag1         殖利率(%) ÷ 100（0 也算）
+        quote_spread_ticks_lag1  最後揭示買價到賣價差幾檔（features.tick_table，跨價格區間一檔一檔數）
+        quote_rel_spread_lag1    (賣價 − 買價) ÷ 兩者平均。這兩欄在買價或賣價沒有揭示、或買價 ≥ 賣價時空白
+        quote_imbalance_lag1     (買量 − 賣量) ÷ (買量 + 賣量)。量是空的、不是數字、兩邊都是 0 時空白
+        quote_limit_up_lag1      沒有賣價、有買價（漲停鎖住）是 1，其他 0，沒有列空白
+        quote_limit_down_lag1    沒有買價、有賣價（跌停鎖住）是 1，其他 0，沒有列空白
+    這些欄的原始檔不見或讀不了時整欄空白，記在 manifest.json 的 notes，不算缺檔（不擋 --rebuild）。
+    這時 --rebuild 會把空白寫進過去的月份，每天只重寫最後兩個月，所以檔案補齊後要再 --rebuild 一次。
 
 台股交易日（使用者 2026-11-06 決定，和爬蟲共用 crawler.trading_days）：
     100 檔裡至少 crawler.min_stocks_filled 檔填好的日子：y 是 0 或 1，etl:adj_open、etl:adj_close > 0。
@@ -41,7 +70,8 @@ yfinance 清理：照舊爬蟲的 R0～R5 依序做（規則、測試資料、�
     features/YYYY-MM.csv.gz   那個月的列。每天只重寫最後 features.rewrite_months 個月（月初要補上個月最後一天
                               的答案），內容沒變就不寫；過去的月份不動。特徵定義改了用 --rebuild 全部重寫。
     manifest.json             months（有哪些月份）、columns（全部欄位）、model_columns（模型用的欄）、last_date、
-                              清理紀錄、警告。欄位和上次不一樣時一定要 --rebuild，不然新舊月份的欄位會對不起來。
+                              清理紀錄、warnings（缺檔，會擋 --rebuild）、notes（只進長表的欄缺檔，不擋）。
+                              欄位和上次不一樣時一定要 --rebuild，不然新舊月份的欄位會對不起來。
     t 比已經存的最後一天早時（例如拿舊的 t 做研究）丟 FeatureError，不會把較新的月份蓋掉；要蓋掉加 --rebuild。
 
 用法：
@@ -70,6 +100,24 @@ HOURLY_COLUMNS = crawler.HOURLY_COLUMNS   # start：K棒開始時間，ISO 格�
 HOURLY_BAR = crawler.HOURLY_BAR
 PRICE_KEYS = ("open", "high", "low", "close", "adj_close")
 LABELS = ("label_y", "label_intraday_return")
+OPEN_GAP = "open_gap"                 # 當天開盤跳空欄（<序列>_open_gap）的記號；這種欄不能進 model_columns
+FRESH_ALLOWED = ("^GSPC", "^IXIC")    # features.teacher_fresh 只能是這兩欄：第 d 列是 d 開盤前的美股收盤
+PE_LOSS = ("-", "N/A")                # 本益比的虧損記號：證交所 '-'、櫃買 'N/A'
+NO_QUOTE = ("--", "----")             # 沒有揭示的價格：證交所 '--'；櫃買寫 0.00，數字 0 也算沒有揭示
+EXCHANGE_FIELDS = {                   # (交易所, 檔) → 要用的欄（crawler.EXCHANGE_SPECS 的存檔欄名）
+    ("twse", "valuation"): ("本益比", "股價淨值比", "殖利率(%)"),
+    ("tpex", "valuation"): ("本益比", "股價淨值比", "殖利率(%)"),
+    ("twse", "quotes"): ("最後揭示買價", "最後揭示買量", "最後揭示賣價", "最後揭示賣量"),
+    ("tpex", "quotes"): ("最後買價", "最後買量", "最後賣價", "最後賣量"),
+}
+SUSPENSION_FIELDS = {                 # 收盤行情裡判斷停牌的欄：開高低收都是 NO_QUOTE、成交股數 0
+    "twse": ("開盤價", "最高價", "最低價", "收盤價", "成交股數"),
+    "tpex": ("開盤", "最高", "最低", "收盤", "成交股數"),
+}
+VALUATION_COLUMNS = ("val_ep_lag1", "val_pe_loss_lag1", "val_log_pb_lag1", "val_dy_lag1")
+QUOTE_COLUMNS = ("quote_spread_ticks_lag1", "quote_rel_spread_lag1", "quote_imbalance_lag1",
+                 "quote_limit_up_lag1", "quote_limit_down_lag1")
+FLAG_COLUMNS = ("val_pe_loss_lag1", "quote_limit_up_lag1", "quote_limit_down_lag1")   # 0、1、空白，存成整數
 
 
 class FeatureError(RuntimeError):
@@ -359,12 +407,15 @@ def clean_taifex(rows: list, cfg: dict):
 # ---------------------------------------------------------------- 讀 data/raw/
 
 
-def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None, tx_path=None) -> dict:
+def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None, tx_path=None, exchange_dir=None) -> dict:
     """讀 data/raw/，yfinance 清理過。路徑沒給就用 config 的 data.raw_dir（測試會改成凍結資料）。
 
     回傳 {"stocks", "global", "top50", "yfinance": {名稱: 列}, "hourly": 列或 None,
-          "tx": [{date, expiry, session, close}], "cleaning": [紀錄], "warnings": [訊息]}。
+          "tx": [{date, expiry, session, close}], "exchange": 見 load_exchange,
+          "cleaning": [紀錄], "warnings": [訊息], "notes": [訊息]}。
     yfinance 某個檔不存在時，那個序列整欄空白，記一筆警告，不中斷（每天的流程要全自動）。台指期也一樣。
+    警告會讓 main() 當成缺檔（不能 --rebuild）。features.optional_inputs 的 yfinance 序列和證交所、櫃買的檔
+    只進長表，不見或讀不了時記在 notes，不算缺檔。exchange_dir 是放 twse/、tpex/ 的資料夾，預設 data.raw_dir。
     """
     raw_dir = utils.ROOT / cfg["data"]["raw_dir"]
     teacher_dir = Path(teacher_dir) if teacher_dir else raw_dir / "teacher" / "training"
@@ -372,17 +423,26 @@ def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None, tx_path
     yf_dir = Path(yf_dir) if yf_dir else raw_dir / "yfinance"
     stocks, global_rows, top50 = load_teacher(teacher_dir, live_dir)
     out = {"stocks": stocks, "global": global_rows, "top50": top50, "yfinance": {}, "hourly": None, "tx": [],
-           "cleaning": [], "warnings": []}
+           "exchange": {}, "cleaning": [], "warnings": [], "notes": []}
     load_tx(out, cfg, Path(tx_path) if tx_path else crawler.taifex_path(raw_dir, cfg), yf_dir)
+    optional = set(cfg["features"].get("optional_inputs") or ())
     for name, ticker in cfg["yfinance"]["tickers"].items():
         path = yf_dir / f"{name}.csv"
+        out["yfinance"][name] = []
         if not path.exists():
-            out["warnings"].append(f"沒有 yfinance/{name}.csv，{name} 的特徵整欄空白")
-            out["yfinance"][name] = []
+            (out["notes"] if name in optional else out["warnings"]).append(
+                f"沒有 yfinance/{name}.csv，{name} 的特徵整欄空白")
             continue
-        rows, records = clean_series(read_yfinance(path), name, ticker, cfg)
+        try:
+            rows, records = clean_series(read_yfinance(path), name, ticker, cfg)
+        except (FeatureError, OSError, ValueError, csv.Error) as e:   # UnicodeDecodeError 也是 ValueError
+            if name not in optional:
+                raise
+            out["notes"].append(f"yfinance/{name}.csv 讀不了（{e}），{name} 的特徵整欄空白")
+            continue
         out["yfinance"][name] = rows
         out["cleaning"].extend(records)
+    load_exchange(out, Path(exchange_dir) if exchange_dir else raw_dir)
     hourly = yf_dir / f'{cfg["features"]["usd_twd_am"]["hourly"]}.csv'
     if hourly.exists():
         out["hourly"], records = clean_hourly(read_hourly(hourly), cfg)
@@ -419,6 +479,63 @@ def load_tx(out: dict, cfg: dict, tx_path: Path, yf_dir: Path):
         out["tx"].extend({"date": r["date"], "expiry": "yfinance", "session": session, "close": r[key]} for r in rows)
 
 
+def load_exchange(out: dict, raw_dir: Path):
+    """證交所、櫃買的回補長表放進 out["exchange"]：{"valuation": {(日期, 代號): (本益比, 股價淨值比, 殖利率(%))},
+    "quotes": {(日期, 代號): (買價, 買量, 賣價, 賣量)}}，格子是檔案裡的原樣字串。
+
+    不會丟例外：檔案不見、讀不了、表頭少了要的欄，那個檔當作沒有；欄數不對、日期不對、沒有代號的列跳過。
+    同一天同一檔出現兩次（兩個交易所都有，或同一個檔重複）那格是 None，算出來是空白。都記在 out["notes"]。
+    停牌：交易所停牌那天照樣有列（收盤行情開高低收是 '--' 或 '----'、成交股數 0，估值沿用前一天），
+    這種（日期, 代號）兩張表都拿掉，當成沒有列，9 欄空白（核准的定義「停牌空白，不往前找」）。不記 notes。
+    """
+    tables = {"valuation": {}, "quotes": {}}
+    repeated = {"valuation": set(), "quotes": set()}
+    suspended = set()
+    for spec in crawler.EXCHANGE_SPECS:
+        fields = EXCHANGE_FIELDS.get((spec.market, spec.kind))
+        if fields is None:
+            continue
+        halt = SUSPENSION_FIELDS[spec.market] if spec.kind == "quotes" else ()
+        path = raw_dir / spec.file
+        if not path.exists():
+            out["notes"].append(f"沒有 {spec.file}，{spec.market} 的股票 {spec.kind} 欄空白")
+            continue
+        try:
+            with open(path, encoding="utf-8", newline="") as f:
+                rows = list(csv.reader(f))
+            header = rows[0] if rows else []
+            index = [header.index(name) for name in ("date", "stock_id", *fields)]
+            halt_index = [header.index(name) for name in halt]
+        except (OSError, ValueError, csv.Error):   # 讀不了、不是 UTF-8、表頭少了要的欄
+            out["notes"].append(f"{spec.file} 讀不了或表頭不對，{spec.market} 的股票 {spec.kind} 欄空白")
+            continue
+        table, bad = tables[spec.kind], 0
+        for r in rows[1:]:
+            if not r:
+                continue
+            if len(r) != len(header) or not crawler.is_iso_date(r[index[0]]) or not r[index[1]]:
+                bad += 1
+                continue
+            key = (r[index[0]], r[index[1]])
+            if key in table:
+                repeated[spec.kind].add(key)
+            table[key] = tuple(r[j] for j in index[2:])
+            if halt_index and crawler.to_float(r[halt_index[-1]]) == 0 \
+                    and all(r[j].strip() in NO_QUOTE for j in halt_index[:-1]):
+                suspended.add(key)
+        if bad:
+            out["notes"].append(f"{spec.file} 有 {bad} 列壞掉，跳過")
+    for kind, keys in repeated.items():
+        for key in keys:
+            tables[kind][key] = None
+        if keys:
+            out["notes"].append(f"{kind} 有 {len(keys)} 個（日期, 代號）出現兩次，那幾格空白")
+    for key in suspended:
+        for table in tables.values():
+            table.pop(key, None)
+    out["exchange"] = tables
+
+
 # ---------------------------------------------------------------- lag
 
 
@@ -438,7 +555,7 @@ def series_name(column: str) -> str:
 
 
 def market_sources(raw: dict, cfg: dict, calendar: list) -> dict:
-    """{序列名稱: (日期, 價格)}：yfinance 19 個加老師 global 的欄，只留交易日以內的列。"""
+    """{序列名稱: (日期, 價格)}：yfinance.tickers 的序列加老師 global 的欄，只留交易日以內的列。"""
     last = calendar[-1] if calendar else ""
     adj_kinds = cfg["features"]["adj_close_kinds"]
     out = {}
@@ -467,8 +584,13 @@ def hourly_switch(hourly, cfg: dict) -> date:
 
 
 def usd_twd_am_values(days: list, raw: dict, cfg: dict) -> list:
-    """每個日期 d 的 usd_twd_am：分界日起取「結束時間 ≤ 台北 d 日 at」的最後一根 1h 的 close（最多往回
-    lookback_days 天），取不到就空白；分界日之前用 usd_twd 那天日K的 close。"""
+    """每個日期 d 的 usd_twd_am：分界日起取「結束時間 ≤ 台北 d 日 at」的最後一根 1h 的 close，取不到就空白；
+    分界日之前用 usd_twd 那天日K的 close。
+
+    那根要在 d 往回 lookback_days 天內結束，而且要晚於前一個日期（days 的前一個，也就是前一個交易日）的 at 結束。
+    不然它就是前一天選過的那根：爬蟲那次沒抓到新的 1h、沿用舊檔，x_t 會等於 x_i、lag1 變成 0。這時空白
+    （使用者 2026-11-08）。days 的第一天沒有前一天，只看 lookback。爬蟲的 has_value_t 用同一條規則。
+    """
     am = cfg["features"]["usd_twd_am"]
     hourly = raw["hourly"] or []
     switch = hourly_switch(hourly, cfg)
@@ -477,14 +599,161 @@ def usd_twd_am_values(days: list, raw: dict, cfg: dict) -> list:
     lookback = timedelta(days=am["lookback_days"])
     daily = {r["date"]: r["close"] for r in raw["yfinance"].get(am["daily"], [])}
     out = []
-    for d in days:
+    for n, d in enumerate(days):
         day = date.fromisoformat(d)
         if day < switch:
             out.append(daily.get(d))
             continue
         target = datetime.combine(day, at, TAIPEI)
+        floor = target - lookback
+        if n > 0:
+            floor = max(floor, datetime.combine(date.fromisoformat(days[n - 1]), at, TAIPEI))
         j = bisect_right(ends, target) - 1
-        out.append(hourly[j]["close"] if j >= 0 and ends[j] > target - lookback else None)
+        out.append(hourly[j]["close"] if j >= 0 and ends[j] > floor else None)
+    return out
+
+
+def teacher_fresh_values(days: list, global_rows: dict, column: str) -> list:
+    """老師 global 第 d 列的 column（^GSPC 或 ^IXIC：d 開盤前最後一次美股收盤），沒有那列是 None。
+    -1 和 ≤ 0 留給 k_returns 當空白（Live 的 -1 在 load_teacher 已經換成空字串）。"""
+    if column not in FRESH_ALLOWED:
+        raise FeatureError(f"features.teacher_fresh 只能是 {list(FRESH_ALLOWED)}：{column} 第 d 列是 d 當天收盤")
+    j = crawler.GLOBAL_COLUMNS.index(column)
+    return [crawler.to_float(global_rows[d][j]) if d in global_rows else None for d in days]
+
+
+def is_placeholder(row) -> bool:
+    """Yahoo 補的佔位K棒：開高低收相同，成交量是 0 或空的。"""
+    return is_flat(row) and not row["volume"]
+
+
+def late_open_days(rows: list, rule: dict) -> set:
+    """10:00 才開盤的日子：config 列的日子，加上 first_day_of_year 時序列每年的第一根（rows 已經去掉佔位K棒）。
+
+    每年的第一根和第一根成交量 > 0 的都算：Yahoo 在 1/1 休市補一根量 0、開高低收不同的K棒時（不算佔位K棒），
+    真正的第一個交易日還是空白。兩根是同一天時就是一天。
+    """
+    out = set((rule or {}).get("days") or ())
+    if (rule or {}).get("first_day_of_year"):
+        first, traded = set(), set()
+        for r in rows:
+            year = r["date"][:4]
+            if year not in first:
+                first.add(year)
+                out.add(r["date"])
+            if r["volume"] and year not in traded:
+                traded.add(year)
+                out.add(r["date"])
+    return out
+
+
+def open_gap_values(days: list, rows: list, rule: dict | None) -> list:
+    """每個日期 d 的開盤跳空：序列 d 那根的 open ÷ 前一根的 close − 1（寫成 (open − close) / close）。
+
+    前一根是序列自己的前一根，跳過佔位K棒。沒有 d 那根、d 那根是佔位K棒、d 是 late_open_days、前面沒有K棒、
+    任一價格空的或 ≤ 0：空白。rows 是清理過、依日期排序的日K。
+    """
+    real = [r for r in rows if not is_placeholder(r)]
+    late = late_open_days(real, rule)
+    pos = {r["date"]: j for j, r in enumerate(real)}
+    out = []
+    for d in days:
+        j = pos.get(d)
+        if j is None or j == 0 or d in late:
+            out.append(np.nan)
+        else:
+            out.append(ratio(real[j]["open"], real[j - 1]["close"]))
+    return out
+
+
+def tick_bands(cfg: dict) -> list:
+    """features.tick_table → [(價格上限（分，不含；最後一段是 None）, 一檔幾分)]。每段的下限要是那段一檔的倍數。"""
+    bands, low = [], 0
+    for upper, tick in cfg["features"]["tick_table"]:
+        high, step = (None if upper is None else round(upper * 100)), round(tick * 100)
+        if low is None or step <= 0 or low % step or (high is not None and (high <= low or high % step)):
+            raise FeatureError("features.tick_table 的價格區間或升降單位不對")
+        bands.append((high, step))
+        low = high
+    if not bands or bands[-1][0] is not None:
+        raise FeatureError("features.tick_table 最後一段要是 [null, 一檔多少]")
+    return bands
+
+
+def tick_position(price: float, bands: list):
+    """從 0 數到 price 有幾檔（一檔一檔跨過價格區間）。price 不在升降單位的格子上、大到換算不了時回傳 None。"""
+    if not math.isfinite(price * 100):   # 例如 '1e307'：round(inf) 會丟 OverflowError
+        return None
+    cents = round(price * 100)
+    if abs(price * 100 - cents) > 1e-6:
+        return None
+    total, low = 0, 0
+    for high, step in bands:
+        if high is None or cents < high:
+            return None if (cents - low) % step else total + (cents - low) // step
+        total += (high - low) // step
+        low = high
+    return None
+
+
+def quote_price(text: str):
+    """最後揭示的價格：> 0 是價格，0.0 代表沒有揭示（'--'、'----'、0.00），看不懂是 None。"""
+    if text.strip() in NO_QUOTE:
+        return 0.0
+    value = crawler.to_float(text)
+    return value if value is not None and value >= 0 else None
+
+
+def valuation_cells(row) -> tuple:
+    """(本益比, 股價淨值比, 殖利率(%)) 的字串 → VALUATION_COLUMNS 的值。"""
+    pe_text, pb_text, dy_text = row
+    pe, pb, dy = crawler.to_float(pe_text), crawler.to_float(pb_text), crawler.to_float(dy_text)
+    loss = 1.0 if pe_text.strip() in PE_LOSS else (0.0 if pe is not None else np.nan)
+    return (1 / pe if pe is not None and pe > 0 else np.nan, loss,
+            math.log(pb) if pb is not None and pb > 0 else np.nan,
+            dy / 100 if dy is not None else np.nan)
+
+
+def quote_cells(row, bands: list) -> tuple:
+    """(買價, 買量, 賣價, 賣量) 的字串 → QUOTE_COLUMNS 的值。"""
+    bid, ask = quote_price(row[0]), quote_price(row[2])
+    has_bid, has_ask = bid is not None and bid > 0, ask is not None and ask > 0
+    ticks = rel = np.nan
+    if has_bid and has_ask and bid < ask:
+        low, high = tick_position(bid, bands), tick_position(ask, bands)
+        ticks = float(high - low) if low is not None and high is not None else np.nan
+        rel = (ask - bid) / ((ask + bid) / 2)
+    bid_volume, ask_volume = crawler.to_float(row[1]), crawler.to_float(row[3])
+    imbalance = np.nan
+    if bid_volume is not None and ask_volume is not None and bid_volume >= 0 and ask_volume >= 0 \
+            and bid_volume + ask_volume > 0:
+        imbalance = (bid_volume - ask_volume) / (bid_volume + ask_volume)
+    return (ticks, rel, imbalance, float(ask == 0.0 and has_bid), float(bid == 0.0 and has_ask))
+
+
+def exchange_values(prev_day: list, codes: list, exchange: dict, cfg: dict) -> dict:
+    """證交所、櫃買的欄 {欄名: 長度 len(prev_day) × len(codes) 的陣列}，順序和 build_features 的列一樣（日期在外層）。
+    每列用 i（prev_day）那天、那檔的列；沒有就空白，不往前找。
+    格子算不出來（看不懂的字串、算術溢位）時那張表的欄空白，不丟例外：交易所檔的內容不能擋住每天的流程。"""
+    bands = tick_bands(cfg)
+    valuation, quotes = exchange.get("valuation") or {}, exchange.get("quotes") or {}
+    out = {c: np.full(len(prev_day) * len(codes), np.nan) for c in VALUATION_COLUMNS + QUOTE_COLUMNS}
+    n = 0
+    for i in prev_day:
+        for code in codes:
+            if i is not None:
+                for table, columns, cells in ((valuation, VALUATION_COLUMNS, valuation_cells),
+                                              (quotes, QUOTE_COLUMNS, lambda r: quote_cells(r, bands))):
+                    row = table.get((i, code))
+                    if row is None:
+                        continue
+                    try:
+                        values = cells(row)
+                    except (ArithmeticError, ValueError, TypeError, AttributeError):
+                        continue
+                    for c, value in zip(columns, values):
+                        out[c][n] = value
+            n += 1
     return out
 
 
@@ -579,6 +848,22 @@ def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
     for column, values in tx_values(days, prev_day, calendar[-1] if calendar else "", raw["tx"], lags).items():
         data[column] = np.repeat(np.array(values, dtype=float), n_codes)
 
+    # 以下只進長表（使用者 2026-11-08）。老師 S&P 500、Nasdaq 用 t 自己那列，和 usd_twd_am 一樣
+    for column in cfg["features"].get("teacher_fresh") or ():
+        x = teacher_fresh_values(days, raw["global"], column)
+        for k in lags:
+            values = k_returns(days, x, k)
+            data[f"{series_name(column)}_fresh_ret_lag{k}"] = np.repeat([values.get(d, np.nan) for d in days], n_codes)
+
+    gap = cfg["features"].get("open_gap") or {}
+    for name in gap.get("series") or ():
+        values = open_gap_values(days, raw["yfinance"].get(name, []), (gap.get("late_open") or {}).get(name))
+        if t is not None:
+            values[-1] = np.nan   # t 當天 08:30 才看得到；每天早上爬蟲也不留 t 那根，這裡再擋一次
+        data[f"{name}_{OPEN_GAP}"] = np.repeat(np.array(values, dtype=float), n_codes)
+
+    data.update(exchange_values(prev_day, codes, raw.get("exchange") or {}, cfg))
+
     label_y, label_ret = [], []
     for d in days:
         for c in codes:
@@ -590,6 +875,8 @@ def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
                 label_y.append(int(crawler.to_float(row[crawler.COL_Y])))
                 label_ret.append(crawler.to_float(row[crawler.COL_CLOSE]) / crawler.to_float(row[crawler.COL_OPEN]) - 1)
     df = pd.DataFrame(data)
+    for column in FLAG_COLUMNS:
+        df[column] = df[column].astype("Int64")
     df["label_y"] = pd.array(label_y, dtype="Int64")
     df["label_intraday_return"] = np.array(label_ret, dtype=float)
     unknown = set(model_columns(cfg)) - set(df.columns)
@@ -599,8 +886,15 @@ def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
 
 
 def model_columns(cfg: dict) -> list:
-    """模型要用的特徵欄：features.model_series 每個序列的每個 lag。train.py、predict.py 只讀這些欄。"""
-    return [f"{s}_ret_lag{k}" for s in cfg["features"]["model_series"] for k in cfg["features"]["lags"]]
+    """模型要用的特徵欄：features.model_series 每個序列的每個 lag。train.py、predict.py 只讀這些欄。
+
+    開盤跳空（*_open_gap）用到 t 當天的資料，任何名字裡有 open_gap 的序列都丟 FeatureError（使用者 2026-11-08）。
+    """
+    series = cfg["features"]["model_series"]
+    same_day = [s for s in series if OPEN_GAP in str(s)]
+    if same_day:
+        raise FeatureError(f"features.model_series 不能放開盤跳空的欄（用到 t 當天的資料）：{same_day}")
+    return [f"{s}_ret_lag{k}" for s in series for k in cfg["features"]["lags"]]
 
 
 def to_csv_gz(df: pd.DataFrame) -> bytes:
@@ -670,6 +964,8 @@ def main(argv=None) -> int:
     raw = load_raw(cfg)
     for message in raw["warnings"]:
         log.warning(message)
+    for message in raw["notes"]:
+        log.warning("%s（只進長表的欄，不算缺檔；檔案補齊後要 --rebuild，不然過去月份的這幾欄一直空白）", message)
     df = build_features(raw, cfg, t)
     out_dir = utils.ROOT / cfg["data"]["processed_dir"]
     last = df["date"].iloc[-1]
@@ -695,7 +991,7 @@ def main(argv=None) -> int:
               "months": sorted(m for m in df["date"].str[:7].unique()
                                if (out_dir / "features" / f"{m}.csv.gz").exists()),
               "columns": list(df.columns), "model_columns": model_columns(cfg),
-              "cleaning_counts": counts, "warnings": raw["warnings"], "cleaning": raw["cleaning"]}
+              "cleaning_counts": counts, "warnings": raw["warnings"], "notes": raw["notes"], "cleaning": raw["cleaning"]}
     crawler.write_atomic(out_dir / "manifest.json", (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode())
     log.info("特徵表：%d 列、%d 天，最後一天 %s；寫了 %s；清理紀錄 %s", len(df), report["dates"], last,
              written or "沒有月份變動", counts)

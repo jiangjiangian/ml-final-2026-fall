@@ -40,6 +40,7 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 - 排程（使用者 2026-11-06 決定，11-07 改主機）：不用 GitHub Actions 的 `schedule`。主跑原本定 GCP e2-micro 免費額度，2026-11-07 量到流程高峰約 750 MB、e2-micro 只有 1 GB，使用者改用學校的 `oop.cs.nccu.edu.tw`（Ubuntu 22.04、16 核、24 GB；ghost 是 Solaris，裝不了套件）。台北 07:10、07:25、07:40、07:55、08:05 用 cron 跑 `run_daily_test.py --sync`（使用者 2026-11-08 從兩次加到五次：當天 07:10 學校 DNS 短暫查不到 github.com，那次停下；最後一次 08:05 而不是 08:15，離爬蟲截止 08:30 留 25 分鐘）；備援是使用者的 Mac，08:15、08:25、08:35 跑（2026-11-08 從 08:05 起改到 08:15 起，不和 oop 的 08:05 同時爬），網站上還沒有今天的有效提交才交。帳密放各台的 `.env`。大模型之後在 Kaggle 訓練好推進 repo，主機只預測。安裝步驟見 `README.md`「排程主機」。
 - 使用者 2026-11-06：先寫 `run_daily_test.py` 每天交 Phase 2，用組員 `notebooks/feature_switch.ipynb` 第 6 節的方法（邏輯迴歸，最近 14 個月訓練、每週重訓、每天用前一天的答案微調，機率 > 0.5 猜漲），特徵是組員 `build_model.ipynb` 的個股特徵加新表的 32 欄。使用者確認舊系統的排程停了，`submit.enabled` 可以打開。跑完要自動 commit、push `data/`。
 - 爬蟲 08:30 以後才開始時（排程延遲才會發生）：每一步只試一次，不等不重試，yfinance 不抓、沿用舊檔，盡量趕在截止前交（使用者 2026-11-06 確認，就是目前的做法）。
+- 證交所、櫃買（2026-11-09 寫好，`exchange.enabled` 還是 false）：打開後爬蟲在期交所之後補 i 那天，平常每個主機 2 個請求、約多 20 秒，最壞約 5 分鐘；失敗只寫警告和 manifest 的 `exchange`，不影響上傳。打開前要先量資料每天幾點公布、07:10 抓不抓得到，並先 commit、push 回補的檔，讓 oop 和 Mac pull 到完整的版本（見 `memory/projects/crawler.md` 的「每天的步驟」）。
 - `predict.py`（09:00）和 `submit.py`（08:50）檢查截止。crawler 的每日模式（`--date t`）在 07:00 前不跑，08:30 後不再等待或重試。研究模式的 crawler 和 `features`、`train` 什麼時間都能跑。
 
 ## 失敗時怎麼處理
@@ -82,3 +83,36 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 - 資源（2026-11-07 在 Mac 上量）：特徵和模型在同一個程式裡時，記憶體高峰約 735～760 MB（模型讀資料那一步）；Phase 1 全程 40～60 秒。
 - 外資持股比率（使用者 2026-11-07）：Live 的這一欄常常隔天才公布（11/06 晚上那天 100 檔都是 -1），待定時沿用這檔股票前一個有值的比率，持股變化就成了 0。
 - Phase 1 本機分數（2026-11-07，用 26 個個股特徵加 32 欄）：0.001235，正確率 53.4%；全猜 0 是 −0.000204。組員 11/06 交的版本網站算 0.002773，本機重算一樣，計分方式對得上。
+
+## 特徵欄位變了怎麼推（2026-11-09 審查後寫）
+
+特徵表的欄位一變，舊的 `data/processed/manifest.json` 就和新程式對不起來，每天的 `features.main(["--date", t])` 沒加 `--rebuild` 會丟「特徵欄和上次不一樣」，那天交不出去。反過來，舊程式配新的 manifest 也一樣會停。所以程式和重建過的表要在同一次 push。2026-11-09 的 17 欄就是這種情況，之後再改欄位也照這裡做。
+
+### 同一次 push 要有的東西
+
+- 一定要有：本機還沒推的 `42ba1f8`、工作目錄的 `src/crawler.py`（`features.py` 用到 `crawler.EXCHANGE_SPECS`）、`src/features.py` 和 `configs/config.yaml`（兩個要一起：新程式讀 `features.tick_table`，新 config 配舊程式會多出 `kospi_ret` 兩欄），以及 pull 之後用 `--rebuild` 重建的整個 `data/processed/`（`manifest.json` 和全部月份檔）。
+- 強烈建議：`data/raw/twse/`、`data/raw/tpex/`。不推不會出錯，但 oop 每天重寫最後兩個月時，交易所 9 欄會變空白，只記在 notes。
+- 可有可無：`data/raw/exchange_backfill.json`。`exchange.enabled` 是 false 時每天的流程不讀它。
+- 測試和文件跟著程式一起 commit。
+
+### 步驟
+
+1. 先 commit 程式、測試、文件，只 `git add` 自己改的檔。`README.md` 用 `git add -p`，另一個 session 寫的 `notebooks/kaggle/` 那幾行不要收。`.gitignore`、`notebooks/`、`memory/projects/kaggle-models.md` 不要 stage。
+2. `git fetch origin && git rebase --autostash origin/claude/stock-market-challenger`。`--autostash` 會先收起別人沒 commit 的改動，rebase 完再放回來。`git pull --rebase --autostash origin <分支>` 在這個 repo 會失敗（2026-11-09：「Cannot rebase onto multiple branches」）。oop 每天會 commit `data/`，不先 pull 的話，重建的月份檔和 `manifest.json` 會和 origin 二進位衝突；衝突時選了 origin 那邊，就回到舊欄位。
+3. `python -m src.features --rebuild`。t 會從 pull 下來的 `data/raw/manifest.json` 取（oop 最新那天）。確認新的 `manifest.json`：`columns` 是預期的欄數，`warnings` 是 `[]`。這一步會在 `data/submission/run_<t>.log` 多幾行，不用 commit，推完用 `git restore data/submission` 還原。
+4. 比一次重建前後 t 那天 50 檔的 0／1。重建會用現在的 yfinance 檔重算過去凍住的月份，Yahoo 每次重抓 `adj_close` 會往回調，所以 `tsm_adr`、`nvda`、`etf_0050` 這類模型欄在舊月份會有 1e-6 級的變動（2026-11-09 模擬：692,900 格，最大差 9.2e-7，t = 11-09 的機率最多差 0.0011，沒有一檔的 0／1 改變）。這和程式改了什麼無關，舊程式加 `--rebuild` 也一樣。
+   - 不要用 `run_daily_test.py` 或 `src.submit` 來比：`submit.enabled` 是 true，下一個 t 的上傳在前一個交易日 09:01 就開放，跑下去可能真的送出。
+   - 只呼叫模型、不上傳的做法：在重建前的 worktree（`git worktree add <暫存資料夾> origin/claude/stock-market-challenger`）和重建後的 repo 各跑一次下面這行，比兩個輸出檔的 `pred` 欄。worktree 沒有 `.venv`，在 worktree 的資料夾裡用這個 repo 的 `.venv/bin/python` 跑，`src` 會從目前的資料夾載入。
+
+     ```bash
+     python -c "import json; from src import online_lr, utils; cfg = utils.load_config(); d = online_lr.load_data(cfg); ids = sorted(str(x) for x in json.loads((utils.ROOT / 'data/raw/teacher/training/info.json').read_text(encoding='utf-8-sig'))['Top50@Y']); online_lr.predict(d, cfg, ['<t>'], ids).to_csv('<輸出檔>', index=False)"
+     ```
+5. `git add data/processed data/raw/twse data/raw/tpex`，commit，先不要 push。
+6. 在乾淨的 worktree（`git worktree add <暫存資料夾> HEAD`，這時 HEAD 已經有重建的表）用這個 repo 的 `.venv/bin/python` 跑一次 `-m src.features --date <第 3 步的 t>`。要沒有丟錯，`git status data/processed` 也沒有新的改動（log 會寫進 `data/submission/`，那個不算）。如果丟「特徵欄和上次不一樣」，代表重建的表沒有 commit 到，不要在 worktree 裡加 `--rebuild` 蓋過去，回去查第 5 步。
+7. push。推的時間避開台北 07:00～08:40：oop 07:10～08:05 跑五次，Mac 08:15～08:35 備援；推送剛好落在某次執行中間時，那次的 `before_post` 推送會在 `data/processed` 衝突，那次就不上傳。
+8. 推完後，oop 第一次 pull 要下載約 20 MB（重建的月份檔約 14.6 MB、證交所和櫃買的 CSV 壓縮後約 5.3 MB），`git_start` 的 pull、fetch 各有 180 秒上限。方便連 VPN 的話先在 oop 手動 `git pull` 一次，不然看隔天 07:10 那次的 log 確認 pull 有成功。
+
+### 之後還要再重建的時候
+
+- `kospi.csv` 第一次抓到之後：新的爬蟲推上去後，oop 下一次每天的流程會從 `data.start` 抓完整的 `^KS11`，`--sync` 用 `git add data/raw` 把新檔一起 commit。之後照上面第 2～8 步再 `--rebuild` 一次，不然過去月份的 `kospi_*` 一直是空白（每天只重寫最後兩個月）。
+- `exchange.enabled` 打開時：如果打開的日子離回補的最後一天（2026-11-06）超過 `exchange.gapfill_days`（10 個交易日），每天的爬蟲補不到中間那段。先在開發用的 clone 跑 `python -m src.crawler --exchange-backfill --start <回補最後一天的下一天>` 補上（不要在 oop 或 Mac 的排程 clone 跑，原因見 `README.md`「證交所、櫃買的回補」），再照第 2～8 步 `--rebuild`。

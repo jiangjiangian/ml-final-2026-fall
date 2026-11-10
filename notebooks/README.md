@@ -11,4 +11,13 @@
 
 notebook 裡用到的資料一律從 `data/` 讀，不要在 notebook 裡另外爬一份。老師資料在 `data/raw/teacher/training/` 和 `data/raw/teacher/live/`，特徵表在 `data/processed/features/`（讀法見根目錄 README）。data-collection 的舊長表在 `tests/fixtures/data-collection/transform/panel_lag.csv.gz`，只給測試當對照，只讀不改。
 
-Jupyter 不在 `requirements.txt` 裡，要用的話自己 `pip install jupyter`。
+## 在 VSCode 跑 notebook
+
+VSCode 只需要 `ipykernel`（Jupyter 的 Python 核心）。它不在 `requirements.txt` 裡，自己裝：
+
+```bash
+uv pip install --python .venv/bin/python -c requirements.txt ipykernel   # -c 讓 requirements.txt 鎖的版本不被動到
+```
+
+- 用 uv 建的 `.venv` 裡沒有 pip，VSCode 跳出來的「安裝 ipykernel」會失敗，要用上面的指令。用 `python -m venv` 建的可以直接 `pip install ipykernel`。
+- 開 notebook 後，右上角的 kernel 選 `.venv`。選到系統的 Python 會在第一格 `import numpy` 就出錯。

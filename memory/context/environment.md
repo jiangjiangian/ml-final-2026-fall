@@ -17,6 +17,13 @@ python -m pytest               # 目前 117 passed、1 skipped
 
 - 套件版本：`requirements.txt` 每個套件都鎖在發布滿兩週的版本。新加套件也照這個規則。
 
+## 在這台 Mac 跑 notebook（2026-11-10）
+
+- VSCode 要 `ipykernel`。根目錄 `.venv` 2026-11-10 加了：`uv pip install --python .venv/bin/python -c <當時的 freeze> --exclude-newer 2026-10-27T00:00:00Z ipykernel`，多 22 個套件，原本 60 個沒變，測試照樣通過。uv 建的 venv 沒有 pip，VSCode 的「安裝 ipykernel」按鈕會失敗；使用者原本因此選到 `/usr/local/bin/python`（Homebrew 3.10，沒有 numpy），第一格就出錯。
+- `notebooks/.venv`（pyvenv.cfg 的 prompt 是 `nb-torch`，`.gitignore` 的 `.venv/` 會蓋到，VSCode 預設會找 `*/.venv`）：給要 torch、shap 的 notebook。這台是 Intel Mac，PyTorch 最後一個 x86_64 macOS wheel 是 2.2.2，用 numpy 1.x 編的；配 `.venv` 的 numpy 2.5.4 時 `tensor.numpy()` 丟 `Numpy is not available`。裡面是 numpy 1.26.4、scipy 1.17.1、pandas 3.0.6、scikit-learn 1.9.1、torch 2.2.2、shap 0.49.1、matplotlib 3.11.2、ipykernel 7.4.0。重建：`uv venv notebooks/.venv --python 3.12 --prompt nb-torch`，再 `uv pip install --python notebooks/.venv/bin/python --exclude-newer 2026-10-27T00:00:00Z --no-build pandas==3.0.6 scikit-learn==1.9.1 tqdm==4.70.1 'numpy<2' torch shap matplotlib ipykernel`（沒有 `--no-build` 會選到要用 cmake 編的 llvmlite）。
+- 組員的 `notebooks/build_model.ipynb`、`feature_switch.ipynb`（沒進 Git）照組員自己的資料夾找檔案。2026-11-10 在 `notebooks/` 放了它們要的東西，都列在 `.git/info/exclude`，不進 Git：`tw_top100_industry.csv`（`notebooks/kaggle/data/` 那份，表頭改成 代號、名稱、市場別、產業別）、`sample_submission.csv`（`data/submission/submission_phase1_2026-11-07.csv` 的表頭和代號，值全 0）、`data/market`（連到 `data/raw/teacher/training/market`）、`data/data/market`（連到 `data/raw/teacher/live/market`）、`train_data_v2.csv`（254 MB，`build_model.ipynb` 產生）、`submission_holdout.csv`。`build_model.ipynb` 只改一行：`GITHUB` 網址的分支名從 `claude/peaceful-babbage-09xeie` 改成 `claude/data-collection`（分支改過名，舊網址 404）。
+- 驗證（用 `.venv` 當 kernel、工作目錄 `notebooks/`，和 VSCode 一樣）：`build_model` 約 2 分鐘，165,946 列到 2026-11-04，兩個檢查都過；組員存的輸出是 163,746 列到 09-30，多的 2,200 列是長表後來補的 10 月以後（老師資料只讀到 `LAST_DATE`，這些列的個股特徵應該是空的，要用得把 `LAST_DATE` 往後改）。`feature_switch` 第 1～7 節 30 秒，和組員存的輸出 56 行裡 48 行相同，其餘是列數和小數第 5、6 位；第 6 節 ALL 那列完全相同（score 0.002053）。torch、SHAP 那幾格沒有完整跑完驗證，只確認同一組套件裡 torch 和 `.numpy()` 可用。
+
 ## 分支
 
 | 分支 | 用途 |

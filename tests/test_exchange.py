@@ -43,7 +43,9 @@ def no_network(monkeypatch):
 
 @pytest.fixture
 def cfg():
-    return copy.deepcopy(utils.load_config())
+    conf = copy.deepcopy(utils.load_config())
+    conf["exchange"]["enabled"] = False   # 設定檔 2026-11-10 起是 true；每天那一步的測試用 daily_cfg 打開
+    return conf
 
 
 def load(name: str) -> dict:
@@ -837,7 +839,7 @@ def test_cli_rejects_bad_arguments(argv):
 
 def test_config_exchange_section():
     conf = utils.load_config()["exchange"]
-    assert conf["enabled"] is False   # 每天的爬蟲預設不抓（使用者決定什麼時候打開）
+    assert conf["enabled"] is True   # 每天的爬蟲要抓（使用者 2026-11-10 打開）
     assert conf["min_interval_seconds"] >= 6.5 and conf["pause"] == ["07:00", "09:00"]
     assert conf["twse"]["min_stocks"] == 85 and conf["tpex"]["min_stocks"] == 8
     assert conf["gapfill_days"] == 10 and conf["daily_max_requests"] == 12
@@ -892,7 +894,7 @@ def calls(fake) -> list:
 
 
 def test_daily_disabled_sends_nothing_and_writes_nothing(raw, cfg):
-    assert cfg["exchange"]["enabled"] is False
+    cfg["exchange"]["enabled"] = False
     run, fakes = run_daily(raw, cfg, Clock(at("2026-11-09", "07:10")))
     assert all(f.calls == [] for f in fakes.values())
     assert "exchange" not in run.manifest and not (raw / "manifest.json").exists()

@@ -83,6 +83,7 @@ def cfg(tmp_path):
     conf["yfinance"]["tickers"] = {"sox": "^SOX", "etf_0050": "0050.TW"}
     conf["yfinance"]["cache_dir"] = str(tmp_path / "yfcache")
     conf["yfinance"]["hourly"] = {}   # 1h 另外測
+    conf["exchange"]["enabled"] = False   # 設定檔 2026-11-10 起是 true；交易所那一步要測的測試自己打開
     return conf
 
 
@@ -969,7 +970,7 @@ def test_config_adds_kospi_at_the_end():
 
 def crawl(tmp_path, cfg, clock, *, t="2026-11-17", daily=True, course=None, live=None, yahoo=None, secrets=SECRETS,
           fallback=None, taifex=None, exchange=None):
-    """exchange：{市場: 假的 requests.Session}，證交所、櫃買用（沒給也不會連網：exchange.enabled 預設 false）。"""
+    """exchange：{市場: 假的 requests.Session}，證交所、櫃買用（沒給也不會連網：cfg 夾具把 exchange.enabled 關掉）。"""
     run = make_run(tmp_path, cfg, clock, t=t, daily=daily)
     course = crawler.course_client(cfg, clock.sleep, course or course_fake())
     live = crawler.live_client(cfg, clock.sleep, live or live_fake(make_zip(live_members(LIVE_DATES, {"2026-11-17"}))))
@@ -1604,7 +1605,7 @@ class ExchangeHttp:
 
 
 def test_crawl_exchange_disabled_sends_nothing(tmp_path, cfg):
-    assert cfg["exchange"]["enabled"] is False
+    cfg["exchange"]["enabled"] = False
     fakes = {m: ExchangeHttp(FakeResp(403)) for m in crawler.EXCHANGE_MARKETS}
     code, run = crawl(tmp_path, cfg, Clock(at("2026-11-17", "07:10")), exchange=fakes)
     assert code == 0 and all(f.calls == 0 for f in fakes.values())

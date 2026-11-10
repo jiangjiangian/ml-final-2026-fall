@@ -10,6 +10,8 @@
 - 老師美股不退格（使用者 2026-11-08，2026-11-09 實作）：`^GSPC`、`^IXIC` 第 d 列是 d 開盤前最後一次美股收盤（2026-11-08 和 Yahoo 逐列比對，Training 1,506 列、Live 45 列沒有一列放 d 當天或更晚的收盤），所以 t 那列可以用。`teacher_gspc_fresh_ret_lag*`、`teacher_ixic_fresh_ret_lag*` 用 t 自己那列，公式和 `usd_twd_am` 一樣；Live t 那列約 05:05 填好。原本的 `teacher_gspc`、`teacher_ixic` 照舊只用 t 之前那列。`^TWII`、`^KS11`、`TX_OI` 還是只能用日期早於 t 的最後一列，`features.teacher_fresh` 放這三欄會丟錯。
 - 唯一的當天資料例外（使用者 2026-11-08，2026-11-09 實作）：`kospi_open_gap`、`n225_open_gap` 放在 d 那列，用的是 d 當天的開盤，台北約 08:30 才看得到（Yahoo 延遲 20～30 分）。只進長表給組員研究，不能進 `model_columns`：`features.model_columns()` 遇到名字有 `open_gap` 的序列會丟 `FeatureError`，`tests/test_no_future_data.py` 也檢查。爬蟲丟掉日期 ≥ t 的K棒，`build_features` 也把 t 那列設成空白，所以每天早上 t 那列是空白，隔天重寫最後兩個月時補上。
 - 證據：`../ml-final-archive/memory/context/data-decisions.md` 的「時間對齊驗證」，用 Yahoo 原始資料逐值比對過。
+- VIXTWN（使用者 2026-11-09）：d 日的值是 d 日 13:45 收盤，台北 16:10 才公布，和 `^TWII` 一樣只能用日期早於 t 的值，t 那列最多用到 i。
+- CNN 恐懼貪婪（2026-11-09 發現）：CNN 存的最後一天的分數收盤後還會改，跟著最新的 VIX 重算（11-06 那點 11-09 週一盤前還在變）。如果要到美股下一次開盤才定住，美國 d 日那點就含 20:15 ET（冬令台北 09:15、夏令 08:15）以後的 VIX 延長時段，也就是台股 t 盤中的資訊，拿來當 t 的特徵會偷看，歷史值和 07:10 抓到的也不一樣。量測確認之前不要用最後一天的分數；確認會改就用 t 之前最後一個美股交易日的前一個美股交易日（使用者 2026-11-09）。美股交易日要看道瓊的K棒，不能看 CNN 自己的日期：CNN 美國假日可能也會先建點，假日隔天那列會用到還在變的那天（審查 2026-11-09）。這個點如果在美國下一個交易日開盤時定住，那是台北 t 之前的晚上；如果在收盤時定住，最晚是台北 t 日 05:00。兩種都在 t 開盤前。那天早上沒抓到 CNN 時，檔裡這個點是前一次抓的、還沒定住的值，t 那列空白，不用它（使用者 2026-11-09）。
 - 證交所、櫃買的日資料（`data/raw/twse/`、`data/raw/tpex/`，使用者 2026-11-08）：第 d 天的值是 d 那天收盤後的量（收盤價、本益比、殖利率、最後揭示買賣價量），只能當 t > d 的特徵，t 那列最多用到 i 那天。長表的 `val_*_lag1`、`quote_*_lag1`（2026-11-09 實作）存的是 i 那天的值本身，這檔股票 i 那天在兩個交易所都沒有列就空白，不往前找。價格是交易所的原始價，不和老師的還原價混用。櫃買本益比表的「每股股利」「股利年度」是事後回填的，爬蟲不存，也不能從別的地方補來用。查過櫃買的殖利率、本益比是當天的值，股價淨值比還沒查（見 `memory/projects/crawler.md` 的「有沒有偷看未來」）。
 
 ## 美股的日期
@@ -34,7 +36,8 @@
 ## 資料來源
 
 - 使用者 2026-11-06：資料來源盡量只用 yfinance 和老師的資料，要加別的來源先問。
-- 使用者 2026-11-08 同意加證交所（`www.twse.com.tw`）和櫃買中心（`www.tpex.org.tw`）：`BWIBBU_d`、`MI_INDEX`、`peQryDate`、`otc` 四個「指定日期、全市場」的端點，只留老師的 100 檔。研究用的回補（`python -m src.crawler --exchange-backfill`）2026-11-09 跑完 2020-01-02～2026-11-06，長表的 9 欄讀這些檔，不進模型欄。每天的爬蟲那一步也寫好了（`download_exchange`），開關 `exchange.enabled` 還是 false：要先量資料幾點公布、早上抓不抓得到，也要先把回補的檔推上去。端點、欄位和檢查見 `memory/projects/crawler.md` 的「證交所、櫃買的回補」。
+- 使用者 2026-11-08 同意加證交所（`www.twse.com.tw`）和櫃買中心（`www.tpex.org.tw`）：`BWIBBU_d`、`MI_INDEX`、`peQryDate`、`otc` 四個「指定日期、全市場」的端點，只留老師的 100 檔。研究用的回補（`python -m src.crawler --exchange-backfill`）2026-11-09 跑完 2020-01-02～2026-11-06，長表的 9 欄讀這些檔，不進模型欄。每天的爬蟲那一步（`download_exchange`）使用者 2026-11-10 打開（`exchange.enabled`），11-11 起每天補 i。端點、欄位和檢查見 `memory/projects/crawler.md` 的「證交所、櫃買的回補」。
+- 使用者 2026-11-09 要加：期交所的 VIXTWN 月檔（和台指期同一個主機 `www.taifex.com.tw`）和 CNN Fear & Greed（`production.dataviz.cnn.io`，CNN 網頁畫圖用的網址，沒有公開 API）。只進長表研究欄。VIXTWN 歷史只用免費的官方檔（2026-08-03 起），不買、不自己算、不找第三方。細節見 `memory/projects/crawler.md` 的「VIXTWN、CNN 恐懼貪婪」。
 - 台指期（2026-11-06 查）：yfinance 沒有可用的台指期。`IX0126.TW`（臺指期貨指數）Yahoo 只給最近 5 天；搜得到的 `TWN-X26.SI` 是新加坡的富時台灣期貨，一個到期月一個代號。老師 global 表只有 `TX_OI`（未平倉口數），沒有價格。期交所官網 `https://www.taifex.com.tw/cht/3/futDataDown`（POST，`down_type=1&commodity_id=TX`，一次最多一個月，CP950 編碼）有日盤和夜盤；標 t 日的「盤後」列是 i 日 15:00 到 t 日 05:00 的夜盤，漲跌是拿 i 日結算價算的。
 - 期交所 OpenAPI `https://openapi.taifex.com.tw/v1/DailyMarketReportFut` 沒有日期參數，只給一天，而且比網站慢：2026-11-06 22:09 OpenAPI 還是 11/05，網站下載已經有 11/06 的日盤和夜盤。所以每天也用網站下載（重抓最近 7 天，漏掉的日子會自己補回來）。
 - 開關切到 yfinance 時，`tx_futures.yfinance.night` 填了會報錯：一般的 yfinance 序列只留日期 < t 的K棒，t 那根夜盤會被丟掉；Yahoo 用哪一天標夜盤也沒查證，標成開始那天的話歷史列會用到開盤後的資料。只填日盤代號時 `tx_night` 每一列都空白。要開放夜盤，先查清楚 Yahoo K棒的日期，再讓 t 那根走期交所那樣的路（照 `night_ready` 決定收不收）。t 的夜盤幾點出現在網站上還沒量過，第一次早上跑時記下來（組員說 06:00 抓得到）。

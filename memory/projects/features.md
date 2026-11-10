@@ -11,7 +11,7 @@
 - 2026-11-09：使用者 2026-11-08 決定的 17 欄做完（見「使用者的決定」2026-11-08 那條），含三個審查後的修正，全部離線測試 333 個通過。長表從 63 欄變 80 欄。用本機 11-06 的 `data/raw` 跑 `load_raw` 加 `build_features(t=2026-11-06)`，和 HEAD 的 `data/processed` 比：166,200 列，原本 63 欄逐月寫成 CSV 後和 HEAD 逐字相同，32 個模型欄 5,318,400 格完全相同，所以程式沒有改到模型欄。在更新的 `data/raw` 上 `--rebuild` 時，舊月份的還原價序列會有 1e-6 級的變動，那是 Yahoo 重抓造成的，和程式無關（見 `memory/context/pipeline.md`「特徵欄位變了怎麼推」第 4 步）。本機建全表從 4.7 秒變約 9 秒，多的主要是交易所欄。
 - 推送（2026-11-09 下午做完）：程式、`configs/config.yaml`、pull 之後 `--rebuild` 的 `data/processed/`、`data/raw/twse/`、`data/raw/tpex/`、`data/raw/exchange_backfill.json`、`data/raw/yfinance/kospi.csv` 同一次推。重建用 oop 11-09 的 `data/raw`（t = 11-09）：166,300 列、80 欄，`warnings`、`notes` 都是空的。和 origin 原本的表比：只有還原價序列（`tsm_adr`、`nvda`、`etf_*`）有差，最多 1.6e-6，沒有格子從有值變空白；股票、老師、`usd_twd_am`、台指期的欄沒變。t = 11-09 的 50 檔 0／1 和重建前相同，機率最多差 0.0011。之後欄位再變，照 `memory/context/pipeline.md` 的「特徵欄位變了怎麼推」。
 - 待辦（2026-11-09 審查）：
-  - `exchange.enabled` 打開的日子離 2026-11-06 超過 `exchange.gapfill_days`（10 個交易日）時，每天的爬蟲補不到中間那段。先用 `--exchange-backfill` 補上再 `--rebuild`，不然那段的 `val_*`、`quote_*` 會凍成空白。
+  - 交易所的檔斷了超過 `exchange.gapfill_days`（10 個交易日）時，每天的爬蟲補不到中間那段。先用 `--exchange-backfill` 補上再 `--rebuild`，不然那段的 `val_*`、`quote_*` 會凍成空白。2026-11-10 打開時只差 11-09、11-10 兩天：11-11 的爬蟲補進原始檔，每天重寫最後兩個月時 t = 11-10 那列跟著補上，不用 `--rebuild`。
   - 只進長表的輸入缺檔時，log 的那行會寫「檔案補齊後要 --rebuild」。每天看一次 manifest 的 `notes`。
 - manifest 多 `notes`（2026-11-09）：只進長表的輸入（`features.optional_inputs` 的 yfinance 序列，現在只有 `kospi`，和證交所、櫃買的四個檔）不見或讀不了時記在這裡，log 用 warning 等級，不算缺檔，不擋 `--rebuild`。
 - 這份的內容來自 data-collection 的交接文件（`origin/claude/data-collection` `cb03a34` 的 `memory/projects/handoff-stock-market-challenger.md`）。data-collection 之後不再更新，所以要用的部分都抄到這裡。數字除了標「推論」的，都是那邊實際量過的。
@@ -46,6 +46,11 @@
   - 實際資料的檢查（2026-11-09）：買價 ≥ 賣價的列是 0。t = 11/06 那列有 15 檔價差空白，因為 11/05 這 15 檔跌停鎖住，沒有買價。
   - `kospi.csv` 的真資料（2026-11-09 研究模式抓的，2020-01-02～2026-11-06，1,678 根）：每年第一根都是 KRX 的第一個交易日，只有 2022 年 Yahoo 少了 01-03 那根，第一根變成 01-04，那天的跳空也設成空白（多擋一天，01-04 是正常 09:00 開盤）。量 0 的K棒只有 2 根（2024-09-12、2026-06-29），開高低收都相同，當成佔位K棒。大學入學考試日 2020～2025 的 6 天 Yahoo 都有K棒，照 config 設成空白。
   - 順帶確認：老師 Live 的 ^GSPC 45 列都對，對不上的只有 ^VIX（10/13 起大多不對），模型已經用 yfinance 的 `vix`。Yahoo 的 ^VIX 在美國假日（2026-05-25、09-07）也有K棒，`vix_ret_lag1` 那幾天會用到它。
+- 2026-11-09 決定（使用者選了 Claude 建議的定義；程式寫在 worktree `/Users/ian/Desktop/ml-final-vixcnn`，11-11 推）：VIXTWN 和 CNN 恐懼貪婪各 2 欄，只進長表、不進 `model_columns`，排在交易所 9 欄後面，長表從 80 欄變 84 欄。來源見 `memory/projects/crawler.md` 的「VIXTWN、CNN 恐懼貪婪」。
+  - `vixtwn_lag1`：i 那天 13:45 的 VIXTWN。`vixtwn_ret_lag1`：(v_i − v_前一天) ÷ v_前一天，前一天數 VIXTWN 自己的日子，和 `vix_ret_lag1` 同算法。i 沒有值就空白，不往前找。VIXTWN 是台股當天收盤的東西，只能用 i，不能用 t。官方檔從 2026-08-03 起，所以 t ≤ 2026-08-03 的列空白。
+  - `fear_greed_lag1`：CNN 分數（0～100）。`fear_greed_chg_lag1`：和前一個美股交易日的分數差幾分。不用漲跌幅：2021-02-01 起最低到過 2.9（2025-04-08），1 分就是 30% 以上（2020-10-28 的 0.3 在 cnn.start 以前，不算）。用哪一天看量測：最後一天的分數在台北 t 日開盤前就定住，就和 `vix` 一樣用美國 i 那天（美股 i 休市就空白，`features.fear_greed.day: prev_day`）；不然用 t 之前最後一個美股交易日 e 的前一個美股交易日（`second_last`，使用者選的，現在的設定）。通常比 `vix` 舊一天；台股休市期間美股開了 n 天時比 `vix` 新 n − 1 天（休一天時同一天，2023-01-30 那列新 7 天）。2021-02-01 以前不用。
+  - 2026-11-09 晚上使用者選「空白」：s 是 CNN 檔裡最新的美股交易日時，那列空白。代表那天早上沒抓到 CNN，檔裡 s 的值是前一次抓的，那時還沒定住（審查找到：舊版只有連續兩天沒抓到才空白，只失敗一天時 t 那列會拿到還沒定住的值）。之後抓到新的、重寫最後兩個月時補上。真資料（11-09 的 data/raw 加 11-10 00:17 抓的 CNN 檔）上這條規則沒有改到任何一列。程式在 `fear_greed_values`，features.main 在 t 那列只進長表的欄空白時寫警告。
+  - 美股交易日看 `features.fear_greed.us_calendar: dji`（道瓊有K棒、不是佔位K棒的日子）。審查 2026-11-09 找到的：CNN 每天 00:00 UTC 先建當天的點（值是前一天的），美國假日可能也會建（歷史裡沒有假日的點，可能事後拿掉）；用 CNN 自己的日期當日曆時，假日隔天那列會用到還在變的 e。`vix` 有假日K棒（2026-05-25、09-07），不能當日曆。選到的那天 CNN 沒有分數就空白，不往前找（不然 CNN 的檔停住時會一直沿用舊分數）。道瓊的檔不見時整欄空白。道瓊的檔沒更新（^DJI 抓失敗、留著舊檔）時不會空白，e、s 照檔裡最後一天往前選，用比較舊的分數，道瓊補上後重寫時改回來（第二輪審查 2026-11-09 判定只改文件：同一次 `dji_ret_lag1` 也會空白、爬蟲回傳 3，看得出來）。道瓊出現量 0、開高低收不同的假日K棒才會選錯日子，1,722 根裡沒有（審查判定不是 bug，沒加量 > 0 的條件：us_calendar 換成 sox、vix 這種沒有量的序列時日曆會整個變空）。
 - 凍結的 6 個股票和 ETF 檔沒有空的 adj_close（2026-11-06 數過），所以決定 3 不會讓對照測試 (a) 和舊長表不同。
 - 2026-11-06：lag2 定案用累積版。組員 notebook 寫 `the stock's own 2- and 5-day returns`，他用的 `panel_lag.csv.gz` 也是累積版。
 - 2026-11-06：交易日照下面「交易日和 i」那條規則，取代「以 `phase2Days` 為準」。

@@ -28,3 +28,6 @@
 2026-11-11 07:28:18,187 finpred.run_daily_test INFO 讀特徵 完成（19 秒）
 2026-11-11 07:28:23,401 finpred.run_daily_test INFO 模型 完成（5 秒）
 2026-11-11 07:28:23,404 finpred.run_daily_test INFO 寫好 data/submission/submission_2026-11-11.csv：50 檔 × 1 天，猜漲 0.180
+2026-11-11 07:28:33,389 finpred.run_daily_test INFO 上傳送出，網站回 200
+2026-11-11 07:28:33,453 finpred.run_daily_test INFO 核對完成：網站上的版本 2bb776a9-7a68-4367-a27d-e03b28f782e0 和送出的逐格一樣（上傳時間 2026-11-10T23:28:33.373Z，分數 None）
+2026-11-11 07:28:33,482 finpred.run_daily_test INFO 結束：done

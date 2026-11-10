@@ -3,3 +3,28 @@
 2026-11-11 07:10:04,157 finpred.run_daily_test ERROR git pull --rebase 失敗（第 1 次）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
 2026-11-11 07:10:19,209 finpred.run_daily_test ERROR git pull --rebase 失敗（第 2 次）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
 2026-11-11 07:10:19,209 finpred.run_daily_test ERROR 資料推不上去，下次執行會再推
+2026-11-11 07:25:06,692 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-11，--sync（執行代號 3a1cf3a1）
+2026-11-11 07:25:06,698 finpred.run_daily_test WARNING 上次留下沒 commit 的資料，先 commit 了
+2026-11-11 07:25:07,640 finpred.crawler INFO Training：本機的檔案和上次一樣，不下載
+2026-11-11 07:26:08,610 finpred.crawler INFO ['stoxx50e', 'kospi'] 沒有 2026-11-10 那根，60 秒後一起重抓一次
+2026-11-11 07:27:11,619 finpred.crawler WARNING stoxx50e 沒有 2026-11-10 那根K棒，這個特徵當天會是空白
+2026-11-11 07:27:11,619 finpred.crawler WARNING kospi 沒有 2026-11-10 那根K棒，這個特徵當天會是空白
+2026-11-11 07:27:30,057 finpred.crawler INFO 2026-11-10 twse_valuation：91 檔
+2026-11-11 07:27:30,057 finpred.crawler INFO 2026-11-10 twse_quotes：91 檔
+2026-11-11 07:27:30,058 finpred.crawler INFO 2026-11-10 tpex_valuation：9 檔
+2026-11-11 07:27:30,058 finpred.crawler INFO 2026-11-10 tpex_quotes：9 檔
+2026-11-11 07:27:43,233 finpred.crawler INFO 2026-11-09 twse_valuation：91 檔
+2026-11-11 07:27:43,233 finpred.crawler INFO 2026-11-09 twse_quotes：91 檔
+2026-11-11 07:27:43,234 finpred.crawler INFO 2026-11-09 tpex_valuation：9 檔
+2026-11-11 07:27:43,234 finpred.crawler INFO 2026-11-09 tpex_quotes：9 檔
+2026-11-11 07:27:47,077 finpred.crawler INFO twse_valuation：檔案裡 1664 天（2020-01-02～2026-11-10），這次新寫 2 天、no_data 0 天、失敗 0 天、請求 2 次
+2026-11-11 07:27:47,081 finpred.crawler INFO twse_quotes：檔案裡 1664 天（2020-01-02～2026-11-10），這次新寫 2 天、no_data 0 天、失敗 0 天、請求 2 次
+2026-11-11 07:27:47,081 finpred.crawler INFO tpex_valuation：檔案裡 1664 天（2020-01-02～2026-11-10），這次新寫 2 天、no_data 0 天、失敗 0 天、請求 2 次
+2026-11-11 07:27:47,082 finpred.crawler INFO tpex_quotes：檔案裡 1664 天（2020-01-02～2026-11-10），這次新寫 2 天、no_data 0 天、失敗 0 天、請求 2 次
+2026-11-11 07:27:47,386 finpred.crawler INFO 爬蟲完成：ok
+2026-11-11 07:27:47,387 finpred.run_daily_test INFO 爬蟲 完成（160 秒）
+2026-11-11 07:27:58,738 finpred.features INFO 特徵表：166500 列、1665 天，最後一天 2026-11-11；寫了 ['2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 24, 'empty_close': 7, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-11 07:27:59,006 finpred.run_daily_test INFO 特徵 完成（12 秒）
+2026-11-11 07:28:18,187 finpred.run_daily_test INFO 讀特徵 完成（19 秒）
+2026-11-11 07:28:23,401 finpred.run_daily_test INFO 模型 完成（5 秒）
+2026-11-11 07:28:23,404 finpred.run_daily_test INFO 寫好 data/submission/submission_2026-11-11.csv：50 檔 × 1 天，猜漲 0.180

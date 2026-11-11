@@ -1,4 +1,4 @@
-"""每天自動跑一次（測試版）：爬蟲 → 特徵 → 組員的邏輯迴歸 → CSV → 上傳 → 推資料。
+"""每天自動跑一次（測試版）：爬蟲 → 特徵 → 模型 → CSV → 上傳 → 推資料。
 
 排程（memory/context/pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05、08:25，使用者的 Mac 08:15 起備援，跑同一個指令。
 網站上已經有今天的提交就直接結束，所以不會重複上傳。
@@ -19,7 +19,8 @@ t 不是交易日（不在 phase2Days）：Phase 2 直接結束；Phase 1 不跑
 
 --sync 時先 git pull 才載入 src/：推上去的修正這次就用到；新程式 import 失敗時，修正推上去後下一次還是會先 pull。
 這支檔案自己被 pull 更新時，用新版重新執行一次。
-模型每天早上重新 fit（src/online_lr.py），不讀 models/。
+模型看 config 的 daily_model.kind（使用者 2026-11-12，見 daily_predict）：persist 是持續性規則（src/persist_rule.py，
+不用訓練），online_lr 是組員的邏輯迴歸（src/online_lr.py，每天早上重新 fit）。兩個都不讀 models/。
 """
 
 import argparse
@@ -42,7 +43,7 @@ LOCK_PATH = ROOT / ".cache" / "run_daily_test.lock"
 REEXEC_FLAG = "RUN_DAILY_TEST_REEXEC"
 PUSH_ATTEMPTS, PUSH_WAIT = 2, 15   # oop 連 GitHub 偶爾失敗（2026-11-07 看到一次），推送失敗等 15 秒再試一次
 
-crawler = features = merge_raw = online_lr = site_api = submit = utils = None   # import_src() 之後才有
+crawler = features = merge_raw = online_lr = persist_rule = site_api = submit = utils = None   # import_src() 之後才有
 
 
 class StopRun(RuntimeError):
@@ -51,8 +52,8 @@ class StopRun(RuntimeError):
 
 def import_src():
     """git pull 之後才載入 src/ 的模組。"""
-    global crawler, features, merge_raw, online_lr, site_api, submit, utils
-    from src import crawler, features, merge_raw, online_lr, site_api, submit, utils  # noqa: F811
+    global crawler, features, merge_raw, online_lr, persist_rule, site_api, submit, utils
+    from src import crawler, features, merge_raw, online_lr, persist_rule, site_api, submit, utils  # noqa: F811
 
 
 # ---------------------------------------------------------------- git（--sync 才用；只用標準函式庫）
@@ -192,6 +193,26 @@ def step(log, name, fn):
     return result
 
 
+def daily_predict(cfg: dict, data, dates: list, ids: list, log) -> tuple:
+    """照 config 的 daily_model.kind 選每天交件的模型，回傳（用了哪個模型, 預測）。沒有這個設定時用 online_lr。
+
+    persist（持續性規則）算不出來、daily_model.fallback 又是 online_lr 時，改用組員的邏輯迴歸，當天照樣交件。
+    """
+    choice = cfg.get("daily_model") or {}
+    kind = choice.get("kind", "online_lr")
+    if kind == "persist":
+        try:
+            return "persist", persist_rule.predict(data, cfg, dates, ids)
+        except Exception as e:
+            if choice.get("fallback") != "online_lr":
+                raise
+            log.error("持續性規則算不出來（%s），改用組員的邏輯迴歸", describe(e))
+            return "online_lr（persist 的備援）", online_lr.predict(data, cfg, dates, ids)
+    if kind != "online_lr":
+        raise StopRun(f"daily_model.kind 只能是 persist 或 online_lr：{kind}")
+    return "online_lr", online_lr.predict(data, cfg, dates, ids)
+
+
 def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
     key = site_api.submission_key(phase, t)
     site = site_api.Site(cfg, utils.load_secrets())
@@ -245,7 +266,7 @@ def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
             if not (data["date"].dt.strftime("%Y-%m-%d") == t).any():
                 raise StopRun(f"特徵表沒有 {t} 的列（Live 還沒更新？）")
             dates = [t]
-        pred = step(log, "模型", lambda: online_lr.predict(data, cfg, dates, ids))
+        model_name, pred = step(log, "模型", lambda: daily_predict(cfg, data, dates, ids, log))
         if phase == 1:
             log.info("Phase 1 本機分數：%s", online_lr.official_score(pred, data))
         values = {(r.date, r.stock_id): int(r.pred) for r in pred.itertuples()}
@@ -254,7 +275,8 @@ def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
         name = f"submission_{t}.csv" if phase == 2 else f"submission_phase1_{today}.csv"
         path = ROOT / cfg["data"]["submission_dir"] / name
         crawler.write_atomic(path, submit.rows_to_bytes(rows))
-        log.info("寫好 %s：%d 檔 × %d 天，猜漲 %.3f", path.relative_to(ROOT), len(ids), len(dates), pred["pred"].mean())
+        log.info("寫好 %s：%d 檔 × %d 天，模型 %s，猜漲 %.3f", path.relative_to(ROOT), len(ids), len(dates), model_name,
+                 pred["pred"].mean())
 
         def before_post():
             commit_data(f"Daily run {key}: data and prepared upload")
@@ -295,7 +317,7 @@ def merged_step(log) -> None:
 def describe(e: BaseException) -> str:
     """錯誤訊息只用自己寫的那幾種，其他只寫類別（訊息可能帶伺服器內容）。"""
     own = (StopRun, crawler.CrawlerError, features.FeatureError, online_lr.ModelError, site_api.SiteError,
-           RuntimeError, ValueError)   # merge_raw.MergeError 是 RuntimeError
+           RuntimeError, ValueError)   # merge_raw.MergeError、persist_rule.RuleError 是 RuntimeError
     return f"{type(e).__name__}: {str(e)[:300]}" if isinstance(e, own) else type(e).__name__
 
 

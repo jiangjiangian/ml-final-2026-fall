@@ -6,7 +6,7 @@
 
 1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live、yfinance 21 個指標、期交所的台指期和 VIXTWN、CNN 恐懼貪婪指數，原樣存進 `data/raw/`。匯率另外存 1 小時K棒；匯率、台指期、VIXTWN、CNN 都和舊檔合併。
 2. 特徵 `python -m src.features --date <t>`：清理 yfinance；個股自己算 lag1、lag2、lag5、lag10、lag15、lag20，其他指標算 lag1、lag2，一列是一檔股票的一天。台指期分日盤和夜盤，夜盤清晨 05:00 收盤，當天開盤前就知道。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
-3. 模型 `src/online_lr.py`：組員的邏輯迴歸（每週重訓、每天用前一天的答案微調），特徵是組員的 26 個個股特徵加特徵表的 55 欄。每天早上重新 fit。
+3. 模型：`configs/config.yaml` 的 `daily_model.kind` 決定用哪一個（見「每天交件的模型」）。2026-11-12 起暫時是 `persist`，`src/persist_rule.py` 的持續性規則，不用訓練。`online_lr` 是組員的邏輯迴歸 `src/online_lr.py`（每週重訓、每天用前一天的答案微調），特徵是組員的 26 個個股特徵加特徵表的 55 欄，每天早上重新 fit。
 4. 上傳 `src/submit.py`：照網站範本寫 CSV，上傳後下載回來逐格核對。`configs/config.yaml` 的 `submit.phase` 決定交 Phase 1（84 天回測，測自動化用）還是 Phase 2（每天的 t）。
 5. 合併 `python -m src.merge_raw`：把 `data/raw/` 併成組員研究用的兩張表，存在 `data/merged/`（見「合併的原始資料」）。上傳之後才跑，來源沒變就跳過，失敗只寫警告。
 6. 推資料：`data/raw/`、`data/processed/`、`data/submission/`、`data/merged/` commit 並 push 到這個分支。
@@ -43,6 +43,40 @@ t 不是交易日時不跑爬蟲、特徵和合併。
 
 `deploy/gcp_setup.sh`：e2-micro 免費主機只有 1 GB 記憶體，流程高峰約 750 MB，要靠 swap，所以改用 oop。
 
+## 每天交件的模型
+
+`configs/config.yaml` 的 `daily_model.kind` 選模型。改完 push，oop 下一次執行就生效。使用者 2026-11-12 決定暫時用 `persist`，研究有新結果會再換。
+
+### persist：持續性規則（現在用的）
+
+`src/persist_rule.py`。不用訓練，只讀特徵表的 `label_intraday_return`（盤中報酬，收盤 ÷ 開盤 − 1）：
+
+1. 只看要預測的 50 檔。每個有答案的交易日，e = 這檔的盤中報酬 − 當天 50 檔的平均，也就是這檔那天比同伴強多少。
+2. t 的分數 = 這檔股票在 t 之前 120 個有答案的交易日的 e 的平均。
+3. 當天分數高的 25 檔猜 1，低的 25 檔猜 0。
+
+每天猜漲和猜跌各一半，所以分數只看 50 檔之間誰強誰弱，和大盤當天漲或跌無關。只用 t 之前的答案。
+
+回測在 Kaggle notebook 14，用官方分數（每天 50 檔的 mean((2·pred − 1)·盤中報酬)）：
+
+| 期間 | 持續性規則 | 全猜 0 |
+|---|---|---|
+| 2024-01-02～2026-10-08，670 天的每天平均 | +0.00069（95% 區間 +0.00040～+0.00101） | +0.00046 |
+| Phase 2 的 10-12～11-10，20 天加總 | +0.052 | −0.008 |
+
+持續性規則 11 季每季都是正的，最差的一季 +0.00021。2026-11-12 在 oop 用正式流程的函式重播這 690 天，分數和 notebook 一樣。
+
+算不出來時退回 `online_lr`，當天照樣交件，log 會寫「持續性規則算不出來」。兩種情況算不出來：最新的答案和 t 中間隔超過 3 個交易日，或 50 檔裡有分數的不到 40 檔。設定在 `persist_rule` 和 `daily_model.fallback`。
+
+### online_lr：組員的邏輯迴歸
+
+`src/online_lr.py`，2026-11-07～11-11 每天交件用的模型。換回去只改一行：
+
+```yaml
+daily_model:
+  kind: online_lr
+```
+
 ## 組員怎麼拿資料
 
 ```python
@@ -63,7 +97,7 @@ X, y = train[info["model_columns"]], train["label_y"]
 
 ## 特徵表的欄位
 
-`data/processed/features/` 一列是「一個預測日 t × 一檔股票」，共 107 欄：3 個鍵、2 個答案、`stock` 的 6 個收盤報酬 lag、`stock_intraday`、`stock_gap`、`stock_log_shares` 各 5 個 lag、前一交易日 OHLC 4 欄、其餘 29 個序列各 2 欄，另外 19 欄只給組員研究。每天交件的模型只用 `manifest.json` 的 `model_columns`，共 55 欄，另外加組員從老師個股表算的 26 個個股特徵。
+`data/processed/features/` 一列是「一個預測日 t × 一檔股票」，共 107 欄：3 個鍵、2 個答案、`stock` 的 6 個收盤報酬 lag、`stock_intraday`、`stock_gap`、`stock_log_shares` 各 5 個 lag、前一交易日 OHLC 4 欄、其餘 29 個序列各 2 欄，另外 19 欄只給組員研究。組員的邏輯迴歸只用 `manifest.json` 的 `model_columns`，共 55 欄，另外加組員從老師個股表算的 26 個個股特徵；持續性規則只讀 `label_intraday_return`。
 
 欄的順序：鍵、`stock` 收盤報酬、日內報酬、跳空、log 成交股數、前日 OHLC、yfinance（照 `yfinance.tickers`）、老師 global、`usd_twd_am`、台指期、只進長表的 19 欄、答案。請用欄名讀，不要用位置。
 
@@ -370,7 +404,8 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   ├── predict.py             下載當天範本，產生 t 那天 50 檔的 submission CSV
 │   ├── submit.py              上傳 CSV，再下載回來核對；Phase 1、2 都用
 │   ├── site_api.py            課程網站的 API：登入、state、範本、上傳、下載
-│   ├── online_lr.py           組員的邏輯迴歸和 26 個個股特徵（run_daily_test.py 用）
+│   ├── online_lr.py           組員的邏輯迴歸和 26 個個股特徵（daily_model.kind 是 online_lr 時 run_daily_test.py 用）
+│   ├── persist_rule.py        持續性規則：每天交件暫時用的模型（daily_model.kind 是 persist 時 run_daily_test.py 用）
 │   ├── merge_raw.py           data/raw/ → data/merged/ 的兩張表（run_daily_test.py 上傳後跑）
 │   └── utils.py               讀設定和帳密、台北時間、截止檢查、log
 └── tests/
@@ -389,6 +424,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
     ├── test_open_today.py         日韓當天的開盤：08:25 那一步（假的 Yahoo）、長表 t 那列的 open_gap、每日流程怎麼接
     ├── test_no_future_data.py     特徵只能用 t 之前的資料；開盤跳空只用到 d 當天，不能進模型欄
     ├── test_online_lr.py          組員的模型：個股特徵不偷看，每天的模式和回測一樣
+    ├── test_persist_rule.py       持續性規則：算法和 notebook 14 一樣、不偷看；run_daily_test.py 的模型開關
     ├── test_submit.py             上傳流程：假網站，不重試、核對、跳過的規則
     ├── test_run_daily_test.py     git 同步（假 remote）和 log 檔被換掉後重開
     ├── test_merge_raw.py          合併表：每格和來源一樣、近月合約、只寫有變的檔、來源壞掉時不寫檔

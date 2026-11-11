@@ -248,6 +248,16 @@ online_lr:                       # 組員的方法（notebooks/feature_switch.ip
   clip_z: 5                      # 標準化後截在 ±5
   threshold: 0.5                 # 機率 > 這個猜 1
 
+daily_model:                     # run_daily_test.py 每天交件用哪個模型（使用者 2026-11-12：暫時換成目前回測最穩定的）
+  kind: persist                  # persist = 持續性規則（src/persist_rule.py）；online_lr = 組員的邏輯迴歸。要換回去只改這一行
+  fallback: online_lr            # persist 算不出來時改用組員的邏輯迴歸，當天照樣交件；填 none 就停下不交
+
+persist_rule:                    # 持續性規則的設定，照 Kaggle notebook 14 的 persist120
+  days: 120                      # 每檔股票往回看幾個有答案的交易日
+  min_days: 60                   # 這 120 天裡至少要有這麼多天有值才有分數，不到就排在當天的中間
+  max_stale_days: 3              # 最新的答案和預測日中間隔超過這麼多個交易日，當成資料沒更新，不用這條規則
+  min_scored_share: 0.8          # 有分數的股票不到這個比例（50 檔裡 40 檔），當成資料有問題，不用這條規則
+
 submit:
   enabled: true                  # 使用者 2026-11-06 確認舊系統的排程停了才打開；false 時只印出要送的內容
   phase: 2                       # run_daily_test.py 交哪一個：1 = Phase 1（84 天回測），2 = 每天的 t（使用者 2026-11-07：Phase 1 自動化測試成功後改 2）

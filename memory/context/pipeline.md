@@ -69,7 +69,8 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 
 排程跑的是 `run_daily_test.py --sync`，不是 `run_daily.py`。下面是 Claude 2026-11-07 照使用者 11/06 的決定做的設計：
 
-- 模型：`src/online_lr.py`，組員 `feature_switch.ipynb` 第 6 節的方法。每天早上重新 fit，不讀 `models/`：每週重訓、每天用前一天的答案微調是這個方法的一部分，和 `predict.py`「只載入存好的模型」不同。
+- 模型開關（使用者 2026-11-12）：`configs/config.yaml` 的 `daily_model.kind`。`persist` 是 `src/persist_rule.py` 的持續性規則，`online_lr` 是組員的邏輯迴歸；沒有這個設定時用 `online_lr`。現在是 `persist`，見下面「每天交件的模型」。
+- 組員的模型：`src/online_lr.py`，組員 `feature_switch.ipynb` 第 6 節的方法。每天早上重新 fit，不讀 `models/`：每週重訓、每天用前一天的答案微調是這個方法的一部分，和 `predict.py`「只載入存好的模型」不同。
 - 開關：`configs/config.yaml` 的 `submit.phase`。1 是 Phase 1（網站範本的 84 天 × 50 檔，測自動化用），2 是每天的 t。使用者 2026-11-06：先交 Phase 1 測試，之後改 2。2026-11-07 07:10 oop 第一次自動交 Phase 1 成功（網站分數 0.0012354，排行仍是 0.0027732；07:40 看到已交就結束），使用者同一天要改成 2。
 - 休市（使用者 2026-11-07：不要寫死，要靈活）：每次執行都看網站的 `phase2Days`（`site_api.day_status`），不看星期幾、也沒有假日表。t 不在清單上就記「休市」結束，不爬、不上傳。在清單上但 `enabled` 是 0 時（沒看過這種狀態；使用者提醒可能只是還沒更新），照常準備，上傳前再看一次，還是停用就記 not_open、這次不送，不擋下一次排程。特徵的交易日曆看老師資料（至少 `min_stocks_filled` 檔填好），新的颱風假自動排除；`closed_days` 只用來把關 10/23。網站的 `phase2Days` 只列到今天為止，沒有週末和 10/23；開放和截止看網站每天的 `openAt`、`deadline`：2026-11-08 起前一個交易日 09:01 開放到當天 09:00（見 `memory/context/competition.md`），以前是前一天 15:00 開放。
 - 跳過：Phase 1 今天（台北）已經交過，或 `upload_log.jsonl` 今天有 done／same 就結束；Phase 2 網站上 t 已經有提交（不算「強制繳交」）就結束。所以後面的時段和 Mac 只在前面沒交成時才做事。
@@ -85,6 +86,30 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 - 資源（2026-11-07 在 Mac 上量）：特徵和模型在同一個程式裡時，記憶體高峰約 735～760 MB（模型讀資料那一步）；Phase 1 全程 40～60 秒。
 - 外資持股比率（使用者 2026-11-07）：Live 的這一欄常常隔天才公布（11/06 晚上那天 100 檔都是 -1），待定時沿用這檔股票前一個有值的比率，持股變化就成了 0。
 - Phase 1 本機分數（2026-11-07，用 26 個個股特徵加 32 欄）：0.001235，正確率 53.4%；全猜 0 是 −0.000204。組員 11/06 交的版本網站算 0.002773，本機重算一樣，計分方式對得上。
+
+## 每天交件的模型（使用者 2026-11-12）
+
+使用者 2026-11-12 凌晨：把 `run_daily_test.py` 的模型「暫時」換成「目前」我們做的最穩定且最好的。Claude 選了持續性規則 `persist120`，理由和做法：
+
+- 規則：只看要預測的 50 檔。e = 這檔的盤中報酬 − 當天 50 檔的平均；t 的分數 = t 之前 120 個有答案的交易日 e 的平均（至少 60 天有值）；分數高的 25 檔猜 1，低的 25 檔猜 0。沒有分數的排中間，名次一樣時代號大的排前面。程式在 `src/persist_rule.py`，設定在 `persist_rule`。
+- 為什麼是它：Kaggle notebook 12～14 的結論是大盤方向猜不準，個股排序才有穩定的分數。照 notebook 14 事先寫好的規則選到的是 12 個模型的集成 `E2_no_svm`（每天 +0.00091，t 5.9），但它要訓練 12 個模型，也沒有對「還沒答案的一天」跑過正式流程。持續性規則每天 +0.00069（95% 區間 +0.00040～+0.00101，t 4.5，11 季都是正的，最差的一季 +0.00021，Phase 2 的 20 天加總 +0.052），拿到集成約四分之三的分數，不用訓練，只讀 `label_intraday_return`，當晚就能在 oop 驗完。
+- 驗證（2026-11-12 01:10，oop 的測試 worktree，不上傳）：用 `online_lr.load_data` 加 `persist_rule.predict` 重播 notebook 14 的 690 天，回測平均 0.0006885、Phase 2 加總 0.0522304，和 notebook 的 0.0006885、0.0522303 一樣。正式流程每天固定排 50 檔，notebook 有 11 天只有 49 檔，所以正式流程的回測平均是 0.0006864，有 3 天的分數不同。t = 11-11（答案還是空白的那列）算得出 50 檔、25 檔猜漲。上傳檔的列也用 `submit.build_rows`、`check_rows` 檢查過。
+- 備援：規則丟錯、`daily_model.fallback` 是 `online_lr` 時，改用組員的邏輯迴歸，當天照樣交件，log 寫「持續性規則算不出來」。規則會丟錯的情況：最新的答案和 t 中間隔超過 `max_stale_days`（3）個交易日，或有分數的股票不到 `min_scored_share`（0.8）。
+- 換回組員的模型：`daily_model.kind` 改成 `online_lr`，push，避開台北 07:00～08:40。這個改動不動特徵欄，不用重建 `data/processed/`。
+- 還沒做：把 `E2_no_svm` 或 notebook 15 的模型搬進正式流程。要先在 oop 用正式流程重播（把 t 當成沒答案，逐欄比對特徵），再影子跑，才能換上去。
+- 不上傳、只看規則當天會交什麼（在 oop 的 clone 裡跑，不要在 Mac 跑模型）：
+
+  ```bash
+  python -c "import json; from src import online_lr, persist_rule, utils; cfg = utils.load_config(); d = online_lr.load_data(cfg); ids = sorted(str(x) for x in json.loads((utils.ROOT / 'data/raw/teacher/training/info.json').read_text(encoding='utf-8-sig'))['Top50@Y']); print(persist_rule.predict(d, cfg, ['<t>'], ids).to_string())"
+  ```
+
+### 2026-11-12 凌晨補推重建的特徵表
+
+組員 2026-11-11 19:14 的 commit f7b7189 把特徵表從 84 欄改成 107 欄（模型欄 32 變 55），只推了程式和 config，沒有重建的 `data/processed/`。這樣 11-12 早上每個時段的特徵那一步都會丟「特徵欄和上次不一樣」，當天交不出去（在 oop 的測試 worktree 重現過）。處理：
+
+1. 在 oop 另開 worktree（`git worktree add --detach ~/mlfinal-rebuild origin/claude/stock-market-challenger`），用排程 clone 的 `.venv/bin/python` 跑 `-m src.features --rebuild`，92 秒。
+2. 檢查：107 欄、模型欄 55、`warnings` 是 `[]`；原本就有的 82 個數值欄和重建前完全一樣；`stock_intraday_ret_lag1` 等於前一列的答案（沒有用到 t 當天）；組員的模型用 81 個特徵跑得出 t = 11-11 的 50 檔；全部測試 485 個通過。
+3. 01:05 從 oop 推 e7c5c99。再用每天的指令 `-m src.features --date 2026-11-11` 跑一次，沒有丟錯，也沒有月份變動。
 
 ## 特徵欄位變了怎麼推（2026-11-09 審查後寫）
 

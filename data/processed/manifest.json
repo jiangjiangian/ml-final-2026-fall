@@ -167,6 +167,10 @@
     "quote_imbalance_lag1",
     "quote_limit_up_lag1",
     "quote_limit_down_lag1",
+    "vixtwn_lag1",
+    "vixtwn_ret_lag1",
+    "fear_greed_lag1",
+    "fear_greed_chg_lag1",
     "label_y",
     "label_intraday_return"
   ],

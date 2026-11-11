@@ -5,3 +5,26 @@
 2026-11-12 07:10:03,991 finpred.run_daily_test ERROR git pull --rebase 失敗（第 1 次）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
 2026-11-12 07:10:19,021 finpred.run_daily_test ERROR git pull --rebase 失敗（第 2 次）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
 2026-11-12 07:10:19,021 finpred.run_daily_test ERROR 資料推不上去，下次執行會再推
+2026-11-12 07:25:05,979 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-12，--sync（執行代號 3015b709）
+2026-11-12 07:25:05,980 finpred.run_daily_test WARNING 上次留下沒 commit 的資料，先 commit 了
+2026-11-12 07:25:06,946 finpred.crawler INFO Training：本機的檔案和上次一樣，不下載
+2026-11-12 07:26:06,987 finpred.crawler INFO ['stoxx50e', 'kospi'] 沒有 2026-11-11 那根，60 秒後一起重抓一次
+2026-11-12 07:27:10,226 finpred.crawler WARNING stoxx50e 沒有 2026-11-11 那根K棒，這個特徵當天會是空白
+2026-11-12 07:27:10,226 finpred.crawler WARNING kospi 沒有 2026-11-11 那根K棒，這個特徵當天會是空白
+2026-11-12 07:27:13,177 finpred.crawler WARNING CNN 這一步失敗（/index/fearandgreed/graphdata/2026-10-13：連線失敗（ConnectionError）），沿用舊檔；這些欄不在模型裡
+2026-11-12 07:27:30,035 finpred.crawler INFO 2026-11-11 twse_valuation：91 檔
+2026-11-12 07:27:30,035 finpred.crawler INFO 2026-11-11 twse_quotes：91 檔
+2026-11-12 07:27:30,036 finpred.crawler INFO 2026-11-11 tpex_valuation：9 檔
+2026-11-12 07:27:30,036 finpred.crawler INFO 2026-11-11 tpex_quotes：9 檔
+2026-11-12 07:27:32,875 finpred.crawler INFO twse_valuation：檔案裡 1665 天（2020-01-02～2026-11-11），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-12 07:27:32,876 finpred.crawler INFO twse_quotes：檔案裡 1665 天（2020-01-02～2026-11-11），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-12 07:27:32,877 finpred.crawler INFO tpex_valuation：檔案裡 1665 天（2020-01-02～2026-11-11），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-12 07:27:32,877 finpred.crawler INFO tpex_quotes：檔案裡 1665 天（2020-01-02～2026-11-11），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-12 07:27:33,130 finpred.crawler INFO 爬蟲完成：ok
+2026-11-12 07:27:33,131 finpred.run_daily_test INFO 爬蟲 完成（147 秒）
+2026-11-12 07:27:43,991 finpred.features WARNING t 那列的 ['fear_greed_lag1', 'fear_greed_chg_lag1'] 空白（只進長表的欄，原因見 fear_greed_values、vixtwn_values）
+2026-11-12 07:27:45,003 finpred.features INFO 特徵表：166600 列、1666 天，最後一天 2026-11-12；寫了 ['2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 26, 'empty_close': 7, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-12 07:27:45,347 finpred.run_daily_test INFO 特徵 完成（12 秒）
+2026-11-12 07:28:04,307 finpred.run_daily_test INFO 讀特徵 完成（19 秒）
+2026-11-12 07:28:04,532 finpred.run_daily_test INFO 模型 完成（0 秒）
+2026-11-12 07:28:04,534 finpred.run_daily_test INFO 寫好 data/submission/submission_2026-11-12.csv：50 檔 × 1 天，模型 persist，猜漲 0.500

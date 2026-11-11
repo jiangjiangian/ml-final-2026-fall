@@ -913,11 +913,11 @@ def test_side_columns_sit_after_the_exchange_columns():
     assert not set(features.SIDE_COLUMNS) & set(features.model_columns(utils.load_config()))
 
 
-def test_real_config_column_count_is_84():
-    """真的 config 的長表：3 個鍵、2 個答案、30 個序列各 2 欄、只進長表的 19 欄。"""
+def test_real_config_column_count_is_107():
+    """真的 config 長表應有 107 欄，而且欄名不可重複。"""
     cfg = cfg_with(min_stocks_filled=2, closed_days=[])
     days = weekdays(3)
     raw = small_raw(days)
     columns = features.build_features(raw, cfg).columns
-    assert len(columns) == 84 and len(set(columns)) == 84
+    assert len(columns) == 107 and len(set(columns)) == 107
     assert pd.Index(columns[-6:-2]).tolist() == list(features.SIDE_COLUMNS)

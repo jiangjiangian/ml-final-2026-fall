@@ -55,7 +55,9 @@ def change_day(raw, d):
     changed["vixtwn"][d] = 99.0
     for code in ("A", "B"):
         row = changed["stocks"][code][d]
+        row[crawler.COL_OPEN], row[crawler.COL_HIGH], row[crawler.COL_LOW] = "990", "1000", "980"
         row[crawler.COL_CLOSE], row[crawler.COL_Y] = "999", "0"
+        row[crawler.COL_SHARES] = "999999"
         changed["exchange"]["valuation"][d, code] = ("-", "99", "9")
         changed["exchange"]["quotes"][d, code] = ("--", "0", "60.00", "7")
     for j in (1, 4, 5, 6):
@@ -89,7 +91,10 @@ def test_changing_day_t_does_not_change_its_features():
     assert before.loc[before["date"] == d, gaps].notna().all().all()
     assert not before.loc[before["date"] == d, gaps].equals(after.loc[after["date"] == d, gaps])
     later = before["date"] == days[5]
-    for c in ("stock_ret_lag1", "teacher_vix_ret_lag1", "usd_twd_ret_lag1", "tx_day_ret_lag1", "tx_night_ret_lag1",
+    for c in ("stock_ret_lag1", "stock_intraday_ret_lag1", "stock_gap_ret_lag1", "stock_log_shares_lag1",
+              "stock_open_lag1", "stock_close_lag1", "stock_high_lag1", "stock_low_lag1",
+              "teacher_vix_ret_lag1", "usd_twd_ret_lag1",
+              "tx_day_ret_lag1", "tx_night_ret_lag1",
               "teacher_twii_ret_lag1", "n225_ret_lag1", "val_ep_lag1", "val_pe_loss_lag1", "quote_spread_ticks_lag1",
               "quote_limit_down_lag1", "vixtwn_lag1", "vixtwn_ret_lag1"):
         assert not before.loc[later, c].equals(after.loc[later, c]), c
@@ -221,9 +226,9 @@ def test_fear_greed_skips_a_us_holiday_cnn_point():
 
 
 def test_new_columns_are_not_model_columns():
-    """2026-11-08、11-09 加的欄都只進長表：真的 config 的 model_columns 還是原本的 32 欄。"""
+    """2026-11-08、11-09 加的欄都只進長表；模型另有個股報酬、三組 5 日 lag 和前日 OHLC。"""
     columns = features.model_columns(features.utils.load_config())
-    assert len(columns) == 32
+    assert len(columns) == 55
     assert not [c for c in columns if c.startswith(("val_", "quote_", "kospi", "vixtwn", "fear_greed"))
                 or "fresh" in c or "open_gap" in c]
 

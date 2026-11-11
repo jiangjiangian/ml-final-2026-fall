@@ -4,7 +4,7 @@
 交易日，最後再加 t 那天。欄位：
     date, stock_id            鍵；stock_id 一律當字串（"2330"），不轉成數字
     is_top50                  1＝要預測的 50 檔（info.json 的 Top50@Y）
-    <名稱>_ret_lag{k}        特徵，見下方；k 來自 config 的 features.lags
+    <名稱>_ret_lag{k}        特徵，見下方；個股衍生特徵各有自己的 lag 設定
     teacher_<名稱>_fresh_ret_lag{k}、<名稱>_open_gap、val_*_lag1、quote_*_lag1、vixtwn_*、fear_greed_*
                               使用者 2026-11-08、11-09 加的欄，見下方「只進長表的欄」
     label_y                   答案：t 當天 etl:adj_close > etl:adj_open 為 1；還不知道時空白
@@ -14,6 +14,9 @@
 
 特徵 <名稱>_ret_lag{k}：
     i 是 t 之前最後一個台股交易日。t 那列 = (close_i − close_(i−k)) / close_(i−k)，i−k 數的是該序列自己的列。
+    stock_intraday_ret_lag{k} 是 t 之前第 k 個有效個股交易日的 (close − open) / open，不使用 t 當天收盤價。
+    stock_gap_ret_lag{k} 是該交易日的 (open − 前次 close) / 前次 close；stock_log_shares_lag{k} 是 log(1 + 成交股數)。
+    stock_open_lag1、stock_close_lag1、stock_high_lag1、stock_low_lag1 是前一交易日的還原 OHLC 原始價格。
     該序列在 i 那天沒有列就留空白，不往前找。兩個端點任一是空的或 ≤ 0 也留空白。名稱有四種：
     - stock：股票自己的 etl:adj_close。這組讓 50 檔每天的值不同。
     - teacher_vix 等：老師 global 表的欄（features.teacher_global），只用交易日的列。
@@ -937,6 +940,11 @@ def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
     global 表的 ^TWII、^KS11、TX_OI 是當天收盤後的值，只會用到 i 和更早的列。
     """
     lags = cfg["features"]["lags"]
+    stock_lags = cfg["features"].get("stock_lags", lags)
+    stock_intraday_lags = cfg["features"].get("stock_intraday_lags", [])
+    stock_gap_lags = cfg["features"].get("stock_gap_lags", [])
+    stock_log_shares_lags = cfg["features"].get("stock_log_shares_lags", [])
+    stock_ohlc_lags = cfg["features"].get("stock_ohlc_lags", [])
     stocks = raw["stocks"]
     calendar = crawler.trading_days(stocks, cfg["crawler"]["min_stocks_filled"], cfg["crawler"]["closed_days"])
     if t is not None:
@@ -951,19 +959,54 @@ def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
     def at_prev_day(values: dict) -> np.ndarray:
         return np.array([values.get(i, np.nan) if i else np.nan for i in prev_day], dtype=float)
 
+    def stock_value_lags(ds: list, values: list, requested_lags: list) -> dict:
+        """把每個交易日自己的數值退到預測列；lag1 是 prev_day 那天，lag2 再往回一個有效個股資料列。"""
+        return {
+            k: at_prev_day({ds[j]: values[j - k + 1] for j in range(k - 1, len(ds))})
+            for k in requested_lags
+        }
+
     codes = sorted(stocks)
     n_days, n_codes = len(days), len(codes)
     data = {"date": np.repeat(days, n_codes), "stock_id": np.tile(codes, n_days),
             "is_top50": np.tile([int(c in raw["top50"]) for c in codes], n_days)}
 
     # 股票自己：只用交易日上填好的列
-    own = {}
+    own, own_intraday, own_gap, own_log_shares = {}, {}, {}, {}
+    own_ohlc = {name: {} for name in ("open", "close", "high", "low")}
     for c in codes:
         ds = [d for d in sorted(stocks[c]) if d in pos and crawler.row_filled(stocks[c][d])]
         prices = [crawler.to_float(stocks[c][d][crawler.COL_CLOSE]) for d in ds]
-        own[c] = {k: at_prev_day(k_returns(ds, prices, k)) for k in lags}
-    for k in lags:
+        opens = [crawler.to_float(stocks[c][d][crawler.COL_OPEN]) for d in ds]
+        highs = [crawler.to_float(stocks[c][d][crawler.COL_HIGH]) for d in ds]
+        lows = [crawler.to_float(stocks[c][d][crawler.COL_LOW]) for d in ds]
+        shares = [crawler.to_float(stocks[c][d][crawler.COL_SHARES]) for d in ds]
+        intraday = [(close - open_) / open_ for close, open_ in zip(prices, opens)]
+        gaps = [(opens[j] - prices[j - 1]) / prices[j - 1] for j in range(1, len(ds))]
+        log_shares = [math.log1p(value) if value is not None and value >= 0 else np.nan for value in shares]
+        own[c] = {k: at_prev_day(k_returns(ds, prices, k)) for k in stock_lags}
+        own_intraday[c] = stock_value_lags(ds, intraday, stock_intraday_lags)
+        own_gap[c] = stock_value_lags(ds[1:], gaps, stock_gap_lags)
+        own_log_shares[c] = stock_value_lags(ds, log_shares, stock_log_shares_lags)
+        for name, values in (("open", opens), ("close", prices), ("high", highs), ("low", lows)):
+            own_ohlc[name][c] = stock_value_lags(ds, values, stock_ohlc_lags)
+    for k in stock_lags:
         data[f"stock_ret_lag{k}"] = np.stack([own[c][k] for c in codes], axis=1).reshape(-1)
+    for k in stock_intraday_lags:
+        data[f"stock_intraday_ret_lag{k}"] = np.stack(
+            [own_intraday[c][k] for c in codes], axis=1
+        ).reshape(-1)
+    for k in stock_gap_lags:
+        data[f"stock_gap_ret_lag{k}"] = np.stack([own_gap[c][k] for c in codes], axis=1).reshape(-1)
+    for k in stock_log_shares_lags:
+        data[f"stock_log_shares_lag{k}"] = np.stack(
+            [own_log_shares[c][k] for c in codes], axis=1
+        ).reshape(-1)
+    for name in ("open", "close", "high", "low"):
+        for k in stock_ohlc_lags:
+            data[f"stock_{name}_lag{k}"] = np.stack(
+                [own_ohlc[name][c][k] for c in codes], axis=1
+            ).reshape(-1)
 
     for name, (ds, prices) in market_sources(raw, cfg, calendar).items():
         for k in lags:
@@ -1025,7 +1068,9 @@ def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
 
 
 def model_columns(cfg: dict) -> list:
-    """模型要用的特徵欄：features.model_series 每個序列的每個 lag。train.py、predict.py 只讀這些欄。
+    """模型特徵欄：個股特徵使用各自的 lag 設定，其他序列使用 lags。
+
+    train.py、predict.py 只讀這些欄。
 
     開盤跳空（*_open_gap）用到 t 當天的資料，任何名字裡有 open_gap 的序列都丟 FeatureError（使用者 2026-11-08）。
     """
@@ -1033,7 +1078,19 @@ def model_columns(cfg: dict) -> list:
     same_day = [s for s in series if OPEN_GAP in str(s)]
     if same_day:
         raise FeatureError(f"features.model_series 不能放開盤跳空的欄（用到 t 當天的資料）：{same_day}")
-    return [f"{s}_ret_lag{k}" for s in series for k in cfg["features"]["lags"]]
+    lags = cfg["features"]["lags"]
+    stock_lags = cfg["features"].get("stock_lags", lags)
+    stock_intraday_lags = cfg["features"].get("stock_intraday_lags", [])
+    stock_gap_lags = cfg["features"].get("stock_gap_lags", [])
+    stock_log_shares_lags = cfg["features"].get("stock_log_shares_lags", [])
+    stock_ohlc_lags = cfg["features"].get("stock_ohlc_lags", [])
+    lag_sets = {"stock": stock_lags, "stock_intraday": stock_intraday_lags, "stock_gap": stock_gap_lags,
+                "stock_log_shares": stock_log_shares_lags}
+    stems = {"stock_log_shares": "stock_log_shares"}
+    for name in ("stock_open", "stock_close", "stock_high", "stock_low"):
+        lag_sets[name] = stock_ohlc_lags
+        stems[name] = name
+    return [f"{stems.get(s, f'{s}_ret')}_lag{k}" for s in series for k in lag_sets.get(s, lags)]
 
 
 def to_csv_gz(df: pd.DataFrame) -> bytes:

@@ -168,6 +168,11 @@ yfinance:
 
 features:
   lags: [1, 2]                   # 報酬往回看幾個交易日（使用者和組員 2026-11-06 決定只用 lag1、lag2）
+  stock_lags: [1, 2, 5, 10, 15, 20]  # 個股自己的收盤報酬 (2026-11-11 使用者決定)
+  stock_intraday_lags: [1, 2, 3, 4, 5]  # 前 1～5 個交易日各自的 (還原收盤－還原開盤) / 還原開盤
+  stock_gap_lags: [1, 2, 3, 4, 5]       # 前 1～5 個交易日各自的 (還原開盤－前次還原收盤) / 前次還原收盤
+  stock_log_shares_lags: [1, 2, 3, 4, 5]  # 前 1～5 個交易日各自的 log(1 + 成交股數)
+  stock_ohlc_lags: [1]                  # 前一交易日的還原開、高、低、收原始價格，不做比例或標準化
   # lag k：t 那列 = (close_i − close_(i−k)) / close_(i−k)，i = t 的前一個台股交易日
   stock_column: etl:adj_close    # 老師個股檔算報酬用的欄；這組特徵讓 50 檔每天的值不同
   teacher_global: ["^VIX", "^IXIC", "^GSPC", "^TWII", "^KS11"]   # 老師 global 表要算 lag 的欄
@@ -179,7 +184,8 @@ features:
   # 特徵表裡有全部序列；train.py、predict.py 只讀這些序列的 lag 欄（manifest.json 的 model_columns）。
   # 使用者 2026-11-06 加台指期日盤 tx_day、夜盤 tx_night，共 16 個序列、32 欄。
   # 使用者 2026-11-06：teacher_vix 換成 yfinance 的 vix（老師 Live 的 ^VIX 不是收盤），teacher_vix 還留在表裡。
-  model_series: [stock, sox, tsm_adr, nvda, teacher_ixic, teacher_gspc, vix, etf_0050, usd_twd_am,
+  model_series: [stock, stock_intraday, stock_gap, stock_log_shares, stock_open, stock_close, stock_high, stock_low,
+                 sox, tsm_adr, nvda, teacher_ixic, teacher_gspc, vix, etf_0050, usd_twd_am,
                  gold, dji, wti, us13w, us10y, tx_day, tx_night]
   usd_twd_am:                    # 和美股收盤同步的匯率：台北 d 日 06:00 前最後一根 1h 的 close
     daily: usd_twd               # 小時資料開始之前，用這個序列 d 那根日K的 close 補

@@ -188,6 +188,8 @@ TAIFEX_COLUMNS = ("交易日期", "契約", "到期月份(週別)", "開盤價",
 TAIFEX_SESSIONS = {"一般": "day", "盤後": "night"}   # 日盤、夜盤
 TX_SERIES = {"day": "tx_day", "night": "tx_night"}   # 台指期在特徵表和 run.no_bar_i 裡的序列名稱
 COL_CLOSE, COL_OPEN, COL_Y = STOCK_COLUMNS.index("etl:adj_close"), STOCK_COLUMNS.index("etl:adj_open"), STOCK_COLUMNS.index("y")
+COL_HIGH, COL_LOW = STOCK_COLUMNS.index("etl:adj_high"), STOCK_COLUMNS.index("etl:adj_low")
+COL_SHARES = STOCK_COLUMNS.index("price:成交股數")
 
 
 class CrawlerError(RuntimeError):

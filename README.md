@@ -5,8 +5,8 @@
 學校主機 oop 每天台北 07:10、07:25、07:40、07:55、08:05 跑 `run_daily_test.py --sync`，08:25 再跑一次，補上日韓當天的開盤（見「開盤跳空」）。Mac 08:15 起的備援寫好了，還沒裝（見「排程主機」）。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑六步：
 
 1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live、yfinance 21 個指標、期交所的台指期和 VIXTWN、CNN 恐懼貪婪指數，原樣存進 `data/raw/`。匯率另外存 1 小時K棒；匯率、台指期、VIXTWN、CNN 都和舊檔合併。
-2. 特徵 `python -m src.features --date <t>`：清理 yfinance，算每檔股票和各指標的 lag1、lag2，一列是一檔股票的一天。台指期分日盤和夜盤，夜盤清晨 05:00 收盤，當天開盤前就知道。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
-3. 模型 `src/online_lr.py`：組員的邏輯迴歸（每週重訓、每天用前一天的答案微調），特徵是組員的 26 個個股特徵加特徵表的 32 欄。每天早上重新 fit。
+2. 特徵 `python -m src.features --date <t>`：清理 yfinance；個股自己算 lag1、lag2、lag5、lag10、lag15、lag20，其他指標算 lag1、lag2，一列是一檔股票的一天。台指期分日盤和夜盤，夜盤清晨 05:00 收盤，當天開盤前就知道。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
+3. 模型 `src/online_lr.py`：組員的邏輯迴歸（每週重訓、每天用前一天的答案微調），特徵是組員的 26 個個股特徵加特徵表的 55 欄。每天早上重新 fit。
 4. 上傳 `src/submit.py`：照網站範本寫 CSV，上傳後下載回來逐格核對。`configs/config.yaml` 的 `submit.phase` 決定交 Phase 1（84 天回測，測自動化用）還是 Phase 2（每天的 t）。
 5. 合併 `python -m src.merge_raw`：把 `data/raw/` 併成組員研究用的兩張表，存在 `data/merged/`（見「合併的原始資料」）。上傳之後才跑，來源沒變就跳過，失敗只寫警告。
 6. 推資料：`data/raw/`、`data/processed/`、`data/submission/`、`data/merged/` commit 並 push 到這個分支。
@@ -63,16 +63,21 @@ X, y = train[info["model_columns"]], train["label_y"]
 
 ## 特徵表的欄位
 
-`data/processed/features/` 一列是「一個預測日 t × 一檔股票」，共 84 欄：3 個鍵、2 個答案、30 個序列各 2 欄，另外 19 欄只給組員研究（交易所 9 欄、開盤跳空 2 欄、老師美股不退格 4 欄、VIXTWN 2 欄、CNN 恐懼貪婪 2 欄，見「只進長表的 19 欄」）。每天交件的模型只用 `manifest.json` 的 `model_columns`（下表「模型用」是「是」的 16 個序列，共 32 欄），另外加組員從老師個股表算的 26 個個股特徵。
+`data/processed/features/` 一列是「一個預測日 t × 一檔股票」，共 107 欄：3 個鍵、2 個答案、`stock` 的 6 個收盤報酬 lag、`stock_intraday`、`stock_gap`、`stock_log_shares` 各 5 個 lag、前一交易日 OHLC 4 欄、其餘 29 個序列各 2 欄，另外 19 欄只給組員研究。每天交件的模型只用 `manifest.json` 的 `model_columns`，共 55 欄，另外加組員從老師個股表算的 26 個個股特徵。
 
-欄的順序：鍵、`stock`、yfinance（照 `yfinance.tickers`）、老師 global、`usd_twd_am`、台指期、只進長表的 19 欄（依序是老師美股不退格 4 欄、開盤跳空 2 欄、交易所 9 欄、VIXTWN 2 欄、CNN 2 欄）、答案。2026-11-09 加 `kospi` 之後，`teacher_vix` 到 `tx_night` 都往後移 2 格，請用欄名讀，不要用位置。
+欄的順序：鍵、`stock` 收盤報酬、日內報酬、跳空、log 成交股數、前日 OHLC、yfinance（照 `yfinance.tickers`）、老師 global、`usd_twd_am`、台指期、只進長表的 19 欄、答案。請用欄名讀，不要用位置。
 
 ### lag 怎麼算
 
-i 是 t 之前最後一個台股交易日。每個序列有兩欄：
+i 是 t 之前最後一個台股交易日。`stock` 使用 lag1、lag2、lag5、lag10、lag15、lag20；其他序列使用 lag1、lag2：
 
 - `<序列>_ret_lag1` = (close_i − close_(i−1)) ÷ close_(i−1)，也就是 i 那天的報酬。
 - `<序列>_ret_lag2` = (close_i − close_(i−2)) ÷ close_(i−2)，也就是到 i 為止兩天累積的報酬。
+- `stock_ret_lag5`、`stock_ret_lag10`、`stock_ret_lag15`、`stock_ret_lag20` 使用同一公式，分母依序是個股 i−5、i−10、i−15、i−20 的還原收盤價。
+- `stock_intraday_ret_lag1`～`lag5` 分別是 t 之前第 1～5 個有效個股交易日的 `(還原收盤 − 還原開盤) ÷ 還原開盤`；正數是紅 K，負數是綠 K。
+- `stock_gap_ret_lag1`～`lag5` 分別是這 5 天各自的 `(還原開盤 − 前次還原收盤) ÷ 前次還原收盤`。
+- `stock_log_shares_lag1`～`lag5` 分別是這 5 天各自的 `log(1 + price:成交股數)`；缺值或負值維持空白，不當成 0。
+- `stock_open_lag1`、`stock_close_lag1`、`stock_high_lag1`、`stock_low_lag1` 是 i 當天的還原 OHLC 原始價格，不做除法或標準化。
 
 細節：
 
@@ -91,11 +96,15 @@ i 是 t 之前最後一個台股交易日。每個序列有兩欄：
 | `label_y` | 答案：t 當天還原收盤 > 還原開盤是 1。預測日那列空白。不能當特徵 |
 | `label_intraday_return` | t 當天還原收盤 ÷ 還原開盤 − 1，官方分數用。不能當特徵 |
 
-### 序列（每個都有 `_ret_lag1`、`_ret_lag2` 兩欄）
+### 序列（`stock` 有 6 個 lag、三組個股衍生值各有 5 個 lag、OHLC 各 1 個 lag，其他序列各 2 個）
 
 | 序列 | 來源 | 是什麼 | close_i 是哪一刻的價格 | 模型用 |
 |---|---|---|---|---|
 | `stock` | 老師個股表 | 這檔股票自己 | 台股 i 收盤 | 是 |
+| `stock_intraday` | 老師個股表 | 前 1～5 個交易日各自的開盤到收盤報酬 | 台股各交易日收盤 | 是 |
+| `stock_gap` | 老師個股表 | 前 1～5 個交易日各自的開盤跳空 | 台股各交易日開盤 | 是 |
+| `stock_log_shares` | 老師個股表 `price:成交股數` | 前 1～5 個交易日各自的 `log(1 + 成交股數)` | 台股各交易日收盤 | 是 |
+| `stock_open`～`stock_low` | 老師個股表 `etl:adj_*` | 前一交易日的還原開、收、高、低原始價格 | 台股 i 日 | 是 |
 | `sox` | Yahoo `^SOX` | 費城半導體指數 | 美股 i 那場收盤（台北 t 清晨 05:00 左右收） | 是 |
 | `tsm_adr` | Yahoo `TSM` | 台積電在美國掛牌的股票 | 同上 | 是 |
 | `nvda` | Yahoo `NVDA` | 輝達 | 同上 | 是 |

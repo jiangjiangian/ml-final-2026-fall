@@ -19,6 +19,10 @@
 
 ## 使用者的決定
 
+- 2026-11-11：個股自己的收盤報酬改用 lag1、lag2、lag5、lag10、lag15、lag20；其他市場序列維持 lag1、lag2。設定拆成 `features.stock_lags` 和共用的 `features.lags`，模型欄從 32 欄變成 36 欄，完整長表從 84 欄變成 88 欄。
+- 2026-11-11：新增 `stock_intraday_ret_lag1`～`lag5`，各自是預測日之前第 1～5 個有效個股交易日的 `(etl:adj_close − etl:adj_open) / etl:adj_open`。五欄都進模型，不使用預測日當天收盤；模型欄從 36 欄變成 41 欄，完整長表從 88 欄變成 93 欄。
+- 2026-11-11：新增 `stock_gap_ret_lag1`～`lag5`（每天還原開盤對前次還原收盤的跳空）和 `stock_log_shares_lag1`～`lag5`（每天 `log1p(price:成交股數)`）。十欄都只用預測日前資料並進模型；模型欄從 41 欄變成 51 欄，完整長表從 93 欄變成 103 欄。
+- 2026-11-11：新增前一交易日的還原 OHLC 原始價格 `stock_open_lag1`、`stock_close_lag1`、`stock_high_lag1`、`stock_low_lag1`，照使用者要求不做除法或標準化。四欄進模型；模型欄從 51 欄變成 55 欄，完整長表從 103 欄變成 107 欄。
 - 2026-11-06：lag 只用 lag1、lag2，不用 lag5。使用者和組員都同意。`configs/config.yaml` 的 `features.lags` 是 `[1, 2]`。
 - 2026-11-06：`features.csv.gz` 放全部序列（個股自己、19 個 yfinance、老師 global 5 個、`usd_twd_am`）的 lag1、lag2。`configs/config.yaml` 的 `features.model_series` 列出模型要用的序列，`train.py`、`predict.py` 只讀這些欄。之後換序列只改 config。
 - 2026-11-06：組員給的 12 個指標：SOX、台積電 ADR、NVDA、Nasdaq、S&P 500、VIX、0050、美元兌台幣、黃金、道瓊、原油、美國短期和長期債利率。對到序列是 sox、tsm_adr、nvda、teacher_ixic、teacher_gspc、teacher_vix、etf_0050、usd_twd_am、gold、dji、wti、us13w、us10y，共 13 個（債利率是兩個序列；這個對應是 Claude 整理的）。

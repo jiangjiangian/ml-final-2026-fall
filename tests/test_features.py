@@ -275,10 +275,13 @@ def test_k_returns_blank_when_either_end_is_missing_or_not_positive():
 # ---------------------------------------------------------------- 交易日
 
 
-def stock_row(day, close=10.0, *, open_=10.0, y="1", foreign="0"):
+def stock_row(day, close=10.0, *, open_=10.0, high=None, low=None, y="1", foreign="0", shares="100"):
     row = [""] * len(crawler.STOCK_COLUMNS)
     row[0] = day
     row[crawler.COL_CLOSE], row[crawler.COL_OPEN], row[crawler.COL_Y] = str(close), str(open_), y
+    row[crawler.COL_HIGH] = str(max(float(close), float(open_)) if high is None else high)
+    row[crawler.COL_LOW] = str(min(float(close), float(open_)) if low is None else low)
+    row[crawler.COL_SHARES] = shares
     row[crawler.STOCK_COLUMNS.index("institutional_investors_trading_summary:投信買賣超股數")] = foreign
     return row
 
@@ -333,8 +336,28 @@ def test_prediction_day_row():
     assert last["label_y"].isna().all() and last["label_intraday_return"].isna().all()
     a = last.set_index("stock_id").loc["A"]
     assert a["stock_ret_lag1"] == (14 - 13) / 13            # i = 1/10
+    assert a["stock_intraday_ret_lag1"] == (14 - 10) / 10   # 前一交易日 1/10 的紅綠幅度
+    assert a["stock_intraday_ret_lag5"] == (10 - 10) / 10   # 往回第 5 個交易日 1/06
+    assert a["stock_open_lag1"] == 10
+    assert a["stock_close_lag1"] == 14
+    assert a["stock_high_lag1"] == 14
+    assert a["stock_low_lag1"] == 10
     assert a["teacher_vix_ret_lag2"] == (24 - 22) / 22
     assert a["usd_twd_ret_lag1"] == (34 - 33) / 33
+
+
+def test_stock_gap_and_log_shares_lag1_to_lag5():
+    days = weekdays(6)
+    raw = small_raw(days)
+    for j, d in enumerate(days):
+        raw["stocks"]["A"][d][crawler.COL_SHARES] = str(100 * (j + 1))
+    t = weekdays(7)[-1]
+    a = features.build_features(raw, small_cfg(), t)
+    a = a[(a["date"] == t) & (a["stock_id"] == "A")].iloc[0]
+    assert a["stock_gap_ret_lag1"] == (10 - 14) / 14
+    assert a["stock_gap_ret_lag5"] == (10 - 10) / 10
+    assert a["stock_log_shares_lag1"] == pytest.approx(float(np.log1p(600)))
+    assert a["stock_log_shares_lag5"] == pytest.approx(float(np.log1p(200)))
 
 
 def test_usd_twd_am_hourly_and_backfill():
@@ -384,10 +407,18 @@ def test_missing_hourly_file_blanks_after_switch(tmp_path):
     assert x == [30, 31, None]
 
 
-def test_model_columns_are_32():
+def test_model_columns_are_55():
     columns = features.model_columns(CFG)
-    assert len(columns) == 32
-    assert columns[:2] == ["stock_ret_lag1", "stock_ret_lag2"]
+    assert len(columns) == 55
+    assert columns[:25] == ["stock_ret_lag1", "stock_ret_lag2", "stock_ret_lag5",
+                            "stock_ret_lag10", "stock_ret_lag15", "stock_ret_lag20",
+                            "stock_intraday_ret_lag1", "stock_intraday_ret_lag2",
+                            "stock_intraday_ret_lag3", "stock_intraday_ret_lag4",
+                            "stock_intraday_ret_lag5", "stock_gap_ret_lag1", "stock_gap_ret_lag2",
+                            "stock_gap_ret_lag3", "stock_gap_ret_lag4", "stock_gap_ret_lag5",
+                            "stock_log_shares_lag1", "stock_log_shares_lag2", "stock_log_shares_lag3",
+                            "stock_log_shares_lag4", "stock_log_shares_lag5", "stock_open_lag1",
+                            "stock_close_lag1", "stock_high_lag1", "stock_low_lag1"]
     assert "usd_twd_am_ret_lag2" in columns and "us10y_ret_lag1" in columns
     assert columns[-4:] == ["tx_day_ret_lag1", "tx_day_ret_lag2", "tx_night_ret_lag1", "tx_night_ret_lag2"]
 

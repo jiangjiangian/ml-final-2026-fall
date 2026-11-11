@@ -1,0 +1,4 @@
+2026-11-12 07:10:03,477 finpred.run_daily_test ERROR 停下：StopRun: git pull、fetch 都失敗（網路？）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+2026-11-12 07:10:03,478 finpred.run_daily_test INFO 結束：failed
+2026-11-12 07:10:03,895 finpred.merge_raw INFO 合併表：來源沒變，不重算
+2026-11-12 07:10:03,895 finpred.run_daily_test INFO 合併原始資料 完成（0 秒）

@@ -3,6 +3,8 @@
 排程（memory/context/pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05、08:25，使用者的 Mac 08:15 起備援，跑同一個指令。
 網站上已經有今天的提交就直接結束，所以不會重複上傳。
 08:25 那次多做一件事（open_today_step，只在 --sync 時）：抓日韓當天的開盤，補上特徵表 t 那列的 open_gap 兩欄，不影響上傳。
+每次結束前（休市日除外）更新 data/merged/（merged_step，使用者 2026-11-11）：data/raw/ 合併成給組員研究的兩張表，
+來源沒變就跳過，失敗只寫警告。
 
 用法：
     python run_daily_test.py              交 config 的 submit.phase；t 是台北今天
@@ -34,13 +36,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 SCRIPT = Path(__file__).resolve()
 BRANCH = "claude/stock-market-challenger"   # 只推這個分支（CLAUDE.md）
-DATA_PATHS = ("data/raw", "data/processed", "data/submission")
+DATA_PATHS = ("data/raw", "data/processed", "data/submission", "data/merged")
 UPLOAD_LOG = "data/submission/upload_log.jsonl"   # 和 config 的 data.submission_dir 一致；git_start 在讀 config 前用
 LOCK_PATH = ROOT / ".cache" / "run_daily_test.lock"
 REEXEC_FLAG = "RUN_DAILY_TEST_REEXEC"
 PUSH_ATTEMPTS, PUSH_WAIT = 2, 15   # oop 連 GitHub 偶爾失敗（2026-11-07 看到一次），推送失敗等 15 秒再試一次
 
-crawler = features = online_lr = site_api = submit = utils = None   # import_src() 之後才有
+crawler = features = merge_raw = online_lr = site_api = submit = utils = None   # import_src() 之後才有
 
 
 class StopRun(RuntimeError):
@@ -49,8 +51,8 @@ class StopRun(RuntimeError):
 
 def import_src():
     """git pull 之後才載入 src/ 的模組。"""
-    global crawler, features, online_lr, site_api, submit, utils
-    from src import crawler, features, online_lr, site_api, submit, utils  # noqa: F811
+    global crawler, features, merge_raw, online_lr, site_api, submit, utils
+    from src import crawler, features, merge_raw, online_lr, site_api, submit, utils  # noqa: F811
 
 
 # ---------------------------------------------------------------- git（--sync 才用；只用標準函式庫）
@@ -74,7 +76,7 @@ def on_branch() -> bool:
 
 
 def commit_data(message: str) -> bool:
-    """data/raw、data/processed、data/submission 有改動就 commit，回傳有沒有 commit。"""
+    """DATA_PATHS（data/raw、data/processed、data/submission、data/merged）有改動就 commit，回傳有沒有 commit。"""
     r = git("add", "--", *[p for p in DATA_PATHS if (ROOT / p).exists()])
     if r.returncode != 0:
         raise StopRun(f"git add 失敗：{short(r.stderr or r.stdout)}")
@@ -281,10 +283,19 @@ def open_today_step(t: str, today: str, log) -> None:
         log.warning("當天開盤那一步沒做完（%s）：只影響長表的 open_gap 兩欄", describe(e))
 
 
+def merged_step(log) -> None:
+    """data/raw/ 合併成 data/merged/ 的兩張表（使用者 2026-11-11，給組員研究，模型和上傳不看）。
+    在上傳之後、推資料之前跑，不拖慢上傳。來源檔沒變就跳過（約 0.3 秒），有變約 20 秒。任何錯誤只記 log。"""
+    try:
+        step(log, "合併原始資料", lambda: merge_raw.main([]))
+    except Exception as e:
+        log.warning("合併原始資料沒做完（%s）：只影響 data/merged/，下次執行會再做", describe(e))
+
+
 def describe(e: BaseException) -> str:
     """錯誤訊息只用自己寫的那幾種，其他只寫類別（訊息可能帶伺服器內容）。"""
     own = (StopRun, crawler.CrawlerError, features.FeatureError, online_lr.ModelError, site_api.SiteError,
-           RuntimeError, ValueError)
+           RuntimeError, ValueError)   # merge_raw.MergeError 是 RuntimeError
     return f"{type(e).__name__}: {str(e)[:300]}" if isinstance(e, own) else type(e).__name__
 
 
@@ -366,6 +377,8 @@ def locked_main(args, argv=None) -> int:
         log.info("結束：%s", status)
         if args.sync and not interrupted and status != "closed":
             open_today_step(t, today, log)   # 只在排程的 clone 做；自己接住所有錯誤
+        if not interrupted and status != "closed":
+            merged_step(log)                 # 自己接住所有錯誤
         if args.sync and branch_ok:
             try:
                 commit_data(f"Daily run {t} (Phase {phase}): {status}")

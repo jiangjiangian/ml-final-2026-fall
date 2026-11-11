@@ -41,6 +41,7 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 - 08:25 的時段（使用者 2026-11-11）：oop 的 cron 多一行 08:25，跑同一個指令。`run_daily_test.py` 在流程結束後（`--sync`、不是休市、沒被 Ctrl-C）呼叫 `open_today_step`：t 是今天、特徵表最後一天是 t、過了 `open_today.not_before`（08:22）才抓日韓當天的開盤（`crawler.open_today`），有新存的就再跑一次 `features --date t`，結尾照常 commit、push，大約 08:28 推上去。任何錯誤只記 log，不改這次的結果。07:10～08:05 那五次也會經過這一步，還沒到 08:22 就直接跳過。前五次都沒交成時，08:25 這次會照常跑完整的流程再補開盤。
 - 使用者 2026-11-06：先寫 `run_daily_test.py` 每天交 Phase 2，用組員 `notebooks/feature_switch.ipynb` 第 6 節的方法（邏輯迴歸，最近 14 個月訓練、每週重訓、每天用前一天的答案微調，機率 > 0.5 猜漲），特徵是組員 `build_model.ipynb` 的個股特徵加新表的 32 欄。使用者確認舊系統的排程停了，`submit.enabled` 可以打開。跑完要自動 commit、push `data/`。
 - 爬蟲 08:30 以後才開始時（排程延遲才會發生）：每一步只試一次，不等不重試，yfinance 不抓、沿用舊檔，盡量趕在截止前交（使用者 2026-11-06 確認，就是目前的做法）。
+- 合併的原始資料（使用者 2026-11-11）：`run_daily_test.py` 在 `open_today_step` 之後、結尾的 commit 之前呼叫 `merged_step`，跑 `src.merge_raw.main([])`，把 `data/raw/` 併成 `data/merged/` 的個股表（`stock/YYYY-MM.csv.gz`）和市場表（`market.csv.gz`）給組員研究，模型和上傳不看。休市（status 是 closed）和 Ctrl-C 不跑；不分 `--sync`。來源檔的指紋（`manifest.json` 的 `source_digest`，含 `merge_raw.FORMAT`）沒變就跳過，約 0.3 秒；有變就重算全部（2026-11-11 量的：約 19 秒、記憶體 0.5 GB），只寫內容不一樣的檔。錯誤只記 log。`DATA_PATHS` 加了 `data/merged`，`commit_data` 和 `git_start` 的「只動 data/」都算它。
 - 證交所、櫃買（2026-11-09 寫好，使用者 2026-11-10 打開 `exchange.enabled`，11-11 起每天跑）：爬蟲在期交所之後補 i 那天，平常每個主機 2 個請求、約多 20 秒，最壞約 5 分鐘；失敗只寫警告和 manifest 的 `exchange`，不影響上傳。i 那天的資料台北 18:00 前就公布（見 `memory/projects/crawler.md` 的「每天的步驟」）。
 - `predict.py`（09:00）和 `submit.py`（08:50）檢查截止。crawler 的每日模式（`--date t`）在 07:00 前不跑，08:30 後不再等待或重試。研究模式的 crawler 和 `features`、`train` 什麼時間都能跑。
 
@@ -114,6 +115,8 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 8. 推完後，oop 第一次 pull 要下載約 20 MB（重建的月份檔約 14.6 MB、證交所和櫃買的 CSV 壓縮後約 5.3 MB），`git_start` 的 pull、fetch 各有 180 秒上限。方便連 VPN 的話先在 oop 手動 `git pull` 一次，不然看隔天 07:10 那次的 log 確認 pull 有成功。
 
 ### 之後還要再重建的時候
+
+- `data/merged/` 不受這一節限制：`src/merge_raw.py` 不讀也不寫 `data/processed/`，欄位變了也不會讓每天的特徵停下。改了合併表的欄位或寫法就把 `merge_raw.FORMAT` 加 1，oop 下一次就會重算全部；要自己先推一版，在 pull 之後跑 `python -m src.merge_raw --rebuild`，`git add data/merged` 和程式一起推，一樣避開台北 07:00～08:40。
 
 - 新加 yfinance 序列時：在第 3 步之前，先在暫存的 worktree（`git worktree add <暫存資料夾> HEAD`，連結 `.env`）用研究模式 `python -m src.crawler`（不給 `--date`）爬一次，只把新序列的 CSV 複製進這個 repo 的 `data/raw/yfinance/`，其他檔用 pull 下來的 oop 版本，再 `--rebuild`，和表一起推。研究模式會丟掉日期 ≥ t 的K棒，所以白天爬也只到 i。2026-11-09 的 `kospi` 就是這樣做。只靠 oop 每天抓的話，過去月份的新欄會一直空白（每天只重寫最後兩個月），要再重建、再推一次。
 - 交易所的檔斷了超過 `exchange.gapfill_days`（10 個交易日）時（oop 連續兩週抓不到，或 `exchange.enabled` 關掉一陣子），每天的爬蟲補不到中間那段。2026-11-10 打開時離回補的最後一天 11-06 只差 2 個交易日，不用補。要補時先在開發用的 clone 跑 `python -m src.crawler --exchange-backfill --start <檔案最後一天的下一天>` 補上（不要在 oop 或 Mac 的排程 clone 跑，原因見 `README.md`「證交所、櫃買的回補」），再照第 2～8 步 `--rebuild`。

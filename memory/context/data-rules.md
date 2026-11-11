@@ -57,6 +57,7 @@
 - `tests/fixtures/` 是凍結的快照：只給對照測試讀，每天的流程不讀，爬蟲不寫，裡面的檔都不要改。`.gitattributes` 設了 `tests/fixtures/** -text`，Git 不改換行。清理過的 yfinance 只能放在這裡，不能放進 `data/raw/yfinance/`（那裡放 Yahoo 原樣，`features.py` 會再清理一次，0052 分割前的價格會被除兩次 7）。
 - 原始資料存解開後的 CSV，不存 ZIP。老師的 CSV 每天只多幾列，Git 只記差異；ZIP 每天會整個重存。
 - yfinance 的 `adj_close` 每次重抓都可能有約 1e-6 的相對浮動（0052 實測 1.041e-6）。Yahoo 每次抓都把到抓取當下為止的所有除息套到之前每一列，所以整個檔案（和 sha256）都可能變，但不跨除息日的報酬不受影響。檔案小，影響不大。
+- `data/merged/` 進 Git（使用者 2026-11-11）：組員要一個網址拿到所有原始資料的每個欄，`src/merge_raw.py` 把 `data/raw/` 併成個股表（一列是一天 × 一檔，一個月一檔）和市場表（一列是一天，一檔）。放在 `data/merged/`，不放 `data/raw/`：`data/raw/` 維持「和來源一模一樣」，Kaggle 的 `build_dataset.sh` 和回補的 `git add data/raw` 都不會帶到它。使用者同時決定：兩張表用 `date` 接，不做寬表（市場欄每檔重複 100 次會大好幾倍）；各來源用自己的日期，不對齊到 t（對齊過的報酬在特徵表），README 每個來源寫「預測 t 最多用到哪一列」；每天跟著排程更新。每一格是來源 CSV 的原字串（`-1`、`--`、`N/A` 都不動），台指期每個日期、時段只留近月（到期月最早、有成交的那張，和 `features.tx_values` 一樣）。不併 `usd_twd_1h.csv`、`open_today/`、json 紀錄檔。2026-11-11 用真資料逐格核對過：每一格和來源相同，鍵是各來源的聯集。大小：個股表 gzip 約 27 MB（83 個月），市場表約 1 MB。
 - `data/processed/` 進 Git（使用者 2026-11-06）：特徵表一個月一檔，每天只重寫最後兩個月，組員用網址讀。可以從 `data/raw/` 用 `python -m src.features --rebuild` 重算。
 - 每個檔案要小於 100 MB（GitHub 的上限）。
 - 只有正式的每日流程會 commit 並推送 `data/` 和 `models/`。組員在本機跑只是測試，用 `git restore data models` 還原；推程式前先 `git pull --rebase`。

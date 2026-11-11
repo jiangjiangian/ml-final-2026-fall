@@ -2,15 +2,16 @@
 
 ## 每天的流程
 
-學校主機 oop 每天台北 07:10、07:25、07:40、07:55、08:05 跑 `run_daily_test.py --sync`，08:25 再跑一次，補上日韓當天的開盤（見「開盤跳空」）。Mac 08:15 起的備援寫好了，還沒裝（見「排程主機」）。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑五步：
+學校主機 oop 每天台北 07:10、07:25、07:40、07:55、08:05 跑 `run_daily_test.py --sync`，08:25 再跑一次，補上日韓當天的開盤（見「開盤跳空」）。Mac 08:15 起的備援寫好了，還沒裝（見「排程主機」）。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑六步：
 
 1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live、yfinance 21 個指標、期交所的台指期和 VIXTWN、CNN 恐懼貪婪指數，原樣存進 `data/raw/`。匯率另外存 1 小時K棒；匯率、台指期、VIXTWN、CNN 都和舊檔合併。
 2. 特徵 `python -m src.features --date <t>`：清理 yfinance，算每檔股票和各指標的 lag1、lag2，一列是一檔股票的一天。台指期分日盤和夜盤，夜盤清晨 05:00 收盤，當天開盤前就知道。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
 3. 模型 `src/online_lr.py`：組員的邏輯迴歸（每週重訓、每天用前一天的答案微調），特徵是組員的 26 個個股特徵加特徵表的 32 欄。每天早上重新 fit。
 4. 上傳 `src/submit.py`：照網站範本寫 CSV，上傳後下載回來逐格核對。`configs/config.yaml` 的 `submit.phase` 決定交 Phase 1（84 天回測，測自動化用）還是 Phase 2（每天的 t）。
-5. 推資料：`data/raw/`、`data/processed/`、`data/submission/` commit 並 push 到這個分支。
+5. 合併 `python -m src.merge_raw`：把 `data/raw/` 併成組員研究用的兩張表，存在 `data/merged/`（見「合併的原始資料」）。上傳之後才跑，來源沒變就跳過，失敗只寫警告。
+6. 推資料：`data/raw/`、`data/processed/`、`data/submission/`、`data/merged/` commit 並 push 到這個分支。
 
-t 不是交易日時不跑爬蟲和特徵。
+t 不是交易日時不跑爬蟲、特徵和合併。
 
 ## 排程主機
 
@@ -57,6 +58,8 @@ X, y = train[info["model_columns"]], train["label_y"]
 ```
 
 `label_` 開頭的欄是答案，不能放進 X。`*_open_gap` 不在每日模型裡：t 那列要到台北 08:25 的排程跑完（約 08:28）才有值，07 點多預測時是空白。自己的模型要用，要等 08:30 後 `git pull` 才拿得到 t 那列的值。交易所的 `val_*`、`quote_*` 在 oop 早上抓不到交易所的那天先空白，之後幾天補上。`vixtwn_lag1` 在 t ≤ 2026-08-03、`vixtwn_ret_lag1` 在 t ≤ 2026-08-04 的列空白（期交所的免費檔從 2026-08-03 開始）。驗證要按日期切，不能隨機拆列。`data/raw/yfinance/` 是 Yahoo 的原樣，沒有清理（0052 分割前的價格沒除），要用就用特徵表。
+
+特徵表沒有的欄（老師個股表的法人、技術指標，yfinance 的開高低收量，台指期的未平倉）在 `data/merged/`，見「合併的原始資料」。
 
 ## 特徵表的欄位
 
@@ -186,6 +189,83 @@ Live t 那列的 `^GSPC`、`^IXIC` 台北約 05:05 就填好，07:10 的爬蟲�
 | `fear_greed_lag1` | CNN Fear & Greed | t 之前最後一個美股交易日的前一個美股交易日的分數（0～100）。CNN 存的是下一個美股交易日開盤後約 10 分鐘的值 | CNN 沒有那天的分數（例如 CNN 少了 2026-03-12）、那天是 CNN 檔裡最新的美股交易日（那天早上沒抓到新的）、那天早於 2021-02-01、沒有道瓊的檔 | 否 |
 | `fear_greed_chg_lag1` | 同上 | 上一欄那天的分數減掉前一個美股交易日的分數，單位是「分」。2021-02-01 起最低到過 2.9（2025-04-08），1 分就是 30% 以上，所以不用漲跌幅 | 上一欄空白，或前一個美股交易日沒有分數 | 否 |
 
+## 合併的原始資料
+
+`data/merged/` 把 `data/raw/` 併成兩張表：個股表一列是「一天 × 一檔」，市場表一列是一天。特徵表沒有的欄（老師個股表的法人、技術指標、成交量，yfinance 的開高低收量，台指期的未平倉）從這裡拿。每一格都是來源 CSV 的原字串，沒有清理，也沒有對齊到預測日 t：d 那列放的是各來源標 d 的值，當 t 的特徵前要自己往前接（見「預測 t 時每個來源能用到哪一列」）。
+
+瀏覽：<https://github.com/jiangjiangian/ml-final-2026-fall/tree/claude/stock-market-challenger/data/merged>
+
+### 怎麼讀
+
+pandas 要用 `raw.githubusercontent.com` 的網址，上面那個 `github.com/.../tree/...` 是網頁，讀不了。
+
+```python
+import json, urllib.request
+import pandas as pd
+
+BASE = "https://raw.githubusercontent.com/jiangjiangian/ml-final-2026-fall/claude/stock-market-challenger/data/merged"
+info = json.load(urllib.request.urlopen(f"{BASE}/manifest.json"))
+stock = pd.concat(pd.read_csv(f"{BASE}/stock/{m}.csv.gz", dtype={"stock_id": str}, parse_dates=["date"])
+                  for m in info["stock"]["months"])
+market = pd.read_csv(f"{BASE}/market.csv.gz", parse_dates=["date"])
+
+def asof(left, cols, same_day=False):
+    """left 每一列接上 cols 在日期早於 d（same_day=True 時含 d）的最後一筆值。cols 只放同一個來源的欄。"""
+    right = market[["date", *cols]].dropna(subset=cols, how="all")
+    return pd.merge_asof(left.sort_values("date"), right, on="date", allow_exact_matches=same_day)
+
+x = asof(stock, ["sox_close", "nvda_adj_close"])                          # 美股：美國日期早於 d 的最後一場
+x = asof(x, ["tx_night_收盤價"], same_day=True)                           # 夜盤：標 d 的那場 05:00 就收了
+x = asof(x, ["tx_day_未沖銷契約數"])                                       # 日盤的未平倉：d 收盤後才知道
+x["volume_prev"] = x.groupby("stock_id")["price:成交股數"].shift(1)        # 老師個股欄：用前一個交易日
+```
+
+- `asof` 會往前找：美國放假時接到的是更早那場。特徵表的做法是留空白。
+- 老師個股欄 d 那列是 d 當天的值，要照 `stock_id` 往後移一列。`y` 是 d 的答案，不能當特徵。
+- `y` 是 `-1` 的列還沒有資料，整列都是 `-1`（每天早上的 t、2026-10-23 颱風假）。往後移之前先把這些列的 `-1` 換成空白，不然 10/24 那列會接到 `-1`。
+- 驗證按日期切，同一天的 100 檔要在同一邊。
+
+### 三個檔
+
+- `stock/YYYY-MM.csv.gz`：個股表，一個月一檔。鍵是 `date`、`stock_id`（字串）、`is_top50`（1 是比賽的 50 檔）。接著是老師個股表 20 欄，欄名照原樣（例如 `etl:adj_close`），Training 全部，接 Live 2026-09-01 起的列。最後是證交所、櫃買四個檔，欄名加前綴：`twse_valuation_`、`twse_quotes_`、`tpex_valuation_`、`tpex_quotes_`（例如 `twse_quotes_收盤價`）。
+- `market.csv.gz`：市場表，`date` 是所有來源日期的聯集，某個來源那天沒有列時那幾欄空白。老師 global 6 欄加 `teacher_` 前綴（例如 `teacher_^GSPC`）；yfinance 21 個序列各 6 欄（`sox_open`、`sox_high`、`sox_low`、`sox_close`、`sox_adj_close`、`sox_volume`），序列名稱和代號見「序列」那張表；台指期日盤、夜盤各 17 欄（`tx_day_收盤價`、`tx_night_未沖銷契約數` 這類）；`vixtwn`、`vixtwn_1min_avg`；`fear_greed_score`。
+- `manifest.json`：個股表有哪些月份、兩張表的欄名和列數、每個來源的最後一天、來源檔的指紋。
+
+### 預測 t 時每個來源能用到哪一列
+
+| 欄 | d 那列是什麼 | 台北幾點才知道 | 預測 t 最多用到 |
+|---|---|---|---|
+| 老師個股 20 欄（含 `y`） | 台股 d 的價量、法人、技術指標、答案 | d 收盤後；每天早上 t 那列是 `-1` | d 早於 t |
+| `twse_*`、`tpex_*` | d 收盤後的估值和收盤行情 | d 18:00 前 | d 早於 t |
+| `teacher_^VIX`、`teacher_^IXIC`、`teacher_^GSPC` | d 開盤前最後一次美股收盤（`^VIX` 的 Live 10/13 起不準，改用 `vix`） | Live 的 t 那列約 05:05 填好 | d 等於 t |
+| `teacher_^TWII`、`teacher_^KS11`、`teacher_TX_OI` | d 當天收盤（`TX_OI` 可能含收盤後的資訊） | d 收盤後 | d 早於 t |
+| 美國的序列：`sox`、`tsm_adr`、`nvda`、`dji`、`vix`、`us10y`、`us13w`、`wti`、`gold`、`dxy` | 美國日期 d 那場 | d 隔天清晨：美股約 05:00、期貨 06:00、DXY 07:00 | 美國日期早於 t |
+| 台股 ETF：`etf_0050`、`etf_0052`、`etf_0055`、`etf_006201` | 台股 d | d 13:30 | d 早於 t |
+| 亞洲、歐洲指數：`n225`、`hsi`、`sse`、`kospi`、`stoxx50e`、`gdaxi` | 當地 d 那天 | 亞洲 d 下午，歐洲 d 深夜到隔天凌晨 | d 早於 t |
+| `usd_twd` | Yahoo `TWD=X` d 那根日K | 保守看成 d 隔天 08:00 | d 早於 t |
+| `tx_day_*` | 台指期 d 的日盤 | d 13:45 | d 早於 t |
+| `tx_night_*` | 標 d 的夜盤：前一個交易日 15:00 到 d 05:00 | d 05:00 | d 等於 t |
+| `vixtwn`、`vixtwn_1min_avg` | d 13:45 收盤 | d 16:10 | d 早於 t |
+| `fear_greed_score` | 美國日期 d 的分數 | 最後一天的分數之後還會變 | 用特徵表的 `fear_greed_lag1`，原因見「VIXTWN 和 CNN 恐懼貪婪」 |
+
+### 原樣保留的地方
+
+- `-1`：老師 Live 待定列整列是 `-1`，代表還沒有資料。Training 法人欄有 83 格是真的 `-1`（剛好買賣超 1 股），不能一律換成空白。
+- yfinance：沒有清理，0052 分割前的價格沒除。`adj_close` 每天會因為 Yahoo 重新套除息有約百萬分之一的浮動，所以 `market.csv.gz` 幾乎每天都會換。要乾淨的報酬用特徵表。
+- 交易所：價格是原始價，沒有還原除權息，不要和老師的還原價混用。`-`、`--`、`----`、`N/A` 這類記號原樣留著，有這些記號的欄讀進來是字串。成交股數和老師的 `price:成交股數` 不一定一樣。
+- 停牌日：老師的表跳過了 21 個停牌的股票日，交易所那天有列，所以這些列只有交易所欄。
+- 台指期：每個日期、時段只留近月合約（到期月最早、有成交的那張），和特徵表選的一樣。`tx_day_到期月份(週別)` 寫是哪一張，結算日那天還是要到期的那張。夜盤的 `tx_night_結算價`、`tx_night_未沖銷契約數` 期交所不公布，每列都是 `-`。
+- 沒併進來的：`yfinance/usd_twd_1h.csv`（1 小時K棒，和日表對不上）、`open_today/`（當天開盤，隔天 yfinance 的日K就有）、`data/raw/` 的 json 紀錄檔。
+
+### 更新
+
+排程每次上傳完、推資料之前跑 `python -m src.merge_raw`：來源檔的指紋沒變就跳過；有變就重算全部，只寫內容不一樣的檔，所以通常只動最後一個月和 `market.csv.gz`。休市日不跑，失敗只寫警告，不影響上傳。07:10 那次跑完約 07:30 推上來，那時 t 那列的老師個股欄還是 `-1`。
+
+```bash
+python -m src.merge_raw              # 來源有變才重算
+python -m src.merge_raw --rebuild    # 不看指紋，全部重算
+```
+
 ## 證交所、櫃買的回補（研究用）
 
 ```bash
@@ -260,6 +340,10 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   ├── processed/             特徵表，組員從這裡拿資料
 │   │   ├── features/          YYYY-MM.csv.gz，一個月一檔，每天只更新最後兩個月
 │   │   └── manifest.json      有哪些月份、模型用哪些欄、清理紀錄
+│   ├── merged/                data/raw/ 合併成的兩張表，給組員研究（見「合併的原始資料」）
+│   │   ├── stock/             YYYY-MM.csv.gz：一列是一天 × 一檔，老師個股表加證交所、櫃買
+│   │   ├── market.csv.gz      一列是一天：老師 global、yfinance、台指期近月、VIXTWN、CNN
+│   │   └── manifest.json      月份、欄名、列數、各來源的最後一天、來源檔的指紋
 │   └── submission/            每天的產出
 │       ├── submission_YYYY-MM-DD.csv   要上傳的 0/1
 │       ├── submission_phase1_YYYY-MM-DD.csv   Phase 1 測試上傳的 0/1（84 天 × 50 檔）
@@ -278,6 +362,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   ├── submit.py              上傳 CSV，再下載回來核對；Phase 1、2 都用
 │   ├── site_api.py            課程網站的 API：登入、state、範本、上傳、下載
 │   ├── online_lr.py           組員的邏輯迴歸和 26 個個股特徵（run_daily_test.py 用）
+│   ├── merge_raw.py           data/raw/ → data/merged/ 的兩張表（run_daily_test.py 上傳後跑）
 │   └── utils.py               讀設定和帳密、台北時間、截止檢查、log
 └── tests/
     ├── fixtures/data-collection/  舊分支 data-collection 的凍結資料，只給對照測試用，不要改
@@ -297,5 +382,6 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
     ├── test_online_lr.py          組員的模型：個股特徵不偷看，每天的模式和回測一樣
     ├── test_submit.py             上傳流程：假網站，不重試、核對、跳過的規則
     ├── test_run_daily_test.py     git 同步（假 remote）和 log 檔被換掉後重開
+    ├── test_merge_raw.py          合併表：每格和來源一樣、近月合約、只寫有變的檔、來源壞掉時不寫檔
     └── test_submission_format.py  CSV 的欄位、列數、0/1
 ```

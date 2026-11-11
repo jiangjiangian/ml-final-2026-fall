@@ -126,6 +126,7 @@ data:
   raw_dir: data/raw
   processed_dir: data/processed
   submission_dir: data/submission
+  merged_dir: data/merged          # src/merge_raw.py 的輸出：data/raw/ 合併成個股表、市場表給組員研究（使用者 2026-11-11）
 
 yfinance:
   min_interval_seconds: 2        # 每個請求（含 cookie、crumb、轉址）至少間隔幾秒，從上一個請求結束算起

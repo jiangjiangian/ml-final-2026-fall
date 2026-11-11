@@ -40,3 +40,4 @@
 2026-11-11 08:05:05,662 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-11，--sync（執行代號 6ffd8565）
 2026-11-11 08:05:05,881 finpred.run_daily_test INFO 網站上已經有這次的提交（submission_2026-11-11.csv，2026-11-10T23:28:33.373Z 交），結束
 2026-11-11 08:05:05,882 finpred.run_daily_test INFO 結束：already_submitted
+2026-11-11 15:23:03,444 finpred.features INFO 特徵表：166500 列、1665 天，最後一天 2026-11-11；寫了 ['2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 24, 'empty_close': 7, 'placeholder': 29, 'split': 1, 'dividend': 6}

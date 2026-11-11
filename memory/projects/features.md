@@ -10,6 +10,7 @@
 - t 比 manifest 的 `last_date` 早時丟 `FeatureError`，不蓋掉較新的月份；特徵定義改了用 `--rebuild` 全部重寫。`load_features()` 讀回全部月份。
 - 2026-11-09：使用者 2026-11-08 決定的 17 欄做完（見「使用者的決定」2026-11-08 那條），含三個審查後的修正，全部離線測試 333 個通過。長表從 63 欄變 80 欄。用本機 11-06 的 `data/raw` 跑 `load_raw` 加 `build_features(t=2026-11-06)`，和 HEAD 的 `data/processed` 比：166,200 列，原本 63 欄逐月寫成 CSV 後和 HEAD 逐字相同，32 個模型欄 5,318,400 格完全相同，所以程式沒有改到模型欄。在更新的 `data/raw` 上 `--rebuild` 時，舊月份的還原價序列會有 1e-6 級的變動，那是 Yahoo 重抓造成的，和程式無關（見 `memory/context/pipeline.md`「特徵欄位變了怎麼推」第 4 步）。本機建全表從 4.7 秒變約 9 秒，多的主要是交易所欄。
 - 推送（2026-11-09 下午做完）：程式、`configs/config.yaml`、pull 之後 `--rebuild` 的 `data/processed/`、`data/raw/twse/`、`data/raw/tpex/`、`data/raw/exchange_backfill.json`、`data/raw/yfinance/kospi.csv` 同一次推。重建用 oop 11-09 的 `data/raw`（t = 11-09）：166,300 列、80 欄，`warnings`、`notes` 都是空的。和 origin 原本的表比：只有還原價序列（`tsm_adr`、`nvda`、`etf_*`）有差，最多 1.6e-6，沒有格子從有值變空白；股票、老師、`usd_twd_am`、台指期的欄沒變。t = 11-09 的 50 檔 0／1 和重建前相同，機率最多差 0.0011。之後欄位再變，照 `memory/context/pipeline.md` 的「特徵欄位變了怎麼推」。
+- 2026-11-11：VIXTWN、CNN 的 4 欄（`vixtwn_lag1`、`vixtwn_ret_lag1`、`fear_greed_lag1`、`fear_greed_chg_lag1`）推上去，長表 84 欄，都不進 `model_columns`。經過和檢查見 `memory/projects/crawler.md` 的「推上去（2026-11-11）」。
 - 待辦（2026-11-09 審查）：
   - 交易所的檔斷了超過 `exchange.gapfill_days`（10 個交易日）時，每天的爬蟲補不到中間那段。先用 `--exchange-backfill` 補上再 `--rebuild`，不然那段的 `val_*`、`quote_*` 會凍成空白。2026-11-10 打開時只差 11-09、11-10 兩天：11-11 的爬蟲補進原始檔，每天重寫最後兩個月時 t = 11-10 那列跟著補上，不用 `--rebuild`。
   - 只進長表的輸入缺檔時，log 的那行會寫「檔案補齊後要 --rebuild」。每天看一次 manifest 的 `notes`。

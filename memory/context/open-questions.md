@@ -2,26 +2,6 @@
 
 需要時問使用者。有答案後，把結果和日期寫進對應的檔，再從這裡刪掉那一節。
 
-## VIXTWN 和 CNN 恐懼貪婪：還沒定的兩件事
-
-使用者 2026-11-09 的決定和查到的事實在 `memory/projects/crawler.md` 的「VIXTWN、CNN 恐懼貪婪」、`memory/projects/features.md`、`memory/context/data-rules.md`。
-
-- CNN 用哪一天：2026-11-10 量測定案用 `second_last`（結論在 `memory/projects/features.md`）。下面是量測紀錄和還沒看完的點。oop `~/pubtime/cnn_probe.py` 寫 `~/pubtime/cnn_log.jsonl` 和 `cnn_snap_*.json`，11-09 17:35～11-11 07:12 共 39 次（美股開收盤、台北 07:10、09:15 前後），11-10 16:00、11-11 07:12 抓全部歷史。19:00 那次碰到學校 DNS 斷線沒抓到；19:18 換成第 3 版（PID 136777）：網路錯誤隔 15 秒重試、最多 4 次，每次用沒人要過的開始日（同一個網址 Fastly 會先回上一次的舊版，見 `memory/projects/crawler.md` 的 CDN 快取），log 多記 `cache`（`Age`、`X-Cache`）。分析時看 `cache` 是 `MISS, MISS` 的點；17:33、17:35 那兩次是第一次要那個網址，可以用，19:15 那次是舊版，不能用；21:00 那次 DNS 斷線，重試 4 次都失敗。另外一個乾淨的點（Mac 試跑新程式，`MISS, MISS`，美股 11-09 開盤後）：台北 11-10 00:17，`now.timestamp` 2026-11-09T16:16:50Z，11-06 那點 24.3532（22:20 開盤前是 24.17），11-09 那點 32.2857。到 11-10 08:30 量到的（都是 `MISS, MISS`）：11-06 那點在 14:33Z（美股開盤後 3 分鐘）還等於即時分數 24.153，14:44Z 起停在 24.353 沒再變，等於在美國下一個交易日開盤後 3～14 分鐘內定住。11-09 那點收盤後 21:24Z 起是 31.714，到台北 11-10 08:30 都沒變；`now.timestamp` 從 23:59Z（美東 18:59）起不再更新，台北 08:30 還沒有 11-10 那點。11-09 那點在台北 11-10 09:00 之後會不會變，要看 09:15 前後的點（美股 VIX 夜盤台北 09:15 開始）。量到了（2026-11-10）：11-09 那點從美股收盤到台北 11-10 13:00 都是 31.714（09:00、09:10、10:30、13:00 都是 `MISS, MISS`，09:15 夜盤開始沒有影響），13:00 還沒有 11-10 那點。台北 19:03（美股盤前，Mac 抓，`MISS, MISS`）11-09 那點變成 33.229，等於即時分數，也多了 11-10 那點；回應的 `previous_close` 是 31.714。所以最後一天的點在收盤後還會跟著下一個美股交易日的盤前變，到開盤後 3～14 分鐘才定住，定住的值是下一天開盤後約 10 分鐘的分數，不是那天收盤的分數。結論：維持 `second_last`，用 `prev_day` 的話歷史列會用到 t 當天晚上才有的值。同一次抓全部歷史（開始日 2020-12-15），和 11-09 17:06 的快照比 1,481 天：只有 11-06、11-09 兩點不同，11-05 以前沒有一天被改、消失或多出來。量測 11-11 07:12 結束（42 筆）。11-10 晚上的點（`MISS, MISS`）：11-09 那點 22:35（美股開盤後 4 分鐘）還等於即時分數 31.543，22:50 起停在 31.514，到 11-11 07:12 沒再變；11-06 那點一直是 24.353；11-10 那點跟著即時分數走（07:12 是 33.457）。所以最後一天在下一個美股交易日開盤後 4～19 分鐘之間定住，兩次量到的都一樣。11-10 16:00（讀取逾時）、19:00、21:00、23:30（DNS）沒抓到，22:20 那筆是 `MISS, HIT`（舊版），不算。最後一天的分數要是在台北 t 日 09:00 前就定住（而且等於 07:10 抓到的值），就和 `vix` 一樣用美國 i 那天；之後還會變，就用 t 之前最後一個美股交易日的前一個美股交易日（美股交易日看道瓊的K棒，現在的設定 `features.fear_greed.day: second_last`，見 `memory/projects/features.md`，使用者 2026-11-09 選的）。舊日子的值如果也會被改，再問使用者。Mac 17:06 的全歷史快照在 session 的 scratchpad（`fgprobe/fg_2020-09-19.json`，session 結束會消失）。
-- 什麼時候推：`exchange.enabled` 11-10 上午打開、推上去（使用者選今晚打開，下一次排程一樣是 11-11 07:10）。11-11 07:10 交易所第一次正式跑順、CNN 量完，才推這兩個的程式、config、原始檔和 `--rebuild` 的 `data/processed/`（照 `memory/context/pipeline.md`「特徵欄位變了怎麼推」）。第一次正式跑是 11-12。程式先寫在另開的 worktree，不 commit，免得混進 11-10 那次 push。
-- 11-11 交易所「跑順」的標準：這步失敗時爬蟲的回傳值照樣是 0，只能看 manifest。上傳成功後的時段 already_submitted，不會再爬，所以看那天最後一次爬蟲寫的 `data/raw/manifest.json`：`exchange.status` 是 `ok`，`sources` 四個來源的 `has_prev_day` 都是 true、`missing_dates` 是空的，`requests` 是 `{twse: 4, tpex: 4}`（補 11-09、11-10；同一天第二次爬到這步會是 0）；四個 CSV 最後一天是 2026-11-10；`data/processed/manifest.json` 的 `notes` 沒有交易所的檔。
-- 11-11 的結果：07:10 那次又停在 git pull（學校 DNS），07:25 那次 07:28 交出去（status ok）。交易所第一次正式跑成功：`exchange.status` ok，四個來源都補到 11-09、11-10（`has_prev_day` true、`missing_dates` 空的），`requests` 是 `{twse: 4, tpex: 4}`，`data/processed/manifest.json` 的 `notes` 是空的。上面的標準都過了，VIXTWN、CNN 可以推。另外 Yahoo 連兩天（11-10、11-11 的 07:25）沒有 stoxx50e、kospi 的 i 那根。
-- 程式的進度（2026-11-09 晚上）：寫在 `/Users/ian/Desktop/ml-final-vixcnn`（detached 在 `2e3402e`，沒有 commit）。改了 `src/crawler.py`、`src/features.py`、`configs/config.yaml`、`README.md`，加 `tests/test_vixtwn_cnn.py`，`tests/test_crawler.py`、`test_features.py`、`test_features_new_columns.py`、`test_no_future_data.py` 小改。真網址試跑（Mac，研究模式 t = 11-10，寫到 scratchpad）：9 秒，VIXTWN 4 個請求 66 天，CNN 1 個請求 1,450 天。兩輪獨立審查找到的問題 2026-11-09 晚上都修了（第一輪：CNN 改用道瓊當美股日曆、manifest 寫不出來不讓爬蟲停下等；第二輪：CNN 網址每天不同、那天早上沒抓到 CNN 時 t 那列空白、VIXTWN 每個月份分開等，見 `memory/projects/crawler.md`、`features.md`），全部 431 個測試通過。2026-11-10 第三輪審查的 6 個小問題也修了、README 和說明照量測結果改了（見 `memory/projects/crawler.md`），全部 441 個測試通過；`vixcnn.patch` 要在推之前重新 `git diff` 產生。
-- 11-11 推的步驟：
-  1. 把 worktree 的改動搬到開發用的 clone（第二輪審查在暫存 repo 試過，直接 `git apply` 會在 README 和 config 失敗）：
-     - worktree 裡 `git diff > vixcnn.patch`（`tests/test_vixtwn_cnn.py` 是新檔，另外複製）。它的 `cfg` 夾具 11-10 加了關掉 `exchange.enabled` 那行：clone 的 config 是 true，沒有那行的話 `crawl()` 的測試會跑真的交易所那步、碰 `.cache/` 的鎖。clone 的 `tests/test_crawler.py`、`test_exchange.py` 11-10 也改了 `cfg` 夾具，`--3way` 要合得起來。
-     - clone 裡 `git apply --3way --exclude=README.md vixcnn.patch`：src、config、tests 會乾淨套上，config 保留 11-10 打開的 `exchange.enabled: true`。
-     - `git apply --reject --include=README.md vixcnn.patch`：2026-11-10 00:30 用當時的 patch 在暫存 clone 試過，README 7 段只有第 6 段 `src/crawler.py` 那行檔案樹沒套上，它（在別的 session 的 Kaggle 那幾行旁邊）進 `README.md.rej`。手動補上，刪掉 `.rej`，README 只 stage VIXTWN、CNN 的段落。
-     - CNN 量測如果顯示最後一天在台北 t 開盤前就定住，`features.fear_greed.day` 改 `prev_day`，要一起改：README「只進長表的欄」那段的 CNN 那行、「為什麼 CNN 用倒數第二天」那段和那天早上沒抓到的那段、表格的 fear_greed 兩列、`fear_greed_values` 和 features.py 開頭的說明；`test_fear_greed_never_uses_the_last_cnn_day`、`test_fear_greed_skips_a_us_holiday_cnn_point`、`test_fear_greed_second_last_us_day_before_each_row`、`test_fear_greed_does_not_carry_old_scores_forward` 這 4 個測試會失敗，要照新規則重寫；「檔裡最新的美股日就空白」那條也要重想（prev_day 用的就是最新那天）。README 寫的「推測要到美國下一個交易日開盤才定住」照量測結果改。
-  2. `git fetch` 加 `rebase --autostash` 之後，在暫存資料夾當 `raw_dir` 跑一次兩步（研究模式，t = 當天），只把 `taifex/vixtwn.csv`、`cnn/fear_greed.csv` 複製進 `data/raw/`。不要直接對 `data/raw` 跑：`run.save()` 會把 `data/raw/manifest.json` 蓋成只有這兩步的版本。沒有舊檔時 CNN 的開始日照 t 錯開（t = 11-11 是 `2021-01-28`），沒人要過。跑完看暫存資料夾 manifest 的 `cnn.cache`：`X-Cache` 要剛好是 `MISS, MISS`、`Age` 0～5，不是就再跑一次（`MISS, HIT` 是台北那層 CDN 給的存檔，2026-11-09 22:30 試過）。`now.timestamp` 只當第二個參考：美股收盤後它可能比現在晚不只 15 分鐘，11-10 07:10 那次量測會看到晚多少。
-  3. `--rebuild`，確認 84 欄、`warnings` 空的、`notes` 沒有 vixtwn、fear_greed、log 沒有「t 那列的 … 空白」，t 那天 50 檔的 0／1 和重建前一樣（模型欄沒變）。
-  4. commit 程式、測試、文件（README 照舊不收 Kaggle 那幾行）和資料（`data/processed`、兩個新的原始檔），避開台北 07:00～08:40 推，oop 手動 pull、跑一次測試。
-  5. 在 oop 用暫存資料夾當 `raw_dir` 跑一次兩步，確認 oop 的 Python（requests）抓得到 CNN（目前只用 curl 和 urllib 試過）和期交所的月檔。一定在第 2 步之後：同一天、都沒有舊檔時兩邊要同一個網址，oop 和 Mac 都經過台北那層 CDN，oop 會拿到 Mac 留下的那份（`HIT`），這步只看連不連得上，是正常的。這步的結果不要複製到任何地方。
-
 ## 2026-11-09 features 實作時 Claude 定的細節，等使用者確認
 
 細節和數字在 `memory/projects/features.md` 的「實作時 Claude 定的細節」。要使用者看的是這三個：
@@ -39,6 +19,7 @@
 - 觀察紀錄：
   - 2026-11-09：乾淨，沒有警告。
   - 2026-11-10：07:10 那次在 git pull 就停了（學校 DNS 查不到 github.com）。07:25 那次 07:28 交出去、網站核對一樣，但 stale：期交所連不上（重試 5、10 秒都失敗），tx_day、tx_night 空白；Yahoo 沒有 stoxx50e、kospi 的 11-09 那根。後面的時段都 already_submitted。
+  - 2026-11-11：07:10 那次又停在 git pull（學校 DNS）。07:25 那次 07:28 交出去，status ok（期交所有抓到）；Yahoo 連兩天沒有 stoxx50e、kospi 的 i 那根。這天猜漲 9 檔。
   - 兩天都 50 檔全部猜跌（猜漲 0.000；Phase 1 的 84 天是 0.303）。11-09 沒有任何警告，所以不是缺資料造成的，是模型自己的輸出。
 
 ## 五個時段的實測（2026-11-08 檢查留下的）

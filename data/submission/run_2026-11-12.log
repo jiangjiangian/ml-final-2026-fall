@@ -2,3 +2,6 @@
 2026-11-12 07:10:03,478 finpred.run_daily_test INFO 結束：failed
 2026-11-12 07:10:03,895 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-12 07:10:03,895 finpred.run_daily_test INFO 合併原始資料 完成（0 秒）
+2026-11-12 07:10:03,991 finpred.run_daily_test ERROR git pull --rebase 失敗（第 1 次）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+2026-11-12 07:10:19,021 finpred.run_daily_test ERROR git pull --rebase 失敗（第 2 次）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+2026-11-12 07:10:19,021 finpred.run_daily_test ERROR 資料推不上去，下次執行會再推

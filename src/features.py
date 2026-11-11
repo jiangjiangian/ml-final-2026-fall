@@ -5,8 +5,8 @@
     date, stock_id            鍵；stock_id 一律當字串（"2330"），不轉成數字
     is_top50                  1＝要預測的 50 檔（info.json 的 Top50@Y）
     <名稱>_ret_lag{k}        特徵，見下方；k 來自 config 的 features.lags
-    teacher_<名稱>_fresh_ret_lag{k}、<名稱>_open_gap、val_*_lag1、quote_*_lag1
-                              使用者 2026-11-08 加的欄，見下方「只進長表的欄」
+    teacher_<名稱>_fresh_ret_lag{k}、<名稱>_open_gap、val_*_lag1、quote_*_lag1、vixtwn_*、fear_greed_*
+                              使用者 2026-11-08、11-09 加的欄，見下方「只進長表的欄」
     label_y                   答案：t 當天 etl:adj_close > etl:adj_open 為 1；還不知道時空白
     label_intraday_return     答案：t 當天 etl:adj_close / etl:adj_open − 1（官方分數用）；還不知道時空白
 預測日 t 那列的 label 一定空白。模型用哪些欄由 config 的 features.model_series 決定，見 model_columns()。
@@ -29,7 +29,7 @@
       連假前最後一晚的夜盤），t 開盤前就知道。分母是日盤收盤：
       lag1 比 t 之前最後一個日盤（通常是 i），lag2 比再前一個（使用者 2026-11-06 決定「比日盤收盤」）。
 
-只進長表的欄（使用者 2026-11-08，都不進 model_columns）：
+只進長表的欄（使用者 2026-11-08、11-09，都不進 model_columns），順序是 fresh、開盤跳空、交易所、VIXTWN、CNN：
     teacher_gspc_fresh_ret_lag{k}、teacher_ixic_fresh_ret_lag{k}（features.teacher_fresh）：
         x_d 是老師 global 第 d 列的 ^GSPC（^IXIC），也就是 d 開盤前最後一次美股收盤。和 usd_twd_am 一樣用 t 自己那列：
         (x_t − x_(t 往回第 k 個交易日)) / x_(t 往回第 k 個交易日)。沒有那列、-1、≤ 0 空白。原本的 teacher_gspc 不變。
@@ -51,6 +51,18 @@
         quote_imbalance_lag1     (買量 − 賣量) ÷ (買量 + 賣量)。量是空的、不是數字、兩邊都是 0 時空白
         quote_limit_up_lag1      沒有賣價、有買價（漲停鎖住）是 1，其他 0，沒有列空白
         quote_limit_down_lag1    沒有買價、有賣價（跌停鎖住）是 1，其他 0，沒有列空白
+    VIXTWN（data/raw/taifex/vixtwn.csv，使用者 2026-11-09）：期交所的免費檔從 2026-08-03 開始，i 更早的列空白。
+        vixtwn_lag1         i 那天 13:45 的臺指選擇權波動率指數（i 收盤後才公布，所以只用 i）
+        vixtwn_ret_lag1     和 VIXTWN 自己前一天比的漲跌幅，和 vix_ret_lag1 同算法
+    CNN 恐懼貪婪（data/raw/cnn/fear_greed.csv，美國日期，2021-02-01 起），哪一天看 features.fear_greed.day，
+    美股交易日看 features.fear_greed.us_calendar（道瓊有K棒的日子）：
+        fear_greed_lag1     分數（0～100，越低越怕）
+        fear_greed_chg_lag1 和前一個美股交易日的分數差幾分
+        second_last（使用者 2026-11-09）用 t 之前最後一個美股交易日的前一個美股交易日：CNN 最後一天的點要到
+        下一個美股交易日開盤後幾分鐘才定住（2026-11-10 量的）。通常比 vix 舊一天；台股休市期間美股開了 n 天時比 vix 新 n − 1 天（休一天時
+        同一天，農曆年這種長假會新好幾天）。選到的那天是 CNN 檔裡最新的美股交易日時也空白（使用者 2026-11-09：
+        前一天早上之後沒抓到新的，檔裡的分數還沒定住），之後抓到新的、重寫最後兩個月時補上。
+        prev_day 用美國 i 那天。CNN 沒有選到的那天就空白，不往前找。
     這些欄的原始檔不見或讀不了時整欄空白，記在 manifest.json 的 notes，不算缺檔（不擋 --rebuild）。
     這時 --rebuild 會把空白寫進過去的月份，每天只重寫最後兩個月，所以檔案補齊後要再 --rebuild 一次。
 
@@ -118,6 +130,7 @@ VALUATION_COLUMNS = ("val_ep_lag1", "val_pe_loss_lag1", "val_log_pb_lag1", "val_
 QUOTE_COLUMNS = ("quote_spread_ticks_lag1", "quote_rel_spread_lag1", "quote_imbalance_lag1",
                  "quote_limit_up_lag1", "quote_limit_down_lag1")
 FLAG_COLUMNS = ("val_pe_loss_lag1", "quote_limit_up_lag1", "quote_limit_down_lag1")   # 0、1、空白，存成整數
+SIDE_COLUMNS = ("vixtwn_lag1", "vixtwn_ret_lag1", "fear_greed_lag1", "fear_greed_chg_lag1")   # 使用者 2026-11-09
 
 
 class FeatureError(RuntimeError):
@@ -407,15 +420,18 @@ def clean_taifex(rows: list, cfg: dict):
 # ---------------------------------------------------------------- 讀 data/raw/
 
 
-def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None, tx_path=None, exchange_dir=None) -> dict:
+def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None, tx_path=None, exchange_dir=None,
+             side_dir=None) -> dict:
     """讀 data/raw/，yfinance 清理過。路徑沒給就用 config 的 data.raw_dir（測試會改成凍結資料）。
 
     回傳 {"stocks", "global", "top50", "yfinance": {名稱: 列}, "hourly": 列或 None,
           "tx": [{date, expiry, session, close}], "exchange": 見 load_exchange,
+          "vixtwn": {日期: 值}, "fear_greed": {美國日期: 分數},
           "cleaning": [紀錄], "warnings": [訊息], "notes": [訊息]}。
     yfinance 某個檔不存在時，那個序列整欄空白，記一筆警告，不中斷（每天的流程要全自動）。台指期也一樣。
-    警告會讓 main() 當成缺檔（不能 --rebuild）。features.optional_inputs 的 yfinance 序列和證交所、櫃買的檔
-    只進長表，不見或讀不了時記在 notes，不算缺檔。exchange_dir 是放 twse/、tpex/ 的資料夾，預設 data.raw_dir。
+    警告會讓 main() 當成缺檔（不能 --rebuild）。features.optional_inputs 的 yfinance 序列、證交所、櫃買、
+    VIXTWN、CNN 的檔只進長表，不見或讀不了時記在 notes，不算缺檔。exchange_dir 是放 twse/、tpex/ 的資料夾，
+    side_dir 是 vixtwn.file、cnn.file 的起點，預設都是 data.raw_dir。
     """
     raw_dir = utils.ROOT / cfg["data"]["raw_dir"]
     teacher_dir = Path(teacher_dir) if teacher_dir else raw_dir / "teacher" / "training"
@@ -443,6 +459,9 @@ def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None, tx_path
         out["yfinance"][name] = rows
         out["cleaning"].extend(records)
     load_exchange(out, Path(exchange_dir) if exchange_dir else raw_dir)
+    side_dir = Path(side_dir) if side_dir else raw_dir
+    load_points(out, "vixtwn", side_dir / cfg["vixtwn"]["file"], crawler.VIXTWN_COLUMNS, crawler.vixtwn_cells_ok)
+    load_points(out, "fear_greed", side_dir / cfg["cnn"]["file"], crawler.FEAR_GREED_COLUMNS, crawler.score_ok)
     hourly = yf_dir / f'{cfg["features"]["usd_twd_am"]["hourly"]}.csv'
     if hourly.exists():
         out["hourly"], records = clean_hourly(read_hourly(hourly), cfg)
@@ -534,6 +553,21 @@ def load_exchange(out: dict, raw_dir: Path):
         for table in tables.values():
             table.pop(key, None)
     out["exchange"] = tables
+
+
+def load_points(out: dict, key: str, path: Path, columns: tuple, check):
+    """VIXTWN、CNN 的原始檔放進 out[key]：{日期: 第一個數值}（VIXTWN 是 13:45 收盤、CNN 是分數）。
+    不會丟例外：檔案不見、讀不了、表頭不對、有壞列，都當作沒有，記在 out["notes"]（只進長表的欄，不算缺檔）。"""
+    out[key] = {}
+    if not path.exists():
+        out["notes"].append(f"沒有 {path.parent.name}/{path.name}，{key} 的欄空白")
+        return
+    try:
+        rows = crawler.read_points(path, columns, check)
+    except crawler.CrawlerError as e:
+        out["notes"].append(f"{path.parent.name}/{path.name} 讀不了（{e}），{key} 的欄空白")
+        return
+    out[key] = {d: float(cells[0]) for d, cells in rows.items()}
 
 
 # ---------------------------------------------------------------- lag
@@ -798,6 +832,70 @@ def tx_values(days: list, prev_day: list, last: str, tx_rows: list, lags: list) 
     return out
 
 
+def vixtwn_values(prev_day: list, values: dict) -> dict:
+    """VIXTWN 的兩欄 {欄名: [每個日期的值]}：vixtwn_lag1 是 i 那天 13:45 的值，vixtwn_ret_lag1 是它和 VIXTWN
+    自己前一天比的漲跌幅（和 vix_ret_lag1 同算法）。i 沒有值就空白，不往前找。VIXTWN 是 i 收盤後才公布，
+    所以只用 i，不用 t。"""
+    dates = sorted(values)
+    level, ret = [], []
+    for i in prev_day:
+        v = values.get(i) if i else None
+        level.append(np.nan if v is None else v)
+        j = bisect_left(dates, i) if v is not None else 0
+        ret.append(ratio(v, values[dates[j - 1]]) if j >= 1 else np.nan)
+    return {"vixtwn_lag1": level, "vixtwn_ret_lag1": ret}
+
+
+def us_trading_days(rows: list) -> list:
+    """美股交易日：features.fear_greed.us_calendar 那個 yfinance 序列有K棒的日子，佔位K棒不算。
+    道瓊 2021～2026 沒有一根假日K棒（2026-11-09 查過）；CNN 當天的點在美股開盤前就出現，美國假日可能也會建，所以不能用 CNN 自己的日期。"""
+    return sorted(r["date"] for r in rows if not is_placeholder(r))
+
+
+def fear_greed_values(days: list, prev_day: list, scores: dict, rule: str, start: str, us_days: list) -> dict:
+    """CNN 恐懼貪婪的兩欄 {欄名: [每個日期的值]}：fear_greed_lag1 是選到那天 s 的分數，fear_greed_chg_lag1 是它減掉
+    s 前一個美股交易日的分數（差幾分；2021-02-01 起最低到過 2.9，1 分就是 30% 以上，所以不用漲跌幅）。
+
+    s 只從 us_days（美股交易日）挑，rule 是 features.fear_greed.day（使用者 2026-11-09）：
+        second_last  d 之前最後一個美股交易日 e 的前一個美股交易日 s。CNN 最後一天（e）的點收盤後還會跟著下一個
+                     美股交易日的盤前變，開盤後 3～14 分鐘才定住（2026-11-09、11-10 量的：11-09 那點到台北 11-10
+                     13:00 都是 31.71，19:03 盤前變成 33.23）。e 的點要到台北 d 那天晚上才定住，會帶到 d 收盤以後的
+                     資訊，不能用。s 的點在 e 開盤後幾分鐘（台北 e 那天晚上，一定早於 d）就定住了；定住的值是
+                     e 開盤後約 10 分鐘的分數，不是 s 收盤時的分數。
+                     s 是 CNN 檔裡最新的美股交易日時也空白（使用者 2026-11-09）：e 之後沒抓到新的（例如那天早上
+                     CNN 沒抓到，或 CNN 自己少了 e 那天，像 2026-03-12），檔裡 s 的值是前一次抓的，那時還沒定住。
+                     之後抓到新的、重寫最後兩個月時補上。
+        prev_day     美國 i 那天，和 vix 一樣；美股 i 那天休市就空白。量到最後一天要到台北 t 那天晚上才定住，
+                     所以現在不用這個規則。
+    CNN 沒有 s 那天（例如 CNN 自己少了 2026-03-12）就空白，不往前找：往前找會在檔停住時一直沿用舊分數。
+    道瓊的檔沒更新（^DJI 抓失敗、留著舊檔）時不會空白：e、s 照檔裡最後一天往前選，用比較舊的分數；道瓊補上後，
+    隔天重寫最後兩個月時改回來。start（cnn.start）以前的分數不用。us_days 是空的（道瓊的檔不見、us_calendar
+    不是 yfinance.tickers 的名稱）時整欄空白，不擋每天的流程；真的 config 有測試檢查。"""
+    if rule not in ("second_last", "prev_day"):
+        raise FeatureError(f"features.fear_greed.day 只能是 second_last 或 prev_day：{rule}")
+
+    def score(day):
+        return scores.get(day) if day is not None and day >= start else None
+
+    us_set = set(us_days)
+    newest = max((day for day in scores if day in us_set), default=None)   # CNN 檔裡最新的美股交易日
+    level, chg = [], []
+    for d, i in zip(days, prev_day):
+        if rule == "second_last":
+            j = bisect_left(us_days, d) - 2   # us_days[j + 1] 是 e
+            if j >= 0 and newest is not None and us_days[j] >= newest:
+                j = -1   # s 之後沒抓到新的：s 的值還沒定住
+        else:
+            j = bisect_left(us_days, i) if i else -1
+            if j >= len(us_days) or (j >= 0 and us_days[j] != i):
+                j = -1
+        s = score(us_days[j]) if j >= 0 else None
+        before = score(us_days[j - 1]) if j >= 1 else None
+        level.append(np.nan if s is None else s)
+        chg.append(s - before if s is not None and before is not None else np.nan)
+    return {"fear_greed_lag1": level, "fear_greed_chg_lag1": chg}
+
+
 # ---------------------------------------------------------------- 特徵表
 
 
@@ -863,6 +961,15 @@ def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
         data[f"{name}_{OPEN_GAP}"] = np.repeat(np.array(values, dtype=float), n_codes)
 
     data.update(exchange_values(prev_day, codes, raw.get("exchange") or {}, cfg))
+
+    # VIXTWN、CNN 恐懼貪婪（使用者 2026-11-09），只進長表
+    fg = cfg["features"].get("fear_greed") or {}
+    us_days = us_trading_days(raw["yfinance"].get(fg.get("us_calendar", "dji"), []))   # 不在 tickers 裡就是空的
+    side = {**vixtwn_values(prev_day, raw.get("vixtwn") or {}),
+            **fear_greed_values(days, prev_day, raw.get("fear_greed") or {}, fg.get("day", "second_last"),
+                                (cfg.get("cnn") or {}).get("start", ""), us_days)}
+    for column, values in side.items():
+        data[column] = np.repeat(np.array(values, dtype=float), n_codes)
 
     label_y, label_ret = [], []
     for d in days:
@@ -967,6 +1074,10 @@ def main(argv=None) -> int:
     for message in raw["notes"]:
         log.warning("%s（只進長表的欄，不算缺檔；檔案補齊後要 --rebuild，不然過去月份的這幾欄一直空白）", message)
     df = build_features(raw, cfg, t)
+    row_t = df[df["date"] == t] if t else df.iloc[0:0]
+    blank = [c for c in SIDE_COLUMNS if len(row_t) and row_t[c].isna().all()]
+    if blank:   # 例如那天早上 CNN 沒抓到（審查 2026-11-09：爬蟲看不到特徵用哪一天，在這裡報）
+        log.warning("t 那列的 %s 空白（只進長表的欄，原因見 fear_greed_values、vixtwn_values）", blank)
     out_dir = utils.ROOT / cfg["data"]["processed_dir"]
     last = df["date"].iloc[-1]
     try:

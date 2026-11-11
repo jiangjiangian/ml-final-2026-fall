@@ -4,7 +4,7 @@
 
 學校主機 oop 每天台北 07:10、07:25、07:40、07:55、08:05 跑 `run_daily_test.py --sync`。Mac 08:15 起的備援寫好了，還沒裝（見「排程主機」）。網站上已經有今天的提交就直接結束，不會重複上傳。一次跑五步：
 
-1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live、yfinance 21 個指標和期交所的台指期，原樣存進 `data/raw/`。匯率另外存 1 小時K棒；匯率和台指期都和舊檔合併。
+1. 爬蟲 `python -m src.crawler --date <t>`：下載老師的 Training、Live、yfinance 21 個指標、期交所的台指期和 VIXTWN、CNN 恐懼貪婪指數，原樣存進 `data/raw/`。匯率另外存 1 小時K棒；匯率、台指期、VIXTWN、CNN 都和舊檔合併。
 2. 特徵 `python -m src.features --date <t>`：清理 yfinance，算每檔股票和各指標的 lag1、lag2，一列是一檔股票的一天。台指期分日盤和夜盤，夜盤清晨 05:00 收盤，當天開盤前就知道。結果一個月一檔，存在 `data/processed/features/`，每天只更新最後兩個月。
 3. 模型 `src/online_lr.py`：組員的邏輯迴歸（每週重訓、每天用前一天的答案微調），特徵是組員的 26 個個股特徵加特徵表的 32 欄。每天早上重新 fit。
 4. 上傳 `src/submit.py`：照網站範本寫 CSV，上傳後下載回來逐格核對。`configs/config.yaml` 的 `submit.phase` 決定交 Phase 1（84 天回測，測自動化用）還是 Phase 2（每天的 t）。
@@ -56,13 +56,13 @@ train = df[df["label_y"].notna()]   # 預測日 t 那列還沒有答案
 X, y = train[info["model_columns"]], train["label_y"]
 ```
 
-`label_` 開頭的欄是答案，不能放進 X。`*_open_gap` 也不能放：歷史列有值，但每天早上 t 那列一定是空白，模型預測時只會看到空值。交易所的 `val_*`、`quote_*` 在 oop 早上抓不到交易所的那天先空白，之後幾天補上；2026-11-11 早上之前，i 晚於 11-06 的列都是空白。驗證要按日期切，不能隨機拆列。`data/raw/yfinance/` 是 Yahoo 的原樣，沒有清理（0052 分割前的價格沒除），要用就用特徵表。
+`label_` 開頭的欄是答案，不能放進 X。`*_open_gap` 也不能放：歷史列有值，但每天早上 t 那列一定是空白，模型預測時只會看到空值。交易所的 `val_*`、`quote_*` 在 oop 早上抓不到交易所的那天先空白，之後幾天補上。`vixtwn_lag1` 在 t ≤ 2026-08-03、`vixtwn_ret_lag1` 在 t ≤ 2026-08-04 的列空白（期交所的免費檔從 2026-08-03 開始）。驗證要按日期切，不能隨機拆列。`data/raw/yfinance/` 是 Yahoo 的原樣，沒有清理（0052 分割前的價格沒除），要用就用特徵表。
 
 ## 特徵表的欄位
 
-`data/processed/features/` 一列是「一個預測日 t × 一檔股票」，共 80 欄：3 個鍵、2 個答案、30 個序列各 2 欄，另外 15 欄只給組員研究（交易所 9 欄、開盤跳空 2 欄、老師美股不退格 4 欄，見「只進長表的 15 欄」）。每天交件的模型只用 `manifest.json` 的 `model_columns`（下表「模型用」是「是」的 16 個序列，共 32 欄），另外加組員從老師個股表算的 26 個個股特徵。
+`data/processed/features/` 一列是「一個預測日 t × 一檔股票」，共 84 欄：3 個鍵、2 個答案、30 個序列各 2 欄，另外 19 欄只給組員研究（交易所 9 欄、開盤跳空 2 欄、老師美股不退格 4 欄、VIXTWN 2 欄、CNN 恐懼貪婪 2 欄，見「只進長表的 19 欄」）。每天交件的模型只用 `manifest.json` 的 `model_columns`（下表「模型用」是「是」的 16 個序列，共 32 欄），另外加組員從老師個股表算的 26 個個股特徵。
 
-欄的順序：鍵、`stock`、yfinance（照 `yfinance.tickers`）、老師 global、`usd_twd_am`、台指期、只進長表的 15 欄（依序是老師美股不退格 4 欄、開盤跳空 2 欄、交易所 9 欄）、答案。2026-11-09 加 `kospi` 之後，`teacher_vix` 到 `tx_night` 都往後移 2 格，請用欄名讀，不要用位置。
+欄的順序：鍵、`stock`、yfinance（照 `yfinance.tickers`）、老師 global、`usd_twd_am`、台指期、只進長表的 19 欄（依序是老師美股不退格 4 欄、開盤跳空 2 欄、交易所 9 欄、VIXTWN 2 欄、CNN 2 欄）、答案。2026-11-09 加 `kospi` 之後，`teacher_vix` 到 `tx_night` 都往後移 2 格，請用欄名讀，不要用位置。
 
 ### lag 怎麼算
 
@@ -123,13 +123,14 @@ i 是 t 之前最後一個台股交易日。每個序列有兩欄：
 | `tx_day` | 期交所 | 台指期日盤（08:45～13:45），近月合約 | 台股 i 的日盤收盤 | 是 |
 | `tx_night` | 期交所 | 台指期夜盤，近月合約 | 例外：分子是 t 清晨 05:00 收盤的夜盤。lag1 比 t 之前最後一個日盤收盤，lag2 比再前一個 | 是 |
 
-### 只進長表的 15 欄
+### 只進長表的 19 欄
 
-這 15 欄 2026-11-09 加進表裡，都不在 `model_columns`，給組員研究用（定義和決定的經過見 `memory/projects/features.md`）。三組用的時間點不一樣：
+這 19 欄都不在 `model_columns`，給組員研究用（定義和決定的經過見 `memory/projects/features.md`）。四組用的時間點不一樣：
 
 - 交易所 9 欄（`val_*_lag1`、`quote_*_lag1`）：t 那列存 i 那天收盤後的值本身，沒有和前一天比。`lag1` 指的是用 i 那天。
 - 開盤跳空 2 欄（`*_open_gap`）：d 那列存 d 當天早上的開盤跳空（開盤價比前一個交易日收盤漲跌多少），台北約 08:30 才看得到。所以每天早上 t 那列是空白，隔天重寫最後兩個月時補上。這是全表唯一用到當天資料的欄，不能當 t 的特徵（`features.model_columns()` 會擋）。
 - 老師美股不退格 4 欄（`*_fresh_ret_lag*`）：用老師 global t 自己那列，公式和 `usd_twd_am` 一樣，所以比 `teacher_gspc`、`teacher_ixic` 新一天。
+- VIXTWN、CNN 恐懼貪婪 4 欄：VIXTWN 用 i 那天收盤的值；CNN 用 t 之前最後一個美股交易日的前一個美股交易日的分數，通常比 `vix` 舊一天（原因見「VIXTWN 和 CNN 恐懼貪婪」）。
 
 ### 交易所的估值和委買賣（9 欄）
 
@@ -167,6 +168,21 @@ i 是 t 之前最後一個台股交易日。每個序列有兩欄：
 | `teacher_ixic_fresh_ret_lag1`、`teacher_ixic_fresh_ret_lag2` | 老師 global `^IXIC` | 同上 | 同上 | 否 |
 
 Live t 那列的 `^GSPC`、`^IXIC` 台北約 05:05 就填好，07:10 的爬蟲抓得到。原本的 `teacher_gspc`、`teacher_ixic` 不變。往回數的是台股交易日，老師 global 缺列的日子會空白，所以 `teacher_gspc_fresh_ret_lag1` 有值的天數（1,445）比 `teacher_gspc`（1,548）少。
+
+### VIXTWN 和 CNN 恐懼貪婪（4 欄）
+
+- VIXTWN（臺指選擇權波動率指數）：期交所從台指選擇權的價格算的，代表市場猜台股未來一個月會晃多大，越高代表越緊張。原始檔是 `data/raw/taifex/vixtwn.csv`，存每天 13:45 收盤的值和收盤前 1 分鐘的平均。期交所的免費檔只留最近約 4 個月，所以從 2026-08-03 開始，之後每天多一天。
+- CNN 恐懼貪婪指數：CNN 用 7 個美股指標（漲跌氣勢、選擇權買賣比、VIX 等）算的 0～100 分，越低代表投資人越怕。原始檔是 `data/raw/cnn/fear_greed.csv`，日期是美國日期，2021-02-01 起（更早的有兩段剛好 50.0，還有一段 0.3～3.6 的怪值，不用）。CNN 沒有公開的 API，這是它網頁畫圖用的網址，隨時可能改。
+- 為什麼 CNN 用倒數第二天：CNN 存的最後一天的分數，收盤後還會跟著下一個美股交易日的盤前變，開盤後 3～14 分鐘才定住（2026-11-09、11-10 量的：11-09 的分數到台北 11-10 13:00 都是 31.71，19:03 美股盤前變成 33.23）。最後一天要到台北 t 那天晚上才定住，用它會帶到 t 收盤以後的資訊。所以用 t 之前最後一個美股交易日（叫它 e）的前一個美股交易日，它在 e 開盤後幾分鐘（台北 e 那天 22:30 後，夏令時間 21:30 後）就定住了，一定早於台北 t 開盤。定住的值是 e 開盤後約 10 分鐘的分數，不是那天收盤時的分數。通常比 `vix` 舊一天；台股休市期間美股開了 n 天時比 `vix` 新 n − 1 天（休一天時同一天，農曆年這種長假會新好幾天）。
+- 那天早上沒抓到 CNN 時（例如學校網路斷線，或 CNN 自己少了 e 那天），t 那列空白（使用者 2026-11-09）：檔裡最新的美股交易日就是要用的那天，它的分數是前一次抓的，那時還沒定住。之後抓到新的、每天重寫最後兩個月時補上。道瓊的檔沒更新時不會空白，會往前選到更舊一天的分數，道瓊補上後重寫時改回來。
+- 美股交易日看道瓊（`dji`）有K棒的日子：CNN 當天的點在美股開盤前就出現，美國假日可能也會建、事後才拿掉，所以不能拿 CNN 自己的日期當日曆。設定在 `configs/config.yaml` 的 `features.fear_greed`。
+
+| 欄位 | 來源 | 定義 | 空白的情況 | 模型用 |
+|---|---|---|---|---|
+| `vixtwn_lag1` | 期交所 VIXTWN 月檔 | i 那天 13:45 收盤的 VIXTWN | i 沒有值、i 早於 2026-08-03 | 否 |
+| `vixtwn_ret_lag1` | 同上 | (v_i − v_前一天) ÷ v_前一天，前一天數 VIXTWN 自己的日子，和 `vix_ret_lag1` 同算法 | i 或前一天沒有值 | 否 |
+| `fear_greed_lag1` | CNN Fear & Greed | t 之前最後一個美股交易日的前一個美股交易日的分數（0～100）。CNN 存的是下一個美股交易日開盤後約 10 分鐘的值 | CNN 沒有那天的分數（例如 CNN 少了 2026-03-12）、那天是 CNN 檔裡最新的美股交易日（那天早上沒抓到新的）、那天早於 2021-02-01、沒有道瓊的檔 | 否 |
+| `fear_greed_chg_lag1` | 同上 | 上一欄那天的分數減掉前一個美股交易日的分數，單位是「分」。2021-02-01 起最低到過 2.9（2025-04-08），1 分就是 30% 以上，所以不用漲跌幅 | 上一欄空白，或前一個美股交易日沒有分數 | 否 |
 
 ## 證交所、櫃買的回補（研究用）
 
@@ -231,7 +247,8 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   │   │   ├── training/      網站的 Training ZIP 解開（不會再變）
 │   │   │   └── live/          網站的 Live ZIP 解開，每天整包換新（Live 本身每天多一列）
 │   │   ├── yfinance/          21 個額外指標，一個序列一個 CSV；usd_twd_1h.csv 是匯率的 1 小時K棒
-│   │   ├── taifex/            tx.csv：期交所的台指期，日盤和夜盤，只留單月合約
+│   │   ├── taifex/            tx.csv：期交所的台指期，日盤和夜盤，只留單月合約；vixtwn.csv：VIXTWN 每天 13:45 收盤的值
+│   │   ├── cnn/               fear_greed.csv：CNN 恐懼貪婪指數，美國日期，2021-02-01 起
 │   │   ├── twse/              證交所：valuation.csv 本益比、殖利率、股價淨值比；quotes.csv 收盤行情（長表的交易所欄用）
 │   │   ├── tpex/              櫃買中心：valuation.csv、quotes.csv，欄位見「證交所、櫃買的回補」
 │   │   ├── exchange_backfill.json   回補的進度：每個來源寫了幾天、no_data 的日子、失敗、請求數、有沒有被擋
@@ -251,7 +268,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   └── README.md              實驗的檔名和注意事項；每天的自動流程不會讀這裡
 ├── src/
 │   ├── __init__.py
-│   ├── crawler.py             下載老師資料、yfinance 額外指標和台指期；--exchange-backfill 回補證交所、櫃買（exchange.enabled 打開後每天也補）
+│   ├── crawler.py             下載老師資料、yfinance 額外指標、台指期、VIXTWN 和 CNN 恐懼貪婪；--exchange-backfill 回補證交所、櫃買（exchange.enabled 打開後每天也補）
 │   ├── features.py            原始資料 → 特徵表；訓練和預測用同一個函式
 │   ├── train.py               按日期切分、驗證、訓練、存模型
 │   ├── predict.py             下載當天範本，產生 t 那天 50 檔的 submission CSV
@@ -270,7 +287,8 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
     ├── test_crawler.py            爬蟲的離線測試（假伺服器、假時鐘）
     ├── test_exchange.py           證交所、櫃買的離線測試：解析、檢查、限流、鎖、續跑、暫停時段、每天的步驟
     ├── test_features.py           清理、交易日、lag，以及和 data-collection 凍結資料的對照測試
-    ├── test_features_new_columns.py  只進長表的 15 欄和 usd_twd_am 的舊K棒規則
+    ├── test_features_new_columns.py  只進長表的交易所、開盤跳空、老師美股不退格欄和 usd_twd_am 的舊K棒規則
+    ├── test_vixtwn_cnn.py         VIXTWN、CNN 恐懼貪婪：爬蟲的兩步（假伺服器）和長表的 4 欄
     ├── test_no_future_data.py     特徵只能用 t 之前的資料；開盤跳空只用到 d 當天，不能進模型欄
     ├── test_online_lr.py          組員的模型：個股特徵不偷看，每天的模式和回測一樣
     ├── test_submit.py             上傳流程：假網站，不重試、核對、跳過的規則

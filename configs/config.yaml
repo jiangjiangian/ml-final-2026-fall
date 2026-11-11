@@ -53,6 +53,32 @@ tx_futures:                      # 台指期（使用者 2026-11-06 加）。日
     overlap_days: 7              # 從舊檔最後一天往前幾天開始重抓
     night_ready: "05:15"         # t 當天這個時間以後才收 t 的夜盤列（夜盤 05:00 收盤）
 
+vixtwn:                          # 臺指選擇權波動率指數（使用者 2026-11-09 加），只進長表
+  enabled: true                  # 每天的爬蟲要不要抓（台指期之後）；false 時不碰這個網址
+  base_url: https://www.taifex.com.tw
+  path: /file/taifex/Dailydownload/vix/log2data/{month}new.txt   # {month} 是 YYYYMM；只留最近約 4 個月，舊的 302 到 404 頁
+  file: taifex/vixtwn.csv        # 放在 data.raw_dir 底下：date, vixtwn（13:45 收盤）, vixtwn_1min_avg（收盤前 1 分鐘平均）
+  start_month: "2026-08"         # 沒有檔時從這個月抓起（2026-11-09 期交所最早的月檔）
+  overlap_days: 7                # 從舊檔最後一天往前幾天所在的月份開始抓
+  min_interval_seconds: 2        # 每個請求前等幾秒（第一個也等，台指期那一步剛送完）
+  timeout_seconds: [10, 30]
+  total_timeout_seconds: 60
+  budget_seconds: 90             # 這一步開始後過了幾秒就不再送新的請求
+  max_kb: 64                     # 一個月檔約 0.8 KB
+
+cnn:                             # CNN Fear & Greed（使用者 2026-11-09 加），只進長表
+  enabled: true                  # 每天的爬蟲要不要抓（VIXTWN 之後）；false 時不碰這個網址
+  base_url: https://production.dataviz.cnn.io
+  path: /index/fearandgreed/graphdata/{start}   # 回 start 以後的全部。CNN 網頁畫圖用的網址，沒有公開 API，隨時可能改
+  referer: https://edition.cnn.com/
+  file: cnn/fear_greed.csv       # 放在 data.raw_dir 底下：date（美國日期）, score（0～100）
+  start: "2021-02-01"            # 更早的不用：2020-09-21～10-23、2020-11-04～2021-01-21 都剛好 50.0，2020-10-26～11-03 是 0.3～3.6
+  fetch_days: 30                 # 平常從 t 往前幾天抓。開始日跟著 t 走，每天的網址都不一樣（CDN 對要過的網址會先回舊的那份）
+  overlap_days: 10               # 舊檔最後一天至少要在這次抓的範圍裡往後這麼多天；不夠（停太久）或沒有舊檔就抓全部
+  timeout_seconds: [10, 30]
+  total_timeout_seconds: 60
+  max_mb: 5                      # 從 2021-02-01 抓全部約 1 MB
+
 exchange:                        # 證交所、櫃買中心的全市場日資料（使用者 2026-11-08 同意加的來源）
   enabled: true                  # 每天的爬蟲要不要抓（期交所之後補 i 和最近缺的日子；使用者 2026-11-10 打開）；false 時完全不碰這兩個主機。回補不看這個開關
   gapfill_days: 10               # 每天的爬蟲：老師最近幾個交易日（含 i）裡檔案沒有的日子一起補，新的先
@@ -159,6 +185,11 @@ features:
       kospi:
         first_day_of_year: true
         days: ["2020-12-03", "2021-11-18", "2022-11-17", "2023-11-16", "2024-11-14", "2025-11-13", "2026-11-19"]
+  fear_greed:                    # CNN 恐懼貪婪的 fear_greed_lag1、fear_greed_chg_lag1 用哪一天（使用者 2026-11-09）
+    day: second_last             # second_last：t 之前最後一個美股交易日的前一個美股交易日（最後一天到下一個美股交易日開盤後才定住）；
+                                 # prev_day：美國 i 那天，和 vix 一樣（2026-11-10 量到最後一天要到台北 t 晚上才定住，所以不用）
+    us_calendar: dji             # 美股交易日：這個 yfinance 序列有K棒的日子（佔位K棒不算）。CNN 美國假日可能也會先建點，
+                                 # 不能拿 CNN 自己的日期當日曆；vix 有假日K棒（2026-05-25、09-07），也不能用
   tick_table:                    # 台股升降單位：[價格未滿多少, 一檔多少]，最後一列是以上全部。quote_spread_ticks 用
     - [10, 0.01]
     - [50, 0.05]

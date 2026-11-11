@@ -15,7 +15,7 @@ from tests.test_features import bar, fake_repo, hour, small_cfg, small_raw, week
 SPECS = {(s.market, s.kind): s for s in crawler.EXCHANGE_SPECS}
 NEW_COLUMNS = ["teacher_gspc_fresh_ret_lag1", "teacher_gspc_fresh_ret_lag2", "teacher_ixic_fresh_ret_lag1",
                "teacher_ixic_fresh_ret_lag2", "kospi_open_gap", "n225_open_gap", *features.VALUATION_COLUMNS,
-               *features.QUOTE_COLUMNS]
+               *features.QUOTE_COLUMNS, *features.SIDE_COLUMNS]
 
 
 def nan_list(values):

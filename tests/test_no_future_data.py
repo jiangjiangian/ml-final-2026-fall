@@ -26,7 +26,11 @@ def raw_with_hourly(days):
     raw["exchange"] = {
         "valuation": {(d, c): (str(10 + j), str(1 + j / 10), str(2 + j / 10)) for j, d in enumerate(days) for c in "AB"},
         "quotes": {(d, c): (f"{50 + j:.2f}", str(10 + j), f"{50.1 + j:.2f}", "5") for j, d in enumerate(days) for c in "AB"}}
+    raw["vixtwn"] = {d: 20.0 + j for j, d in enumerate(days)}
+    raw["fear_greed"] = {d: 40.0 + 3 * j for j, d in enumerate(days)}   # 測試裡美國日期和台股日期一樣
+    raw["yfinance"]["dji"] = [bar(d, 40000.0 + j, high=40100.0 + j) for j, d in enumerate(days)]   # 美股日曆
     cfg = small_cfg(hourly_from=days[0])
+    cfg["cnn"]["start"] = days[0]
     cfg["yfinance"]["tickers"].update(n225="^N225", kospi="^KS11")
     cfg["features"]["teacher_global"] = ["^VIX", "^IXIC", "^GSPC", "^TWII", "^KS11"]
     cfg["features"]["open_gap"] = {"series": ["kospi", "n225"], "late_open": {}}
@@ -45,8 +49,10 @@ def gap_columns(df):
 
 def change_day(raw, d):
     """把 d 當天收盤後才知道的東西都改掉：收盤價、y、global 的 ^VIX ^TWII ^KS11 TX_OI、日K、06:00 之後的 1h、
-    d 的日盤、d 的證交所估值和委買賣。d 的夜盤（05:00 收盤）和 global 的 ^GSPC、^IXIC（d 開盤前的美股）不改。"""
+    d 的日盤、d 的證交所估值和委買賣、d 的 VIXTWN（13:45 收盤）。d 的夜盤（05:00 收盤）和 global 的 ^GSPC、^IXIC
+    （d 開盤前的美股）不改。CNN 另外測（test_fear_greed_never_uses_the_last_cnn_day）。"""
     changed = copy.deepcopy(raw)
+    changed["vixtwn"][d] = 99.0
     for code in ("A", "B"):
         row = changed["stocks"][code][d]
         row[crawler.COL_CLOSE], row[crawler.COL_Y] = "999", "0"
@@ -85,7 +91,7 @@ def test_changing_day_t_does_not_change_its_features():
     later = before["date"] == days[5]
     for c in ("stock_ret_lag1", "teacher_vix_ret_lag1", "usd_twd_ret_lag1", "tx_day_ret_lag1", "tx_night_ret_lag1",
               "teacher_twii_ret_lag1", "n225_ret_lag1", "val_ep_lag1", "val_pe_loss_lag1", "quote_spread_ticks_lag1",
-              "quote_limit_down_lag1"):
+              "quote_limit_down_lag1", "vixtwn_lag1", "vixtwn_ret_lag1"):
         assert not before.loc[later, c].equals(after.loc[later, c]), c
     # usd_twd_am 只用 06:00 以前結束的 1h，d 那根 06:00 開始的K棒哪一列都不會用到
     assert before["usd_twd_am_ret_lag1"].equals(after["usd_twd_am_ret_lag1"])
@@ -174,11 +180,52 @@ def test_open_gap_can_never_be_a_model_column():
             features.build_features(small_raw(weekdays(3)), cfg)
 
 
+def test_fear_greed_never_uses_the_last_cnn_day():
+    """CNN 最後一天的分數收盤後還會被改（2026-11-09 量到），到美國下一個交易日才定住（使用者 2026-11-09）。
+    改掉 CNN d 那天的分數：d 那列和下一個交易日那列都不能變（那時 d 還是最後一天），再下一列才會用到。"""
+    days = weekdays(8)
+    raw, cfg = raw_with_hourly(days)
+    d = days[3]
+    moved = copy.deepcopy(raw)
+    moved["fear_greed"][d] = 1.0
+    base, after = features.build_features(raw, cfg, days[-1]), features.build_features(moved, cfg, days[-1])
+    cols = list(features.SIDE_COLUMNS)
+    upto = base["date"] <= days[4]
+    assert base.loc[upto & (base["date"] > days[1]), "fear_greed_lag1"].notna().all()
+    pd.testing.assert_frame_equal(base.loc[upto, cols], after.loc[upto, cols])
+    later = base["date"] == days[5]
+    assert base.loc[later, "fear_greed_lag1"].notna().all()   # 兩邊都空白時 != 也會成立（審查 2026-11-09）
+    assert (base.loc[later, "fear_greed_lag1"] != after.loc[later, "fear_greed_lag1"]).all()
+
+
+def test_fear_greed_skips_a_us_holiday_cnn_point():
+    """美股休市、台股有開的日子 H：CNN 在 H 也先建一點（值是前一天的），之後可能拿掉（審查 2026-11-09）。
+    H 前一個美股日 e 的分數要到 H 之後美國開盤才定住，所以 H 隔天那列還不能用 e；H 那點哪一列都不用。"""
+    days = weekdays(8)
+    raw, cfg = raw_with_hourly(days)
+    holiday, e = days[4], days[3]
+    raw["yfinance"]["dji"] = [r for r in raw["yfinance"]["dji"] if r["date"] != holiday]
+    cols = list(features.SIDE_COLUMNS)
+    base = features.build_features(raw, cfg, days[-1])
+    moved = copy.deepcopy(raw)
+    moved["fear_greed"][e] = 1.0
+    after = features.build_features(moved, cfg, days[-1])
+    upto = base["date"] <= days[5]
+    pd.testing.assert_frame_equal(base.loc[upto, cols], after.loc[upto, cols])
+    later = base["date"] == days[6]
+    assert base.loc[later, "fear_greed_lag1"].notna().all()
+    assert (base.loc[later, "fear_greed_lag1"] != after.loc[later, "fear_greed_lag1"]).all()
+    placeholder = copy.deepcopy(raw)
+    placeholder["fear_greed"][holiday] = 1.0
+    pd.testing.assert_frame_equal(base[cols], features.build_features(placeholder, cfg, days[-1])[cols])
+
+
 def test_new_columns_are_not_model_columns():
-    """2026-11-08 加的欄都只進長表：真的 config 的 model_columns 還是原本的 32 欄。"""
+    """2026-11-08、11-09 加的欄都只進長表：真的 config 的 model_columns 還是原本的 32 欄。"""
     columns = features.model_columns(features.utils.load_config())
     assert len(columns) == 32
-    assert not [c for c in columns if c.startswith(("val_", "quote_", "kospi")) or "fresh" in c or "open_gap" in c]
+    assert not [c for c in columns if c.startswith(("val_", "quote_", "kospi", "vixtwn", "fear_greed"))
+                or "fresh" in c or "open_gap" in c]
 
 
 def test_institutional_minus_one_does_not_unfill_a_day():

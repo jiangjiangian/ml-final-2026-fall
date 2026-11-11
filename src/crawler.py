@@ -11,6 +11,9 @@
     data/raw/taifex/tx.csv         台指期（tx_futures.source 是 taifex 時）：期交所「期貨每日交易行情」的 TX 列，
                                    欄位和期交所一樣（TAIFEX_COLUMNS），只留單月合約，日期改成 YYYY-MM-DD、去掉格子
                                    前後的空白、存成 UTF-8。每次和舊檔合併
+    data/raw/taifex/vixtwn.csv     臺指選擇權波動率指數（vixtwn.enabled）：date, vixtwn（13:45 收盤）,
+                                   vixtwn_1min_avg（收盤前 1 分鐘平均）。期交所只留最近約 4 個月，每次和舊檔合併
+    data/raw/cnn/fear_greed.csv    CNN Fear & Greed（cnn.enabled）：date（美國日期）, score（0～100）。每次和舊檔合併
     data/raw/manifest.json         最近一次執行的紀錄：每個檔案的 sha256、筆數、狀態、錯誤類別
     data/raw/twse/valuation.csv    證交所本益比、殖利率、股價淨值比（回補，和 exchange.enabled 時每天的爬蟲寫）。
                                    長表，一列是一檔的一天
@@ -86,6 +89,16 @@ yfinance：
       05:00 收盤的夜盤（平常就是 d 日 05:00；連假後那天標的是連假前最後一晚的夜盤）。
       只存 t 之前的日盤；夜盤存到 t 那列為止，而且 t 那列要等到 t 當天 night_ready（05:15）以後才存。
     - 期交所失敗：舊檔留著，manifest 記 failed，回傳 3，流程繼續。沒有 i 的日盤或 t 的夜盤就列在 run.no_bar_i。
+
+VIXTWN、CNN 恐懼貪婪（使用者 2026-11-09 加，只進長表，在台指期之後、證交所之前）：
+    - VIXTWN：期交所的月檔 vixtwn.path（YYYYMMnew.txt，CP950），只留最近約 4 個月，舊月份 302 到 404 頁，
+      當成那個月沒有檔。當天台北 16:10 加上當天的值，07:10 一定有 i。只存日期 < t 的列。
+    - CNN：一個請求，開始日見 cnn_start：平常是 t 往前 fetch_days 天；沒有舊檔或舊檔停太久就抓全部（開始日在
+      2020-09-19 到 cnn.start 前一天之間照 t 錯開，每個 t 的網址都不一樣）。每天那點標在美國日期的 00:00 UTC。
+      美國 d 日那點在 d 當天、美股開盤前就出現，放的是即時分數，所以日期 ≥ t 的點丟掉。最後一天的點收盤後還會
+      跟著下一個美股交易日的盤前變，開盤後 3～14 分鐘才定住（2026-11-09、11-10 量的），重疊的日子用新的值。
+      CNN 沒有公開的 API，這是它網頁畫圖用的網址。
+    - 失敗、格式變了都只寫警告和 manifest，不設 stale，不改回傳值。過了爬蟲截止就跳過。
 
 截止（crawler.deadline，08:30）：
     - 過了截止就不再等待、不再重試，每一步只試一次；yfinance 還沒抓的序列直接沿用舊檔。期交所只試一次。
@@ -285,6 +298,19 @@ class Run:
 # ---------------------------------------------------------------- 課程網站和 Live 的 HTTP
 
 
+CACHE_HEADERS = ("Age", "X-Cache")   # Age：CDN 這份存了幾秒；X-Cache：HIT 是 CDN 給的、MISS 是剛向網站要的
+
+
+def cache_headers(headers) -> dict:
+    """回應裡的 CDN 快取標頭，只留看起來正常的短字串（寫進 manifest，不能讓它寫不出來）。"""
+    out = {}
+    for name in CACHE_HEADERS:
+        value = headers.get(name) or headers.get(name.lower())
+        if isinstance(value, str) and re.fullmatch(r"[0-9A-Za-z ,._-]{1,40}", value):
+            out[name] = value
+    return out
+
+
 class SiteClient:
     """課程網站和 Live 共用的 HTTP。
 
@@ -308,6 +334,7 @@ class SiteClient:
         self.requests = 0
         self.last_status = None         # 最後一個回應的狀態碼；連不上時是 None
         self.last_content_type = None   # 最後一個回應的 Content-Type
+        self.last_cache = None          # 最後一個回應的 CDN 快取標頭（cache_headers），CNN 記進 manifest
 
     def close(self):
         self.session.close()
@@ -328,7 +355,7 @@ class SiteClient:
         started = self.clock()
         origin = urlsplit(self.base)
         url = urljoin(self.base + "/", path.lstrip("/"))
-        self.last_status = self.last_content_type = None
+        self.last_status = self.last_content_type = self.last_cache = None
         for _ in range(self.max_redirects + 1):
             parts = urlsplit(url)
             if (parts.scheme, parts.netloc) != (origin.scheme, origin.netloc):
@@ -341,6 +368,7 @@ class SiteClient:
                 raise TransientError(f"{label}：連線失敗（{type(e).__name__}）") from None
             self.last_status = resp.status_code
             self.last_content_type = resp.headers.get("Content-Type") or resp.headers.get("content-type")
+            self.last_cache = cache_headers(resp.headers)
             try:
                 if resp.status_code in REDIRECT_CODES:
                     location = resp.headers.get("Location") or resp.headers.get("location")
@@ -1434,6 +1462,367 @@ def download_taifex(run: Run, client: SiteClient):
     run.save()
 
 
+# ---------------------------------------------------------------- VIXTWN、CNN 恐懼貪婪（使用者 2026-11-09，只進長表）
+
+
+VIXTWN_COLUMNS = ("date", "vixtwn", "vixtwn_1min_avg")   # 13:45 收盤的值、收盤前 1 分鐘平均（2020-11-23 起才有）
+VIXTWN_HEADER = ("交易日期", "臺指選擇權波動率指數")      # 月檔第一行要有的字
+VIXTWN_TIME = "13450000"                                  # 月檔每一列的時間都是 13:45:00.00
+VIXTWN_AVG_FROM = "2020-11-23"                            # 這天起每列都有收盤前 1 分鐘平均（期交所的註）
+FEAR_GREED_COLUMNS = ("date", "score")                    # date 是美國日期；score 0～100
+DAY_MS = 86_400_000
+CNN_FIRST = "2020-09-19"                                  # CNN 最早的一天；graphdata 的開始日不比它早
+CNN_X_RANGE = (946_684_800_000, 4_102_444_800_000)        # 2000-01-01、2100-01-01 的毫秒；超出就是格式變了
+
+
+def vixtwn_client(cfg, sleep=time.sleep, session=None, clock=time.monotonic) -> SiteClient:
+    """期交所 VIX 月檔。不跟轉址：舊月份會 302 到 404 頁（http），當成那個月沒有檔。"""
+    conf = cfg["vixtwn"]
+    return SiteClient(conf["base_url"], conf["timeout_seconds"], conf["max_kb"] * 1024, session, sleep,
+                      conf["total_timeout_seconds"], clock, max_redirects=0)
+
+
+def cnn_client(cfg, sleep=time.sleep, session=None, clock=time.monotonic) -> SiteClient:
+    """CNN Fear & Greed。不帶瀏覽器的 User-Agent 會回 418；SiteClient 本來就帶。"""
+    conf = cfg["cnn"]
+    return SiteClient(conf["base_url"], conf["timeout_seconds"], conf["max_mb"] * 2**20, session, sleep,
+                      conf["total_timeout_seconds"], clock, max_redirects=0)
+
+
+def read_points(path: Path, columns: tuple, check) -> dict:
+    """讀 vixtwn.csv、fear_greed.csv → {日期: (其他格,)}。沒有檔回傳 {}；表頭不對、有壞列丟 CrawlerError
+    （壞檔要人修，不能自動蓋掉）。check(格子) 回傳 False 就算壞列。"""
+    if not path.exists():
+        return {}
+    try:
+        with open(path, encoding="utf-8", newline="") as f:
+            rows = list(csv.reader(f))
+    except (OSError, UnicodeError, csv.Error):
+        raise CrawlerError(f"{path.name}：讀不了") from None
+    if not rows or tuple(rows[0]) != columns:
+        raise CrawlerError(f"{path.name}：表頭不對")
+    out = {}
+    for r in rows[1:]:
+        if not r:
+            continue
+        if len(r) != len(columns) or not is_iso_date(r[0]) or r[0] in out or not check(r[1:]):
+            raise CrawlerError(f"{path.name}：有壞掉的列")
+        out[r[0]] = tuple(r[1:])
+    return out
+
+
+def points_csv(rows: dict, columns: tuple) -> bytes:
+    buf = io.StringIO(newline="")
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(columns)
+    writer.writerows([d, *rows[d]] for d in sorted(rows))
+    return buf.getvalue().encode()
+
+
+def positive(text: str) -> bool:
+    value = to_float(text)
+    return value is not None and value > 0
+
+
+def vixtwn_cells_ok(cells) -> bool:
+    return positive(cells[0]) and (cells[1] == "" or positive(cells[1]))
+
+
+def score_ok(cells) -> bool:
+    value = to_float(cells[0])
+    return value is not None and 0 <= value <= 100
+
+
+def parse_vixtwn(data: bytes, month: str) -> dict:
+    """期交所 VIX 月檔（CP950，空白分隔）→ {日期: (收盤值, 收盤前 1 分鐘平均)}，原樣的字串。
+
+    第一行是表頭（要有 VIXTWN_HEADER 的字），第二行是 '-----'。每列：交易日期 YYYYMMDD、時間 13450000、指數、
+    收盤前 1 分鐘平均（2020-11-23 以前沒有）。格子之間是好幾個 tab，只能照空白切，所以 2020-11-23 起少一格的列
+    分不出少的是哪一格，當成格式錯誤。日期不在 month（YYYYMM）裡、時間不是 13:45、數字不 > 0、同一天兩列：
+    格式變了，丟 CrawlerError，不存。
+    """
+    try:
+        lines = data.decode("cp950").splitlines()
+    except UnicodeDecodeError:
+        raise CrawlerError("期交所 VIX：回應不是 CP950 的文字") from None
+    if not lines or not all(word in lines[0] for word in VIXTWN_HEADER):
+        raise CrawlerError("期交所 VIX：表頭和預期不一樣")
+    out = {}
+    for line in lines[1:]:
+        cells = line.split()
+        if not cells or set(line.strip()) <= {"-", " ", "\t"}:
+            continue
+        if len(cells) not in (3, 4) or not re.fullmatch(r"\d{8}", cells[0]) or cells[0][:6] != month:
+            raise CrawlerError("期交所 VIX：有看不懂的列")
+        day = f"{cells[0][:4]}-{cells[0][4:6]}-{cells[0][6:]}"
+        avg = cells[3] if len(cells) == 4 else ""
+        if len(cells) == 3 and day >= VIXTWN_AVG_FROM:
+            raise CrawlerError("期交所 VIX：有少一格的列")
+        if not is_iso_date(day) or cells[1] != VIXTWN_TIME or not vixtwn_cells_ok((cells[2], avg)) or day in out:
+            raise CrawlerError("期交所 VIX：有看不懂的列")
+        out[day] = (cells[2], avg)
+    return out
+
+
+def vixtwn_months(old: dict, end: date, conf) -> list:
+    """要抓的月份（YYYYMM）：舊檔最後一天往前 overlap_days 天所在的月份到 end 所在的月份；沒有舊檔從 start_month。"""
+    if old:
+        first = date.fromisoformat(max(old)) - timedelta(days=conf["overlap_days"])
+    else:
+        first = date.fromisoformat(conf["start_month"] + "-01")
+    out, cur = [], first.replace(day=1)
+    while cur <= end:
+        out.append(cur.strftime("%Y%m"))
+        cur = (cur + timedelta(days=32)).replace(day=1)
+    return out
+
+
+def cnn_start(old: dict, t: str, conf) -> str:
+    """CNN 這次的開始日，也是網址的一部分。CNN 前面的 CDN（Fastly）對要過的網址會先回上一次存的那份
+    （2026-11-09 查到；網址後面加 ?… 沒用，CDN 不看），所以每個 t 的網址都要不一樣：
+    平常從 t 往前 fetch_days 天抓。沒有舊檔、或舊檔最後一天比 t 往前 fetch_days − overlap_days 天還早時抓全部：
+    開始日放在 CNN 最早那天到 cnn.start 前一天之間，照 t 錯開（parse_fear_greed 會丟掉 cnn.start 以前的點）。"""
+    day = date.fromisoformat(t)
+    if old and max(old) >= (day - timedelta(days=conf["fetch_days"] - conf["overlap_days"])).isoformat():
+        return (day - timedelta(days=conf["fetch_days"])).isoformat()
+    first = date.fromisoformat(CNN_FIRST)
+    span = (date.fromisoformat(conf["start"]) - first).days
+    return (first + timedelta(days=day.toordinal() % span)).isoformat() if span > 0 else conf["start"]
+
+
+def cnn_now(now: dict) -> dict:
+    """抓的當下的分數，寫進 manifest 用。只留有限的數字和看起來像時間的字串：回應的內容不能讓 manifest 寫不出來。"""
+    out = {}
+    for key in ("score", "previous_close"):
+        value = now.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+            out[key] = float(value)
+    stamp = now.get("timestamp")
+    if isinstance(stamp, str) and re.fullmatch(r"[0-9T:.+\-Z ]{10,40}", stamp):
+        out["timestamp"] = stamp
+    return out
+
+
+def parse_fear_greed(data: bytes, t: str, start: str):
+    """CNN 的 JSON → ({美國日期: (分數,)}, 抓的當下的分數 {score, timestamp, previous_close}, 丟掉幾點)。
+
+    fear_and_greed_historical.data 每點是 {x: 毫秒, y: 分數}。每天那點標在美國日期的 00:00 UTC；最後多一個
+    「現在」的點（不是 00:00），丟掉。美國 d 日那點在 d 當天、美股開盤前就出現（放即時分數），所以日期 ≥ t 的也丟。
+    start 以前的也丟（2021-01-21 以前有兩段剛好 50.0，2020-10-26～11-03 是 0.3～3.6）。x 不在 2000～2100 年、
+    分數不在 0～100、同一天兩點、不是 00:00 的點超過一個、一個每天的點都沒有：格式變了，丟 CrawlerError。
+    """
+    try:
+        payload = json.loads(data.decode("utf-8"))
+        points = payload["fear_and_greed_historical"]["data"]
+        now = payload.get("fear_and_greed") or {}
+    except (UnicodeDecodeError, ValueError, KeyError, TypeError):
+        raise CrawlerError("CNN：回應不是預期的 JSON") from None
+    if not isinstance(points, list) or not isinstance(now, dict):
+        raise CrawlerError("CNN：回應不是預期的 JSON")
+    out, dropped = {}, {"not_daily": 0, "on_or_after_t": 0, "before_start": 0}
+    for p in points:
+        x, y = (p.get("x"), p.get("y")) if isinstance(p, dict) else (None, None)
+        if (isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x) or x != int(x)
+                or not CNN_X_RANGE[0] <= x < CNN_X_RANGE[1]):
+            raise CrawlerError("CNN：有看不懂的點")
+        if int(x) % DAY_MS:
+            dropped["not_daily"] += 1
+            continue
+        day = (datetime(1970, 1, 1) + timedelta(milliseconds=int(x))).date().isoformat()
+        if isinstance(y, bool) or not isinstance(y, (int, float)) or not score_ok((str(y),)) or day in out:
+            raise CrawlerError("CNN：有看不懂的點")
+        if day >= t:
+            dropped["on_or_after_t"] += 1
+        elif day < start:
+            dropped["before_start"] += 1
+        else:
+            out[day] = (repr(float(y)),)
+    if dropped["not_daily"] > 1 or len(points) == dropped["not_daily"]:
+        raise CrawlerError("CNN：每天的點不是標在 00:00 UTC，格式可能變了")
+    return out, cnn_now(now), dropped
+
+
+def merge_points(old: dict, new: dict, covered=lambda d: False):
+    """新的蓋舊的，回傳 (合併後, 新多的日子, 值變了的日子, 不見的日子)。
+
+    不見的日子：covered(日期) 是 True（這次的回應應該要有）、舊檔有、這次卻沒有的日子。這裡只記下來，不刪：
+    features 只在美股交易日（VIXTWN 是它自己的日子）找值，CNN 在美國假日先建、後來又拿掉的點不會被用到，
+    回應少了一段時也不會把舊資料清掉。CNN 舊檔的最後一天例外，download_fear_greed 會拿掉。"""
+    merged = {**old, **new}
+    added = sorted(d for d in new if d not in old)
+    changed = sorted(d for d in new if d in old and old[d] != new[d])
+    vanished = sorted(d for d in old if d not in new and covered(d))
+    return merged, added, changed, vanished
+
+
+def side_entry(run: Run, key: str, file: str) -> dict:
+    """VIXTWN、CNN 這兩步共用的 manifest 紀錄。"""
+    entry = {"status": "failed", "error": None, "file": file, "requests": 0}
+    run.manifest[key] = entry
+    return entry
+
+
+def side_finish(run: Run, key: str, entry: dict, path: Path, rows, *, check_prev_day=True):
+    """記檔案的狀態（列數、最後兩天、sha256），寫 manifest。rows 是檔案現在的內容：失敗時是舊檔的內容，
+    舊檔讀不了時是 None（列數、最後兩天記 None，加 old_file_unreadable）。has_prev_day 是台股的 i 在不在檔裡；
+    CNN 存美國日期，對不上台股的 i，傳 check_prev_day=False 記 None（審查 2026-11-09）。
+    這裡的任何錯誤也不能讓例外跑出去（審查 2026-11-09：放在 finally 裡，except 接不到）：記不了就記在
+    finish_error、寫一行警告；manifest 寫不出來時，把這一步的紀錄換成最短的一筆再寫一次。"""
+    try:
+        if rows is None:
+            entry.update(rows=None, last_dates=None, has_prev_day=None, old_file_unreadable=True)
+        else:
+            before_t = sorted(d for d in rows if d < run.t)
+            entry.update(rows=len(rows), last_dates=before_t[-2:],
+                         has_prev_day=(run.prev_day in rows) if run.prev_day and check_prev_day else None)
+        if path.is_file():
+            entry["sha256"] = sha256_bytes(path.read_bytes())
+    except Exception as e:
+        entry["finish_error"] = type(e).__name__
+        run.log.warning("%s：記不了檔案的狀態（%s）", key, type(e).__name__)
+    try:
+        run.save()
+    except Exception as e:
+        run.manifest[key] = {"status": "failed", "error": f"manifest 寫不出來（{type(e).__name__}）", "file": entry.get("file")}
+        run.log.warning("%s：manifest 寫不出來（%s），這一步只留最短的紀錄", key, type(e).__name__)
+        try:
+            run.save()
+        except Exception:
+            pass   # 連最短的都寫不出來就是別的問題（例如磁碟），留給下一步的 run.save() 報
+
+
+def download_vixtwn(run: Run, client: SiteClient):
+    """期交所的 VIXTWN 月檔，和舊檔合併存到 data/raw/taifex/vixtwn.csv（vixtwn.enabled，使用者 2026-11-09）。
+
+    期交所只留最近約 4 個月的檔（2026-11-09 是 2026-08 起），每天台北 16:10 加上當天的值。平常抓 i 所在的月份
+    1 個請求，月初多抓上個月。只存日期 < t 的列。每個月份各算各的（審查 2026-11-09）：一個月逾時或 5xx，
+    其他月份照樣抓、照樣存；i 所在的月份沒抓到才算 failed，其他月份沒抓到算 incomplete。這些欄不在模型裡：
+    失敗、格式變了、月份沒有檔都只寫警告和 manifest，不設 run.stale，不改爬蟲的回傳值，也不讓例外跑出去
+    （Ctrl-C 除外）。
+    """
+    conf = run.cfg["vixtwn"]
+    if not conf.get("enabled"):
+        return
+    path = run.raw_dir / conf["file"]
+    entry = side_entry(run, "vixtwn", conf["file"])
+    rows = None   # 舊檔讀不了時留 None
+    fetched, end_month = set(), None   # 這次讀到的月份、i 所在的月份
+    try:
+        rows = read_points(path, VIXTWN_COLUMNS, vixtwn_cells_ok)
+        if run.past_deadline():
+            entry.update(status="skipped", error="skipped_deadline")
+            run.log.warning("VIXTWN：已經過了爬蟲截止 %s，這次不抓", run.cfg["crawler"]["deadline"])
+            return
+        end = date.fromisoformat(run.prev_day) if run.prev_day else date.fromisoformat(run.t) - timedelta(days=1)
+        end_month = end.strftime("%Y%m")
+        months = vixtwn_months(rows, end, conf)
+        entry.update(months=months, missing_months=[], failed_months={})
+        budget_end = run.now() + timedelta(seconds=conf["budget_seconds"])
+        new, stopped = {}, None
+        for month in months:
+            wait = conf["min_interval_seconds"]   # 第一個也等：期交所台指期那一步剛送完
+            if not run.can_wait(wait) or run.now() + timedelta(seconds=wait) >= budget_end:
+                stopped = month   # 已經抓到的照樣存
+                break
+            run.sleep(wait)
+            entry["requests"] += 1
+            try:
+                body = client.read("GET", conf["path"].format(month=month), retries=0)
+            except CrawlerError as e:
+                if client.last_status in REDIRECT_CODES:
+                    entry["missing_months"].append(month)   # 期交所沒有這個月的檔（太舊，或這個月還沒開始）
+                else:
+                    entry["failed_months"][month] = str(e)   # 這個月沒抓到，其他月份照樣抓
+                continue
+            new.update(parse_vixtwn(body, month))   # 格式變了：整步停下，不存（不在上面的 try 裡）
+        new = {d: v for d, v in new.items() if d < run.t}
+        fetched = {m for m in months[:entry["requests"]]
+                   if m not in entry["missing_months"] and m not in entry["failed_months"]}
+        merged, added, changed, vanished = merge_points(rows, new, lambda d: d < run.t and d[:7].replace("-", "") in fetched)
+        entry.update(new_dates=added, changed_dates=changed, vanished_dates=vanished)
+        failed = entry["failed_months"]
+        if merged != rows or (not path.exists() and end_month in fetched):   # i 的月份沒讀到時不留只有表頭的檔
+            write_atomic(path, points_csv(merged, VIXTWN_COLUMNS))
+        rows = merged
+        problems = [f"i 所在的月份 {end_month} 沒抓到（{failed[end_month]}）"] if end_month in failed else []
+        problems += [f"{m} 沒抓到（{failed[m]}）" for m in failed if m != end_month]
+        if stopped:
+            problems.append(f"過了爬蟲截止或這一步的 {conf['budget_seconds']} 秒，{stopped} 以後沒抓")
+        if end_month in entry["missing_months"] and (run.prev_day or not fetched):
+            # 沒有 i 時 end 是 t 前一天，月初可能還沒有月檔，所以要一個月都沒讀到才算
+            which = "i 所在的月份" if run.prev_day else "t 前一天所在的月份"
+            problems.append(f"{which} {end_month} 期交所沒有檔（網址可能改了）")
+        status = "failed" if end_month in failed else "incomplete" if problems else "ok"
+        entry.update(status=status, error="；".join(problems) or None)
+        for problem in problems:
+            run.log.warning("VIXTWN：%s", problem)
+        if changed or vanished:
+            run.log.warning("VIXTWN：%s 的值和舊檔不一樣（用新的），%s 這次沒有（留著舊的）", changed, vanished)
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:   # 這一步的任何錯誤都不能擋住每天的流程
+        entry["error"] = str(e) if isinstance(e, CrawlerError) else type(e).__name__
+        run.log.warning("VIXTWN 這一步失敗（%s），沿用舊檔；這些欄不在模型裡", entry["error"])
+    finally:
+        side_finish(run, "vixtwn", entry, path, rows)
+    if run.prev_day and end_month in fetched and entry.get("has_prev_day") is False:   # i 的月份讀到了卻沒有 i
+        run.log.warning("VIXTWN 沒有 %s 的值，vixtwn 欄那天會是空白", run.prev_day)
+
+
+def download_fear_greed(run: Run, client: SiteClient):
+    """CNN Fear & Greed，和舊檔合併存到 data/raw/cnn/fear_greed.csv（cnn.enabled，使用者 2026-11-09）。
+
+    一個請求，開始日見 cnn_start（每個 t 的網址都不一樣，CDN 才不會回舊的那份）。CNN 沒有公開的 API，這是它網頁
+    畫圖用的網址，隨時可能改。最後一天的點收盤後還會跟著下一個美股交易日的盤前變，開盤後 3～14 分鐘才定住
+    （2026-11-10 量的），所以重疊的日子用新的值，值變了記在 manifest 的 changed_dates（每天通常有一天：前一次抓到
+    的最後一天）。舊檔的最後一天這次的回應沒有時拿掉（記在 dropped_last）：那是還在變的值，留著會被當成定住的。manifest 也記 CNN 回應裡「現在」的時間
+    （now.timestamp）和 CDN 的快取標頭（cache），看得出拿到的是不是舊的那份。不重試，隔天的重疊會補回來。
+    失敗只寫警告和 manifest，和 download_vixtwn 一樣不影響其他步驟。
+    """
+    conf = run.cfg["cnn"]
+    if not conf.get("enabled"):
+        return
+    path = run.raw_dir / conf["file"]
+    entry = side_entry(run, "cnn", conf["file"])
+    rows = None   # 舊檔讀不了時留 None
+    try:
+        rows = read_points(path, FEAR_GREED_COLUMNS, score_ok)
+        if run.past_deadline():
+            entry.update(status="skipped", error="skipped_deadline")
+            run.log.warning("CNN：已經過了爬蟲截止 %s，這次不抓", run.cfg["crawler"]["deadline"])
+            return
+        start = cnn_start(rows, run.t, conf)
+        entry["start"] = start
+        entry["requests"] = 1
+        try:
+            body = client.read("GET", conf["path"].format(start=start), retries=0,
+                               headers={"Accept": "application/json", "Referer": conf["referer"]})
+        finally:
+            entry["cache"] = client.last_cache   # 失敗時也記：看得出是 CDN 還是 CNN 回的錯
+        new, now, dropped = parse_fear_greed(body, run.t, conf["start"])
+        merged, added, changed, vanished = merge_points(rows, new, lambda d: start <= d < run.t)
+        entry.update(now=now, dropped=dropped, new_dates=added, changed_dates=changed, vanished_dates=vanished)
+        last = max(rows) if rows else None
+        if last in vanished:   # 上次抓到時是最後一天，值還在變；CNN 這次沒有這天就不留（審查 2026-11-10）
+            del merged[last]
+            entry["dropped_last"] = last
+            run.log.warning("CNN：舊檔的最後一天 %s 這次的回應沒有，拿掉（上次抓到的是還在變的值）", last)
+        kept = [d for d in vanished if d != last]
+        if kept:
+            run.log.warning("CNN：%s 這次的回應沒有，檔裡留著舊的值（美國假日先建、後來拿掉的點會這樣）", kept)
+        if merged != rows or not path.exists():
+            write_atomic(path, points_csv(merged, FEAR_GREED_COLUMNS))
+        rows = merged
+        entry["status"] = "ok"
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:   # 這一步的任何錯誤都不能擋住每天的流程
+        entry["error"] = str(e) if isinstance(e, CrawlerError) else type(e).__name__
+        run.log.warning("CNN 這一步失敗（%s），沿用舊檔；這些欄不在模型裡", entry["error"])
+    finally:
+        side_finish(run, "cnn", entry, path, rows, check_prev_day=False)
+
+
 # ---------------------------------------------------------------- 證交所、櫃買中心（研究用回補，使用者 2026-11-08）
 
 
@@ -2254,10 +2643,12 @@ def stdout_logger(name: str = "finpred.exchange"):
 # ---------------------------------------------------------------- 主程式
 
 
-def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None, taifex=None, exchange=None) -> int:
-    """依序：/api/state → Training → Live → yfinance → 期交所 → 證交所、櫃買（exchange.enabled 是 true 才跑）
-    → 寫 manifest。回傳 0 或 3，不能繼續就丟 CrawlerError。證交所、櫃買不影響回傳值。
-    exchange 是給測試的 download_exchange 參數（clients、lock_dir、parallel）。"""
+def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None, taifex=None, exchange=None,
+          vixtwn=None, cnn=None) -> int:
+    """依序：/api/state → Training → Live → yfinance → 期交所台指期 → VIXTWN → CNN 恐懼貪婪 → 證交所、櫃買
+    （後三個要開關打開才跑）→ 寫 manifest。回傳 0 或 3，不能繼續就丟 CrawlerError。VIXTWN、CNN、證交所、櫃買
+    只進長表，不影響回傳值。exchange 是給測試的 download_exchange 參數（clients、lock_dir、parallel），
+    vixtwn、cnn 是給測試的 SiteClient。"""
     cfg = run.cfg
     tx_source(cfg)   # 開關設錯就在送出任何請求前停下
     now = run.now()
@@ -2284,6 +2675,10 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None, t
                                             cfg["yfinance"]["jitter_seconds"], cfg["yfinance"]["max_redirects"])
     taifex = taifex or taifex_client(cfg, run.sleep)
     taifex.can_wait = run.can_wait
+    vixtwn = vixtwn or vixtwn_client(cfg, run.sleep)
+    cnn = cnn or cnn_client(cfg, run.sleep)
+    for client in (vixtwn, cnn):
+        client.can_wait = run.can_wait
     try:
         course_login(course, cfg, secrets)
         try:
@@ -2308,6 +2703,8 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None, t
         download_teacher(run, secrets, course, live)
         download_yfinance(run, yf_session)
         download_taifex(run, taifex)
+        download_vixtwn(run, vixtwn)
+        download_fear_greed(run, cnn)
         download_exchange(run, **(exchange or {}))
     except BaseException as e:
         # CrawlerError 的訊息是自己寫的短句；其他例外（OSError、Ctrl-C…）只記類別，訊息可能帶路徑或伺服器內容
@@ -2323,6 +2720,8 @@ def crawl(run: Run, secrets: dict, *, course=None, live=None, yf_session=None, t
             client.close()
         yf_session.close()
         taifex.close()
+        vixtwn.close()
+        cnn.close()
     run.manifest["run"].update({"status": "stale" if run.stale else "ok", "prev_day": run.prev_day,
                                 "no_bar_i": run.no_bar_i, "finished_at": run.now().isoformat(timespec="seconds"),
                                 "yahoo_requests": yf_session.requests, "yahoo_redirects": yf_session.redirects,

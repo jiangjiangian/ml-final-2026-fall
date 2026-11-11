@@ -84,6 +84,7 @@ def cfg(tmp_path):
     conf["yfinance"]["cache_dir"] = str(tmp_path / "yfcache")
     conf["yfinance"]["hourly"] = {}   # 1h 另外測
     conf["exchange"]["enabled"] = False   # 設定檔 2026-11-10 起是 true；交易所那一步要測的測試自己打開
+    conf["vixtwn"]["enabled"] = conf["cnn"]["enabled"] = False   # 另外測（tests/test_vixtwn_cnn.py）
     return conf
 
 
@@ -969,8 +970,9 @@ def test_config_adds_kospi_at_the_end():
 
 
 def crawl(tmp_path, cfg, clock, *, t="2026-11-17", daily=True, course=None, live=None, yahoo=None, secrets=SECRETS,
-          fallback=None, taifex=None, exchange=None):
-    """exchange：{市場: 假的 requests.Session}，證交所、櫃買用（沒給也不會連網：cfg 夾具把 exchange.enabled 關掉）。"""
+          fallback=None, taifex=None, exchange=None, vixtwn=None, cnn=None):
+    """exchange：{市場: 假的 requests.Session}，證交所、櫃買用（沒給也不會連網：cfg 夾具把 exchange.enabled 關掉）。
+    vixtwn、cnn：假的 requests.Session（這個檔的 cfg 把兩個開關關掉，tests/test_vixtwn_cnn.py 才打開）。"""
     run = make_run(tmp_path, cfg, clock, t=t, daily=daily)
     course = crawler.course_client(cfg, clock.sleep, course or course_fake())
     live = crawler.live_client(cfg, clock.sleep, live or live_fake(make_zip(live_members(LIVE_DATES, {"2026-11-17"}))))
@@ -982,8 +984,11 @@ def crawl(tmp_path, cfg, clock, *, t="2026-11-17", daily=True, course=None, live
         options = {"clients": {m: crawler.exchange_client(cfg, m, session=http, clock=clock.monotonic)
                                for m, http in exchange.items()},
                    "lock_dir": tmp_path / "locks", "parallel": False}
+    sides = {name: factory(cfg, clock.sleep, http, clock.monotonic)
+             for name, factory, http in (("vixtwn", crawler.vixtwn_client, vixtwn), ("cnn", crawler.cnn_client, cnn))
+             if http is not None}
     code = crawler.crawl(run, secrets, course=course, live=live, yf_session=yahoo or default_yahoo(clock),
-                         taifex=taifex, exchange=options)
+                         taifex=taifex, exchange=options, **sides)
     return code, run
 
 

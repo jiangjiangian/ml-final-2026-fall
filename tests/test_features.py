@@ -488,6 +488,10 @@ def fake_repo(tmp_path, monkeypatch, days):
               [[f"{d}T05:00:00+08:00"] + [str(31.0 + j)] * 4 + ["0"] for j, d in enumerate(days)])
     write_csv(tmp_path / "data" / "raw" / "taifex" / "tx.csv", crawler.TAIFEX_COLUMNS,
               [taifex_row(d, s, 40000 + j) for j, d in enumerate(days) for s in ("一般", "盤後")])
+    write_csv(tmp_path / "data" / "raw" / "taifex" / "vixtwn.csv", crawler.VIXTWN_COLUMNS,
+              [[d, f"{20 + j:.2f}", f"{20.1 + j:.2f}"] for j, d in enumerate(days)])
+    write_csv(tmp_path / "data" / "raw" / "cnn" / "fear_greed.csv", crawler.FEAR_GREED_COLUMNS,
+              [[d, str(40.0 + j)] for j, d in enumerate(days)])
     cfg = small_cfg()
     monkeypatch.setattr(utils, "ROOT", tmp_path)
     monkeypatch.setattr(utils, "load_config", lambda *a: cfg)

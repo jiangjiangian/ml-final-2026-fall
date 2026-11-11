@@ -79,7 +79,19 @@ cnn:                             # CNN Fear & Greed（使用者 2026-11-09 加�
   total_timeout_seconds: 60
   max_mb: 5                      # 從 2021-02-01 抓全部約 1 MB
 
-exchange:                        # 證交所、櫃買中心的全市場日資料（使用者 2026-11-08 同意加的來源）
+open_today:                      # 日韓當天的開盤（使用者 2026-11-11 加），只進長表：features 算 t 那列的 kospi_open_gap、n225_open_gap
+  enabled: true                  # run_daily_test.py 在每天的流程結束後要不要抓（crawler.open_today）；不影響上傳
+  dir: open_today                # 放在 data.raw_dir 底下，一個序列一檔：date, open, prev_close（前一個當地交易日收盤）, fetched_at
+  not_before: "08:22"            # 台北幾點以後才抓。Yahoo 的韓國指數晚 20 分、日經晚 15 分（2026-11-11 量的），
+                                 # 當地 09:00（台北 08:00）開盤那一根這時候才看得到。排程是 08:25（deploy/crontab.txt）
+  attempts: 4                    # 還沒有當天的K棒或連不上時，一個序列最多抓幾次
+  wait_seconds: 30               # 每次之間等幾秒
+  max_abs_gap: 0.2               # 開盤 ÷ 前一天收盤 − 1 的絕對值超過這個就當成壞資料，不存
+  series:                        # 序列（yfinance.tickers 的名稱）: 當地開盤時間和時區。第一根一分鐘K棒不在這個時間就不存
+    kospi: {open: "09:00", timezone: Asia/Seoul}    # 韓國 10:00 才開盤的日子（大學入學考試日、每年第一個交易日）不會有
+    n225: {open: "09:00", timezone: Asia/Tokyo}
+
+exchange:                       # 證交所、櫃買中心的全市場日資料（使用者 2026-11-08 同意加的來源）
   enabled: true                  # 每天的爬蟲要不要抓（期交所之後補 i 和最近缺的日子；使用者 2026-11-10 打開）；false 時完全不碰這兩個主機。回補不看這個開關
   gapfill_days: 10               # 每天的爬蟲：老師最近幾個交易日（含 i）裡檔案沒有的日子一起補，新的先
   daily_max_requests: 12         # 每天的爬蟲：每個主機最多送幾個請求（含重試）；平常一天每個主機 2 個
@@ -179,8 +191,9 @@ features:
   optional_inputs: [kospi]       # yfinance 檔不見時只記 log 和 manifest 的 notes，不算缺檔（照樣可以 --rebuild）
   teacher_fresh: ["^GSPC", "^IXIC"]   # 老師 global 用 t 自己那列（t 開盤前最後一次美股收盤）的版本，
                                  # 欄名 teacher_gspc_fresh_ret_lag1 等。只能放這兩欄：^TWII、^KS11、TX_OI 是 t 當天收盤
-  open_gap:                      # 當天開盤跳空：d 那列 = d 那根的 open ÷ 前一根的 close − 1。全表唯一用到當天資料的欄，
-    series: [kospi, n225]        # 不能進 model_columns（model_columns() 會擋）。t 那列一律空白，隔天重算時補上
+  open_gap:                      # 當天開盤跳空：d 那列 = d 的開盤 ÷ 前一個當地交易日收盤 − 1。全表唯一用到當天資料的欄，
+    series: [kospi, n225]        # 不能進 model_columns（model_columns() 會擋）。t 那列用 08:25 抓的 open_today（上面那段），
+                                 # 之前空白；那天沒抓到就等日K補上。更早的日子用日K：d 那根的 open ÷ 前一根的 close
     late_open:                   # 韓國 10:00（台北 09:00）才開盤的日子留空白：每年第一個交易日（從序列找）和大學入學考試日
       kospi:
         first_day_of_year: true

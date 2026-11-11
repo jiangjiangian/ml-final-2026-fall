@@ -33,11 +33,12 @@
     teacher_gspc_fresh_ret_lag{k}、teacher_ixic_fresh_ret_lag{k}（features.teacher_fresh）：
         x_d 是老師 global 第 d 列的 ^GSPC（^IXIC），也就是 d 開盤前最後一次美股收盤。和 usd_twd_am 一樣用 t 自己那列：
         (x_t − x_(t 往回第 k 個交易日)) / x_(t 往回第 k 個交易日)。沒有那列、-1、≤ 0 空白。原本的 teacher_gspc 不變。
-    kospi_open_gap、n225_open_gap（features.open_gap）：d 那列 = 序列 d 那根的 open ÷ 前一根的 close − 1。
-        這是全表唯一用到 d 當天資料的欄（台北約 08:30 才看得到），所以 t 那列一律空白，隔天重算時補上；
-        model_columns() 擋掉任何 open_gap 欄。沒有 d 那根（當地休市）、佔位K棒（開高低收相同、量 0 或空）、
+    kospi_open_gap、n225_open_gap（features.open_gap）：d 那列 = d 當地開盤（台北 08:00）÷ 前一個當地交易日收盤 − 1。
+        這是全表唯一用到 d 當天資料的欄，model_columns() 擋掉任何 open_gap 欄。兩個來源（open_gap_values）：
+        data/raw/open_today/<序列>.csv 有 d 那列就用它（d 當天台北 08:25 的排程從 Yahoo 抓的，使用者 2026-11-11），
+        沒有才用日K（d 那根的 open ÷ 前一根的 close，前一根跳過佔位K棒）。日K沒有 t 那根，所以 t 那列在 08:25
+        以前空白，那天沒抓到就等之後的日K補上。沒有 d 那根（當地休市）、佔位K棒（開高低收相同、量 0 或空）、
         韓國 10:00 才開盤的日子（每年第一根和第一根有成交量的K棒、config 列的大學入學考試日）空白。
-        前一根跳過佔位K棒。
     證交所、櫃買中心（data/raw/twse/、data/raw/tpex/，欄位見 crawler.EXCHANGE_SPECS），t 那列用 i 那天的值：
         股票 i 那天在兩個交易所的檔都沒有列（停牌、還沒抓）就空白，不往前找；停牌那天交易所照樣有列
         （開高低收是 '--' 或 '----'、成交股數 0，估值沿用前一天），也當成沒有列。6446 2024-01-25 從櫃買轉上市，
@@ -426,12 +427,12 @@ def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None, tx_path
 
     回傳 {"stocks", "global", "top50", "yfinance": {名稱: 列}, "hourly": 列或 None,
           "tx": [{date, expiry, session, close}], "exchange": 見 load_exchange,
-          "vixtwn": {日期: 值}, "fear_greed": {美國日期: 分數},
+          "vixtwn": {日期: 值}, "fear_greed": {美國日期: 分數}, "open_today": 見 load_open_today,
           "cleaning": [紀錄], "warnings": [訊息], "notes": [訊息]}。
     yfinance 某個檔不存在時，那個序列整欄空白，記一筆警告，不中斷（每天的流程要全自動）。台指期也一樣。
     警告會讓 main() 當成缺檔（不能 --rebuild）。features.optional_inputs 的 yfinance 序列、證交所、櫃買、
     VIXTWN、CNN 的檔只進長表，不見或讀不了時記在 notes，不算缺檔。exchange_dir 是放 twse/、tpex/ 的資料夾，
-    side_dir 是 vixtwn.file、cnn.file 的起點，預設都是 data.raw_dir。
+    side_dir 是 vixtwn.file、cnn.file、open_today.dir 的起點，預設都是 data.raw_dir。
     """
     raw_dir = utils.ROOT / cfg["data"]["raw_dir"]
     teacher_dir = Path(teacher_dir) if teacher_dir else raw_dir / "teacher" / "training"
@@ -462,6 +463,7 @@ def load_raw(cfg: dict, *, teacher_dir=None, live_dir=None, yf_dir=None, tx_path
     side_dir = Path(side_dir) if side_dir else raw_dir
     load_points(out, "vixtwn", side_dir / cfg["vixtwn"]["file"], crawler.VIXTWN_COLUMNS, crawler.vixtwn_cells_ok)
     load_points(out, "fear_greed", side_dir / cfg["cnn"]["file"], crawler.FEAR_GREED_COLUMNS, crawler.score_ok)
+    load_open_today(out, cfg, side_dir)
     hourly = yf_dir / f'{cfg["features"]["usd_twd_am"]["hourly"]}.csv'
     if hourly.exists():
         out["hourly"], records = clean_hourly(read_hourly(hourly), cfg)
@@ -568,6 +570,26 @@ def load_points(out: dict, key: str, path: Path, columns: tuple, check):
         out["notes"].append(f"{path.parent.name}/{path.name} 讀不了（{e}），{key} 的欄空白")
         return
     out[key] = {d: float(cells[0]) for d, cells in rows.items()}
+
+
+def load_open_today(out: dict, cfg: dict, raw_dir: Path):
+    """日韓當天早上抓的開盤（crawler.open_today 存的 open_today/<序列>.csv）放進 out["open_today"]：
+    {序列: {日期: (open, 前一個當地交易日收盤)}}，只讀 features.open_gap.series 的序列。
+
+    不會丟例外。沒有檔是正常的（還沒開始抓，或從來沒抓到），不記；讀不了、表頭不對、有壞列時當作沒有，
+    記在 out["notes"]，那個序列只用日K算。"""
+    out["open_today"] = {}
+    folder = raw_dir / (cfg.get("open_today") or {}).get("dir", "open_today")
+    for name in (cfg["features"].get("open_gap") or {}).get("series") or ():
+        path = folder / f"{name}.csv"
+        if not path.exists():
+            continue
+        try:
+            rows = crawler.read_points(path, crawler.OPEN_TODAY_COLUMNS, crawler.open_today_ok)
+        except crawler.CrawlerError as e:
+            out["notes"].append(f"{folder.name}/{path.name} 讀不了（{e}），{name}_{OPEN_GAP} 只用日K算")
+            continue
+        out["open_today"][name] = {d: (float(cells[0]), float(cells[1])) for d, cells in rows.items()}
 
 
 # ---------------------------------------------------------------- lag
@@ -681,19 +703,28 @@ def late_open_days(rows: list, rule: dict) -> set:
     return out
 
 
-def open_gap_values(days: list, rows: list, rule: dict | None) -> list:
-    """每個日期 d 的開盤跳空：序列 d 那根的 open ÷ 前一根的 close − 1（寫成 (open − close) / close）。
+def open_gap_values(days: list, rows: list, rule: dict | None, same_day: dict | None = None,
+                    t: str | None = None) -> list:
+    """每個日期 d 的開盤跳空：d 的開盤 ÷ 前一個當地交易日的收盤 − 1（寫成 (open − close) / close）。
 
-    前一根是序列自己的前一根，跳過佔位K棒。沒有 d 那根、d 那根是佔位K棒、d 是 late_open_days、前面沒有K棒、
-    任一價格空的或 ≤ 0：空白。rows 是清理過、依日期排序的日K。
+    same_day 是 {日期: (open, 前一個當地交易日收盤)}：d 當天早上從 Yahoo 一分鐘K棒抓到的（crawler.open_today，
+    使用者 2026-11-11）。有 d 就用它，之後日K來了也不換，表裡留的是那天早上看得到的值。
+    same_day 沒有 d 時用日K（rows，清理過、依日期排序）：d 那根的 open ÷ 前一根的 close，前一根是序列自己的
+    前一根，跳過佔位K棒。沒有 d 那根、d 那根是佔位K棒、前面沒有K棒、d 是 t（t 那根當天還沒走完，爬蟲也不留）：空白。
+    兩個來源都一樣：d 是 late_open_days、任一價格空的或 ≤ 0 時空白。
     """
     real = [r for r in rows if not is_placeholder(r)]
     late = late_open_days(real, rule)
     pos = {r["date"]: j for j, r in enumerate(real)}
+    same_day = same_day or {}
     out = []
     for d in days:
         j = pos.get(d)
-        if j is None or j == 0 or d in late:
+        if d in late:
+            out.append(np.nan)
+        elif d in same_day:
+            out.append(ratio(*same_day[d]))
+        elif j is None or j == 0 or d == t:
             out.append(np.nan)
         else:
             out.append(ratio(real[j]["open"], real[j - 1]["close"]))
@@ -954,10 +985,11 @@ def build_features(raw: dict, cfg: dict, t: str | None = None) -> pd.DataFrame:
             data[f"{series_name(column)}_fresh_ret_lag{k}"] = np.repeat([values.get(d, np.nan) for d in days], n_codes)
 
     gap = cfg["features"].get("open_gap") or {}
+    same_day = raw.get("open_today") or {}
     for name in gap.get("series") or ():
-        values = open_gap_values(days, raw["yfinance"].get(name, []), (gap.get("late_open") or {}).get(name))
-        if t is not None:
-            values[-1] = np.nan   # t 當天 08:30 才看得到；每天早上爬蟲也不留 t 那根，這裡再擋一次
+        # t 那列只用當天早上抓的（08:25 以後才有）；日K的 t 那根爬蟲不留，open_gap_values 也再擋一次
+        values = open_gap_values(days, raw["yfinance"].get(name, []), (gap.get("late_open") or {}).get(name),
+                                 same_day.get(name), t)
         data[f"{name}_{OPEN_GAP}"] = np.repeat(np.array(values, dtype=float), n_codes)
 
     data.update(exchange_values(prev_day, codes, raw.get("exchange") or {}, cfg))

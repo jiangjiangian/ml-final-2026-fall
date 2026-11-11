@@ -1,6 +1,8 @@
 # 排程主機的 crontab（deploy/runner_setup.sh、gcp_setup.sh 把 __REPO__ 換成 repo 的路徑後裝上）。主機時區要是台北。
 # 每天五次：07:10 是正式的一次，後面四次只在前面沒交成時才會真的做事（網站上已經有提交就結束）。
-# 多排幾次是為了撐過短暫的網路故障（2026-11-08 07:10 學校 DNS 查不到 github.com）。最後一次 08:05，離爬蟲截止 08:30 留 25 分鐘。
+# 多排幾次是為了撐過短暫的網路故障（2026-11-08 07:10 學校 DNS 查不到 github.com）。上傳用的最後一次是 08:05，離爬蟲截止 08:30 留 25 分鐘。
+# 08:25 那次是抓日韓當天的開盤（使用者 2026-11-11）：Yahoo 晚 15～20 分，這時候才看得到。只補特徵表 t 那列的 open_gap 兩欄，
+# 不影響上傳；前面五次都沒交成時，它也會照常跑完整的流程。
 SHELL=/bin/bash
 PATH=/usr/local/bin:/usr/bin:/bin
 10 7 * * * cd __REPO__ && .venv/bin/python run_daily_test.py --sync >> .cache/cron.log 2>&1
@@ -8,3 +10,4 @@ PATH=/usr/local/bin:/usr/bin:/bin
 40 7 * * * cd __REPO__ && .venv/bin/python run_daily_test.py --sync >> .cache/cron.log 2>&1
 55 7 * * * cd __REPO__ && .venv/bin/python run_daily_test.py --sync >> .cache/cron.log 2>&1
 5 8 * * * cd __REPO__ && .venv/bin/python run_daily_test.py --sync >> .cache/cron.log 2>&1
+25 8 * * * cd __REPO__ && .venv/bin/python run_daily_test.py --sync >> .cache/cron.log 2>&1

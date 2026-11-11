@@ -38,6 +38,7 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 - 正式流程在 t 當天早上跑：Live ZIP 要到 t 當天早上才有 t 的一列。
 - 爬蟲排在台北 06:00 之後，美股前一天的K棒才收完（規則見 `memory/context/data-rules.md`）。yfinance 的 DXY 要到 07:00 才收完，所以爬蟲排台北 07:10（使用者 2026-11-05 決定，見 `memory/projects/crawler.md`）。
 - 排程（使用者 2026-11-06 決定，11-07 改主機）：不用 GitHub Actions 的 `schedule`。主跑原本定 GCP e2-micro 免費額度，2026-11-07 量到流程高峰約 750 MB、e2-micro 只有 1 GB，使用者改用學校的 `oop.cs.nccu.edu.tw`（Ubuntu 22.04、16 核、24 GB；ghost 是 Solaris，裝不了套件）。台北 07:10、07:25、07:40、07:55、08:05 用 cron 跑 `run_daily_test.py --sync`（使用者 2026-11-08 從兩次加到五次：當天 07:10 學校 DNS 短暫查不到 github.com，那次停下；最後一次 08:05 而不是 08:15，離爬蟲截止 08:30 留 25 分鐘）；備援是使用者的 Mac，08:15、08:25、08:35 跑（2026-11-08 從 08:05 起改到 08:15 起，不和 oop 的 08:05 同時爬），網站上還沒有今天的有效提交才交。Mac 的 launchd 2026-11-09 查到沒有裝，使用者決定先不裝，現在只有 oop。帳密放各台的 `.env`。大模型之後在 Kaggle 訓練好推進 repo，主機只預測。安裝步驟見 `README.md`「排程主機」。
+- 08:25 的時段（使用者 2026-11-11）：oop 的 cron 多一行 08:25，跑同一個指令。`run_daily_test.py` 在流程結束後（`--sync`、不是休市、沒被 Ctrl-C）呼叫 `open_today_step`：t 是今天、特徵表最後一天是 t、過了 `open_today.not_before`（08:22）才抓日韓當天的開盤（`crawler.open_today`），有新存的就再跑一次 `features --date t`，結尾照常 commit、push，大約 08:28 推上去。任何錯誤只記 log，不改這次的結果。07:10～08:05 那五次也會經過這一步，還沒到 08:22 就直接跳過。前五次都沒交成時，08:25 這次會照常跑完整的流程再補開盤。
 - 使用者 2026-11-06：先寫 `run_daily_test.py` 每天交 Phase 2，用組員 `notebooks/feature_switch.ipynb` 第 6 節的方法（邏輯迴歸，最近 14 個月訓練、每週重訓、每天用前一天的答案微調，機率 > 0.5 猜漲），特徵是組員 `build_model.ipynb` 的個股特徵加新表的 32 欄。使用者確認舊系統的排程停了，`submit.enabled` 可以打開。跑完要自動 commit、push `data/`。
 - 爬蟲 08:30 以後才開始時（排程延遲才會發生）：每一步只試一次，不等不重試，yfinance 不抓、沿用舊檔，盡量趕在截止前交（使用者 2026-11-06 確認，就是目前的做法）。
 - 證交所、櫃買（2026-11-09 寫好，使用者 2026-11-10 打開 `exchange.enabled`，11-11 起每天跑）：爬蟲在期交所之後補 i 那天，平常每個主機 2 個請求、約多 20 秒，最壞約 5 分鐘；失敗只寫警告和 manifest 的 `exchange`，不影響上傳。i 那天的資料台北 18:00 前就公布（見 `memory/projects/crawler.md` 的「每天的步驟」）。
@@ -109,7 +110,7 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
      ```
 5. `git add data/processed data/raw/twse data/raw/tpex`，commit，先不要 push。
 6. 在乾淨的 worktree（`git worktree add <暫存資料夾> HEAD`，這時 HEAD 已經有重建的表）用這個 repo 的 `.venv/bin/python` 跑一次 `-m src.features --date <第 3 步的 t>`。要沒有丟錯，`git status data/processed` 也沒有新的改動（log 會寫進 `data/submission/`，那個不算）。如果丟「特徵欄和上次不一樣」，代表重建的表沒有 commit 到，不要在 worktree 裡加 `--rebuild` 蓋過去，回去查第 5 步。
-7. push。推的時間避開台北 07:00～08:40：oop 07:10～08:05 跑五次，Mac 08:15～08:35 備援；推送剛好落在某次執行中間時，那次的 `before_post` 推送會在 `data/processed` 衝突，那次就不上傳。
+7. push。推的時間避開台北 07:00～08:40：oop 07:10～08:05 跑五次、08:25 再跑一次（補日韓開盤，約 08:28 推完），Mac 08:15～08:35 備援；推送剛好落在某次執行中間時，那次的 `before_post` 推送會在 `data/processed` 衝突，那次就不上傳。
 8. 推完後，oop 第一次 pull 要下載約 20 MB（重建的月份檔約 14.6 MB、證交所和櫃買的 CSV 壓縮後約 5.3 MB），`git_start` 的 pull、fetch 各有 180 秒上限。方便連 VPN 的話先在 oop 手動 `git pull` 一次，不然看隔天 07:10 那次的 log 確認 pull 有成功。
 
 ### 之後還要再重建的時候

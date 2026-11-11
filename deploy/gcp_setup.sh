@@ -53,7 +53,7 @@ if [ ! -f .env ]; then
 fi
 chmod 600 .env
 
-echo "== 6. 排程（台北 07:10、07:25、07:40、07:55、08:05）"
+echo "== 6. 排程（台北 07:10、07:25、07:40、07:55、08:05、08:25）"
 mkdir -p .cache
 # 換掉舊的 run_daily_test 行和 crontab.txt 自己的 SHELL、PATH 兩行（重跑才不會一直多一組），別的行留著
 { crontab -l 2>/dev/null | grep -v -x -F -f <(grep -v '^#' deploy/crontab.txt | grep '=') | grep -v 'run_daily_test.py' || true

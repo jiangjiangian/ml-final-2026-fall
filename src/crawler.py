@@ -14,6 +14,8 @@
     data/raw/taifex/vixtwn.csv     臺指選擇權波動率指數（vixtwn.enabled）：date, vixtwn（13:45 收盤）,
                                    vixtwn_1min_avg（收盤前 1 分鐘平均）。期交所只留最近約 4 個月，每次和舊檔合併
     data/raw/cnn/fear_greed.csv    CNN Fear & Greed（cnn.enabled）：date（美國日期）, score（0～100）。每次和舊檔合併
+    data/raw/open_today/<名稱>.csv 日韓當天的開盤（open_today.enabled，open_today() 寫，不在 crawl() 裡）：date, open,
+                                   prev_close（前一個當地交易日收盤）, fetched_at（台北時間）。一天一列
     data/raw/manifest.json         最近一次執行的紀錄：每個檔案的 sha256、筆數、狀態、錯誤類別
     data/raw/twse/valuation.csv    證交所本益比、殖利率、股價淨值比（回補，和 exchange.enabled 時每天的爬蟲寫）。
                                    長表，一列是一檔的一天
@@ -99,6 +101,13 @@ VIXTWN、CNN 恐懼貪婪（使用者 2026-11-09 加，只進長表，在台指�
       跟著下一個美股交易日的盤前變，開盤後 3～14 分鐘才定住（2026-11-09、11-10 量的），重疊的日子用新的值。
       CNN 沒有公開的 API，這是它網頁畫圖用的網址。
     - 失敗、格式變了都只寫警告和 manifest，不設 stale，不改回傳值。過了爬蟲截止就跳過。
+
+日韓當天的開盤（使用者 2026-11-11 加，只進長表）：不在 crawl() 裡，run_daily_test.py 在每天的流程結束後呼叫 open_today()。
+    - 台北 open_today.not_before（08:22）以後才抓，排程是 08:25。Yahoo 的 ^KS11 晚 20 分、^N225 晚 15 分，
+      當地 09:00（台北 08:00）開盤的第一根要到這時候才看得到。
+    - 每個序列一個請求：今天的一分鐘K棒，拿第一根的 open 和 meta 的前一個交易日收盤，存
+      data/raw/open_today/<序列>.csv（date, open, prev_close, fetched_at）。細節見 download_open_today。
+    - 沒抓到就沒有那一列，features 改用日K算（隔天以後才有）。不影響上傳和回傳值。
 
 截止（crawler.deadline，08:30）：
     - 過了截止就不再等待、不再重試，每一步只試一次；yfinance 還沒抓的序列直接沿用舊檔。期交所只試一次。
@@ -1821,6 +1830,160 @@ def download_fear_greed(run: Run, client: SiteClient):
         run.log.warning("CNN 這一步失敗（%s），沿用舊檔；這些欄不在模型裡", entry["error"])
     finally:
         side_finish(run, "cnn", entry, path, rows, check_prev_day=False)
+
+
+# ---------------------------------------------------------------- 日韓當天的開盤（使用者 2026-11-11，只進長表）
+
+
+OPEN_TODAY_COLUMNS = ("date", "open", "prev_close", "fetched_at")   # date：當地日期，和台北的 t 同一天；fetched_at：台北時間
+
+
+def open_today_ok(cells) -> bool:
+    return positive(cells[0]) and positive(cells[1]) and bool(cells[2])
+
+
+def fetch_first_bar(session: PacedSession, ticker: str, timeout):
+    """Yahoo 最近一個交易日的一分鐘K棒（一個請求）。回傳 (第一根的開始時間, 第一根的 open, 前一個交易日的收盤)。
+
+    前一個交易日的收盤是回應 meta 的 chartPreviousClose（這段K棒開始前的收盤；2026-11-11 對過 ^KS11、^N225，
+    和韓國 Naver 的昨收一樣）。meta 的 previousClose 有值卻不一樣時回傳 None，不猜哪個對。
+    當地今天還沒有K棒時，Yahoo 給的是上一個交易日的，日期由呼叫的人檢查。"""
+    tk = yf_ticker(session, ticker)
+    df = tk.history(period="1d", interval="1m", auto_adjust=False, actions=False, repair=False, timeout=timeout)
+    if "Open" not in df.columns or not len(df):
+        raise EmptyResult(f"{ticker} 沒有一分鐘K棒")
+    meta = tk.history_metadata or {}
+    prev, other = meta.get("chartPreviousClose"), meta.get("previousClose")
+    if prev is not None and other is not None and abs(float(prev) - float(other)) > 1e-6 * abs(float(other)):
+        prev = None
+    return df.index[0].to_pydatetime(), float(df["Open"].iloc[0]), None if prev is None else float(prev)
+
+
+def open_today_missing(raw_dir: Path, cfg: dict, t: str) -> list:
+    """open_today.series 裡還沒有 t 那列的序列。檔案壞掉的也算（download_open_today 會記下來，不會蓋掉）。"""
+    conf, missing = cfg["open_today"], []
+    for name in conf["series"]:
+        try:
+            if t not in read_points(raw_dir / conf["dir"] / f"{name}.csv", OPEN_TODAY_COLUMNS, open_today_ok):
+                missing.append(name)
+        except CrawlerError:
+            missing.append(name)
+    return missing
+
+
+def download_open_today(run: Run, session, fetch=fetch_first_bar) -> dict:
+    """日韓當天的開盤：從 Yahoo 的一分鐘K棒拿當地今天第一根的 open 和前一個交易日的收盤，存
+    data/raw/open_today/<序列>.csv（OPEN_TODAY_COLUMNS），一天一列，已經有 t 那列就不抓。
+
+    features 用它算 t 那列的 <序列>_open_gap。只存「當地日期是 t、時間正好是設定的開盤時間」的那一根：
+    當地休市、晚開盤（韓國大學入學考試日 10:00 開盤）或 Yahoo 還沒更新時，第一根不是今天的，不存。
+    價格 ≤ 0、沒有前一天收盤、兩者差超過 open_today.max_abs_gap 也不存。還沒有當天的K棒或連不上時隔
+    wait_seconds 再抓，最多 attempts 次。只會丟 KeyboardInterrupt；其他錯誤寫在回傳的 entry：
+    status 是 ok（每個序列都有 t）、partial、none、failed；written 是這次新存的序列；series 是每個序列的結果
+    （have：本來就有；ok；no_bar：沒有今天的K棒；not_open_bar：第一根不在開盤時間；bad_value；error；bad_file）。"""
+    conf, t = run.cfg["open_today"], run.t
+    entry = {"status": "none", "started_at": run.now().isoformat(timespec="seconds"), "written": [], "series": {}}
+    try:
+        pending = {}
+        for name, spec in conf["series"].items():
+            path = run.raw_dir / conf["dir"] / f"{name}.csv"
+            try:
+                rows = read_points(path, OPEN_TODAY_COLUMNS, open_today_ok)
+            except CrawlerError as e:   # 壞檔要人修，不自動蓋掉
+                entry["series"][name] = {"status": "bad_file", "error": str(e)}
+                continue
+            entry["series"][name] = {"status": "have" if t in rows else "no_bar"}
+            if t not in rows:
+                pending[name] = (run.cfg["yfinance"]["tickers"][name], spec, path, rows)
+        for attempt in range(1, conf["attempts"] + 1):
+            for name in list(pending):
+                ticker, spec, path, rows = pending[name]
+                info = entry["series"][name]
+                info["attempts"] = attempt
+                try:
+                    start, price, prev = fetch(session, ticker, run.cfg["yfinance"]["timeout_seconds"])
+                except CrawlerError:
+                    raise
+                except Exception as e:   # 連不上、被限流、Yahoo 沒給資料：下一次再試
+                    info.update(status="error", error=type(e).__name__)
+                    continue
+                local = start.astimezone(ZoneInfo(spec["timezone"]))
+                info["first_bar"] = local.isoformat(timespec="minutes")
+                info.pop("error", None)
+                if local.date().isoformat() != t:
+                    info["status"] = "no_bar"
+                    continue
+                del pending[name]
+                if local.strftime("%H:%M") != spec["open"]:
+                    info["status"] = "not_open_bar"
+                elif not (math.isfinite(price) and price > 0 and prev is not None and math.isfinite(prev) and prev > 0
+                          and abs(price / prev - 1) <= conf["max_abs_gap"]):
+                    info["status"] = "bad_value"
+                else:
+                    rows[t] = (num_cell(price), num_cell(prev), run.now().isoformat(timespec="seconds"))
+                    write_atomic(path, points_csv(rows, OPEN_TODAY_COLUMNS))
+                    info.update(status="ok", open=price, prev_close=prev)
+                    entry["written"].append(name)
+            if not pending or attempt == conf["attempts"]:
+                break
+            run.sleep(conf["wait_seconds"])
+        good = [info["status"] in ("ok", "have") for info in entry["series"].values()]
+        entry["status"] = "ok" if good and all(good) else "partial" if any(good) else "none"
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:   # 只進長表的一步，任何錯誤都不能往外丟
+        entry.update(status="failed", error=str(e) if isinstance(e, CrawlerError) else type(e).__name__)
+    entry["finished_at"] = run.now().isoformat(timespec="seconds")
+    summary = {name: info["status"] for name, info in entry["series"].items()}
+    if entry["status"] == "ok":
+        run.log.info("當天開盤：%s", summary)
+    else:
+        run.log.warning("當天開盤沒有全部抓到（%s，%s）：沒抓到的序列 t 那列的 open_gap 空白，這些欄不在模型裡",
+                        entry.get("error") or entry["status"], summary)
+    return entry
+
+
+def open_today(cfg: dict, t: str, log, *, raw_dir=None, now=utils.taipei_now, sleep=time.sleep, session=None,
+               fetch=fetch_first_bar) -> dict:
+    """run_daily_test.py 在每天的流程結束後呼叫。不放在 crawl() 裡：crawl 07:10 跑，那時日韓還沒開盤。
+
+    open_today.enabled 是 false、t 不是台北今天、還沒到 open_today.not_before（Yahoo 的韓國指數晚 20 分、日經晚
+    15 分，2026-11-11 量的）：回傳 status skipped。每個序列都已經有 t 那列：回傳 ok。這兩種都不送請求、不寫檔。
+    其他情況跑 download_open_today，結果寫進 data/raw/manifest.json 的 open_today（manifest 是 t 的才寫）。
+    只會丟 KeyboardInterrupt。session、fetch 是給測試換的。"""
+    conf = cfg.get("open_today") or {}
+    raw_dir = Path(raw_dir) if raw_dir else utils.ROOT / cfg["data"]["raw_dir"]
+    run = Run(cfg=cfg, t=t, daily=False, raw_dir=raw_dir, log=log, now=now, sleep=sleep)
+    entry, own = {"status": "failed", "written": []}, session is None
+    try:
+        current = now().astimezone(TAIPEI)
+        reason = ("open_today.enabled 是 false" if not conf.get("enabled")
+                  else "t 不是台北今天" if current.date().isoformat() != t
+                  else f"還沒到 {conf['not_before']}" if current < run.at(conf["not_before"]) else None)
+        if reason:
+            return {"status": "skipped", "reason": reason, "written": []}
+        if not open_today_missing(raw_dir, cfg, t):
+            return {"status": "ok", "written": []}
+        if own:
+            y = cfg["yfinance"]
+            session = PacedSession(y["min_interval_seconds"], y["jitter_seconds"], y["max_redirects"])
+            setup_yfinance(session, utils.ROOT / y["cache_dir"])
+        entry = download_open_today(run, session, fetch)
+        try:
+            manifest = json.loads((raw_dir / "manifest.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            manifest = None   # 沒有 manifest 或讀不了：不記，CSV 已經寫好
+        if isinstance(manifest, dict) and (manifest.get("run") or {}).get("target_date") == t:
+            manifest["open_today"] = entry
+            write_atomic(raw_dir / "manifest.json", (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode())
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:   # session 建不起來、manifest 寫不進去：只記 log
+        log.warning("當天開盤這一步有錯（%s）", str(e) if isinstance(e, CrawlerError) else type(e).__name__)
+    finally:
+        if own and session is not None:
+            session.close()
+    return entry
 
 
 # ---------------------------------------------------------------- 證交所、櫃買中心（研究用回補，使用者 2026-11-08）

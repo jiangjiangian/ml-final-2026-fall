@@ -1,7 +1,8 @@
 """每天自動跑一次（測試版）：爬蟲 → 特徵 → 組員的邏輯迴歸 → CSV → 上傳 → 推資料。
 
-排程（memory/context/pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05，使用者的 Mac 08:15 起備援，跑同一個指令。
+排程（memory/context/pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05、08:25，使用者的 Mac 08:15 起備援，跑同一個指令。
 網站上已經有今天的提交就直接結束，所以不會重複上傳。
+08:25 那次多做一件事（open_today_step，只在 --sync 時）：抓日韓當天的開盤，補上特徵表 t 那列的 open_gap 兩欄，不影響上傳。
 
 用法：
     python run_daily_test.py              交 config 的 submit.phase；t 是台北今天
@@ -22,6 +23,7 @@ t 不是交易日（不在 phase2Days）：Phase 2 直接結束；Phase 1 不跑
 import argparse
 import fcntl
 import hashlib
+import json
 import os
 import subprocess
 import sys
@@ -262,6 +264,23 @@ def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
         site.close()
 
 
+def open_today_step(t: str, today: str, log) -> None:
+    """日韓當天的開盤（使用者 2026-11-11，只進長表）：台北 08:22 以後（排程 08:25）從 Yahoo 抓，抓到新的就重寫
+    特徵表，t 那列的 kospi_open_gap、n225_open_gap 才有值。特徵表的最後一天不是 t（今天沒跑成）就不抓。
+    模型和上傳不看這兩欄。任何錯誤只記 log，不改這次執行的結果。"""
+    try:
+        if t != today:
+            return
+        cfg = utils.load_config()
+        info = json.loads((ROOT / cfg["data"]["processed_dir"] / "manifest.json").read_text(encoding="utf-8"))
+        if info.get("last_date") != t:
+            return
+        if crawler.open_today(cfg, t, log)["written"]:
+            step(log, "特徵（補上當天開盤）", lambda: features.main(["--date", t]))
+    except Exception as e:
+        log.warning("當天開盤那一步沒做完（%s）：只影響長表的 open_gap 兩欄", describe(e))
+
+
 def describe(e: BaseException) -> str:
     """錯誤訊息只用自己寫的那幾種，其他只寫類別（訊息可能帶伺服器內容）。"""
     own = (StopRun, crawler.CrawlerError, features.FeatureError, online_lr.ModelError, site_api.SiteError,
@@ -324,7 +343,7 @@ def locked_main(args, argv=None) -> int:
     today = utils.taipei_now().date().isoformat()
     t = args.date or today
     log = utils.get_logger("run_daily_test", t)   # 檔名用 t（Phase 1 時 t 就是今天）
-    status, code, phase = "failed", 1, args.phase
+    status, code, phase, interrupted = "failed", 1, args.phase, False
     try:
         if sync_error is not None:
             raise sync_error
@@ -341,9 +360,12 @@ def locked_main(args, argv=None) -> int:
     except BaseException as e:
         log.error("停下：%s", describe(e))
         if not isinstance(e, Exception):
+            interrupted = True
             raise
     finally:
         log.info("結束：%s", status)
+        if args.sync and not interrupted and status != "closed":
+            open_today_step(t, today, log)   # 只在排程的 clone 做；自己接住所有錯誤
         if args.sync and branch_ok:
             try:
                 commit_data(f"Daily run {t} (Phase {phase}): {status}")

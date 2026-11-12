@@ -33,6 +33,8 @@
   - 量到的：Yahoo `^KS11` 晚 20 分、`^N225` 晚 15 分；日K的 Open 等於當地 09:00 那根一分鐘K棒的 open；`chartPreviousClose` 和 Naver 的昨收一樣（5239.13、60459.58）。Yahoo 以為韓國 15:00 收盤，一分鐘K棒只到 14:59，不影響開盤。
   - 2026-11-11 15:21 在 Mac 用真的 Yahoo 跑過：5 秒、兩個序列都第一次就抓到。11-11 那列是下午補抓的（`fetched_at` 是 15:2x），kospi −0.56%、n225 +0.11%，特徵表只有這兩格變。測試 `tests/test_open_today.py` 32 個，全部 473 個通過。
   - oop 的 crontab 加 `25 8 * * *`（`deploy/crontab.txt`），11-11 15:29 手動加好。15:28 推上去（`e7df485` 程式、`175fbe6` 11-11 的資料），oop 拉到 `175fbe6`，新測試 32 個通過，從 oop 用真的 Yahoo 抓到暫存資料夾：6 秒、兩個序列都第一次就 ok。11-12 08:25 第一次正式跑，要看的事在 `memory/context/open-questions.md`。
+  - 2026-11-12 第一次正式跑的結果：08:25:05 開始，`open_today.status` ok，kospi、n225 的 `attempts` 都是 1（08:25:09、08:25:11 存好），所以 08:25 已經有當天的K棒，不用往後移。kospi 5385.94 ÷ 5375.36（+0.20%）、n225 61475.11 ÷ 61248.59（+0.37%）。特徵 08:25:24 重寫完（13 秒），接著推上去。
+  - 同一天 VIXTWN、CNN 第一次正式跑：07:10 那次停在 `git pull`（學校 DNS），07:25 那次交件（07:28）。VIXTWN ok、`has_prev_day` True。CNN 連線失敗（ConnectionError，`start` 是 `2026-10-13`），t 那列的 `fear_greed_*` 空白、log 有警告，和設計的一樣，隔天補。
 - 2026-11-09（open-questions 2026-11-08 的建議）：抓的順序改成 1h 先，再照 `fetch_order()` 抓日K：`features.model_series` 裡的先，其他照 config 的順序；缺 i 那根的重抓也照這個順序。1h 和日K共用同一個限流斷路器，截止的規則不變。過了截止或斷路器跳開時，先被跳過的是不在模型裡的序列。`manifest.json` 的 `yfinance` 最後照 config 的順序排（日K、再 1h），每天的 diff 不會因為抓的順序變大。
 - 2026-11-09 修 `usd_twd_am` 的舊K棒（使用者 2026-11-08 同意的定義）：`hourly_has_value(rows, target, lookback_days, prev_target)` 的 `prev_target` 是 i 的 06:00。選到的K棒要在 4 天內結束，而且晚於 `prev_target`；不知道 i 時照舊只看 4 天。`has_value_t` 是 False 時，`usd_twd_1h` 進 `run.no_bar_i` 並寫警告。週一的 t、i 是週五時，週六清晨結束的那根（紐約週五收盤）晚於週五 06:00，算有。用本機的 1h 檔試算，2024-01-23 起的 673 個交易日新舊規則沒有一天不同；用本機現在的檔（最後一根 11-06 06:00 結束）算 t = 11-09 是 False，要連網抓過新的 1h 才有值。features 那邊的規則見 `memory/projects/features.md` 的 `usd_twd_am`。
 

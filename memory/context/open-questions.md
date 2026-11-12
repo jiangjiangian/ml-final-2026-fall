@@ -12,12 +12,10 @@
 
 其他的在 features.md 那節，沒有特別要問的：價格不在升降單位格子上時檔數空白、三個旗標欄存成整數、notes 用 warning 等級寫 log。
 
-## 2026-11-12 08:25 第一次抓日韓當天的開盤，要看結果
+## 日韓當天的開盤：還要對一次日K（2026-11-12 第一次正式跑成功）
 
-做法和決定在 `memory/projects/crawler.md` 的「日韓當天的開盤」。還沒在早上實測過，要看：
+做法和決定在 `memory/projects/crawler.md` 的「日韓當天的開盤」。11-12 08:25 第一次跑的結果也記在那裡（兩個序列都一次抓到，08:25 不會太早）。剩下兩件：
 
-- `data/raw/manifest.json` 的 `open_today`：`status` 是不是 ok，兩個序列的 `attempts` 是幾（1 代表 08:25 已經有當天的K棒；到 4 還是 `no_bar` 代表 08:25 太早，要把排程和 `open_today.not_before` 往後移）。
-- `data/raw/open_today/kospi.csv`、`n225.csv` 有沒有 11-12 那列，特徵表 11-12 那列的兩欄有沒有值，推上去的時間。
 - 幾天後拿 Yahoo 的日K對一次：當天早上抓的 open、prev_close 和日K的 open、前一根 close 一不一樣。
 - 已知的洞（沒修）：沒抓到的日子改用日K算，如果 Yahoo 有 d 那根卻還沒有 d−1 那根（11-10、11-11 早上 `kospi` 的 i 那根都還沒出來），算出來會拿更早一天的收盤當分母。當天早上有抓到就不受影響。
 

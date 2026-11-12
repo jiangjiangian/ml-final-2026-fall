@@ -1,0 +1,22 @@
+2026-11-13 07:10:06,042 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-13，--sync（執行代號 71526067）
+2026-11-13 07:10:07,836 finpred.crawler INFO Training：本機的檔案和上次一樣，不下載
+2026-11-13 07:11:06,307 finpred.crawler INFO ['stoxx50e', 'kospi'] 沒有 2026-11-12 那根，60 秒後一起重抓一次
+2026-11-13 07:12:08,667 finpred.crawler WARNING stoxx50e 沒有 2026-11-12 那根K棒，這個特徵當天會是空白
+2026-11-13 07:12:08,667 finpred.crawler WARNING kospi 沒有 2026-11-12 那根K棒，這個特徵當天會是空白
+2026-11-13 07:12:11,451 finpred.crawler WARNING CNN 這一步失敗（/index/fearandgreed/graphdata/2026-10-14：連線失敗（ConnectionError）），沿用舊檔；這些欄不在模型裡
+2026-11-13 07:12:28,487 finpred.crawler INFO 2026-11-12 twse_valuation：91 檔
+2026-11-13 07:12:28,487 finpred.crawler INFO 2026-11-12 twse_quotes：91 檔
+2026-11-13 07:12:28,487 finpred.crawler INFO 2026-11-12 tpex_valuation：9 檔
+2026-11-13 07:12:28,487 finpred.crawler INFO 2026-11-12 tpex_quotes：9 檔
+2026-11-13 07:12:31,461 finpred.crawler INFO twse_valuation：檔案裡 1666 天（2020-01-02～2026-11-12），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-13 07:12:31,461 finpred.crawler INFO twse_quotes：檔案裡 1666 天（2020-01-02～2026-11-12），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-13 07:12:31,462 finpred.crawler INFO tpex_valuation：檔案裡 1666 天（2020-01-02～2026-11-12），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-13 07:12:31,462 finpred.crawler INFO tpex_quotes：檔案裡 1666 天（2020-01-02～2026-11-12），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-13 07:12:31,747 finpred.crawler INFO 爬蟲完成：ok
+2026-11-13 07:12:31,748 finpred.run_daily_test INFO 爬蟲 完成（145 秒）
+2026-11-13 07:12:42,573 finpred.features WARNING t 那列的 ['fear_greed_lag1', 'fear_greed_chg_lag1'] 空白（只進長表的欄，原因見 fear_greed_values、vixtwn_values）
+2026-11-13 07:12:43,991 finpred.features INFO 特徵表：166700 列、1667 天，最後一天 2026-11-13；寫了 ['2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 26, 'empty_close': 7, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-13 07:12:44,340 finpred.run_daily_test INFO 特徵 完成（13 秒）
+2026-11-13 07:13:04,162 finpred.run_daily_test INFO 讀特徵 完成（20 秒）
+2026-11-13 07:13:35,513 finpred.run_daily_test INFO 模型 完成（31 秒）
+2026-11-13 07:13:35,515 finpred.run_daily_test INFO 寫好 data/submission/submission_2026-11-13.csv：50 檔 × 1 天，模型 rank_ensemble，猜漲 0.500

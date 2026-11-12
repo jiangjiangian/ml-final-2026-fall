@@ -35,3 +35,8 @@
 2026-11-13 07:40:05,713 finpred.run_daily_test INFO 結束：already_submitted
 2026-11-13 07:40:06,117 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-13 07:40:06,118 finpred.run_daily_test INFO 合併原始資料 完成（0 秒）
+2026-11-13 07:55:05,855 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-13，--sync（執行代號 cc09ba0b）
+2026-11-13 07:55:06,091 finpred.run_daily_test INFO 網站上已經有這次的提交（submission_2026-11-13.csv，2026-11-12T23:13:44.954Z 交），結束
+2026-11-13 07:55:06,092 finpred.run_daily_test INFO 結束：already_submitted
+2026-11-13 07:55:06,487 finpred.merge_raw INFO 合併表：來源沒變，不重算
+2026-11-13 07:55:06,488 finpred.run_daily_test INFO 合併原始資料 完成（0 秒）

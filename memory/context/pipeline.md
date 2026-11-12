@@ -65,6 +65,8 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 - `tests/`：擋住兩件最容易出事的事，用到當天的資料和 CSV 格式錯。
 - `.env.example`：帳號密碼不寫進程式或設定檔。
 
+2026-11-12 使用者想把 `src/` 收成「爬蟲、特徵、模型、上傳」四塊，共用的函式放 `utils`，寫法偏純函式。問過之後使用者選「先不動程式」：README 已經照這四步介紹現有的檔案，程式維持現狀。當時 `train.py`、`predict.py`、`run_daily.py` 是沒在用的骨架，模型分散在 `persist_rule.py`、`online_lr.py`（另一個 session 正在加 `rank_ensemble.py`），`crawler.py` 2,939 行。沒選的兩個做法：只搬檔案不改函式（刪骨架、模型收進 `src/model/`、`site_api.py` 併進上傳）；拆 `crawler.py`、改寫成純函式（要改寫大部分測試，建議比賽結束後）。之後要做，先確認沒有別的 session 有沒 commit 的改動。
+
 ## run_daily_test.py（2026-11-07 寫好）
 
 排程跑的是 `run_daily_test.py --sync`，不是 `run_daily.py`。下面是 Claude 2026-11-07 照使用者 11/06 的決定做的設計：

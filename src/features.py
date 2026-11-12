@@ -4,13 +4,16 @@
 交易日，最後再加 t 那天。欄位：
     date, stock_id            鍵；stock_id 一律當字串（"2330"），不轉成數字
     is_top50                  1＝要預測的 50 檔（info.json 的 Top50@Y）
+    industry_original         交易所原始產業別
+    industry_group            合併後的六大產業名稱
+    industry_group_id         六大產業編號 0～5（靜態類別，不進 model_columns）
     <名稱>_ret_lag{k}        特徵，見下方；個股衍生特徵各有自己的 lag 設定
     teacher_<名稱>_fresh_ret_lag{k}、<名稱>_open_gap、val_*_lag1、quote_*_lag1、vixtwn_*、fear_greed_*
                               使用者 2026-11-08、11-09 加的欄，見下方「只進長表的欄」
     label_y                   答案：t 當天 etl:adj_close > etl:adj_open 為 1；還不知道時空白
     label_intraday_return     答案：t 當天 etl:adj_close / etl:adj_open − 1（官方分數用）；還不知道時空白
 預測日 t 那列的 label 一定空白。模型用哪些欄由 config 的 features.model_series 決定，見 model_columns()。
-欄的順序：鍵、stock、yfinance（照 yfinance.tickers）、老師 global、usd_twd_am、台指期、只進長表的欄、答案。
+欄的順序：鍵、產業、stock、yfinance（照 yfinance.tickers）、老師 global、usd_twd_am、台指期、只進長表的欄、答案。
 
 特徵 <名稱>_ret_lag{k}：
     i 是 t 之前最後一個台股交易日。t 那列 = (close_i − close_(i−k)) / close_(i−k)，i−k 數的是該序列自己的列。
@@ -135,6 +138,7 @@ QUOTE_COLUMNS = ("quote_spread_ticks_lag1", "quote_rel_spread_lag1", "quote_imba
                  "quote_limit_up_lag1", "quote_limit_down_lag1")
 FLAG_COLUMNS = ("val_pe_loss_lag1", "quote_limit_up_lag1", "quote_limit_down_lag1")   # 0、1、空白，存成整數
 SIDE_COLUMNS = ("vixtwn_lag1", "vixtwn_ret_lag1", "fear_greed_lag1", "fear_greed_chg_lag1")   # 使用者 2026-11-09
+INDUSTRY_COLUMNS = ("industry_original", "industry_group", "industry_group_id")
 
 
 class FeatureError(RuntimeError):
@@ -154,6 +158,60 @@ def read_csv_rows(path: Path, columns: tuple) -> list:
     if any(len(r) != len(columns) for r in body):
         raise FeatureError(f"{path.name} 有列的欄數不對")
     return body
+
+
+def load_industry(path: Path) -> pd.DataFrame:
+    """讀一列一檔的產業參考表，回傳 stock_id 加三個產業欄。"""
+    try:
+        table = pd.read_csv(path, encoding="utf-8-sig", dtype={"代號": str, "stock_id": str})
+    except (OSError, ValueError, csv.Error) as e:
+        raise FeatureError(f"產業參考表讀不了：{path}（{e}）") from None
+    stock_column = "stock_id" if "stock_id" in table.columns else "代號"
+    required = [stock_column, *INDUSTRY_COLUMNS]
+    missing = [column for column in required if column not in table.columns]
+    if missing:
+        raise FeatureError(f"產業參考表缺少欄位：{missing}")
+
+    table = table[required].rename(columns={stock_column: "stock_id"}).copy()
+    table["stock_id"] = table["stock_id"].astype("string").str.strip()
+    if table["stock_id"].isna().any() or table["stock_id"].eq("").any():
+        raise FeatureError("產業參考表有空白股票代號")
+    duplicates = table.loc[table["stock_id"].duplicated(keep=False), "stock_id"].unique().tolist()
+    if duplicates:
+        raise FeatureError(f"產業參考表有重複股票代號：{duplicates}")
+
+    for column in ("industry_original", "industry_group"):
+        table[column] = table[column].astype("string").str.strip()
+        if table[column].isna().any() or table[column].eq("").any():
+            raise FeatureError(f"產業參考表的 {column} 有空白")
+    group_id = pd.to_numeric(table["industry_group_id"], errors="coerce")
+    if group_id.isna().any() or not np.equal(group_id, np.floor(group_id)).all():
+        raise FeatureError("產業參考表的 industry_group_id 必須是整數")
+    table["industry_group_id"] = group_id.astype(np.int64)
+    if not table["industry_group_id"].between(0, 5).all():
+        raise FeatureError("產業參考表的 industry_group_id 必須介於 0～5")
+    if (table.groupby("industry_group_id")["industry_group"].nunique() != 1).any() or \
+            (table.groupby("industry_group")["industry_group_id"].nunique() != 1).any():
+        raise FeatureError("industry_group 和 industry_group_id 必須一對一")
+    return table
+
+
+def add_industry_columns(df: pd.DataFrame, industry: pd.DataFrame) -> pd.DataFrame:
+    """依 stock_id 把靜態產業欄插在 is_top50 後；不改列數、列順序或模型欄。"""
+    stocks = set(df["stock_id"].astype(str))
+    reference = set(industry["stock_id"].astype(str))
+    missing, extra = sorted(stocks - reference), sorted(reference - stocks)
+    if missing or extra:
+        raise FeatureError(f"產業參考表和特徵股票不一致：缺少 {missing}；多出 {extra}")
+
+    lookup = industry.set_index("stock_id")
+    out = df.copy()
+    for column in INDUSTRY_COLUMNS:
+        out[column] = out["stock_id"].map(lookup[column])
+    columns = list(df.columns)
+    at = columns.index("is_top50") + 1
+    columns[at:at] = INDUSTRY_COLUMNS
+    return out[columns]
 
 
 def check_date(text: str, name: str) -> str:
@@ -1168,6 +1226,8 @@ def main(argv=None) -> int:
     if blank:   # 例如那天早上 CNN 沒抓到（審查 2026-11-09：爬蟲看不到特徵用哪一天，在這裡報）
         log.warning("t 那列的 %s 空白（只進長表的欄，原因見 fear_greed_values、vixtwn_values）", blank)
     out_dir = utils.ROOT / cfg["data"]["processed_dir"]
+    industry = load_industry(out_dir / cfg["features"]["industry_file"])
+    df = add_industry_columns(df, industry)
     last = df["date"].iloc[-1]
     try:
         previous = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))

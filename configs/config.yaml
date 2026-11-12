@@ -167,6 +167,7 @@ yfinance:
     kospi: ^KS11                 # 韓國 KOSPI；組員 2026-11-08 要的日韓開盤，features 用它的 open 算 kospi_open_gap
 
 features:
+  industry_file: industry/tw_top100_industry.csv  # 相對於 data.processed_dir；輸出長表加入產業三欄
   lags: [1, 2]                   # 報酬往回看幾個交易日（使用者和組員 2026-11-06 決定只用 lag1、lag2）
   stock_lags: [1, 2, 5, 10, 15, 20]  # 個股自己的收盤報酬 (2026-11-11 使用者決定)
   stock_intraday_lags: [1, 2, 3, 4, 5]  # 前 1～5 個交易日各自的 (還原收盤－還原開盤) / 還原開盤

@@ -523,6 +523,9 @@ def fake_repo(tmp_path, monkeypatch, days):
               [[d, f"{20 + j:.2f}", f"{20.1 + j:.2f}"] for j, d in enumerate(days)])
     write_csv(tmp_path / "data" / "raw" / "cnn" / "fear_greed.csv", crawler.FEAR_GREED_COLUMNS,
               [[d, str(40.0 + j)] for j, d in enumerate(days)])
+    write_csv(tmp_path / "data" / "processed" / "industry" / "tw_top100_industry.csv",
+              ["stock_id", *features.INDUSTRY_COLUMNS],
+              [["A", "測試原始產業", "測試產業群", "0"], ["B", "測試原始產業", "測試產業群", "0"]])
     cfg = small_cfg()
     monkeypatch.setattr(utils, "ROOT", tmp_path)
     monkeypatch.setattr(utils, "load_config", lambda *a: cfg)
@@ -538,6 +541,10 @@ def test_main_writes_months_and_manifest(tmp_path, monkeypatch):
     assert info["months"] == ["2025-10", "2025-11"] and info["last_date"] == "2025-11-05"
     assert info["warnings"] == []
     assert info["model_columns"] == features.model_columns(cfg)
+    assert info["columns"][3:6] == list(features.INDUSTRY_COLUMNS)
+    table = features.load_features(tmp_path / "data" / "processed")
+    assert len(table) == 10 and table[list(features.INDUSTRY_COLUMNS)].isna().sum().sum() == 0
+    assert table["industry_group_id"].eq(0).all()
     back = features.load_features(processed)
     expected = features.build_features(features.load_raw(cfg), cfg, "2025-11-05")
     assert list(back["date"].unique()) == days + ["2025-11-05"]

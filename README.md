@@ -24,7 +24,7 @@
 
 | 資料 | 內容 | 瀏覽 |
 |---|---|---|
-| 特徵表（做好 lag） | 一列是「預測日 t × 一檔股票」，107 欄，已經對齊到 t，可以直接訓練 | [data/processed](https://github.com/jiangjiangian/ml-final-2026-fall/tree/claude/stock-market-challenger/data/processed) |
+| 特徵表（做好 lag） | 一列是「預測日 t × 一檔股票」，110 欄，已經對齊到 t，可以直接訓練 | [data/processed](https://github.com/jiangjiangian/ml-final-2026-fall/tree/claude/stock-market-challenger/data/processed) |
 | 合併的原始資料 | `data/raw/` 併成個股表和市場表。原字串，沒清理，沒對齊到 t | [data/merged](https://github.com/jiangjiangian/ml-final-2026-fall/tree/claude/stock-market-challenger/data/merged) |
 | 原始檔 | 爬蟲下載的原樣，一個來源一個資料夾 | [data/raw](https://github.com/jiangjiangian/ml-final-2026-fall/tree/claude/stock-market-challenger/data/raw) |
 
@@ -91,11 +91,12 @@ tsmc = pd.read_csv(f"{RAW}/teacher/live/market/2330.csv")                       
 
 ## 特徵表的欄位
 
-完整的表在 [`memory/reference/feature-table.md`](memory/reference/feature-table.md)：每一欄的來源、是什麼、定義、用的是哪一刻的值、模型用不用、什麼時候空白。107 欄分成五組：
+完整的表在 [`memory/reference/feature-table.md`](memory/reference/feature-table.md)：每一欄的來源、是什麼、定義、用的是哪一刻的值、模型用不用、什麼時候空白。110 欄分成六組：
 
 | 組 | 欄數 | 例子 | 在 `model_columns` 裡 |
 |---|---|---|---|
 | 鍵 | 3 | `date`、`stock_id`、`is_top50` | 不適用 |
+| 產業 | 3 | `industry_original`、`industry_group`、`industry_group_id`（每檔固定） | 都不在 |
 | 個股 | 25 | `stock_ret_lag1`、`stock_intraday_ret_lag1`、`stock_open_lag1` | 25 欄都在 |
 | 市場序列 | 58 | 29 個序列各有 lag1、lag2，例如 `sox_ret_lag1`、`tx_night_ret_lag1` | 15 個序列的 30 欄 |
 | 只給研究 | 19 | `val_*`、`quote_*`、`*_open_gap`、`*_fresh_ret_*`、`vixtwn_*`、`fear_greed_*` | 都不在 |
@@ -153,6 +154,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   │   ├── phase2_days.json   課程網站的交易日清單
 │   │   └── exchange_backfill.json   證交所、櫃買回補的進度
 │   ├── processed/             特徵表（做好 lag）
+│   │   ├── industry/          tw_top100_industry.csv：100 檔的產業對照表，特徵表的產業欄用
 │   │   ├── features/          YYYY-MM.csv.gz，一個月一檔，每天只更新最後兩個月
 │   │   └── manifest.json      有哪些月份、模型用哪些欄、清理紀錄
 │   ├── merged/                合併的原始資料

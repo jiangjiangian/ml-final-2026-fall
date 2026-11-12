@@ -124,6 +124,18 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 2. 檢查：107 欄、模型欄 55、`warnings` 是 `[]`；原本就有的 82 個數值欄和重建前完全一樣；`stock_intraday_ret_lag1` 等於前一列的答案（沒有用到 t 當天）；組員的模型用 81 個特徵跑得出 t = 11-11 的 50 檔；全部測試 485 個通過。
 3. 01:05 從 oop 推 e7c5c99。再用每天的指令 `-m src.features --date 2026-11-11` 跑一次，沒有丟錯，也沒有月份變動。
 
+### 2026-11-12 晚上又補推一次（產業欄）
+
+組員 chihyu 18:35 的 `9afa3e2` 加了 3 個產業欄（`industry_original`、`industry_group`、`industry_group_id`，讀 `data/processed/industry/tw_top100_industry.csv`，插在 `is_top50` 後面），一樣只推了程式。11-13 早上每個時段都會停在特徵那一步（22:46 在 Mac 的暫存 worktree 重現）。使用者 22:55 選「今晚重建並推上去」。處理，全部在 oop：
+
+1. 開 `~/mlfinal-before`、`~/mlfinal-rebuild` 兩個 worktree（origin 的 `9afa3e2`），後者跑 `-m src.features --rebuild`，88 秒：110 欄、模型欄 55、`warnings`、`notes` 都是 `[]`。
+2. 原本的 107 欄：只有 `tsm_adr`、`nvda`、`etf_0050`、`etf_0052`、`etf_0055`、`etf_006201` 在 2026-03 以前有最多 9e-07 的差（Yahoo 重算除息），`stock_log_shares_*` 有 1e-14 的浮點差，最近兩個月完全一樣。
+3. 用正式的 `run_daily_test.daily_predict` 算 t = 11-12：重建前後排名集成的 0／1 和機率完全一樣，也和 `~/mlfinal-tmp/rank_2026-11-12_v2.csv` 的紙上預測 50 檔一樣；`persist` 一樣；`online_lr` 的 0／1 一樣（機率最多差 0.0022）。
+4. 乾淨的 worktree：`--date 2026-11-12` 不丟錯、`data/processed` 沒有改動；全部測試 509 個通過；`--date 2026-11-13` 也不丟錯。
+5. 23:09 從 oop 推 `4e454a6`，排程的 clone 拉到 `4e454a6`，worktree 都刪了。
+
+新的風險：產業對照表和老師的 100 檔對不上（少一檔或多一檔）時，`add_industry_columns` 丟 `FeatureError`，特徵那一步停下，當天交不出去。
+
 ## 特徵欄位變了怎麼推（2026-11-09 審查後寫）
 
 特徵表的欄位一變，舊的 `data/processed/manifest.json` 就和新程式對不起來，每天的 `features.main(["--date", t])` 沒加 `--rebuild` 會丟「特徵欄和上次不一樣」，那天交不出去。反過來，舊程式配新的 manifest 也一樣會停。所以程式和重建過的表要在同一次 push。2026-11-09 的 17 欄就是這種情況，之後再改欄位也照這裡做。

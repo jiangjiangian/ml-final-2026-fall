@@ -103,10 +103,12 @@ def test_stale_answers_or_too_few_scores_raise():
         persist_rule.predict(table, CFG, [], codes)
 
 
-def test_config_selects_a_known_model_and_has_the_rule_settings():
+def test_config_selects_known_models_and_has_the_rule_settings():
     cfg = utils.load_config()
-    assert cfg["daily_model"]["kind"] in ("persist", "online_lr")
-    assert cfg["daily_model"]["fallback"] in ("online_lr", "none")
+    fallback = cfg["daily_model"]["fallback"]
+    order = [cfg["daily_model"]["kind"]] + ([fallback] if isinstance(fallback, str) else list(fallback))
+    assert order[0] in rdt.MODEL_KINDS and len(set(order)) == len(order)
+    assert all(kind in rdt.MODEL_KINDS or kind == "none" for kind in order[1:])
     assert set(cfg["persist_rule"]) == {"days", "min_days", "max_stale_days", "min_scored_share"}
     assert cfg["persist_rule"]["min_days"] <= cfg["persist_rule"]["days"]
 
@@ -118,7 +120,7 @@ def test_config_selects_a_known_model_and_has_the_rule_settings():
 def switch(monkeypatch):
     """rdt 的 src 模組換成真的（平常 import_src 之後才有），online_lr.predict 換成只回傳記號的假函式。"""
     for name, module in (("crawler", crawler), ("features", features), ("online_lr", online_lr),
-                         ("persist_rule", persist_rule), ("site_api", site_api)):
+                         ("site_api", site_api)):
         monkeypatch.setattr(rdt, name, module)
     monkeypatch.setattr(online_lr, "predict", lambda data, cfg, dates, ids: "組員的模型")
     table, days, codes = make_table(unlabeled=1)
@@ -138,7 +140,7 @@ def test_persist_failure_falls_back_to_online_lr(switch, caplog):
            "daily_model": {"kind": "persist", "fallback": "online_lr"}}
     with caplog.at_level(logging.ERROR):
         name, pred = rdt.daily_predict(cfg, table, dates, codes, LOG)
-    assert pred == "組員的模型" and "備援" in name and "持續性規則算不出來" in caplog.text
+    assert pred == "組員的模型" and name == "online_lr（persist 的備援）" and "persist 算不出來" in caplog.text
     cfg["daily_model"]["fallback"] = "none"
     with pytest.raises(persist_rule.RuleError):
         rdt.daily_predict(cfg, table, dates, codes, LOG)

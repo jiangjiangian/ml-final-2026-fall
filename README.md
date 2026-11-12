@@ -10,7 +10,7 @@
 |---|---|---|---|
 | 1. 爬蟲 | `src/crawler.py` | 下載老師的 Training 和 Live、Yahoo 21 個指標、期交所的台指期和 VIXTWN、CNN 恐懼貪婪指數、證交所和櫃買的日資料，原樣存檔 | `data/raw/` |
 | 2. 特徵 | `src/features.py` | 清理 Yahoo 的資料，對齊到預測日 t，算 lag。一列是一檔股票的一天 | `data/processed/features/` |
-| 3. 模型 | `src/persist_rule.py`（現在用）、`src/online_lr.py`（備用） | 讀特徵表，輸出 50 檔的 0/1。用哪一個看 `configs/config.yaml` 的 `daily_model.kind` | `data/submission/submission_<t>.csv` |
+| 3. 模型 | `src/rank_ensemble.py`（現在用）、`src/persist_rule.py`、`src/online_lr.py`（備援） | 讀特徵表，輸出 50 檔的 0/1。用哪一個看 `configs/config.yaml` 的 `daily_model`，說明在 [daily-model.md](memory/reference/daily-model.md) | `data/submission/submission_<t>.csv` |
 | 4. 上傳 | `src/submit.py`、`src/site_api.py` | 照網站範本寫 CSV，上傳後下載回來逐格核對 | 課程網站 |
 
 - 串起來的程式：`run_daily_test.py`。四步跑完，再用 `src/merge_raw.py` 把原始資料併成兩張表（`data/merged/`），最後把 `data/` commit、push 到這個分支。
@@ -131,8 +131,9 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 ├── src/
 │   ├── crawler.py             1. 爬蟲：下載所有來源到 data/raw/
 │   ├── features.py            2. 特徵：data/raw/ → data/processed/features/
-│   ├── persist_rule.py        3. 模型：持續性規則（現在用）
-│   ├── online_lr.py           3. 模型：組員的邏輯迴歸（備用）
+│   ├── rank_ensemble.py       3. 模型：排名集成（現在用）
+│   ├── persist_rule.py        3. 模型：持續性規則（第一個備援）
+│   ├── online_lr.py           3. 模型：組員的邏輯迴歸（第二個備援）
 │   ├── submit.py              4. 上傳：寫 CSV、上傳、下載回來核對
 │   ├── site_api.py            4. 上傳：課程網站的 API（登入、範本、上傳、下載）
 │   ├── merge_raw.py           data/raw/ → data/merged/ 的兩張表
@@ -199,5 +200,6 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 ├── models/                    空的
 ├── .claude/                   Claude Code 的專案設定和輸出風格
 ├── .gitignore                 哪些檔案不進 Git
+│   ├── test_rank_ensemble.py  模型：排名集成、備援的順序
 └── .gitattributes             data/raw/、tests/fixtures/ 不改換行；upload_log.jsonl 用 union 合併
 ```

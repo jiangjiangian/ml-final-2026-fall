@@ -248,15 +248,37 @@ online_lr:                       # 組員的方法（notebooks/feature_switch.ip
   clip_z: 5                      # 標準化後截在 ±5
   threshold: 0.5                 # 機率 > 這個猜 1
 
-daily_model:                     # run_daily_test.py 每天交件用哪個模型（使用者 2026-11-12：暫時換成目前回測最穩定的）
-  kind: persist                  # persist = 持續性規則（src/persist_rule.py）；online_lr = 組員的邏輯迴歸。要換回去只改這一行
-  fallback: online_lr            # persist 算不出來時改用組員的邏輯迴歸，當天照樣交件；填 none 就停下不交
+daily_model:                     # run_daily_test.py 每天交件用哪個模型（使用者 2026-11-12 早上換成 persist，晚上換成 rank_ensemble）
+  kind: rank_ensemble            # persist = 持續性規則（src/persist_rule.py）；rank_ensemble = 排名集成（src/rank_ensemble.py）；online_lr = 組員的邏輯迴歸。換模型改 kind 和下面的 fallback 兩行
+  fallback: [persist, online_lr] # kind 算不出來時照順序改用這些，當天照樣交件；填一個名字也可以；none 是停下不交
 
 persist_rule:                    # 持續性規則的設定，照 Kaggle notebook 14 的 persist120
   days: 120                      # 每檔股票往回看幾個有答案的交易日
   min_days: 60                   # 這 120 天裡至少要有這麼多天有值才有分數，不到就排在當天的中間
   max_stale_days: 3              # 最新的答案和預測日中間隔超過這麼多個交易日，當成資料沒更新，不用這條規則
   min_scored_share: 0.8          # 有分數的股票不到這個比例（50 檔裡 40 檔），當成資料有問題，不用這條規則
+
+rank_ensemble:                   # 排名集成（src/rank_ensemble.py）：Kaggle notebook 16 的 X_price。daily_model.kind 填 rank_ensemble 才會用
+  columns: [                     # notebook 16 選出的 41 個價量欄，早上一定有值。順序不能動（LightGBM 抽欄和順序有關）
+            stock_ret_lag1, stock_ret_lag2, a_ret1, a_intraday, a_gap, a_high, a_low, a_volume_ratio, a_rsi,
+            a_bb_pos, a_bb_width, a_macd, a_ema5_dev, a_ema20_dev, a_ema60_dev, a_ema5_20, a_ema20_60,
+            c_intraday_mean5, c_intraday_mean20, c_ret5, c_ret20, c_atr_pct, c_sma_dev, c_amount_z60, o_gap_mean5,
+            o_gap_mean20, o_gap_std20, o_intraday_std20, o_gap_intraday_corr60, o_intraday_minus_gap5, o_parkinson20,
+            o_garman_klass20, o_close_location, o_intraday_up_frac20, o_intraday_rank, o_gap_rank, gap_rel,
+            p_e_mean20, p_e_mean120, p_e_up60, p_gap_rel20]
+  train_days: 500                # 用重訓日之前幾個有答案的交易日訓練
+  min_train_days: 250            # 有答案的交易日不到這麼多就不訓練
+  max_missing: 0.10              # 訓練期裡空值超過這個比例的欄不用；要預測那天的列空白超過這個比例，就不用這個模型
+  target_clip: 3.0               # 目標 (盤中報酬 − 當天平均) ÷ 當天標準差，截在 ±3
+  ridge_alpha: 10.0              # ridge 的 α = 這個值 × 訓練天數 ÷ 125
+  kernel_components: 1000        # Nyström kernel ridge 抽幾個基底點
+  kernel_gamma_scale: 0.2        # RBF 的 γ = 這個值 ÷ 欄數
+  kernel_alpha: 10.0
+  seeds: [0, 1, 2]               # kernel ridge 和 LightGBM 各用這幾個種子取平均
+  max_stale_days: 0              # 表裡 t 之前有還沒答案的日子就不用這個模型。每天的長表不會有這種日子；老師 Live 沒填前一個交易日時，
+                                 # 程式另外讀 data/raw/manifest.json 的紀錄，一樣換備援（突然休市、closed_days 還沒補的隔天也會換一天）
+  lgbm: {objective: regression, num_leaves: 7, min_child_samples: 100, n_estimators: 200, learning_rate: 0.03,
+         subsample: 0.8, subsample_freq: 1, colsample_bytree: 0.7, reg_lambda: 1.0, verbose: -1, n_jobs: 1}
 
 submit:
   enabled: true                  # 使用者 2026-11-06 確認舊系統的排程停了才打開；false 時只印出要送的內容

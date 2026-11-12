@@ -21,7 +21,8 @@ class RuleError(RuntimeError):
 
 def relative_returns(data: pd.DataFrame, stocks: list) -> pd.DataFrame:
     """日期 × 股票的 e：這檔的盤中報酬 − 當天 stocks 這幾檔的平均。只有有答案的日子，照日期排。"""
-    rows = data[data["stock_id"].isin(stocks) & data["label_intraday_return"].notna()]
+    rows = data.loc[data["stock_id"].isin(stocks) & data["label_intraday_return"].notna(),
+                    ["date", "stock_id", "label_intraday_return"]]
     if rows.empty:
         raise RuleError("特徵表沒有這幾檔股票的答案")
     e = rows["label_intraday_return"] - rows.groupby("date")["label_intraday_return"].transform("mean")

@@ -20,12 +20,14 @@ t 不是交易日（不在 phase2Days）：Phase 2 直接結束；Phase 1 不跑
 --sync 時先 git pull 才載入 src/：推上去的修正這次就用到；新程式 import 失敗時，修正推上去後下一次還是會先 pull。
 這支檔案自己被 pull 更新時，用新版重新執行一次。
 模型看 config 的 daily_model.kind（使用者 2026-11-12，見 daily_predict）：persist 是持續性規則（src/persist_rule.py，
-不用訓練），online_lr 是組員的邏輯迴歸（src/online_lr.py，每天早上重新 fit）。兩個都不讀 models/。
+不用訓練），rank_ensemble 是排名集成（src/rank_ensemble.py，每天早上訓練三個模型），online_lr 是組員的邏輯迴歸
+（src/online_lr.py，每天早上重新 fit）。都不讀 models/。算不出來時照 daily_model.fallback 的順序換下一個。
 """
 
 import argparse
 import fcntl
 import hashlib
+import importlib
 import json
 import os
 import subprocess
@@ -43,7 +45,9 @@ LOCK_PATH = ROOT / ".cache" / "run_daily_test.lock"
 REEXEC_FLAG = "RUN_DAILY_TEST_REEXEC"
 PUSH_ATTEMPTS, PUSH_WAIT = 2, 15   # oop 連 GitHub 偶爾失敗（2026-11-07 看到一次），推送失敗等 15 秒再試一次
 
-crawler = features = merge_raw = online_lr = persist_rule = site_api = submit = utils = None   # import_src() 之後才有
+crawler = features = merge_raw = online_lr = site_api = submit = utils = None
+# daily_model.kind 和 fallback 可以填的模型 → src/ 裡的模組。persist_rule、rank_ensemble 用到才載入（見 daily_predict）
+MODEL_KINDS = {"rank_ensemble": "rank_ensemble", "persist": "persist_rule", "online_lr": "online_lr"}
 
 
 class StopRun(RuntimeError):
@@ -52,8 +56,8 @@ class StopRun(RuntimeError):
 
 def import_src():
     """git pull 之後才載入 src/ 的模組。"""
-    global crawler, features, merge_raw, online_lr, persist_rule, site_api, submit, utils
-    from src import crawler, features, merge_raw, online_lr, persist_rule, site_api, submit, utils  # noqa: F811
+    global crawler, features, merge_raw, online_lr, site_api, submit, utils
+    from src import crawler, features, merge_raw, online_lr, site_api, submit, utils  # noqa: F811
 
 
 # ---------------------------------------------------------------- git（--sync 才用；只用標準函式庫）
@@ -194,23 +198,38 @@ def step(log, name, fn):
 
 
 def daily_predict(cfg: dict, data, dates: list, ids: list, log) -> tuple:
-    """照 config 的 daily_model.kind 選每天交件的模型，回傳（用了哪個模型, 預測）。沒有這個設定時用 online_lr。
+    """照 config 的 daily_model 選每天交件的模型，回傳（用了哪個模型, 預測）。沒有這個設定時用 online_lr。
 
-    persist（持續性規則）算不出來、daily_model.fallback 又是 online_lr 時，改用組員的邏輯迴歸，當天照樣交件。
+    kind 是要用的模型，不認得就停下。它丟錯時照 fallback 的順序換下一個（一個名字或一串名字，none 代表沒有），
+    當天照樣交件；fallback 裡不認得或重複的名字記一行 ERROR 後跳過。最後一個也丟錯就停下。
+    三個模型的 predict 都用同一種呼叫方式，回傳的表都有 date、stock_id、pred。
+    persist_rule、rank_ensemble 的模組在這裡才載入：檔案不見或載入失敗，也只是換下一個。online_lr 在 import_src
+    就載入，特徵也是用 online_lr.load_data 讀的，所以 online_lr.py 壞掉或讀特徵失敗時整次停下。
     """
     choice = cfg.get("daily_model") or {}
     kind = choice.get("kind", "online_lr")
-    if kind == "persist":
+    if kind not in MODEL_KINDS:
+        raise StopRun(f"daily_model.kind 只能填 {list(MODEL_KINDS)}：{kind}")
+    fallback = choice.get("fallback") or []
+    order = [kind]
+    for name in [fallback] if isinstance(fallback, str) else list(fallback):
+        if str(name).lower() == "none":
+            continue
+        if name not in MODEL_KINDS or name in order:
+            log.error("daily_model.fallback 的 %s 不認得或重複，跳過（可以填 %s）", name, list(MODEL_KINDS))
+            continue
+        order.append(name)
+    for position, kind in enumerate(order):
         try:
-            return "persist", persist_rule.predict(data, cfg, dates, ids)
+            pred = importlib.import_module(f"src.{MODEL_KINDS[kind]}").predict(data, cfg, dates, ids)
+            return (kind if position == 0 else f"{kind}（{order[0]} 的備援）"), pred
         except Exception as e:
-            if choice.get("fallback") != "online_lr":
+            if position == len(order) - 1:
                 raise
-            log.error("持續性規則算不出來（%s），改用組員的邏輯迴歸", describe(e))
-            return "online_lr（persist 的備援）", online_lr.predict(data, cfg, dates, ids)
-    if kind != "online_lr":
-        raise StopRun(f"daily_model.kind 只能是 persist 或 online_lr：{kind}")
-    return "online_lr", online_lr.predict(data, cfg, dates, ids)
+            # 模型不連網站，訊息不會帶伺服器內容，印出來好查；路徑換成相對的，log 會推上 GitHub，不寫出主機的家目錄
+            message = str(e).replace(str(ROOT), ".").replace(str(Path.home()), "~")
+            reason = f"{type(e).__name__}: {message[:300]}"
+            log.error("%s 算不出來（%s），改用 %s", kind, reason, order[position + 1])
 
 
 def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
@@ -317,7 +336,7 @@ def merged_step(log) -> None:
 def describe(e: BaseException) -> str:
     """錯誤訊息只用自己寫的那幾種，其他只寫類別（訊息可能帶伺服器內容）。"""
     own = (StopRun, crawler.CrawlerError, features.FeatureError, online_lr.ModelError, site_api.SiteError,
-           RuntimeError, ValueError)   # merge_raw.MergeError、persist_rule.RuleError 是 RuntimeError
+           RuntimeError, ValueError)   # merge_raw.MergeError、RuleError、EnsembleError 都是 RuntimeError
     return f"{type(e).__name__}: {str(e)[:300]}" if isinstance(e, own) else type(e).__name__
 
 

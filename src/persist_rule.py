@@ -1,6 +1,6 @@
 """持續性規則：每天交件暫時用的模型（使用者 2026-11-12）。config 的 daily_model.kind 是 persist 時 run_daily_test.py 用它。
 
-規則照 Kaggle notebook 14 的 persist120（回測和驗證在 README「每天交件的模型」、memory/context/pipeline.md）：
+規則照 Kaggle notebook 14 的 persist120（回測和驗證在 memory/reference/daily-model.md、memory/context/pipeline.md）：
     1. 只看要預測的那幾檔（網站範本的 50 檔）。每個有答案的交易日，e = 這檔的盤中報酬 − 當天這幾檔的平均，
        也就是這檔股票那天比同伴強多少。
     2. 預測日 d 的分數 = 這檔股票在 d 之前 days 個有答案的交易日的 e 的平均。有值的日子不到 min_days 就沒有分數。

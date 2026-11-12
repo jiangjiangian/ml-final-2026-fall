@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 在 GCP 主機上跑一次（之後重跑也安全）：時區、swap、套件、clone、venv、git 設定、cron。
-# 備用方案（主跑改成學校的 oop，見 deploy/runner_setup.sh）。用法：先照 README「排程主機」建好 deploy key
+# 備用方案（主跑改成學校的 oop，見 deploy/runner_setup.sh）。用法：先照 memory/reference/runner-hosts.md 建好 deploy key
 # （~/.ssh/ml_final_deploy，GitHub 上要勾 Allow write access），然後
 #   curl -fsSL https://raw.githubusercontent.com/jiangjiangian/ml-final-2026-fall/claude/stock-market-challenger/deploy/gcp_setup.sh | bash
 main() {

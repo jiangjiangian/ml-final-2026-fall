@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 在排程主機上跑一次（不需要 sudo；重跑也安全）：deploy key、uv、clone、Python 3.12、套件、cron。
-# 主跑是學校的 oop.cs.nccu.edu.tw（Ubuntu 22.04，時區台北）。步驟見 README「排程主機」。
+# 主跑是學校的 oop.cs.nccu.edu.tw（Ubuntu 22.04，時區台北）。步驟見 memory/reference/runner-hosts.md。
 #   bash runner_setup.sh                    套件從 PyPI 裝
 #   WHEELS=~/wheels bash runner_setup.sh    套件從資料夾離線裝（oop 連不到 pypi.org，見 README）
 main() {

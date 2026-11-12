@@ -11,6 +11,7 @@
 | 要做的事 | 讀 |
 |---|---|
 | 查名詞 | `memory/glossary.md` |
+| 給組員查的說明（2026-11-12 從 README 移過來）：特徵表每一欄、合併表、每天交件的模型、排程主機、證交所和櫃買 | `memory/reference/` 的 `feature-table.md`、`merged-data.md`、`daily-model.md`、`runner-hosts.md`、`exchange-backfill.md` |
 | 比賽規則、課程網站 API、上傳的規矩、Phase 1 結果 | `memory/context/competition.md` |
 | 每天的流程、指令、失敗時怎麼手動交 | `memory/context/pipeline.md` |
 | 寫爬蟲或特徵：時間對齊、美股日期、-1、交易日曆、資料存放 | `memory/context/data-rules.md` |
@@ -20,7 +21,7 @@
 | `src/features.py` 的規劃：清理規則、交易日、lag 公式、對照測試 | `memory/projects/features.md` |
 | Kaggle 上平行訓練的模型研究（另一個 session 在用） | `memory/projects/kaggle-models.md` |
 
-`README.md` 給組員看：每天的流程、組員怎麼拿資料、檔案樹。新增、搬動或刪除檔案時，改 `README.md` 的檔案樹；`memory/` 多了或少了檔案時，也改上面的表。`memory/` 裡的路徑都從 repo 根目錄算。
+`README.md` 給組員看，只放四樣（使用者 2026-11-12）：流程（爬蟲 → 特徵 → 模型 → 上傳）、組員怎麼拿資料、特徵表的摘要和連結、檔案樹。其他細節寫在 `memory/reference/`，用組員看得懂的寫法，README 只放連結；特徵欄有增減或定義改了，改 `memory/reference/feature-table.md`。新增、搬動或刪除檔案時，改 `README.md` 的檔案樹；`memory/` 多了或少了檔案時，也改上面的表。`memory/` 裡的路徑都從 repo 根目錄算。
 
 ### memory/ 怎麼維護
 

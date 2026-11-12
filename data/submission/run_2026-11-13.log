@@ -25,3 +25,8 @@
 2026-11-13 07:13:45,050 finpred.run_daily_test INFO 結束：done
 2026-11-13 07:14:01,077 finpred.merge_raw INFO 合併表：個股 167167 列、市場 1791 列；寫了 5 個檔 ['stock/2026-09.csv.gz', 'stock/2026-10.csv.gz', 'stock/2026-11.csv.gz', 'market.csv.gz', 'manifest.json']
 2026-11-13 07:14:01,078 finpred.run_daily_test INFO 合併原始資料 完成（16 秒）
+2026-11-13 07:25:06,317 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-13，--sync（執行代號 9970e71f）
+2026-11-13 07:25:06,524 finpred.run_daily_test INFO 網站上已經有這次的提交（submission_2026-11-13.csv，2026-11-12T23:13:44.954Z 交），結束
+2026-11-13 07:25:06,525 finpred.run_daily_test INFO 結束：already_submitted
+2026-11-13 07:25:06,916 finpred.merge_raw INFO 合併表：來源沒變，不重算
+2026-11-13 07:25:06,917 finpred.run_daily_test INFO 合併原始資料 完成（0 秒）

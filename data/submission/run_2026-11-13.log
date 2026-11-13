@@ -45,3 +45,11 @@
 2026-11-13 08:05:05,986 finpred.run_daily_test INFO 結束：already_submitted
 2026-11-13 08:05:06,377 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-13 08:05:06,377 finpred.run_daily_test INFO 合併原始資料 完成（0 秒）
+2026-11-13 08:25:03,413 finpred.run_daily_test ERROR 停下：StopRun: git pull、fetch 都失敗（網路？）：ssh: Could not resolve hostname github.com: Name or service not known fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+2026-11-13 08:25:03,413 finpred.run_daily_test INFO 結束：failed
+2026-11-13 08:25:09,975 finpred.run_daily_test INFO 當天開盤：{'kospi': 'ok', 'n225': 'ok'}
+2026-11-13 08:25:21,345 finpred.features WARNING t 那列的 ['fear_greed_lag1', 'fear_greed_chg_lag1'] 空白（只進長表的欄，原因見 fear_greed_values、vixtwn_values）
+2026-11-13 08:25:22,749 finpred.features INFO 特徵表：166700 列、1667 天，最後一天 2026-11-13；寫了 ['2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 26, 'empty_close': 7, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-13 08:25:23,045 finpred.run_daily_test INFO 特徵（補上當天開盤） 完成（13 秒）
+2026-11-13 08:25:23,398 finpred.merge_raw INFO 合併表：來源沒變，不重算
+2026-11-13 08:25:23,398 finpred.run_daily_test INFO 合併原始資料 完成（0 秒）

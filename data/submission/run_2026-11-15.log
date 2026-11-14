@@ -9,3 +9,6 @@
 2026-11-15 07:25:06,052 finpred.run_daily_test WARNING 上次留下沒 commit 的資料，先 commit 了
 2026-11-15 07:25:06,543 finpred.run_daily_test INFO 2026-11-15 不在網站的交易日清單，休市：不爬、不上傳，結束
 2026-11-15 07:25:06,544 finpred.run_daily_test INFO 結束：closed
+2026-11-15 07:40:05,574 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-15，--sync（執行代號 75d938b0）
+2026-11-15 07:40:05,802 finpred.run_daily_test INFO 2026-11-15 不在網站的交易日清單，休市：不爬、不上傳，結束
+2026-11-15 07:40:05,803 finpred.run_daily_test INFO 結束：closed

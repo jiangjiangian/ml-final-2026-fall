@@ -18,3 +18,6 @@
 2026-11-15 08:05:05,794 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-15，--sync（執行代號 1dacfe1d）
 2026-11-15 08:05:06,085 finpred.run_daily_test INFO 2026-11-15 不在網站的交易日清單，休市：不爬、不上傳，結束
 2026-11-15 08:05:06,086 finpred.run_daily_test INFO 結束：closed
+2026-11-15 08:25:05,746 finpred.run_daily_test INFO 開始：Phase 2，t = 2026-11-15，--sync（執行代號 594e43d4）
+2026-11-15 08:25:05,968 finpred.run_daily_test INFO 2026-11-15 不在網站的交易日清單，休市：不爬、不上傳，結束
+2026-11-15 08:25:05,969 finpred.run_daily_test INFO 結束：closed

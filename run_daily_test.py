@@ -307,6 +307,14 @@ def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
                 raise StopRun(f"特徵表沒有 {t} 的列（Live 還沒更新？）")
             dates = [t]
         model_name, pred = step(log, "模型", lambda: daily_predict(cfg, data, dates, ids, log))
+        if "p_up" in pred and phase == 2:   # c2v2d、c2：記下當天押的方向（每檔的分數另外存在 scores_<t>.csv）
+            try:
+                log.info("模型 %s：大盤方向 p = %.3f，傾斜 %+.3f，和 rank_ensemble 換了 %d 組，狀態缺 %d 個，重訓日 %s",
+                         model_name, pred["p_up"].iloc[0], pred["tilt"].iloc[0],
+                         int((pred["pred"] != pred["base_pred"]).sum() // 2), int(pred["missing_states"].iloc[0]),
+                         pred["fit_day"].iloc[0])
+            except Exception as e:   # 只是記錄，不能擋上傳
+                log.warning("方向的紀錄沒寫成（%s）", describe(e))
         if phase == 1:
             log.info("Phase 1 本機分數：%s", online_lr.official_score(pred, data))
         values = {(r.date, r.stock_id): int(r.pred) for r in pred.itertuples()}

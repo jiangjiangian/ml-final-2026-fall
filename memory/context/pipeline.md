@@ -71,7 +71,7 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 
 排程跑的是 `run_daily_test.py --sync`，不是 `run_daily.py`。下面是 Claude 2026-11-07 照使用者 11/06 的決定做的設計：
 
-- 模型開關（使用者 2026-11-12）：`configs/config.yaml` 的 `daily_model.kind` 和 `fallback`。`rank_ensemble` 是 `src/rank_ensemble.py` 的排名集成，`persist` 是 `src/persist_rule.py` 的持續性規則，`online_lr` 是組員的邏輯迴歸；沒有這個設定時用 `online_lr`。現在是 `rank_ensemble`，備援 `[persist, online_lr]`，見下面「每天交件的模型」和 `memory/reference/daily-model.md`。
+- 模型開關（使用者 2026-11-12）：`configs/config.yaml` 的 `daily_model.kind` 和 `fallback`。`rank_ensemble` 是 `src/rank_ensemble.py` 的排名集成，`persist` 是 `src/persist_rule.py` 的持續性規則，`online_lr` 是組員的邏輯迴歸；沒有這個設定時用 `online_lr`。現在是 `c2v2d`（2026-11-15 起），備援 `[c2, rank_ensemble, persist, online_lr]`，見下面「每天交件的模型」和 `memory/reference/daily-model.md`。
 - 組員的模型：`src/online_lr.py`，組員 `feature_switch.ipynb` 第 6 節的方法。每天早上重新 fit，不讀 `models/`：每週重訓、每天用前一天的答案微調是這個方法的一部分，和 `predict.py`「只載入存好的模型」不同。
 - 開關：`configs/config.yaml` 的 `submit.phase`。1 是 Phase 1（網站範本的 84 天 × 50 檔，測自動化用），2 是每天的 t。使用者 2026-11-06：先交 Phase 1 測試，之後改 2。2026-11-07 07:10 oop 第一次自動交 Phase 1 成功（網站分數 0.0012354，排行仍是 0.0027732；07:40 看到已交就結束），使用者同一天要改成 2。
 - 休市（使用者 2026-11-07：不要寫死，要靈活）：每次執行都看網站的 `phase2Days`（`site_api.day_status`），不看星期幾、也沒有假日表。t 不在清單上就記「休市」結束，不爬、不上傳。在清單上但 `enabled` 是 0 時（沒看過這種狀態；使用者提醒可能只是還沒更新），照常準備，上傳前再看一次，還是停用就記 not_open、這次不送，不擋下一次排程。特徵的交易日曆看老師資料（至少 `min_stocks_filled` 檔填好），新的颱風假自動排除；`closed_days` 只用來把關 10/23。網站的 `phase2Days` 只列到今天為止，沒有週末和 10/23；開放和截止看網站每天的 `openAt`、`deadline`：2026-11-08 起前一個交易日 09:01 開放到當天 09:00（見 `memory/context/competition.md`），以前是前一天 15:00 開放。
@@ -115,6 +115,17 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 - 兩輪獨立審稿（2026-11-12，唯讀）找到的都是小問題，推之前一起修了：爬蟲記下前一天沒填時改用備援；只有幾檔前一天沒填時那幾檔當成空白；t 那列空白太多、整欄空白、預測不是有限的數時改用備援，訊息寫出空白的欄名；備援的 log 把路徑換成相對的（oop 的家目錄含學號，log 會推上 GitHub）；`kind` 不認得或填 `none` 時停下，`fallback` 裡不認得或重複的名字記 ERROR 後跳過；`online_lr` 還在備援順序外面（流程一開始就載入、讀特徵也用它），寫進 docstring 和 `daily-model.md`。
 - 隔天早上要看：`data/submission/run_2026-11-13.log` 有「模型 rank_ensemble」，沒有「算不出來」。集成失敗時流程不會停，會交 `persist`，只有 log 看得出來。
 - 換回去：`kind: persist`、`fallback: online_lr`，push，避開台北 07:00～08:40。
+
+### 2026-11-15 晚上換成 C2v2d
+
+使用者 2026-11-15 晚上在 MT session 直接決定（原本選「影子跑」，同一晚改掉）：`daily_model.kind: c2v2d`、`fallback: [c2, rank_ensemble, persist, online_lr]`，11-16 07:10 起生效；12-06 看情況再決定要不要改成 `c2`。
+
+- 模型：`src/c2_tilt.py`（commit `748db97`），`rank_ensemble` 的三個模型再依方向模型的 p 換高低 β。說明和回測在 `memory/reference/daily-model.md`。
+- 驗證：Kaggle `c2-tilt-production-code-check` version 2 full（用 `748db97` clone repo）。p 和 notebook 44 差 1.5e-12（1,155 天），11 月係數和組員一樣，24 個測試過，重放 10-12～11-13 每天 25 檔猜漲，11-13 原版和實際交的 100% 一樣。事先寫的「p 和組員一樣」那條沒過：11-11 是油、金的收盤 07:10 後被修正，11-12 是組員的長表檔沒更新，兩個原因都查過；換的組數和分數的差來自組員的原版排名和正式的不同。β 的程式和 notebook 44 逐行一樣。
+- 時間：所有狀態都是 07:10 前就有的，沒有日韓當天的開盤。11-09～11-13 交件時的 commit，老師 global 表 t 那列都已經有美股三欄。美國休市的隔天會換備援。
+- 同一次 push 加了一行 log（`run_daily_test.py`，Phase 2 才寫）：當天的 p、傾斜、和 `rank_ensemble` 換了幾組、缺幾個狀態、重訓日。
+- 隔天早上要看：`data/submission/run_2026-11-16.log` 有「模型 c2v2d」和「大盤方向 p =」那行，沒有「算不出來」；`scores_2026-11-16.csv` 的 `variant` 是 `c2v2d`。
+- 換回去：`kind: rank_ensemble`、`fallback: [persist, online_lr]`，push，避開台北 07:00～08:40。
 
 ### 2026-11-15 起另存每檔的分數（`scores_<t>.csv`）
 

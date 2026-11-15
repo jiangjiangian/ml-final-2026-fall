@@ -1,8 +1,36 @@
 # 每天交件的模型
 
-`configs/config.yaml` 的 `daily_model` 選模型：`kind` 是主模型，`fallback` 是它算不出來時照順序改用的備援。改完 push，oop 下一次執行就生效。2026-11-12 早上起用 `persist`；同一天晚上使用者決定換成 `rank_ensemble`，備援是 `[persist, online_lr]`。決定的經過和驗證在 `memory/context/pipeline.md` 的「每天交件的模型」。
+`configs/config.yaml` 的 `daily_model` 選模型：`kind` 是主模型，`fallback` 是它算不出來時照順序改用的備援。改完 push，oop 下一次執行就生效。2026-11-12 早上起用 `persist`；同一天晚上使用者決定換成 `rank_ensemble`。2026-11-15 晚上使用者決定換成 `c2v2d`，備援是 `[c2, rank_ensemble, persist, online_lr]`，11-16 07:10 起生效；12-06 再看要不要改成 `c2`。決定的經過和驗證在 `memory/context/pipeline.md` 的「每天交件的模型」。
 
-## rank_ensemble：排名集成（現在用的）
+## c2v2d：排名集成加上大盤方向的傾斜（現在用的）
+
+`src/c2_tilt.py`，組員的 C2（`c2_tilt_backtest.ipynb`），Kaggle notebook 44 照它重做過。每天先算 `rank_ensemble` 的三個模型，再看「今天 50 檔平均會不會漲」的機率 p，換一些高 β 或低 β 的股票（β 是這檔跟著大盤動的程度）：
+
+1. combined：ridge、kernel ridge、LightGBM 各自在 50 檔裡的名次 − 0.5，取平均。
+2. β̃：每檔過去 120 個有答案的交易日，盤中報酬對 100 檔平均盤中報酬的斜率，換成 50 檔裡的名次 − 0.5。
+3. p：邏輯迴歸，用 20 個台北 07:10 前就有的狀態：前一夜美股和 VIX、台股和韓股前一天的報酬、台指期未平倉的變化、50 檔前幾天的盤中報酬和跳空、長表的 9 個 `*_ret_lag1`（台指期夜盤、費半、台積電 ADR、道瓊、美元台幣、美債、油、金等前一天的報酬）。每月重訓一次，訓練資料從 2020-03 起累積。
+4. 分數 = combined + 2·(2p − 1)·β̃，前 25 名猜 1。猜漲檔數不變，p 大於 0.5 時高 β 的往前，小於 0.5 時低 β 的往前。p = 0.5 時和 `rank_ensemble` 一模一樣。
+
+沒有用日韓當天的開盤：`kospi_open_gap`、`n225_open_gap` 不能當狀態，程式裡有檢查。韓股只用前一天的收盤。
+
+回測（notebook 44，2025-01-02～2026-10-08）：每天比 `rank_ensemble` 多 +0.000324（t 2.54），`c2`（14 個狀態，沒有長表那 9 欄）多 +0.000285。MT 24 拆開來看：一部分等於「依大盤預測換高低 β」的押注，另外每天約 +0.00018 跟著 p 走，是個股層級的效應。
+
+上線前的檢查（2026-11-15，Kaggle `c2-tilt-production-code-check`，用 commit `748db97` 的程式）：
+
+- p：重算 1,177 天，和 notebook 44 最大差 1.5e-12；11 月重訓的係數和組員的一樣（差 ≤ 0.0005）；`tests/test_rank_ensemble.py`、`tests/test_persist_rule.py` 24 個都過。
+- 重放 10-12～11-13 的正式流程：每天都是 25 檔猜漲；11-13 的原版選股和那天實際交的 100% 一樣。
+- 和組員 Phase 2 的表比：p 只有 11-11、11-12 不一樣。11-11 是 yfinance 在 07:10 之後修正了油和金的收盤（正式流程用的是 07:10 的值），11-12 是組員那天的長表檔沒更新。換的組數和分數也有幾天不一樣，因為組員的原版排名是自己的回測，和正式的 `rank_ensemble` 每天分數差到 0.0027。β 的算法和 notebook 44 逐行一樣。
+- 重放 22 天加總：`c2v2d` 0.098、`rank_ensemble` 0.091、`c2` 0.090。只有 22 天，只能參考。
+
+算不出來時改用 `c2`，再不行用 `rank_ensemble`，當天照樣交件：
+
+- 老師 global 表 t 那列沒有美股。美國休市的隔天（下一次是感恩節後的 11-27）大概會這樣，那天 `c2` 也算不出來，會交 `rank_ensemble`。
+- t 的狀態缺超過 `max_missing_states`（3）個，例如長表的市場欄沒更新。
+- 方向模型的訓練天數不到 250，或 `rank_ensemble` 本身算不出來。
+
+每天的 log 有一行「模型 c2v2d：大盤方向 p = …，傾斜 …，和 rank_ensemble 換了 N 組，狀態缺 N 個，重訓日 …」。每檔的分數在 `scores_<t>.csv`：`base_pred` 是 `rank_ensemble` 的選法，`pred` 是交出去的，另外有 `combined`、`beta_rank`、`p_up`、`tilt`、`score`、`variant`。
+
+## rank_ensemble：排名集成（第二個備援）
 
 `src/rank_ensemble.py`，Kaggle notebook 16 的 `X_price`。每天早上用 t 之前 500 個有答案的交易日重新訓練，約 30 秒：
 
@@ -21,16 +49,16 @@
 
 集成減持續性規則，同一天的差：11 季每天 +0.00032（95% 區間 +0.00004～+0.00061），2022～2023 每天 +0.00023（區間 −0.00013～+0.00060，含 0）。oop 用這份程式重播 1,175 天，0／1 有 99.45% 的格子和 notebook 一樣。2026-11-12 的紙上預測（沒有交）拿 +0.0206，同一天交的持續性規則是 +0.0116。
 
-算不出來時改用 `persist`，再不行用 `online_lr`，當天照樣交件。log 寫「rank_ensemble 算不出來（原因），改用 persist」。會算不出來的情況：
+算不出來時改用 `persist`，再不行用 `online_lr`，當天照樣交件。log 寫「rank_ensemble 算不出來（原因），改用 persist」。`c2v2d`、`c2` 也用它的三個模型，所以它算不出來時三個一起換。會算不出來的情況：
 
 - 爬蟲記下前一個交易日在老師 Live 整天還沒填（`data/raw/manifest.json`）。只有幾檔沒填時不停，那幾檔 t 那列當成空白。
 - 要預測的 50 檔少了，或它們 t 那列空白的格子超過 10%，或有一欄全部空白。
 - 有答案的交易日不到 250 天、表裡 t 之前有還沒答案的日子，或模型的預測不是有限的數。
 - `src/rank_ensemble.py` 不見或載入失敗。
 
-換模型後第一個早上，看 `data/submission/run_<t>.log` 有沒有「模型 rank_ensemble」。有「算不出來」就是那天用了備援，流程不會停，要看 log 才知道。
+換模型後第一個早上，看 `data/submission/run_<t>.log` 的「模型」那行用了哪個。有「算不出來」就是那天用了備援，流程不會停，要看 log 才知道。
 
-## persist：持續性規則（第一個備援）
+## persist：持續性規則（第三個備援）
 
 `src/persist_rule.py`。不用訓練，只讀特徵表的 `label_intraday_return`（盤中報酬，收盤 ÷ 開盤 − 1）：
 
@@ -42,7 +70,7 @@
 
 兩種情況算不出來，log 寫「persist 算不出來（原因），改用 online_lr」：最新的答案和 t 中間隔超過 3 個交易日，或 50 檔裡有分數的不到 40 檔。設定在 `persist_rule`。
 
-## online_lr：組員的邏輯迴歸（第二個備援）
+## online_lr：組員的邏輯迴歸（第四個備援）
 
 `src/online_lr.py`，2026-11-07～11-11 每天交件用的模型：每週重訓、每天用前一天的答案微調，每天早上重新 fit。特徵是組員的 26 個個股特徵加特徵表的 55 欄（`manifest.json` 的 `model_columns`）。11-09、11-10 它 50 檔全猜 0，分數和網站的 `Always down` 基準一樣（−0.028121、−0.000071）。
 

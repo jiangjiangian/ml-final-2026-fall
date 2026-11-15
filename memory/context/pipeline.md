@@ -116,6 +116,13 @@ python -m src.submit           # 5. 上傳並核對；submit.enabled 是 false �
 - 隔天早上要看：`data/submission/run_2026-11-13.log` 有「模型 rank_ensemble」，沒有「算不出來」。集成失敗時流程不會停，會交 `persist`，只有 log 看得出來。
 - 換回去：`kind: persist`、`fallback: online_lr`，push，避開台北 07:00～08:40。
 
+### 2026-11-15 起另存每檔的分數（`scores_<t>.csv`）
+
+- 使用者 2026-11-15 決定：大盤擇時研究要每週重算「每天多猜 5 檔（30 或 20 檔猜漲）會差多少」，要知道第 21～30 名是哪幾檔，0/1 的 `submission_<t>.csv` 看不出來。
+- 做法：`run_daily_test.py` 寫好 `submission_<t>.csv` 後（Phase 2），`save_scores` 另寫 `data/submission/scores_<t>.csv`：模型輸出的全部欄（`rank_ensemble` 是 `ridge`、`kridge`、`lgbm`、`prob`、`pred`）加上 `model` 和 `rank`（1～50，照 `prob` 排，同分時代號大的名次高）。寫失敗只記 WARNING，不擋上傳；上傳的檔和模型不變。跟著「準備上傳」那次 commit 一起推。
+- 網站上已經有當天的提交時流程提早結束，不會寫這個檔，所以每天只有第一次成功的那次會存。
+- 11-15 下午推，oop 11-16 07:10 那次 pull 後生效。隔天看 `run_2026-11-16.log` 有「另存 data/submission/scores_2026-11-16.csv」。
+
 ### 2026-11-12 凌晨補推重建的特徵表
 
 組員 2026-11-11 19:14 的 commit f7b7189 把特徵表從 84 欄改成 107 欄（模型欄 32 變 55），只推了程式和 config，沒有重建的 `data/processed/`。這樣 11-12 早上每個時段的特徵那一步都會丟「特徵欄和上次不一樣」，當天交不出去（在 oop 的測試 worktree 重現過）。處理：

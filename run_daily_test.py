@@ -232,6 +232,24 @@ def daily_predict(cfg: dict, data, dates: list, ids: list, log) -> tuple:
             log.error("%s 算不出來（%s），改用 %s", kind, reason, order[position + 1])
 
 
+def save_scores(cfg: dict, pred, t: str, model_name: str, log) -> None:
+    """另存當天每檔的分數（使用者 2026-11-15），只給每週重算「多猜 5 檔」的成本用。失敗只記警告，不影響上傳。
+
+    檔名 scores_<t>.csv，放在 submission_dir。欄是模型輸出的全部欄（rank_ensemble 是 ridge、kridge、lgbm、prob、
+    pred），加上 model（用了哪個模型）和 rank（1～50，照 prob 排，同分時代號大的名次高，和 rank_ensemble 一樣）。
+    """
+    try:
+        keep = pred.sort_values(["date", "stock_id"]).copy()
+        if "prob" in keep:
+            keep["rank"] = keep.groupby("date")["prob"].rank(method="first").astype(int)
+        keep.insert(2, "model", model_name)
+        path = ROOT / cfg["data"]["submission_dir"] / f"scores_{t}.csv"
+        crawler.write_atomic(path, keep.to_csv(index=False).encode("utf-8"))
+        log.info("另存 %s（每檔的分數，只給研究用）", path.relative_to(ROOT))
+    except Exception as e:
+        log.warning("每檔分數沒存成（%s），不影響上傳", describe(e))
+
+
 def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
     key = site_api.submission_key(phase, t)
     site = site_api.Site(cfg, utils.load_secrets())
@@ -296,6 +314,8 @@ def pipeline(cfg: dict, args, phase: int, t: str, today: str, log) -> str:
         crawler.write_atomic(path, submit.rows_to_bytes(rows))
         log.info("寫好 %s：%d 檔 × %d 天，模型 %s，猜漲 %.3f", path.relative_to(ROOT), len(ids), len(dates), model_name,
                  pred["pred"].mean())
+        if phase == 2:
+            save_scores(cfg, pred, t, model_name, log)
 
         def before_post():
             commit_data(f"Daily run {key}: data and prepared upload")

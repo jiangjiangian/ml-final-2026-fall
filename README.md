@@ -163,6 +163,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   │   └── manifest.json      月份、欄名、列數、各來源的最後一天
 │   └── submission/            每天的產出
 │       ├── submission_YYYY-MM-DD.csv   上傳的 0/1
+│       ├── scores_YYYY-MM-DD.csv       當天每檔的模型分數和名次（2026-11-16 起，研究用，不上傳）
 │       ├── run_YYYY-MM-DD.log          執行紀錄，失敗時先看這個
 │       ├── upload_log.jsonl            上傳紀錄
 │       └── backup/                     上傳前先下載網站上那一份

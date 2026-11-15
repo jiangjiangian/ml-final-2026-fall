@@ -281,6 +281,13 @@ rank_ensemble:                   # 排名集成（src/rank_ensemble.py）：Kagg
   lgbm: {objective: regression, num_leaves: 7, min_child_samples: 100, n_estimators: 200, learning_rate: 0.03,
          subsample: 0.8, subsample_freq: 1, colsample_bytree: 0.7, reg_lambda: 1.0, verbose: -1, n_jobs: 1}
 
+c2_tilt:                         # C2、C2v2d（src/c2_tilt.py，組員的 c2_tilt_backtest.ipynb）：rank_ensemble 再依大盤方向換高低 β。kind 填 c2v2d 或 c2 才會用
+  gamma: 2.0                     # 傾斜強度，組員在 2023～2024 從 {0.25, 0.5, 1, 2} 挑的，固定
+  beta_days: 120                 # β 用每檔前幾個有答案的交易日算（至少一半）
+  direction_start: "2020-03-01"  # 方向模型的訓練資料從這天開始，之後一直累積
+  min_train_days: 250            # 方向模型的訓練天數不到這麼多就不用這個模型
+  max_missing_states: 3          # t 的狀態缺超過這麼多個（例如長表的市場欄沒更新），就不用這個模型
+
 submit:
   enabled: true                  # 使用者 2026-11-06 確認舊系統的排程停了才打開；false 時只印出要送的內容
   phase: 2                       # run_daily_test.py 交哪一個：1 = Phase 1（84 天回測），2 = 每天的 t（使用者 2026-11-07：Phase 1 自動化測試成功後改 2）

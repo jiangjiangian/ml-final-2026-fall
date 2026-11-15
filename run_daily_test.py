@@ -21,7 +21,8 @@ t 不是交易日（不在 phase2Days）：Phase 2 直接結束；Phase 1 不跑
 這支檔案自己被 pull 更新時，用新版重新執行一次。
 模型看 config 的 daily_model.kind（使用者 2026-11-12，見 daily_predict）：persist 是持續性規則（src/persist_rule.py，
 不用訓練），rank_ensemble 是排名集成（src/rank_ensemble.py，每天早上訓練三個模型），online_lr 是組員的邏輯迴歸
-（src/online_lr.py，每天早上重新 fit）。都不讀 models/。算不出來時照 daily_model.fallback 的順序換下一個。
+（src/online_lr.py，每天早上重新 fit），c2v2d、c2 是排名集成再依大盤方向換高低 β（src/c2_tilt.py）。
+都不讀 models/。算不出來時照 daily_model.fallback 的順序換下一個。
 """
 
 import argparse
@@ -46,8 +47,9 @@ REEXEC_FLAG = "RUN_DAILY_TEST_REEXEC"
 PUSH_ATTEMPTS, PUSH_WAIT = 2, 15   # oop 連 GitHub 偶爾失敗（2026-11-07 看到一次），推送失敗等 15 秒再試一次
 
 crawler = features = merge_raw = online_lr = site_api = submit = utils = None
-# daily_model.kind 和 fallback 可以填的模型 → src/ 裡的模組。persist_rule、rank_ensemble 用到才載入（見 daily_predict）
-MODEL_KINDS = {"rank_ensemble": "rank_ensemble", "persist": "persist_rule", "online_lr": "online_lr"}
+# daily_model.kind 和 fallback 可以填的模型 → src/ 裡的模組。persist_rule、rank_ensemble、c2_tilt 用到才載入（見 daily_predict）
+MODEL_KINDS = {"rank_ensemble": "rank_ensemble", "persist": "persist_rule", "online_lr": "online_lr",
+               "c2v2d": "c2_tilt:predict_c2v2d", "c2": "c2_tilt:predict_c2"}   # 「模組:函式」，沒寫函式就是 predict
 
 
 class StopRun(RuntimeError):
@@ -202,7 +204,7 @@ def daily_predict(cfg: dict, data, dates: list, ids: list, log) -> tuple:
 
     kind 是要用的模型，不認得就停下。它丟錯時照 fallback 的順序換下一個（一個名字或一串名字，none 代表沒有），
     當天照樣交件；fallback 裡不認得或重複的名字記一行 ERROR 後跳過。最後一個也丟錯就停下。
-    三個模型的 predict 都用同一種呼叫方式，回傳的表都有 date、stock_id、pred。
+    每個模型的 predict 都用同一種呼叫方式，回傳的表都有 date、stock_id、pred。
     persist_rule、rank_ensemble 的模組在這裡才載入：檔案不見或載入失敗，也只是換下一個。online_lr 在 import_src
     就載入，特徵也是用 online_lr.load_data 讀的，所以 online_lr.py 壞掉或讀特徵失敗時整次停下。
     """
@@ -221,7 +223,8 @@ def daily_predict(cfg: dict, data, dates: list, ids: list, log) -> tuple:
         order.append(name)
     for position, kind in enumerate(order):
         try:
-            pred = importlib.import_module(f"src.{MODEL_KINDS[kind]}").predict(data, cfg, dates, ids)
+            module, _, function = MODEL_KINDS[kind].partition(":")
+            pred = getattr(importlib.import_module(f"src.{module}"), function or "predict")(data, cfg, dates, ids)
             return (kind if position == 0 else f"{kind}（{order[0]} 的備援）"), pred
         except Exception as e:
             if position == len(order) - 1:

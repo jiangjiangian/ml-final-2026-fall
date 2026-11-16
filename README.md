@@ -10,13 +10,14 @@
 |---|---|---|---|
 | 1. 爬蟲 | `src/pipeline/step1_crawler.py` | 下載老師的 Training 和 Live、Yahoo 21 個指標、期交所的台指期和 VIXTWN、CNN 恐懼貪婪指數、證交所和櫃買的日資料，原樣存檔 | `data/raw/` |
 | 2. 特徵 | `src/pipeline/step2_features.py` | 清理 Yahoo 的資料，對齊到預測日 t，算 lag。一列是一檔股票的一天 | `data/processed/features/` |
-| 3. 訓練和預測 | `src/pipeline/step3_train_predict.py` | 照 `configs/config.yaml` 的 `daily_model` 選 `src/models/` 的模型，用 t 之前的答案訓練，輸出 50 檔的 0/1；算不出來照順序換備援 | `data/submission/scores_<t>.csv` |
+| 3. 訓練和預測 | `src/pipeline/step3_train_predict.py` | 照 `configs/config.yaml` 的 `daily_model` 選 `src/models/` 的模型，用 t 之前的答案訓練，輸出 50 檔的 0/1；算不出來照順序換備援；交完再把五個模型都算一遍（影子跑，不上傳） | `data/submission/scores_<t>.csv`、`shadow_<t>.csv` |
 | 4. 上傳 | `src/pipeline/step4_submit.py`、`site_api.py` | 照網站範本寫 CSV，上傳後下載回來逐格核對 | `data/submission/submission_<t>.csv`、課程網站 |
 | 5. 合併 | `src/pipeline/step5_merge_raw.py` | 把原始資料併成個股表和市場表，給組員研究，模型不看 | `data/merged/` |
 
 - 串起來的程式：`run_daily.py`。開始前先 `git pull`，五步跑完把 `data/` commit、push 到這個分支。舊名字 `run_daily_test.py` 會直接轉到它。
 - 時間：台北 07:10 跑第一次，沒交成就在 07:25、07:40、07:55、08:05 再試；網站上已經有當天的提交就直接結束。08:25 再跑一次，只補日韓當天的開盤。
 - t（預測日）不是交易日就不跑。
+- 影子跑（2026-11-16 起）：交件後，或組員已經手動交了時，`daily_model.shadow` 的五個模型都預測 t，存 `shadow_<t>.csv`，不上傳；收盤後每個模型的官方分數在 `shadow_scores.csv`。說明在 [`memory/reference/daily-model.md`](memory/reference/daily-model.md) 的「影子跑」。
 - 共用的小函式（讀設定、台北時間、log）在 `src/pipeline/utils.py`。
 
 ### 模型
@@ -194,6 +195,8 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   └── submission/            每天的產出
 │       ├── submission_YYYY-MM-DD.csv   上傳的 0/1
 │       ├── scores_YYYY-MM-DD.csv       當天每檔的模型分數和名次（2026-11-16 起，研究用，不上傳）
+│       ├── shadow_YYYY-MM-DD.csv       影子跑：五個模型當天各自的猜法（2026-11-17 起，不上傳）
+│       ├── shadow_scores.csv           影子跑每天每個模型的官方分數（收盤後才有）
 │       ├── run_YYYY-MM-DD.log          執行紀錄，失敗時先看這個
 │       ├── upload_log.jsonl            上傳紀錄
 │       └── backup/                     上傳前先下載網站上那一份

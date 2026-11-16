@@ -12,7 +12,7 @@ flowchart TD
   R --> C["step2_features<br/>一列＝一股 × 一天<br/>只用 t 之前的資料"]
   C --> P[("data/processed/")]
   P --> D["step3_train_predict<br/>照 daily_model 選 src/models/ 的模型<br/>用 t 之前的答案訓練，預測 t 的 50 檔"]
-  D --> S[("data/submission/<br/>submission_t、scores_t")]
+  D --> S[("data/submission/<br/>submission_t、scores_t、shadow_t")]
   T[("課程網站<br/>當天範本")] --> D
   S --> F["step4_submit<br/>先推上 GitHub 再 POST<br/>下載回來逐格核對"]
   F --> G["5. 收尾：08:25 補日韓開盤<br/>step5_merge_raw → data/merged/<br/>推 data/"]
@@ -102,7 +102,7 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 - git：只有 `--sync` 才做，而且先同步完才寫 log（log 檔也在 Git 裡）。開始前 data/ 以外有改動就停；data/ 裡上次留下的改動先 commit 再 `pull --rebase`。pull 失敗時，本機多出來的 commit 只動 data/、也沒有 data/ 以外沒追蹤的檔，才丟掉、對齊 origin（資料這次重抓）。git 逾時當成失敗。`upload_log.jsonl` 用 union 合併。`submit.phase` 在 pull 之後才讀。
 - 同一台主機同時只跑一個（`.cache/run_daily_test.lock`，改名後沿用舊的鎖檔，交接那一次舊版和新版也互相擋住）。
 - 載入順序（2026-11-07 第三輪審查後）：`--sync` 時先 `git pull` 才載入 `src/`，推上去的修正這次就用到；`run_daily.py` 自己被更新時用新版重新執行一次。新程式 import 失敗時寫到 `.cache/cron.log`，修正推上去後下一次會先 pull 再載入。
-- 組員手動交了就不蓋掉：排程上傳時（`respect_existing`），網站上已經有這次的提交（Phase 2 的 t，或 Phase 1 今天交的；不算強制繳交）就不送，POST 前會再看一次。手動跑 `python -m src.pipeline.step4_submit` 可以蓋掉。使用者 2026-11-08 確認維持這樣：預設交排程的版本，組員在截止前手動交了就以組員的為準（Phase 2 算最後一份，組員比排程早交時排程不送，比排程晚交時本來就算組員的）。
+- 組員手動交了就不蓋掉：排程上傳時（`respect_existing`），網站上已經有這次的提交（Phase 2 的 t，或 Phase 1 今天交的；不算強制繳交）就不送，POST 前會再看一次。手動跑 `python -m src.pipeline.step4_submit` 可以蓋掉。使用者 2026-11-08 確認維持這樣：預設交排程的版本，組員在截止前手動交了就以組員的為準（Phase 2 算最後一份，組員比排程早交時排程不送，比排程晚交時本來就算組員的）。2026-11-16 起這種日子排程還是會做影子跑（不上傳）；同一天使用者決定請組員別再先手動交，讓排程交 C2v2d。
 - Phase 2 的上傳紀錄看交易日 t 的全部紀錄（t 前一晚送的也算）；Phase 1 只看今天寫的。
 - `requirements.txt` 改了要在 oop 重裝套件（oop 連不到 PyPI，見 `memory/reference/runner-hosts.md`）。`runner_setup.sh` 記下安裝時的 sha256，不一樣時 `run_daily.py` 在 log 裡警告。
 - 資源（2026-11-07 在 Mac 上量）：特徵和模型在同一個程式裡時，記憶體高峰約 735～760 MB（模型讀資料那一步）；Phase 1 全程 40～60 秒。
@@ -145,7 +145,7 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 - 時間：所有狀態都是 07:10 前就有的，沒有日韓當天的開盤。11-09～11-13 交件時的 commit，老師 global 表 t 那列都已經有美股三欄。美國休市的隔天會換備援。
 - 同一次 push 加了一行 log（`run_daily_test.py`，Phase 2 才寫）：當天的 p、傾斜、和 `rank_ensemble` 換了幾組、缺幾個狀態、重訓日。
 - 隔天早上要看：`data/submission/run_2026-11-16.log` 有「模型 c2v2d」和「大盤方向 p =」那行，沒有「算不出來」；`scores_2026-11-16.csv` 的 `variant` 是 `c2v2d`。
-- 11-16 實際：網站上 00:50（台北）已經有一份手動交的 `submission_2026-11-16_C2.csv`，排程 07:10～08:25 六次都照「手動交了就不蓋掉」結束，沒有跑模型、沒有 `scores_2026-11-16.csv`，爬蟲和特徵也沒跑（已交過時在爬之前就結束）。C2v2d 第一次真的由排程交，最早是 11-17。
+- 11-16 實際：網站上 00:50（台北）已經有一份手動交的 `submission_2026-11-16_C2.csv`，排程 07:10～08:25 六次都照「手動交了就不蓋掉」結束，沒有跑模型、沒有 `scores_2026-11-16.csv`，爬蟲和特徵也沒跑（已交過時在爬之前就結束）。C2v2d 第一次真的由排程交，最早是 11-17。使用者 2026-11-16 確認那份是組員手動交的。
 - 2021 的確認沒過（特徵組 Kaggle notebook 42 full，2026-11-15 晚上）：2021-01-11～12-30 的 239 天，C2v2d 減原版每天 −0.000228（t −1.11，p 0.87），擇時那塊 −0.000219；方向模型在 2021 反而比較準（corr(p, m) 0.158），輸在 β 傾斜的報酬。使用者約 21:55 在特徵組 session 選維持 C2v2d、不改 config（特徵組轉述；這邊沒有改動，只是記下）。特徵組 notebook 45 每週逐格核對正式的 C2v2d。
 - 換回去：`kind: rank_ensemble`、`fallback: [persist, online_lr]`，push，避開台北 07:00～08:40。
 
@@ -155,6 +155,17 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 - 做法：`run_daily_test.py` 寫好 `submission_<t>.csv` 後（Phase 2），`save_scores` 另寫 `data/submission/scores_<t>.csv`：模型輸出的全部欄（`rank_ensemble` 是 `ridge`、`kridge`、`lgbm`、`prob`、`pred`）加上 `model` 和 `rank`（1～50，照 `prob` 排，同分時代號大的名次高）。寫失敗只記 WARNING，不擋上傳；上傳的檔和模型不變。跟著「準備上傳」那次 commit 一起推。
 - 網站上已經有當天的提交時流程提早結束，不會寫這個檔，所以每天只有第一次成功的那次會存。
 - 11-15 下午推，oop 11-16 07:10 那次 pull 後生效。隔天看 `run_2026-11-16.log` 有「另存 data/submission/scores_2026-11-16.csv」。
+
+### 2026-11-16 起影子跑（`shadow_<t>.csv`）
+
+- 使用者 2026-11-16 決定（這個 session 問了「影子跑是什麼」之後）：每天把 `daily_model.shadow` 的五個模型都算一遍，存檔不上傳，組員先手動交的日子也做。同一天也決定請組員別再先手動交，讓排程交 C2v2d（使用者自己跟組員講）。
+- 程式：`run_daily.py` 的 `shadow_run` 決定什麼時候做；`src/pipeline/step3_train_predict.py` 的 `shadow_predict` 算、`shadow_scores` 對答案。設定是 `configs/config.yaml` 的 `daily_model.shadow`。檔案和欄的說明在 `memory/reference/daily-model.md` 的「影子跑」。
+- 交件那次：`submit.run` 回來之後才做，POST 丟錯就不做。交件的模型（`kind_of(model_name)`）直接拿交出去的預測；`c2` 用 `m4_c2_tilt` 的快取（同一次執行不重訓 `rank_ensemble`），`rank_ensemble` 拿 `c2v2d` 的 `base_pred`，所以只多算 `persist`、`online_lr`。
+- 組員先交了（`check_site` 回 already_submitted）：自己跑爬蟲、特徵、讀範本再算，約多 3 分鐘。這種日子 08:25 那次補日韓開盤也做得成了（以前特徵表沒有 t 那列，所以不補）。爬蟲失敗只記 WARNING，結果還是 already_submitted、exit 0，下一次排程再試。
+- 一天一次：`shadow_<t>.csv` 已經有就跳過。Phase 1、過了 t 的 09:00、`shadow: []` 都不做。任何錯誤只記 WARNING，不改執行結果，不上傳任何東西。
+- `scores_<t>.csv` 照舊（特徵組 notebook 45 讀它），影子跑是另外的檔。
+- 11-16 沒有影子跑：那天排程在爬蟲之前就結束，事後補算會用到 09:00 以後的資料。第一份是 11-17。
+- 換回去：`shadow: []`，或 revert 這次的 commit（733cce8 的程式不認得 `daily_model.shadow`，留著也沒關係）。
 
 ### 2026-11-12 凌晨補推重建的特徵表
 

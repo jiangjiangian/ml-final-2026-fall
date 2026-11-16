@@ -78,6 +78,29 @@
 
 `online_lr` 在流程一開始就載入，所有模型的輸入表也是用它的 `load_data` 讀的（`step3_train_predict.load_model_input`），所以這個檔壞掉時整次停下，不會換備援。
 
+## 影子跑：每個模型每天都算，不上傳
+
+使用者 2026-11-16 決定：每天交件之後，`daily_model.shadow` 列的模型（現在是 `c2v2d`、`c2`、`rank_ensemble`、`persist`、`online_lr`）都預測 t，存檔但不上傳。這樣比的是上線後的真實日子，不是回測。組員已經手動交了的日子也做。
+
+### 檔案
+
+- `data/submission/shadow_<t>.csv`：每檔一列。每個模型兩欄，`pred_<模型>`（0/1）和 `prob_<模型>`（當天名次換成 0～1；`online_lr` 是機率）。`c2`、`c2v2d` 另有 `p_up_<模型>`（大盤方向的機率）。算不出來的模型那幾欄空白，原因在 `run_<t>.log`。
+- `data/submission/shadow_scores.csv`：每天每個模型一列。`score` 是官方分數（每格 (2·pred − 1)·盤中報酬的平均），另有 `accuracy`（猜對的比例）、`pred_up`（猜漲的比例）、`cells`（格數）。答案要等 t 收盤，隔天早上那次執行才補上 t 的分數。
+
+```python
+import pandas as pd
+s = pd.read_csv("data/submission/shadow_scores.csv")
+s.pivot(index="date", columns="model", values="score").cumsum()   # 每個模型的累計分數
+```
+
+### 什麼時候算
+
+- 排程自己交的那次：上傳之後，用交件那次的特徵表。交件的模型直接拿交出去的猜法，所以那一欄和 `submission_<t>.csv` 一樣。`rank_ensemble` 從 `c2v2d` 輸出的 `base_pred` 拿，`c2` 和 `c2v2d` 共用同一次訓練，不多花時間。
+- 組員先交了：排程自己跑爬蟲和特徵再算，約多 3 分鐘。
+- 一天只算一次，`shadow_<t>.csv` 已經有就跳過；過了 09:00 不算（之後的資料可能被改過）。
+- 算不出來只記一行 WARNING，不影響交件。
+- 關掉：`shadow: []`。
+
 ## 換模型
 
 改 `kind` 和 `fallback` 兩行，例如換回持續性規則：

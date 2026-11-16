@@ -6,6 +6,8 @@
     2. 爬蟲和特徵（crawl_and_build_features → step1_crawler、step2_features）：t 是今天的交易日才跑。
     3. 訓練和預測（step3_train_predict）：照 config 的 daily_model 選模型，預測 t 的 50 檔，失敗照順序換備援。
     4. 上傳（write_submission、step4_submit）：寫 submission_<t>.csv，先推上 GitHub 再 POST，最後核對網站上的檔。
+       影子跑（shadow_run）：上傳之後，config 的 daily_model.shadow 列的模型都算一遍，存 shadow_<t>.csv，不上傳。
+       組員已經手動交了的日子也做（自己跑爬蟲和特徵），一天只做一次。
     5. 收尾（wrap_up）：08:25 那次補日韓當天的開盤（只進長表）、step5_merge_raw 合併原始資料、推 data/。
 
 排程（memory/context/pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05、08:25（deploy/crontab.txt）。
@@ -134,12 +136,15 @@ def run(args, from_command_line: bool = True) -> int:
 
 
 def submit_today(cfg: dict, phase: int, t: str, today: str, log, *, sync: bool) -> str:
-    """第 1～4 步。回傳狀態：closed、already_submitted，或 step4_submit.run 的結果（done、not_sent 等）。"""
+    """第 1～4 步和影子跑。回傳狀態：closed、already_submitted，或 step4_submit.run 的結果（done、not_sent 等）。
+    影子跑不改回傳的狀態。"""
     key = site_api.submission_key(phase, t)
     site = site_api.Site(cfg, utils.load_secrets())
     try:
         state = site.state()
         status = check_site(cfg, state, phase, t, today, key, log)                     # 第 1 步
+        if status == "already_submitted":
+            shadow_run(cfg, phase, t, today, log, site=site, state=state)               # 組員先交了：只做影子跑
         if status is not None:
             return status
         trading = site_api.day_status(state, t) != "closed"
@@ -161,8 +166,10 @@ def submit_today(cfg: dict, phase: int, t: str, today: str, log, *, sync: bool) 
             commit_data(f"Daily run {key}: data and prepared upload")
             return push(log)
 
-        return submit.run(cfg, site, phase, path, t if phase == 2 else None, log,
-                          before_post=before_post if sync else None, respect_existing=True)
+        result = submit.run(cfg, site, phase, path, t if phase == 2 else None, log,
+                            before_post=before_post if sync else None, respect_existing=True)
+        shadow_run(cfg, phase, t, today, log, data=data, stocks=stocks, known={train_predict.kind_of(model_name): pred})
+        return result
     finally:
         site.close()
 
@@ -270,6 +277,39 @@ def wrap_up(args, t: str, today: str, phase, status: str, interrupted: bool, bra
     except Exception as e:
         log.error("推資料失敗：%s", describe(e))
     return False
+
+
+def shadow_run(cfg: dict, phase: int, t: str, today: str, log, *, site=None, state=None, data=None, stocks=None,
+               known=None) -> None:
+    """影子跑（使用者 2026-11-16）：config 的 daily_model.shadow 列的模型都預測 t，存 data/submission/shadow_<t>.csv，
+    不上傳；再把以前每天的影子跑對上答案，重寫 shadow_scores.csv（step3_train_predict 的 shadow_predict、shadow_scores）。
+
+    交件的那次在上傳之後做，用交件那次的特徵表和預測（data、stocks、known）。組員已經手動交了的日子
+    （check_site 回 already_submitted）沒有這些，自己跑爬蟲、特徵、讀範本（給 site、state）。
+    只在 Phase 2、t 當天的截止時間（09:00）前、shadow_<t>.csv 還沒有時做，所以一天六次排程只做一次；
+    截止後不做，因為之後的資料可能被改過（例如老師的 WTI、黃金在 07:10 之後還會更新）。
+    任何錯誤只記一行 WARNING，不改這次執行的結果，也不會上傳任何東西。
+    """
+    try:
+        if phase != 2 or not train_predict.shadow_models(cfg):
+            return
+        path = train_predict.shadow_path(cfg, t)
+        if path.exists():
+            log.info("影子跑：%s 已經有了，不重算", train_predict.shown(path))
+            return
+        try:
+            utils.check_deadline(cfg, t, key="deadline")
+        except RuntimeError:
+            log.info("影子跑：已經過了 %s 的截止時間，不做", t)
+            return
+        if data is None:
+            crawl_and_build_features(phase, t, today, site_api.day_status(state, t) != "closed", log)
+            data = timed(log, "讀特徵", lambda: train_predict.load_model_input(cfg))
+            _, stocks, _ = read_template(site, phase, t, data)
+        timed(log, "影子跑", lambda: train_predict.shadow_predict(cfg, data, t, stocks, log, known=known))
+        train_predict.shadow_scores(cfg, data, log)
+    except Exception as e:
+        log.warning("影子跑沒做完（%s）：不影響上傳；shadow_<t>.csv 沒寫成時下一次排程會再試", describe(e))
 
 
 def fill_today_open(t: str, today: str, log) -> None:

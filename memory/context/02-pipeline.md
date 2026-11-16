@@ -35,13 +35,13 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 ## 什麼時候跑
 
 - 正式流程在 t 當天早上跑：Live ZIP 要到 t 當天早上才有 t 的一列。
-- 爬蟲排在台北 06:00 之後，美股前一天的K棒才收完（規則見 `memory/context/data-rules.md`）。yfinance 的 DXY 要到 07:00 才收完，所以爬蟲排台北 07:10（使用者 2026-11-05 決定，見 `memory/projects/crawler.md`）。
-- 排程（使用者 2026-11-06 決定，11-07 改主機）：不用 GitHub Actions 的 `schedule`。主跑原本定 GCP e2-micro 免費額度，2026-11-07 量到流程高峰約 750 MB、e2-micro 只有 1 GB，使用者改用學校的 `oop.cs.nccu.edu.tw`（Ubuntu 22.04、16 核、24 GB；ghost 是 Solaris，裝不了套件）。台北 07:10、07:25、07:40、07:55、08:05 用 cron 跑 `run_daily_test.py --sync`（使用者 2026-11-08 從兩次加到五次：當天 07:10 學校 DNS 短暫查不到 github.com，那次停下；最後一次 08:05 而不是 08:15，離爬蟲截止 08:30 留 25 分鐘）；備援是使用者的 Mac，08:15、08:25、08:35 跑（2026-11-08 從 08:05 起改到 08:15 起，不和 oop 的 08:05 同時爬），網站上還沒有今天的有效提交才交。Mac 的 launchd 2026-11-09 查到沒有裝，使用者決定先不裝，現在只有 oop。帳密放各台的 `.env`。大模型之後在 Kaggle 訓練好推進 repo，主機只預測。安裝步驟見 `memory/reference/runner-hosts.md`（2026-11-12 從 README 移過去）。
+- 爬蟲排在台北 06:00 之後，美股前一天的K棒才收完（規則見 `memory/context/05-data-rules.md`）。yfinance 的 DXY 要到 07:00 才收完，所以爬蟲排台北 07:10（使用者 2026-11-05 決定，見 `memory/projects/01-crawler.md`）。
+- 排程（使用者 2026-11-06 決定，11-07 改主機）：不用 GitHub Actions 的 `schedule`。主跑原本定 GCP e2-micro 免費額度，2026-11-07 量到流程高峰約 750 MB、e2-micro 只有 1 GB，使用者改用學校的 `oop.cs.nccu.edu.tw`（Ubuntu 22.04、16 核、24 GB；ghost 是 Solaris，裝不了套件）。台北 07:10、07:25、07:40、07:55、08:05 用 cron 跑 `run_daily_test.py --sync`（使用者 2026-11-08 從兩次加到五次：當天 07:10 學校 DNS 短暫查不到 github.com，那次停下；最後一次 08:05 而不是 08:15，離爬蟲截止 08:30 留 25 分鐘）；備援是使用者的 Mac，08:15、08:25、08:35 跑（2026-11-08 從 08:05 起改到 08:15 起，不和 oop 的 08:05 同時爬），網站上還沒有今天的有效提交才交。Mac 的 launchd 2026-11-09 查到沒有裝，使用者決定先不裝，現在只有 oop。帳密放各台的 `.env`。大模型之後在 Kaggle 訓練好推進 repo，主機只預測。安裝步驟見 `memory/reference/06-runner-hosts.md`（2026-11-12 從 README 移過去）。
 - 08:25 的時段（使用者 2026-11-11）：oop 的 cron 多一行 08:25，跑同一個指令。`run_daily.py` 在流程結束後（`--sync`、不是休市、沒被 Ctrl-C）呼叫 `fill_today_open`（2026-11-15 前叫 `open_today_step`）：t 是今天、特徵表最後一天是 t、過了 `open_today.not_before`（08:22）才抓日韓當天的開盤（`crawler.open_today`），有新存的就再跑一次 `features --date t`，結尾照常 commit、push，大約 08:28 推上去。任何錯誤只記 log，不改這次的結果。07:10～08:05 那五次也會經過這一步，還沒到 08:22 就直接跳過。前五次都沒交成時，08:25 這次會照常跑完整的流程再補開盤。
-- 使用者 2026-11-06：先寫 `run_daily_test.py` 每天交 Phase 2，用組員 `notebooks/feature_switch.ipynb` 第 6 節的方法（邏輯迴歸，最近 14 個月訓練、每週重訓、每天用前一天的答案微調，機率 > 0.5 猜漲），特徵是組員 `build_model.ipynb` 的個股特徵加新表的 32 欄。使用者確認舊系統的排程停了，`submit.enabled` 可以打開。跑完要自動 commit、push `data/`。
+- 使用者 2026-11-06：先寫 `run_daily_test.py` 每天交 Phase 2，用組員 `notebooks/teammate/02_feature_switch.ipynb` 第 6 節的方法（邏輯迴歸，最近 14 個月訓練、每週重訓、每天用前一天的答案微調，機率 > 0.5 猜漲），特徵是組員 `build_model.ipynb` 的個股特徵加新表的 32 欄。使用者確認舊系統的排程停了，`submit.enabled` 可以打開。跑完要自動 commit、push `data/`。
 - 爬蟲 08:30 以後才開始時（排程延遲才會發生）：每一步只試一次，不等不重試，yfinance 不抓、沿用舊檔，盡量趕在截止前交（使用者 2026-11-06 確認，就是目前的做法）。
 - 合併的原始資料（使用者 2026-11-11）：`run_daily.py` 在 `fill_today_open` 之後、結尾的 commit 之前呼叫 `merge_raw_data`，跑 `step5_merge_raw.main([])`（2026-11-15 前是 `run_daily_test.py` 的 `open_today_step`、`merged_step`），把 `data/raw/` 併成 `data/merged/` 的個股表（`stock/YYYY-MM.csv.gz`）和市場表（`market.csv.gz`）給組員研究，模型和上傳不看。休市（status 是 closed）和 Ctrl-C 不跑；不分 `--sync`。來源檔的指紋（`manifest.json` 的 `source_digest`，含 `merge_raw.FORMAT`）沒變就跳過，約 0.3 秒；有變就重算全部（2026-11-11 量的：約 19 秒、記憶體 0.5 GB），只寫內容不一樣的檔。錯誤只記 log。`DATA_PATHS` 加了 `data/merged`，`commit_data` 和 `git_start` 的「只動 data/」都算它。
-- 證交所、櫃買（2026-11-09 寫好，使用者 2026-11-10 打開 `exchange.enabled`，11-11 起每天跑）：爬蟲在期交所之後補 i 那天，平常每個主機 2 個請求、約多 20 秒，最壞約 5 分鐘；失敗只寫警告和 manifest 的 `exchange`，不影響上傳。i 那天的資料台北 18:00 前就公布（見 `memory/projects/crawler.md` 的「每天的步驟」）。
+- 證交所、櫃買（2026-11-09 寫好，使用者 2026-11-10 打開 `exchange.enabled`，11-11 起每天跑）：爬蟲在期交所之後補 i 那天，平常每個主機 2 個請求、約多 20 秒，最壞約 5 分鐘；失敗只寫警告和 manifest 的 `exchange`，不影響上傳。i 那天的資料台北 18:00 前就公布（見 `memory/projects/01-crawler.md` 的「每天的步驟」）。
 - `predict.py`（09:00）和 `submit.py`（08:50）檢查截止。crawler 的每日模式（`--date t`）在 07:00 前不跑，08:30 後不再等待或重試。研究模式的 crawler 和 `features`、`train` 什麼時間都能跑。
 
 ## 失敗時怎麼處理
@@ -91,10 +91,10 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 
 排程跑的是 `run_daily.py --sync`（oop 的 crontab 還寫舊名字，會轉過來）。下面是 Claude 2026-11-07 照使用者 11/06 的決定做的設計：
 
-- 模型開關（使用者 2026-11-12）：`configs/config.yaml` 的 `daily_model.kind` 和 `fallback`。名字和檔案的對照在 `src/models/__init__.py` 的 `MODEL_KINDS`；沒有這個設定時用 `online_lr`。現在是 `c2v2d`（2026-11-15 起），備援 `[c2, rank_ensemble, persist, online_lr]`，見下面「每天交件的模型」和 `memory/reference/daily-model.md`。
+- 模型開關（使用者 2026-11-12）：`configs/config.yaml` 的 `daily_model.kind` 和 `fallback`。名字和檔案的對照在 `src/models/__init__.py` 的 `MODEL_KINDS`；沒有這個設定時用 `online_lr`。現在是 `c2v2d`（2026-11-15 起），備援 `[c2, rank_ensemble, persist, online_lr]`，見下面「每天交件的模型」和 `memory/reference/05-daily-model.md`。
 - 組員的模型：`src/models/m1_online_lr.py`，組員 `feature_switch.ipynb` 第 6 節的方法。每天早上重新 fit，不讀 `models/`：每週重訓、每天用前一天的答案微調是這個方法的一部分。
 - 開關：`configs/config.yaml` 的 `submit.phase`。1 是 Phase 1（網站範本的 84 天 × 50 檔，測自動化用），2 是每天的 t。使用者 2026-11-06：先交 Phase 1 測試，之後改 2。2026-11-07 07:10 oop 第一次自動交 Phase 1 成功（網站分數 0.0012354，排行仍是 0.0027732；07:40 看到已交就結束），使用者同一天要改成 2。
-- 休市（使用者 2026-11-07：不要寫死，要靈活）：每次執行都看網站的 `phase2Days`（`site_api.day_status`），不看星期幾、也沒有假日表。t 不在清單上就記「休市」結束，不爬、不上傳。在清單上但 `enabled` 是 0 時（沒看過這種狀態；使用者提醒可能只是還沒更新），照常準備，上傳前再看一次，還是停用就記 not_open、這次不送，不擋下一次排程。特徵的交易日曆看老師資料（至少 `min_stocks_filled` 檔填好），新的颱風假自動排除；`closed_days` 只用來把關 10/23。網站的 `phase2Days` 只列到今天為止，沒有週末和 10/23；開放和截止看網站每天的 `openAt`、`deadline`：2026-11-08 起前一個交易日 09:01 開放到當天 09:00（見 `memory/context/competition.md`），以前是前一天 15:00 開放。
+- 休市（使用者 2026-11-07：不要寫死，要靈活）：每次執行都看網站的 `phase2Days`（`site_api.day_status`），不看星期幾、也沒有假日表。t 不在清單上就記「休市」結束，不爬、不上傳。在清單上但 `enabled` 是 0 時（沒看過這種狀態；使用者提醒可能只是還沒更新），照常準備，上傳前再看一次，還是停用就記 not_open、這次不送，不擋下一次排程。特徵的交易日曆看老師資料（至少 `min_stocks_filled` 檔填好），新的颱風假自動排除；`closed_days` 只用來把關 10/23。網站的 `phase2Days` 只列到今天為止，沒有週末和 10/23；開放和截止看網站每天的 `openAt`、`deadline`：2026-11-08 起前一個交易日 09:01 開放到當天 09:00（見 `memory/context/01-competition.md`），以前是前一天 15:00 開放。
 - 跳過：Phase 1 今天（台北）已經交過，或 `upload_log.jsonl` 今天有 done／same 就結束；Phase 2 網站上 t 已經有提交（不算「強制繳交」）就結束。所以後面的時段和 Mac 只在前面沒交成時才做事。
 - t 不是交易日（不在 `phase2Days`）：不跑爬蟲和特徵。Phase 2 直接結束，Phase 1 用現有的特徵表。
 - 上傳前：`--sync` 時先 commit 並 push `data/` 和「準備上傳」紀錄，push 失敗或出錯就寫 not_sent、不上傳。推完再檢查一次截止（08:50）、網站的開放時間、網站上的提交有沒有變（別台交了就不送）、別台有沒有也在準備上傳，都過了才 POST。
@@ -104,7 +104,7 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 - 載入順序（2026-11-07 第三輪審查後）：`--sync` 時先 `git pull` 才載入 `src/`，推上去的修正這次就用到；`run_daily.py` 自己被更新時用新版重新執行一次。新程式 import 失敗時寫到 `.cache/cron.log`，修正推上去後下一次會先 pull 再載入。
 - 組員手動交了就不蓋掉：排程上傳時（`respect_existing`），網站上已經有這次的提交（Phase 2 的 t，或 Phase 1 今天交的；不算強制繳交）就不送，POST 前會再看一次。手動跑 `python -m src.pipeline.step4_submit` 可以蓋掉。使用者 2026-11-08 確認維持這樣：預設交排程的版本，組員在截止前手動交了就以組員的為準（Phase 2 算最後一份，組員比排程早交時排程不送，比排程晚交時本來就算組員的）。2026-11-16 起這種日子排程還是會做影子跑（不上傳）；同一天使用者決定請組員別再先手動交，讓排程交 C2v2d。
 - Phase 2 的上傳紀錄看交易日 t 的全部紀錄（t 前一晚送的也算）；Phase 1 只看今天寫的。
-- `requirements.txt` 改了要在 oop 重裝套件（oop 連不到 PyPI，見 `memory/reference/runner-hosts.md`）。`runner_setup.sh` 記下安裝時的 sha256，不一樣時 `run_daily.py` 在 log 裡警告。
+- `requirements.txt` 改了要在 oop 重裝套件（oop 連不到 PyPI，見 `memory/reference/06-runner-hosts.md`）。`runner_setup.sh` 記下安裝時的 sha256，不一樣時 `run_daily.py` 在 log 裡警告。
 - 資源（2026-11-07 在 Mac 上量）：特徵和模型在同一個程式裡時，記憶體高峰約 735～760 MB（模型讀資料那一步）；Phase 1 全程 40～60 秒。
 - 外資持股比率（使用者 2026-11-07）：Live 的這一欄常常隔天才公布（11/06 晚上那天 100 檔都是 -1），待定時沿用這檔股票前一個有值的比率，持股變化就成了 0。
 - Phase 1 本機分數（2026-11-07，用 26 個個股特徵加 32 欄）：0.001235，正確率 53.4%；全猜 0 是 −0.000204。組員 11/06 交的版本網站算 0.002773，本機重算一樣，計分方式對得上。
@@ -129,10 +129,10 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 
 使用者 2026-11-12 傍晚看完比較後選「今晚換成集成」。`daily_model.kind: rank_ensemble`、`fallback: [persist, online_lr]`，11-13 07:10 起生效。
 
-- 模型：`src/rank_ensemble.py`，Kaggle notebook 16 的 `X_price`（41 個價量欄的當天排名，ridge、Nyström kernel ridge、LightGBM 三個模型的排名平均）。每天早上用 t 之前 500 個有答案的交易日重訓，oop 上約 30 秒。說明給組員看的版本在 `memory/reference/daily-model.md`。
+- 模型：`src/rank_ensemble.py`，Kaggle notebook 16 的 `X_price`（41 個價量欄的當天排名，ridge、Nyström kernel ridge、LightGBM 三個模型的排名平均）。每天早上用 t 之前 500 個有答案的交易日重訓，oop 上約 30 秒。說明給組員看的版本在 `memory/reference/05-daily-model.md`。
 - 為什麼換：notebook 18 的成對比較，集成減 `persist120` 在 11 季回測每天 +0.00032（95% 區間 +0.00004～+0.00061，block bootstrap 也不含 0），2022～2023 每天 +0.00023（區間含 0）。11-12 當天集成的紙上預測 +0.020554，交出去的 `persist` +0.011575（用 yfinance 的開收盤算，`persist` 和網站的分數一模一樣）。
 - 驗證：oop 重播 1,175 天、3 個種子、60 次重訓，0／1 有 99.45% 的格子和 notebook 一樣，回測 0.0010279（notebook 0.0010102）；沒有答案的那天（11-06、11-09、11-10）和有答案時算的一樣；推之前在 oop 的測試 worktree 用正式的 `daily_predict` 和真的 config 算 t = 11-12，跑完整個測試。
-- 兩輪獨立審稿（2026-11-12，唯讀）找到的都是小問題，推之前一起修了：爬蟲記下前一天沒填時改用備援；只有幾檔前一天沒填時那幾檔當成空白；t 那列空白太多、整欄空白、預測不是有限的數時改用備援，訊息寫出空白的欄名；備援的 log 把路徑換成相對的（oop 的家目錄含學號，log 會推上 GitHub）；`kind` 不認得或填 `none` 時停下，`fallback` 裡不認得或重複的名字記 ERROR 後跳過；`online_lr` 還在備援順序外面（流程一開始就載入、讀特徵也用它），寫進 docstring 和 `daily-model.md`。
+- 兩輪獨立審稿（2026-11-12，唯讀）找到的都是小問題，推之前一起修了：爬蟲記下前一天沒填時改用備援；只有幾檔前一天沒填時那幾檔當成空白；t 那列空白太多、整欄空白、預測不是有限的數時改用備援，訊息寫出空白的欄名；備援的 log 把路徑換成相對的（oop 的家目錄含學號，log 會推上 GitHub）；`kind` 不認得或填 `none` 時停下，`fallback` 裡不認得或重複的名字記 ERROR 後跳過；`online_lr` 還在備援順序外面（流程一開始就載入、讀特徵也用它），寫進 docstring 和 `05-daily-model.md`。
 - 隔天早上要看：`data/submission/run_2026-11-13.log` 有「模型 rank_ensemble」，沒有「算不出來」。集成失敗時流程不會停，會交 `persist`，只有 log 看得出來。
 - 換回去：`kind: persist`、`fallback: online_lr`，push，避開台北 07:00～08:40。
 
@@ -140,7 +140,7 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 
 使用者 2026-11-15 晚上在 MT session 直接決定（原本選「影子跑」，同一晚改掉）：`daily_model.kind: c2v2d`、`fallback: [c2, rank_ensemble, persist, online_lr]`，11-16 07:10 起生效；12-06 看情況再決定要不要改成 `c2`。
 
-- 模型：`src/c2_tilt.py`（commit `748db97`），`rank_ensemble` 的三個模型再依方向模型的 p 換高低 β。說明和回測在 `memory/reference/daily-model.md`。
+- 模型：`src/c2_tilt.py`（commit `748db97`），`rank_ensemble` 的三個模型再依方向模型的 p 換高低 β。說明和回測在 `memory/reference/05-daily-model.md`。
 - 驗證：Kaggle `c2-tilt-production-code-check` version 2 full（用 `748db97` clone repo）。p 和 notebook 44 差 1.5e-12（1,155 天），11 月係數和組員一樣，24 個測試過，重放 10-12～11-13 每天 25 檔猜漲，11-13 原版和實際交的 100% 一樣。事先寫的「p 和組員一樣」那條沒過：11-11 是油、金的收盤 07:10 後被修正，11-12 是組員的長表檔沒更新，兩個原因都查過；換的組數和分數的差來自組員的原版排名和正式的不同。β 的程式和 notebook 44 逐行一樣。
 - 時間：所有狀態都是 07:10 前就有的，沒有日韓當天的開盤。11-09～11-13 交件時的 commit，老師 global 表 t 那列都已經有美股三欄。美國休市的隔天會換備援。
 - 同一次 push 加了一行 log（`run_daily_test.py`，Phase 2 才寫）：當天的 p、傾斜、和 `rank_ensemble` 換了幾組、缺幾個狀態、重訓日。
@@ -159,7 +159,7 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 ### 2026-11-16 起影子跑（`shadow_<t>.csv`）
 
 - 使用者 2026-11-16 決定（這個 session 問了「影子跑是什麼」之後）：每天把 `daily_model.shadow` 的五個模型都算一遍，存檔不上傳，組員先手動交的日子也做。同一天也決定請組員別再先手動交，讓排程交 C2v2d（使用者自己跟組員講）。
-- 程式：`run_daily.py` 的 `shadow_run` 決定什麼時候做；`src/pipeline/step3_train_predict.py` 的 `shadow_predict` 算、`shadow_scores` 對答案。設定是 `configs/config.yaml` 的 `daily_model.shadow`。檔案和欄的說明在 `memory/reference/daily-model.md` 的「影子跑」。
+- 程式：`run_daily.py` 的 `shadow_run` 決定什麼時候做；`src/pipeline/step3_train_predict.py` 的 `shadow_predict` 算、`shadow_scores` 對答案。設定是 `configs/config.yaml` 的 `daily_model.shadow`。檔案和欄的說明在 `memory/reference/05-daily-model.md` 的「影子跑」。
 - 交件那次：`submit.run` 回來之後才做，POST 丟錯就不做。交件的模型（`kind_of(model_name)`）直接拿交出去的預測；`c2` 用 `m4_c2_tilt` 的快取（同一次執行不重訓 `rank_ensemble`），`rank_ensemble` 拿 `c2v2d` 的 `base_pred`，所以只多算 `persist`、`online_lr`。
 - 組員先交了（`check_site` 回 already_submitted）：自己跑爬蟲、特徵、讀範本再算，約多 3 分鐘。這種日子 08:25 那次補日韓開盤也做得成了（以前特徵表沒有 t 那列，所以不補）。爬蟲失敗只記 WARNING，結果還是 already_submitted、exit 0，下一次排程再試。
 - 一天一次：`shadow_<t>.csv` 已經有就跳過。Phase 1、過了 t 的 09:00、`shadow: []` 都不做。任何錯誤只記 WARNING，不改執行結果，不上傳任何東西。
@@ -200,7 +200,7 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 
 ### 步驟
 
-1. 先 commit 程式、測試、文件，只 `git add` 自己改的檔。`README.md` 用 `git add -p`，另一個 session 寫的 `notebooks/kaggle/` 那幾行不要收。`.gitignore`、`notebooks/`、`memory/projects/kaggle-models.md` 不要 stage。
+1. 先 commit 程式、測試、文件，只 `git add` 自己改的檔。`README.md` 用 `git add -p`，另一個 session 寫的 `notebooks/kaggle/` 那幾行不要收。`.gitignore`、`notebooks/`、`memory/projects/02-kaggle-models.md` 不要 stage。
 2. `git fetch origin && git rebase --autostash origin/claude/stock-market-challenger`。`--autostash` 會先收起別人沒 commit 的改動，rebase 完再放回來。`git pull --rebase --autostash origin <分支>` 在這個 repo 會失敗（2026-11-09：「Cannot rebase onto multiple branches」）。oop 每天會 commit `data/`，不先 pull 的話，重建的月份檔和 `manifest.json` 會和 origin 二進位衝突；衝突時選了 origin 那邊，就回到舊欄位。
 3. `python -m src.pipeline.step2_features --rebuild`。t 會從 pull 下來的 `data/raw/manifest.json` 取（oop 最新那天）。確認新的 `manifest.json`：`columns` 是預期的欄數，`warnings` 是 `[]`。這一步會在 `data/submission/run_<t>.log` 多幾行，不用 commit，推完用 `git restore data/submission` 還原。
 4. 比一次重建前後 t 那天 50 檔的 0／1。重建會用現在的 yfinance 檔重算過去凍住的月份，Yahoo 每次重抓 `adj_close` 會往回調，所以 `tsm_adr`、`nvda`、`etf_0050` 這類模型欄在舊月份會有 1e-6 級的變動（2026-11-09 模擬：692,900 格，最大差 9.2e-7，t = 11-09 的機率最多差 0.0011，沒有一檔的 0／1 改變）。這和程式改了什麼無關，舊程式加 `--rebuild` 也一樣。

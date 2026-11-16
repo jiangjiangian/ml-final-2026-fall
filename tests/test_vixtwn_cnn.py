@@ -1,6 +1,6 @@
 """VIXTWN（臺指選擇權波動率指數）和 CNN 恐懼貪婪（使用者 2026-11-09）：爬蟲的兩步和長表的 4 欄。全部離線。
 
-來源和定義見 memory/projects/crawler.md「VIXTWN、CNN 恐懼貪婪」、memory/projects/features.md。
+來源和定義見 memory/projects/01-crawler.md「VIXTWN、CNN 恐懼貪婪」、memory/projects/03-features.md。
 """
 
 import copy

@@ -1,6 +1,6 @@
 """組員的邏輯迴歸，run_daily.py 用（使用者 2026-11-06：先用組員的方法和模型跑自動化）。
 
-方法照 notebooks/feature_switch.ipynb 第 6 節：
+方法照 notebooks/teammate/02_feature_switch.ipynb 第 6 節：
     1. 預測日所在的那一週 W，fit_end = W 往前 online_lr.online_weeks 週的週一。
     2. 用 fit_end 之前 train_months 個月有答案的列（100 檔都用）fit：中位數補空值、標準化、截在 ±clip_z，
        LogisticRegression(C)。前處理只在這段資料上 fit。
@@ -8,9 +8,9 @@
        steps 步 GD（L2 的 λ = 1 / (C × fit 的列數)）。
     4. 機率 > threshold 猜 1。
 每天早上都重新 fit，不讀 models/：每週重訓、每天微調本來就是這個方法的一部分（和 predict.py「只載入
-models/ 的模型」不同，見 memory/context/pipeline.md）。
+models/ 的模型」不同，見 memory/context/02-pipeline.md）。
 
-特徵：組員 notebooks/build_model.ipynb 的 26 個個股特徵 + 特徵表的 model_columns（features.model_columns）。
+特徵：組員 notebooks/teammate/01_build_model.ipynb 的 26 個個股特徵 + 特徵表的 model_columns（features.model_columns）。
 個股特徵用老師個股檔「填好的列」算（crawler.row_filled），滾動視窗只往回看；(日期 d, 股票) 那列拿的是那檔股票
 日期早於 d 的最後一個填好的列算出的值，所以 t 當天的價格、成交量、法人都不會用到。
 Live（Training 最後一天之後）的列裡外資持股和法人欄的 -1 當成空值；Training 的 -1 是真的（買賣超 1 股），保留。

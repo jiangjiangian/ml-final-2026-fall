@@ -1,6 +1,6 @@
 """features.py：yfinance 清理、交易日、lag、usd_twd_am，以及和 data-collection 凍結資料的對照測試 (a)、(a2)。
 
-對照測試的規格見 memory/projects/features.md「對照測試」。
+對照測試的規格見 memory/projects/03-features.md「對照測試」。
 """
 
 import copy
@@ -101,7 +101,7 @@ def test_lag2_non_missing_days(frozen):
     ("2330", "teacher_vix", "2026-10-27", "-0.10418906802463328", "-0.10418906802463328"),
 ])
 def test_lag1_known_values(frozen, stock_id, column, t, lag1, lag2):
-    """lag1 沒有舊長表可以比，用 features.md 記的測試值（凍結資料算過兩次）。"""
+    """lag1 沒有舊長表可以比，用 03-features.md 記的測試值（凍結資料算過兩次）。"""
     _, df = frozen
     row = df[(df["date"] == t) & (df["stock_id"] == stock_id)].iloc[0]
     assert (repr(float(row[f"{column}_ret_lag1"])), repr(float(row[f"{column}_ret_lag2"]))) == (lag1, lag2)

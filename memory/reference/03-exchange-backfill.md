@@ -1,6 +1,6 @@
 # 證交所、櫃買的資料和回補
 
-特徵表的交易所 9 欄（`val_*`、`quote_*`）讀這裡的四個檔，不進模型欄。設計和進度的紀錄在 `memory/projects/crawler.md`。
+特徵表的交易所 9 欄（`val_*`、`quote_*`）讀這裡的四個檔，不進模型欄。設計和進度的紀錄在 `memory/projects/01-crawler.md`。
 
 ```bash
 python -m src.pipeline.step1_crawler --exchange-backfill [--start 2020-01-02] [--end YYYY-MM-DD] [--markets twse,tpex] [--max-requests N]
@@ -23,7 +23,7 @@ python -m src.pipeline.step1_crawler --exchange-backfill [--start 2020-01-02] [-
 
 - 每天的步驟：`exchange.enabled` 2026-11-10 打開，11-11 起每天的爬蟲在期交所之後補 i 那天，以及最近 10 個交易日裡檔案缺的日子。平常每個主機 2 個請求，約多 20 秒；每個主機最多 12 個請求，開始 3 分鐘後不再送新的請求。失敗只寫警告和 `data/raw/manifest.json` 的 `exchange`，不影響上傳。
 - 公布時間：i 那天的資料台北 18:00 前就齊（2026-11-09 量的：收盤行情 14:30 有，本益比 16:00 還沒有、18:00 有），早上 07:10 抓得到。
-- 沒抓到的日子：oop 早上連不上交易所的那天先空白，之後 10 個交易日內每天的爬蟲會補，下一次每天的特徵重寫最後兩個月時跟著補上。斷超過 10 個交易日，要在開發用的 clone 手動回補再 `--rebuild`（`memory/context/pipeline.md` 有步驟）。
+- 沒抓到的日子：oop 早上連不上交易所的那天先空白，之後 10 個交易日內每天的爬蟲會補，下一次每天的特徵重寫最後兩個月時跟著補上。斷超過 10 個交易日，要在開發用的 clone 手動回補再 `--rebuild`（`memory/context/02-pipeline.md` 有步驟）。
 
 ## 手動回補怎麼跑
 

@@ -218,7 +218,7 @@ features:
     - [500, 0.5]
     - [1000, 1]
     - [null, 5]
-  cleaning:                      # yfinance 清理 R0～R5 的參數，和舊爬蟲一樣（memory/projects/features.md）
+  cleaning:                      # yfinance 清理 R0～R5 的參數，和舊爬蟲一樣（memory/projects/03-features.md）
     yields: [^TNX, ^IRX]         # R2 債市假日只看這兩個；它們和 yfinance.futures 的 close 可以 ≤ 0
     bad_tick_tolerance: 0.005    # R1：close 超出 [low, high] 多少比例算壞報價
     partial_bar_window: 21       # R3：取前幾個保留下來的列算成交量中位數
@@ -239,7 +239,7 @@ model:
   path: models/model.txt
   feature_list: models/feature_columns.json
 
-online_lr:                       # 組員的方法（notebooks/feature_switch.ipynb 第 6 節），run_daily.py 用（使用者 2026-11-06）
+online_lr:                       # 組員的方法（notebooks/teammate/02_feature_switch.ipynb 第 6 節），run_daily.py 用（使用者 2026-11-06）
   train_months: 14               # 每週重訓：用 fit_end 之前這麼多個月有答案的列（100 檔都用）
   online_weeks: 2                # fit_end = 預測那週的週一往前這麼多週；之後每天用前一天的答案做 GD
   C: 0.05                        # LogisticRegression 的正則化強度的倒數（越小越強）

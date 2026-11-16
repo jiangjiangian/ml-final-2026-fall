@@ -1,6 +1,6 @@
 """課程網站的 API：登入、/api/state、範本、上傳、下載提交。submit.py 和 run_daily.py 共用。
 
-格式是 2026-11-06 從網站前端的程式碼查到的（memory/context/competition.md）：
+格式是 2026-11-06 從網站前端的程式碼查到的（memory/context/01-competition.md）：
     上傳：POST /api/submissions，JSON {phase, tradingDate, fileName, payload, note}
           Phase 1 payload：{stockIds: [50], dates: [84], predictions: [[84 個 0/1] × 50]}
           Phase 2 payload：{stockIds: [50], predictions: [50 個 0/1]}

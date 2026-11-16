@@ -17,12 +17,12 @@
 - 串起來的程式：`run_daily.py`。開始前先 `git pull`，五步跑完把 `data/` commit、push 到這個分支。舊名字 `run_daily_test.py` 會直接轉到它。
 - 時間：台北 07:10 跑第一次，沒交成就在 07:25、07:40、07:55、08:05 再試；網站上已經有當天的提交就直接結束。08:25 再跑一次，只補日韓當天的開盤。
 - t（預測日）不是交易日就不跑。
-- 影子跑（2026-11-16 起）：交件後，或組員已經手動交了時，`daily_model.shadow` 的五個模型都預測 t，存 `shadow_<t>.csv`，不上傳；收盤後每個模型的官方分數在 `shadow_scores.csv`。說明在 [`memory/reference/daily-model.md`](memory/reference/daily-model.md) 的「影子跑」。
+- 影子跑（2026-11-16 起）：交件後，或組員已經手動交了時，`daily_model.shadow` 的五個模型都預測 t，存 `shadow_<t>.csv`，不上傳；收盤後每個模型的官方分數在 `shadow_scores.csv`。說明在 [`memory/reference/05-daily-model.md`](memory/reference/05-daily-model.md) 的「影子跑」。
 - 共用的小函式（讀設定、台北時間、log）在 `src/pipeline/utils.py`。
 
 ### 模型
 
-`src/models/` 一個檔一個模型，照做出來的日期編號。說明和回測在 [daily-model.md](memory/reference/daily-model.md)。
+`src/models/` 一個檔一個模型，照做出來的日期編號。說明和回測在 [05-daily-model.md](memory/reference/05-daily-model.md)。
 
 | 檔案 | config 的名字 | 做出來 | 現在 |
 |---|---|---|---|
@@ -72,7 +72,7 @@ train = df[df["label_y"].notna()]   # 預測日 t 那列還沒有答案
 X, y = train[info["model_columns"]], train["label_y"]
 ```
 
-- 每一欄的定義：見 [`memory/reference/feature-table.md`](memory/reference/feature-table.md)。
+- 每一欄的定義：見 [`memory/reference/02-feature-table.md`](memory/reference/02-feature-table.md)。
 - 答案：`label_` 開頭的兩欄，不能放進 X。
 - `info["model_columns"]`：組員的邏輯迴歸用的 55 欄。其他特徵欄只給研究，要用請先看它什麼時候空白。
 - 驗證：按日期切，不能隨機拆列。
@@ -103,7 +103,7 @@ x = asof(x, ["tx_day_未沖銷契約數"])                                      
 x["volume_prev"] = x.groupby("stock_id")["price:成交股數"].shift(1)        # 老師個股欄：用前一個交易日
 ```
 
-- 沒有對齊到 t：d 那列放的是各來源標 d 的值，當 t 的特徵前要自己往前接。每個來源能用到哪一列，見 [`memory/reference/merged-data.md`](memory/reference/merged-data.md)。
+- 沒有對齊到 t：d 那列放的是各來源標 d 的值，當 t 的特徵前要自己往前接。每個來源能用到哪一列，見 [`memory/reference/04-merged-data.md`](memory/reference/04-merged-data.md)。
 - 老師個股欄 d 那列是 d 當天的值，要照 `stock_id` 往後移一列。`y` 是 d 的答案，不能當特徵。
 - `y` 是 `-1` 的列還沒有資料，整列都是 `-1`。往後移之前先把這些列換成空白。
 
@@ -119,7 +119,7 @@ tsmc = pd.read_csv(f"{RAW}/teacher/live/market/2330.csv")                       
 
 ## 特徵表的欄位
 
-完整的表在 [`memory/reference/feature-table.md`](memory/reference/feature-table.md)：每一欄的來源、是什麼、定義、用的是哪一刻的值、模型用不用、什麼時候空白。110 欄分成六組：
+完整的表在 [`memory/reference/02-feature-table.md`](memory/reference/02-feature-table.md)：每一欄的來源、是什麼、定義、用的是哪一刻的值、模型用不用、什麼時候空白。110 欄分成六組：
 
 | 組 | 欄數 | 例子 | 在 `model_columns` 裡 |
 |---|---|---|---|
@@ -136,13 +136,13 @@ tsmc = pd.read_csv(f"{RAW}/teacher/live/market/2330.csv")                       
 
 | 想知道 | 看 |
 |---|---|
-| 特徵表每一欄的定義和空白的情況 | [`memory/reference/feature-table.md`](memory/reference/feature-table.md) |
-| 合併表的欄位、每個來源能用到哪一列 | [`memory/reference/merged-data.md`](memory/reference/merged-data.md) |
-| 每天交件的模型和回測 | [`memory/reference/daily-model.md`](memory/reference/daily-model.md) |
-| 排程主機怎麼裝 | [`memory/reference/runner-hosts.md`](memory/reference/runner-hosts.md) |
-| 證交所、櫃買的檔案和回補 | [`memory/reference/exchange-backfill.md`](memory/reference/exchange-backfill.md) |
-| 每天的流程細節、失敗時怎麼手動交 | [`memory/context/pipeline.md`](memory/context/pipeline.md) |
-| 比賽規則和課程網站 | [`memory/context/competition.md`](memory/context/competition.md) |
+| 特徵表每一欄的定義和空白的情況 | [`memory/reference/02-feature-table.md`](memory/reference/02-feature-table.md) |
+| 合併表的欄位、每個來源能用到哪一列 | [`memory/reference/04-merged-data.md`](memory/reference/04-merged-data.md) |
+| 每天交件的模型和回測 | [`memory/reference/05-daily-model.md`](memory/reference/05-daily-model.md) |
+| 排程主機怎麼裝 | [`memory/reference/06-runner-hosts.md`](memory/reference/06-runner-hosts.md) |
+| 證交所、櫃買的檔案和回補 | [`memory/reference/03-exchange-backfill.md`](memory/reference/03-exchange-backfill.md) |
+| 每天的流程細節、失敗時怎麼手動交 | [`memory/context/02-pipeline.md`](memory/context/02-pipeline.md) |
+| 比賽規則和課程網站 | [`memory/context/01-competition.md`](memory/context/01-competition.md) |
 
 ## 檔案樹
 
@@ -200,23 +200,39 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │       ├── run_YYYY-MM-DD.log          執行紀錄，失敗時先看這個
 │       ├── upload_log.jsonl            上傳紀錄
 │       └── backup/                     上傳前先下載網站上那一份
-├── memory/                    專案的說明和紀錄，一個主題一個檔
-│   ├── reference/             給組員查的說明（2026-11-12 從 README 移過來）
-│   │   ├── feature-table.md   特徵表每一欄：來源、定義、時間、模型用不用、空白的情況
-│   │   ├── merged-data.md     合併表的三個檔、每個來源能用到哪一列
-│   │   ├── daily-model.md     每天交件的模型和回測
-│   │   ├── runner-hosts.md    排程主機怎麼裝
-│   │   └── exchange-backfill.md   證交所、櫃買的檔案和回補
-│   ├── glossary.md            名詞
-│   ├── context/               competition、pipeline、data-rules、environment、open-questions
-│   └── projects/              crawler、features、kaggle-models 的設計紀錄
+├── memory/                    專案的說明和紀錄，一個主題一個檔；整理原則在 memory/README.md
+│   ├── README.md              三個資料夾放什麼、檔名怎麼編號、增刪檔案時要改哪裡
+│   ├── context/               專案的規則和環境：01-competition、02-pipeline、03-open-questions、04-environment、05-data-rules
+│   ├── projects/              每條工作線的設計和進度：01-crawler 到 11-breakthrough-research
+│   └── reference/             給組員查的說明（2026-11-12 從 README 移過來）
+│       ├── 01-glossary.md          名詞
+│       ├── 02-feature-table.md     特徵表每一欄：來源、定義、時間、模型用不用、空白的情況
+│       ├── 03-exchange-backfill.md 證交所、櫃買的檔案和回補
+│       ├── 04-merged-data.md       合併表的三個檔、每個來源能用到哪一列
+│       ├── 05-daily-model.md       每天交件的模型、回測和影子跑
+│       └── 06-runner-hosts.md      排程主機怎麼裝
 ├── deploy/
 │   ├── runner_setup.sh        排程主機（學校的 oop）的安裝
 │   ├── crontab.txt            排程的時間
 │   ├── mac/                   Mac 備援（還沒裝）
 │   └── gcp_setup.sh           GCP 主機的安裝（備用）
-├── notebooks/
-│   └── README.md              實驗的檔名和注意事項；每天的自動流程不會讀這裡
+├── notebooks/                 實驗的地方，每天的自動流程不會讀這裡；整理原則在 notebooks/README.md
+│   ├── README.md              放什麼、不放什麼、檔名怎麼取
+│   ├── teammate/              組員的 notebook 01～05（只在本機，沒進 Git）
+│   │   ├── README.md          每本做什麼、輸入檔從哪裡來
+│   │   ├── exports/           html 匯出
+│   │   └── data/              連到 data/raw/teacher/ 的捷徑，notebook 用相對路徑讀
+│   └── kaggle/                2026-11-05～06 在 Kaggle 上平行訓練的模型研究（只在本機，沒進 Git；說明見 memory/projects/02-kaggle-models.md）
+│       ├── README.md          怎麼建 dataset、推 notebook、收結果
+│       ├── build_dataset.sh   複製 raw、建立或更新 Kaggle dataset tw-intraday-data
+│       ├── push_all.sh        把每本 notebook 推到 Kaggle（--only <slug> 只推一本）
+│       ├── pull_outputs.sh    看狀態，把完成的 output/ 下載回來（下載的是暫存，看完就刪）
+│       └── data/              Kaggle dataset 的內容
+│           ├── twfeat.py              讀資料、算特徵、評估的模組
+│           ├── check_twfeat.py        本機的輕量檢查；輸出 check_output.txt
+│           ├── dataset-metadata.json  Kaggle dataset 的 metadata（KAGGLE_USER 是佔位字串）
+│           ├── README.md              dataset 的內容說明
+│           └── raw/                   老師資料和 yfinance 的複本（不進 Git）
 ├── tests/                     離線測試，用 pytest 跑
 │   ├── test_crawler.py        爬蟲（假伺服器、假時鐘）
 │   ├── test_exchange.py       爬蟲：證交所、櫃買

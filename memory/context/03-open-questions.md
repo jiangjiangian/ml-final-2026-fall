@@ -4,17 +4,17 @@
 
 ## 2026-11-09 features 實作時 Claude 定的細節，等使用者確認
 
-細節和數字在 `memory/projects/features.md` 的「實作時 Claude 定的細節」。要使用者看的是這三個：
+細節和數字在 `memory/projects/03-features.md` 的「實作時 Claude 定的細節」。要使用者看的是這三個：
 
-- fresh 欄怎麼往回數：照規格數台股交易日。老師 Training 有 112 個台股日沒有 global 列，那幾格空白，所以 `teacher_gspc_fresh_ret_lag1` 有值的天數是 1,445，`teacher_gspc` 是 1,548。另一種做法是像 `teacher_gspc` 那樣數 global 自己的列。2026-11-09 問過使用者，使用者問老師為什麼缺、Claude 建議哪個：缺的原因見 `memory/context/data-rules.md`；Claude 建議維持現在的做法（跳過的做法在美國休市那 48 天剛好是一天的漲跌，但在韓國休市那 62 天會把兩天的美股漲跌算成一天，表上分不出來），使用者還沒選，沒改程式。
+- fresh 欄怎麼往回數：照規格數台股交易日。老師 Training 有 112 個台股日沒有 global 列，那幾格空白，所以 `teacher_gspc_fresh_ret_lag1` 有值的天數是 1,445，`teacher_gspc` 是 1,548。另一種做法是像 `teacher_gspc` 那樣數 global 自己的列。2026-11-09 問過使用者，使用者問老師為什麼缺、Claude 建議哪個：缺的原因見 `memory/context/05-data-rules.md`；Claude 建議維持現在的做法（跳過的做法在美國休市那 48 天剛好是一天的漲跌，但在韓國休市那 62 天會把兩天的美股漲跌算成一天，表上分不出來），使用者還沒選，沒改程式。
 - 停牌：交易所停牌那天照樣有列（開高低收 `--`、成交股數 0，估值沿用前一天）。Claude 照核准定義的「停牌空白」把這種列當成沒有列，9 欄空白，共 21 個股票日。
 - 韓國晚開盤的「每年第一個交易日」：取每年第一根和第一根有成交量的K棒，兩根都空白。2026-11-09 看過真資料：每年第一根都對，只有 2022 年 Yahoo 少了 01-03，結果擋到正常開盤的 01-04（多擋一天）。
 
-其他的在 features.md 那節，沒有特別要問的：價格不在升降單位格子上時檔數空白、三個旗標欄存成整數、notes 用 warning 等級寫 log。
+其他的在 03-features.md 那節，沒有特別要問的：價格不在升降單位格子上時檔數空白、三個旗標欄存成整數、notes 用 warning 等級寫 log。
 
 ## 日韓當天的開盤：還要對一次日K（2026-11-12 第一次正式跑成功）
 
-做法和決定在 `memory/projects/crawler.md` 的「日韓當天的開盤」。11-12 08:25 第一次跑的結果也記在那裡（兩個序列都一次抓到，08:25 不會太早）。剩下兩件：
+做法和決定在 `memory/projects/01-crawler.md` 的「日韓當天的開盤」。11-12 08:25 第一次跑的結果也記在那裡（兩個序列都一次抓到，08:25 不會太早）。剩下兩件：
 
 - 幾天後拿 Yahoo 的日K對一次：當天早上抓的 open、prev_close 和日K的 open、前一根 close 一不一樣。
 - 已知的洞（沒修）：沒抓到的日子改用日K算，如果 Yahoo 有 d 那根卻還沒有 d−1 那根（11-10、11-11 早上 `kospi` 的 i 那根都還沒出來），算出來會拿更早一天的收盤當分母。當天早上有抓到就不受影響。
@@ -38,9 +38,9 @@
 
 ## 雲端主機的細節
 
-- 2026-11-07 定了：學校的 oop 主跑、使用者的 Mac 備援、GCP 備用（見 `memory/context/pipeline.md`）。推資料用 oop 上的 deploy key。下面是當初的考量。
+- 2026-11-07 定了：學校的 oop 主跑、使用者的 Mac 備援、GCP 備用（見 `memory/context/02-pipeline.md`）。推資料用 oop 上的 deploy key。下面是當初的考量。
 
-- 使用者 2026-11-06 決定用雲端小主機跑 cron（見 `memory/context/pipeline.md`），不用 GitHub Actions。理由：GitHub 的 `schedule` 11/04 晚了 3 小時 42 分到 6 小時 17 分，11/05 16 個時點只觸發 5 個。
+- 使用者 2026-11-06 決定用雲端小主機跑 cron（見 `memory/context/02-pipeline.md`），不用 GitHub Actions。理由：GitHub 的 `schedule` 11/04 晚了 3 小時 42 分到 6 小時 17 分，11/05 16 個時點只觸發 5 個。
 - 還沒定：用哪一家（提議 GCP 免費的 e2-micro，要綁卡）、誰的帳號、主機怎麼推資料到 GitHub（只能推這個分支的金鑰）、Healthchecks.io 的通知接在哪。
 - 要先查：Yahoo 會不會擋雲端主機的 IP。
 
@@ -58,7 +58,7 @@
 
 ## 組員的腳本要改讀新資料
 
-- 組員的 `build_dataset.py`（其實是 `notebooks/build_model.ipynb` 前 5 格）和 Kaggle 的 `notebooks/kaggle/data/twfeat.py`、`build_dataset.sh` 還在讀 data-collection 的 `panel_lag.csv.gz`（欄名 `ticker`、lag2 和 lag5、日K的 `usd_twd`、清理過的 `extra/yfinance/`）。
+- 組員的 `build_dataset.py`（其實是 `notebooks/teammate/01_build_model.ipynb` 前 5 格）和 Kaggle 的 `notebooks/kaggle/data/twfeat.py`、`build_dataset.sh` 還在讀 data-collection 的 `panel_lag.csv.gz`（欄名 `ticker`、lag2 和 lag5、日K的 `usd_twd`、清理過的 `extra/yfinance/`）。
 - 要改成 README 的網址，欄名是 `stock_id`、lag1 和 lag2、`usd_twd_am`、`tx_day`、`tx_night`，模型欄看 manifest 的 `model_columns`（32 欄）。`date` 要日期型態就加 `parse_dates`（README 的範例已經加）。`data/raw/yfinance/` 是 Yahoo 原樣、沒清理（0052 分割前的價格沒除），不能拿舊程式直接讀。`feature_switch.ipynb` 的 `STOCK_LAG_GROUP` 要改成 lag1、lag2。push 特徵表之後通知組員（2026-11-06 第一輪檢查整理）。
 
 ## 正式流程用哪位組員的帳號
@@ -68,5 +68,5 @@
 ## Phase 2 用哪個模型
 
 - `configs/config.yaml` 先寫 LightGBM，之後依驗證結果換。
-- Phase 1 的模型見 `memory/context/competition.md`。
+- Phase 1 的模型見 `memory/context/01-competition.md`。
 - `claude/hopeful-brahmagupta-wikys1` 有 11/04 的 R4 模型研究，commit 訊息寫選了 E1 線性模型、LightGBM 沒贏 E1。選模型時可以參考。

@@ -7,7 +7,7 @@
 ## 三個檔
 
 - `stock/YYYY-MM.csv.gz`：個股表，一個月一檔，一列是「一天 × 一檔」。鍵是 `date`、`stock_id`（字串）、`is_top50`（1 是比賽的 50 檔）。接著是老師個股表 20 欄，欄名照原樣（例如 `etl:adj_close`），Training 全部，接 Live 2026-09-01 起的列。最後是證交所、櫃買四個檔，欄名加前綴：`twse_valuation_`、`twse_quotes_`、`tpex_valuation_`、`tpex_quotes_`（例如 `twse_quotes_收盤價`）。
-- `market.csv.gz`：市場表，一列是一天。`date` 是所有來源日期的聯集，某個來源那天沒有列時那幾欄空白。老師 global 6 欄加 `teacher_` 前綴（例如 `teacher_^GSPC`）；yfinance 21 個序列各 6 欄（`sox_open`、`sox_high`、`sox_low`、`sox_close`、`sox_adj_close`、`sox_volume`），序列名稱和代號見 `memory/reference/feature-table.md`；台指期日盤、夜盤各 17 欄（`tx_day_收盤價`、`tx_night_未沖銷契約數` 這類）；`vixtwn`、`vixtwn_1min_avg`；`fear_greed_score`。
+- `market.csv.gz`：市場表，一列是一天。`date` 是所有來源日期的聯集，某個來源那天沒有列時那幾欄空白。老師 global 6 欄加 `teacher_` 前綴（例如 `teacher_^GSPC`）；yfinance 21 個序列各 6 欄（`sox_open`、`sox_high`、`sox_low`、`sox_close`、`sox_adj_close`、`sox_volume`），序列名稱和代號見 `memory/reference/02-feature-table.md`；台指期日盤、夜盤各 17 欄（`tx_day_收盤價`、`tx_night_未沖銷契約數` 這類）；`vixtwn`、`vixtwn_1min_avg`；`fear_greed_score`。
 - `manifest.json`：個股表有哪些月份、兩張表的欄名和列數、每個來源的最後一天、來源檔的指紋。
 
 ## 預測 t 時每個來源能用到哪一列
@@ -25,7 +25,7 @@
 | `tx_day_*` | 台指期 d 的日盤 | d 13:45 | d 早於 t |
 | `tx_night_*` | 標 d 的夜盤：前一個交易日 15:00 到 d 05:00 | d 05:00 | d 等於 t |
 | `vixtwn`、`vixtwn_1min_avg` | d 13:45 收盤 | d 16:10 | d 早於 t |
-| `fear_greed_score` | 美國日期 d 的分數 | 最後一天的分數之後還會變 | 用特徵表的 `fear_greed_lag1`，原因見 `memory/reference/feature-table.md` 的註 6 |
+| `fear_greed_score` | 美國日期 d 的分數 | 最後一天的分數之後還會變 | 用特徵表的 `fear_greed_lag1`，原因見 `memory/reference/02-feature-table.md` 的註 6 |
 
 ## 往前接的時候要注意
 

@@ -82,7 +82,7 @@
     個股檔沒填好的列不用（見上面）。Live global 表 6 欄的 -1 是待定，當空白。
     Training 法人欄有真的 -1，但法人欄不進特徵，也不影響「填好了」的判斷。
 
-yfinance 清理：照舊爬蟲的 R0～R5 依序做（規則、測試資料、使用者的決定見 memory/projects/features.md）。
+yfinance 清理：照舊爬蟲的 R0～R5 依序做（規則、測試資料、使用者的決定見 memory/projects/03-features.md）。
     刪掉的列整列拿掉，不留空白的一列。每一筆都記在 manifest.json 的 cleaning。
 
 輸出（使用者 2026-11-06：一個月一檔，只往後加，repo 不會越來越肥；都進 Git，組員用網址讀）：

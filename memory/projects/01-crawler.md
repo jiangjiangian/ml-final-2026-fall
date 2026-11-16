@@ -21,7 +21,7 @@
   - 沒修（影響小，記著）：「回傳的日子比舊檔少」只比日期不比時段；第一次跑（沒有舊檔）時過了 08:30 還是會送完 83 個月；用比舊檔早的 t 重跑會刪掉範圍內 t 的日盤，不會洩漏，之後會補回來。
 - 2026-11-06：第一次試跑用使用者在本機建的 `.env`。GitHub Secrets 只有 GitHub 上的流程讀得到。
 - 2026-11-05：19 個 yfinance 序列都抓，爬蟲台北 07:10 開始跑。要不要用在模型上，看驗證分數。
-- 2026-11-05：輸出和 data-collection 分支（原名 peaceful-babbage）的資料對齊（2026-11-06 起 data-collection 的資料搬到這個分支，見 `memory/context/data-rules.md`）：`data/raw/teacher/training/`、`data/raw/teacher/live/`、`data/raw/yfinance/`（2026-11-06 前叫 `teacher/`、`teacher_live/`）對應舊的 `data/teacher/`、`data/teacher_live/`、`data/extra/yfinance/`，19 個代號、檔名、欄位都一樣。
+- 2026-11-05：輸出和 data-collection 分支（原名 peaceful-babbage）的資料對齊（2026-11-06 起 data-collection 的資料搬到這個分支，見 `memory/context/05-data-rules.md`）：`data/raw/teacher/training/`、`data/raw/teacher/live/`、`data/raw/yfinance/`（2026-11-06 前叫 `teacher/`、`teacher_live/`）對應舊的 `data/teacher/`、`data/teacher_live/`、`data/extra/yfinance/`，19 個代號、檔名、欄位都一樣。
 - 2026-11-05：成交量要 > 0 只檢查個股和 ETF（TSM、NVDA、四檔台灣 ETF），和舊分支清理規則用成交量的範圍一樣。其他序列只查日期。
 - 2026-11-05：爬蟲存 Yahoo 給的原樣，清理（壞報價、佔位K棒、0052 分割、殖利率假日K棒）放在 `features.py`，規則照舊分支。
 - 2026-11-05：t 當天早上 i 那列還是 `-1`（像 10-23）時，改用早於 t 最後一個填好的交易日當 i，照常預測上傳，manifest 記 `prev_day`（實際用的那天）和 `prev_day_never_filled: true`，通知組員。`features.py` 照同一條規則。
@@ -34,18 +34,18 @@
   - 檔案：`data/raw/open_today/kospi.csv`、`n225.csv`，欄位 `date, open, prev_close, fetched_at`，一天一列。結果另外寫進 `data/raw/manifest.json` 的 `open_today`（manifest 是 t 的才寫；隔天 `crawl()` 重寫 manifest 時這段會不見）。
   - 量到的：Yahoo `^KS11` 晚 20 分、`^N225` 晚 15 分；日K的 Open 等於當地 09:00 那根一分鐘K棒的 open；`chartPreviousClose` 和 Naver 的昨收一樣（5239.13、60459.58）。Yahoo 以為韓國 15:00 收盤，一分鐘K棒只到 14:59，不影響開盤。
   - 2026-11-11 15:21 在 Mac 用真的 Yahoo 跑過：5 秒、兩個序列都第一次就抓到。11-11 那列是下午補抓的（`fetched_at` 是 15:2x），kospi −0.56%、n225 +0.11%，特徵表只有這兩格變。測試 `tests/test_open_today.py` 32 個，全部 473 個通過。
-  - oop 的 crontab 加 `25 8 * * *`（`deploy/crontab.txt`），11-11 15:29 手動加好。15:28 推上去（`e7df485` 程式、`175fbe6` 11-11 的資料），oop 拉到 `175fbe6`，新測試 32 個通過，從 oop 用真的 Yahoo 抓到暫存資料夾：6 秒、兩個序列都第一次就 ok。11-12 08:25 第一次正式跑，要看的事在 `memory/context/open-questions.md`。
+  - oop 的 crontab 加 `25 8 * * *`（`deploy/crontab.txt`），11-11 15:29 手動加好。15:28 推上去（`e7df485` 程式、`175fbe6` 11-11 的資料），oop 拉到 `175fbe6`，新測試 32 個通過，從 oop 用真的 Yahoo 抓到暫存資料夾：6 秒、兩個序列都第一次就 ok。11-12 08:25 第一次正式跑，要看的事在 `memory/context/03-open-questions.md`。
   - 2026-11-12 第一次正式跑的結果：08:25:05 開始，`open_today.status` ok，kospi、n225 的 `attempts` 都是 1（08:25:09、08:25:11 存好），所以 08:25 已經有當天的K棒，不用往後移。kospi 5385.94 ÷ 5375.36（+0.20%）、n225 61475.11 ÷ 61248.59（+0.37%）。特徵 08:25:24 重寫完（13 秒），接著推上去。
   - 同一天 VIXTWN、CNN 第一次正式跑：07:10 那次停在 `git pull`（學校 DNS），07:25 那次交件（07:28）。VIXTWN ok、`has_prev_day` True。CNN 連線失敗（ConnectionError，`start` 是 `2026-10-13`），t 那列的 `fear_greed_*` 空白、log 有警告，和設計的一樣，隔天補。
 - 2026-11-09（open-questions 2026-11-08 的建議）：抓的順序改成 1h 先，再照 `fetch_order()` 抓日K：`features.model_series` 裡的先，其他照 config 的順序；缺 i 那根的重抓也照這個順序。1h 和日K共用同一個限流斷路器，截止的規則不變。過了截止或斷路器跳開時，先被跳過的是不在模型裡的序列。`manifest.json` 的 `yfinance` 最後照 config 的順序排（日K、再 1h），每天的 diff 不會因為抓的順序變大。
-- 2026-11-09 修 `usd_twd_am` 的舊K棒（使用者 2026-11-08 同意的定義）：`hourly_has_value(rows, target, lookback_days, prev_target)` 的 `prev_target` 是 i 的 06:00。選到的K棒要在 4 天內結束，而且晚於 `prev_target`；不知道 i 時照舊只看 4 天。`has_value_t` 是 False 時，`usd_twd_1h` 進 `run.no_bar_i` 並寫警告。週一的 t、i 是週五時，週六清晨結束的那根（紐約週五收盤）晚於週五 06:00，算有。用本機的 1h 檔試算，2024-01-23 起的 673 個交易日新舊規則沒有一天不同；用本機現在的檔（最後一根 11-06 06:00 結束）算 t = 11-09 是 False，要連網抓過新的 1h 才有值。features 那邊的規則見 `memory/projects/features.md` 的 `usd_twd_am`。
+- 2026-11-09 修 `usd_twd_am` 的舊K棒（使用者 2026-11-08 同意的定義）：`hourly_has_value(rows, target, lookback_days, prev_target)` 的 `prev_target` 是 i 的 06:00。選到的K棒要在 4 天內結束，而且晚於 `prev_target`；不知道 i 時照舊只看 4 天。`has_value_t` 是 False 時，`usd_twd_1h` 進 `run.no_bar_i` 並寫警告。週一的 t、i 是週五時，週六清晨結束的那根（紐約週五收盤）晚於週五 06:00，算有。用本機的 1h 檔試算，2024-01-23 起的 673 個交易日新舊規則沒有一天不同；用本機現在的檔（最後一根 11-06 06:00 結束）算 t = 11-09 是 False，要連網抓過新的 1h 才有值。features 那邊的規則見 `memory/projects/03-features.md` 的 `usd_twd_am`。
 
 ## 證交所、櫃買的回補（2026-11-08）
 
 ### 狀態
 
 - 2026-11-08：使用者同意做研究用的回補，只收資料，不動 `features.py`、`online_lr.py`、`run_daily_test.py`、`data/processed/` 和每天的爬蟲。程式在 `src/crawler.py` 的「證交所、櫃買中心」那段（`ExchangeBackfill`、`exchange_backfill()`），離線測試是 `tests/test_exchange.py`。
-- 2026-11-09：回補跑完（台北 00:18～06:36，在開發用的 clone）。2020-01-02～2026-11-06 共 1,662 天，6,644 個請求，四個來源都沒有失敗、no_data、被擋。證交所兩個檔各 150,218 列，櫃買各 15,949 列。2026-11-08 決定的長表 9 欄讀這四個檔（見 `memory/projects/features.md`）。
+- 2026-11-09：回補跑完（台北 00:18～06:36，在開發用的 clone）。2020-01-02～2026-11-06 共 1,662 天，6,644 個請求，四個來源都沒有失敗、no_data、被擋。證交所兩個檔各 150,218 列，櫃買各 15,949 列。2026-11-08 決定的長表 9 欄讀這四個檔（見 `memory/projects/03-features.md`）。
 - 2026-11-09：每日模式寫好（見下面「每天的步驟」），`exchange.enabled` 還是 false。
 - 2026-11-10：使用者打開 `exchange.enabled`（選「今晚打開」；Claude 上午改好、推上去，下一次排程本來就是 11-11 07:10，和晚上打開一樣）。11-11 第一次跑要補 11-09、11-10 兩天，每個主機 4 個請求。測試的 `cfg` 夾具（`tests/test_crawler.py`、`test_exchange.py`）改成把開關關掉，要測這一步的測試自己打開（`daily_cfg`、`test_crawl_exchange_failure_does_not_change_the_exit_code`），不然 `crawl()` 的測試會跑真的交易所那步、碰 `.cache/` 的鎖。
 - 2026-11-10 推上去之後在 oop 驗過：pull 到 `c749dda`、333 個測試通過，`.cache/` 沒有多出交易所的鎖檔。用暫存資料夾當 `raw_dir` 跑這一步（研究模式，t = 11-10，i = 11-09）：09:01 第一次證交所兩個請求都是 ConnectionError、櫃買 9 檔正常；09:03 再跑四個來源都 ok（證交所 91 檔、櫃買 9 檔，11-09 的列接在舊檔後面，舊列不變），每個主機 2 個請求。第一次多半是學校 DNS 一時查不到證交所（它 CNAME 到中華電信的 CDN；11-09 下午也只有證交所查不到）。每天的設定不重試，遇到時那天證交所的欄先空白，隔天的爬蟲補。暫存資料夾跑完就刪了。
@@ -140,7 +140,7 @@
 
 - 2026-11-09：使用者要每天的 VIXTWN（臺指選擇權波動率指數）收盤值和 CNN Fear & Greed。做到原始檔、長表研究欄、每天的爬蟲；不進 `model_columns`。
 - VIXTWN 歷史只用免費的官方檔（2026-08-03 起），之後每天累積。不買、不自己用選擇權行情算、不找第三方。
-- CNN 最後一天的分數如果到台股開盤後還會被改，就用再前一個美股交易日的分數（見 `memory/context/data-rules.md`）。量測和推的時間見 `memory/context/open-questions.md`。
+- CNN 最後一天的分數如果到台股開盤後還會被改，就用再前一個美股交易日的分數（見 `memory/context/05-data-rules.md`）。量測和推的時間見 `memory/context/03-open-questions.md`。
 
 ### VIXTWN 的來源（2026-11-09 查）
 
@@ -180,7 +180,7 @@
 
 ### CNN 量測紀錄（2026-11-09～11-11）
 
-- 量測定案用 `second_last`（2026-11-10，結論在 `memory/projects/features.md`）。紀錄：oop `~/pubtime/cnn_probe.py` 寫 `~/pubtime/cnn_log.jsonl` 和 `cnn_snap_*.json`，11-09 17:35～11-11 07:12 共 39 次（美股開收盤、台北 07:10、09:15 前後），11-10 16:00、11-11 07:12 抓全部歷史。19:00 那次碰到學校 DNS 斷線沒抓到；19:18 換成第 3 版（PID 136777）：網路錯誤隔 15 秒重試、最多 4 次，每次用沒人要過的開始日（同一個網址 Fastly 會先回上一次的舊版，見 `memory/projects/crawler.md` 的 CDN 快取），log 多記 `cache`（`Age`、`X-Cache`）。分析時看 `cache` 是 `MISS, MISS` 的點；17:33、17:35 那兩次是第一次要那個網址，可以用，19:15 那次是舊版，不能用；21:00 那次 DNS 斷線，重試 4 次都失敗。另外一個乾淨的點（Mac 試跑新程式，`MISS, MISS`，美股 11-09 開盤後）：台北 11-10 00:17，`now.timestamp` 2026-11-09T16:16:50Z，11-06 那點 24.3532（22:20 開盤前是 24.17），11-09 那點 32.2857。到 11-10 08:30 量到的（都是 `MISS, MISS`）：11-06 那點在 14:33Z（美股開盤後 3 分鐘）還等於即時分數 24.153，14:44Z 起停在 24.353 沒再變，等於在美國下一個交易日開盤後 3～14 分鐘內定住。11-09 那點收盤後 21:24Z 起是 31.714，到台北 11-10 08:30 都沒變；`now.timestamp` 從 23:59Z（美東 18:59）起不再更新，台北 08:30 還沒有 11-10 那點。11-09 那點在台北 11-10 09:00 之後會不會變，要看 09:15 前後的點（美股 VIX 夜盤台北 09:15 開始）。量到了（2026-11-10）：11-09 那點從美股收盤到台北 11-10 13:00 都是 31.714（09:00、09:10、10:30、13:00 都是 `MISS, MISS`，09:15 夜盤開始沒有影響），13:00 還沒有 11-10 那點。台北 19:03（美股盤前，Mac 抓，`MISS, MISS`）11-09 那點變成 33.229，等於即時分數，也多了 11-10 那點；回應的 `previous_close` 是 31.714。所以最後一天的點在收盤後還會跟著下一個美股交易日的盤前變，到開盤後 3～14 分鐘才定住，定住的值是下一天開盤後約 10 分鐘的分數，不是那天收盤的分數。結論：維持 `second_last`，用 `prev_day` 的話歷史列會用到 t 當天晚上才有的值。同一次抓全部歷史（開始日 2020-12-15），和 11-09 17:06 的快照比 1,481 天：只有 11-06、11-09 兩點不同，11-05 以前沒有一天被改、消失或多出來。量測 11-11 07:12 結束（42 筆）。11-10 晚上的點（`MISS, MISS`）：11-09 那點 22:35（美股開盤後 4 分鐘）還等於即時分數 31.543，22:50 起停在 31.514，到 11-11 07:12 沒再變；11-06 那點一直是 24.353；11-10 那點跟著即時分數走（07:12 是 33.457）。所以最後一天在下一個美股交易日開盤後 4～19 分鐘之間定住，兩次量到的都一樣。11-10 16:00（讀取逾時）、19:00、21:00、23:30（DNS）沒抓到，22:20 那筆是 `MISS, HIT`（舊版），不算。最後一天的分數要是在台北 t 日 09:00 前就定住（而且等於 07:10 抓到的值），就和 `vix` 一樣用美國 i 那天；之後還會變，就用 t 之前最後一個美股交易日的前一個美股交易日（美股交易日看道瓊的K棒，現在的設定 `features.fear_greed.day: second_last`，見 `memory/projects/features.md`，使用者 2026-11-09 選的）。舊日子的值如果也會被改，再問使用者。Mac 17:06 的全歷史快照在 session 的 scratchpad（`fgprobe/fg_2020-09-19.json`，session 結束會消失）。
+- 量測定案用 `second_last`（2026-11-10，結論在 `memory/projects/03-features.md`）。紀錄：oop `~/pubtime/cnn_probe.py` 寫 `~/pubtime/cnn_log.jsonl` 和 `cnn_snap_*.json`，11-09 17:35～11-11 07:12 共 39 次（美股開收盤、台北 07:10、09:15 前後），11-10 16:00、11-11 07:12 抓全部歷史。19:00 那次碰到學校 DNS 斷線沒抓到；19:18 換成第 3 版（PID 136777）：網路錯誤隔 15 秒重試、最多 4 次，每次用沒人要過的開始日（同一個網址 Fastly 會先回上一次的舊版，見 `memory/projects/01-crawler.md` 的 CDN 快取），log 多記 `cache`（`Age`、`X-Cache`）。分析時看 `cache` 是 `MISS, MISS` 的點；17:33、17:35 那兩次是第一次要那個網址，可以用，19:15 那次是舊版，不能用；21:00 那次 DNS 斷線，重試 4 次都失敗。另外一個乾淨的點（Mac 試跑新程式，`MISS, MISS`，美股 11-09 開盤後）：台北 11-10 00:17，`now.timestamp` 2026-11-09T16:16:50Z，11-06 那點 24.3532（22:20 開盤前是 24.17），11-09 那點 32.2857。到 11-10 08:30 量到的（都是 `MISS, MISS`）：11-06 那點在 14:33Z（美股開盤後 3 分鐘）還等於即時分數 24.153，14:44Z 起停在 24.353 沒再變，等於在美國下一個交易日開盤後 3～14 分鐘內定住。11-09 那點收盤後 21:24Z 起是 31.714，到台北 11-10 08:30 都沒變；`now.timestamp` 從 23:59Z（美東 18:59）起不再更新，台北 08:30 還沒有 11-10 那點。11-09 那點在台北 11-10 09:00 之後會不會變，要看 09:15 前後的點（美股 VIX 夜盤台北 09:15 開始）。量到了（2026-11-10）：11-09 那點從美股收盤到台北 11-10 13:00 都是 31.714（09:00、09:10、10:30、13:00 都是 `MISS, MISS`，09:15 夜盤開始沒有影響），13:00 還沒有 11-10 那點。台北 19:03（美股盤前，Mac 抓，`MISS, MISS`）11-09 那點變成 33.229，等於即時分數，也多了 11-10 那點；回應的 `previous_close` 是 31.714。所以最後一天的點在收盤後還會跟著下一個美股交易日的盤前變，到開盤後 3～14 分鐘才定住，定住的值是下一天開盤後約 10 分鐘的分數，不是那天收盤的分數。結論：維持 `second_last`，用 `prev_day` 的話歷史列會用到 t 當天晚上才有的值。同一次抓全部歷史（開始日 2020-12-15），和 11-09 17:06 的快照比 1,481 天：只有 11-06、11-09 兩點不同，11-05 以前沒有一天被改、消失或多出來。量測 11-11 07:12 結束（42 筆）。11-10 晚上的點（`MISS, MISS`）：11-09 那點 22:35（美股開盤後 4 分鐘）還等於即時分數 31.543，22:50 起停在 31.514，到 11-11 07:12 沒再變；11-06 那點一直是 24.353；11-10 那點跟著即時分數走（07:12 是 33.457）。所以最後一天在下一個美股交易日開盤後 4～19 分鐘之間定住，兩次量到的都一樣。11-10 16:00（讀取逾時）、19:00、21:00、23:30（DNS）沒抓到，22:20 那筆是 `MISS, HIT`（舊版），不算。最後一天的分數要是在台北 t 日 09:00 前就定住（而且等於 07:10 抓到的值），就和 `vix` 一樣用美國 i 那天；之後還會變，就用 t 之前最後一個美股交易日的前一個美股交易日（美股交易日看道瓊的K棒，現在的設定 `features.fear_greed.day: second_last`，見 `memory/projects/03-features.md`，使用者 2026-11-09 選的）。舊日子的值如果也會被改，再問使用者。Mac 17:06 的全歷史快照在 session 的 scratchpad（`fgprobe/fg_2020-09-19.json`，session 結束會消失）。
 
 ## 查到的事實
 
@@ -379,7 +379,7 @@
   - 冬令週一 05:00（台北）那根 1h 是不是真的不存在（2026-11-06 加）。
   - 07:10 時 Live t 那列的 `^VIX` 是不是 `-1`。
   - `git diff data/raw/teacher/training` 要是空的；`data/raw/teacher/live` 只多新的列。
-  - 跑完做 `features.py` 的對照測試 (b)（見 `memory/projects/features.md`）。
+  - 跑完做 `features.py` 的對照測試 (b)（見 `memory/projects/03-features.md`）。
   - 1h 第一次用 `period="730d"`、`prepost=True` 抓（`prepost=True` 還沒對真的 Yahoo 試過）：第一根約在 2024-01，平日一天約 24 根，`has_value_t` 是 true（2026-11-06 加）。
   - 跑完 features 後，`data/processed/manifest.json` 的 `warnings` 要是空的，才 commit `data/processed/`（2026-11-06 加）。
   - 2026-11-06 第一次連網發現：Yahoo 的最後一根成交量之後還會改（凍結檔 11/04 那根：tsm_adr +0.51%、nvda +0.47%、wti +20.7%、gold +42.7%），而且期貨最後一根的成交量會先填成前一根的值（wti、gold 11/04 和 11/05 一樣），所以 `low_volume_last_bar_kept` 這道防線實際上不會觸發。成交量只有 R3 用到（6 個個股和 ETF），不影響特徵。

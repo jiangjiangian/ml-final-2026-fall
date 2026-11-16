@@ -1,5 +1,5 @@
 """使用者 2026-11-08 決定加的欄：證交所、櫃買的估值和委買賣、日韓開盤跳空、老師 S&P 500 和 Nasdaq 用 t 那列的版本，
-以及 usd_twd_am 的舊K棒規則。定義見 memory/projects/features.md「使用者的決定」。全部離線。"""
+以及 usd_twd_am 的舊K棒規則。定義見 memory/projects/03-features.md「使用者的決定」。全部離線。"""
 
 import gzip
 import json

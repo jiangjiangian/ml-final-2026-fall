@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .venv/
+.venv-*/
 .pytest_cache/
 .ipynb_checkpoints/
 
@@ -26,4 +27,14 @@ data/raw/**/.*.tmp
 .claude/settings.local.json
 graphify-out/
 
-# data/raw/、data/processed/、data/submission/、models/、tests/fixtures/ 都要進 Git（原因見 memory/context/data-rules.md「資料放在這個分支」）
+# data/raw/、data/processed/、data/submission/、models/、tests/fixtures/ 都要進 Git（原因見 memory/context/05-data-rules.md「資料放在這個分支」）
+
+# Kaggle 用的資料集：老師資料不 commit 進這個分支（notebooks/README.md 的規定），特徵 cache 可以重算
+notebooks/kaggle/data/raw/
+notebooks/kaggle/data/*.parquet
+notebooks/kaggle/data/*.parquet.meta.json
+
+# notebook 的本機檔（notebooks/README.md 的整理原則）：組員 notebook 的輸入檔和資料捷徑、從 Kaggle 下載回來的輸出
+notebooks/teammate/*.csv
+notebooks/teammate/data/
+notebooks/kaggle/**/output/

@@ -1,6 +1,6 @@
 # 每天交件的模型
 
-`configs/config.yaml` 的 `daily_model` 選模型（名字和檔案的對照在 `src/models/__init__.py`，選和換備援的程式在 `src/pipeline/step3_train_predict.py`）：`kind` 是主模型，`fallback` 是它算不出來時照順序改用的備援。改完 push，oop 下一次執行就生效。2026-11-12 早上起用 `persist`；同一天晚上使用者決定換成 `rank_ensemble`。2026-11-15 晚上使用者決定換成 `c2v2d`，備援是 `[c2, rank_ensemble, persist, online_lr]`，11-16 07:10 起生效；12-06 再看要不要改成 `c2`。決定的經過和驗證在 `memory/context/pipeline.md` 的「每天交件的模型」。
+`configs/config.yaml` 的 `daily_model` 選模型（名字和檔案的對照在 `src/models/__init__.py`，選和換備援的程式在 `src/pipeline/step3_train_predict.py`）：`kind` 是主模型，`fallback` 是它算不出來時照順序改用的備援。改完 push，oop 下一次執行就生效。2026-11-12 早上起用 `persist`；同一天晚上使用者決定換成 `rank_ensemble`。2026-11-15 晚上使用者決定換成 `c2v2d`，備援是 `[c2, rank_ensemble, persist, online_lr]`，11-16 07:10 起生效；12-06 再看要不要改成 `c2`。決定的經過和驗證在 `memory/context/02-pipeline.md` 的「每天交件的模型」。
 
 ## c2v2d：排名集成加上大盤方向的傾斜（現在用的）
 
@@ -15,7 +15,7 @@
 
 回測（notebook 44，2025-01-02～2026-10-08）：每天比 `rank_ensemble` 多 +0.000324（t 2.54），`c2`（14 個狀態，沒有長表那 9 欄）多 +0.000285。MT 24 拆開來看：一部分等於「依大盤預測換高低 β」的押注，另外每天約 +0.00018 跟著 p 走，是個股層級的效應。
 
-2021 的確認沒過（Kaggle notebook 42，2021-01-11～12-30 共 239 天）：C2v2d 每天比原版少 0.000228（t −1.11），虧在換高低 β 的那塊。2026-11-15 晚上約 21:55 使用者在特徵組的 session 看過後選維持 C2v2d（特徵組轉述，見 `memory/context/pipeline.md`「2026-11-15 晚上換成 C2v2d」）。在正式流程每天重訓的排名上重量（notebook 46c，2025-01-02～2026-10-08 的 428 天）：每天多 +0.000279（t 2.29），和 notebook 44 是同一批日子，只說明換成正式的排名結果不變，不算新的證據。
+2021 的確認沒過（Kaggle notebook 42，2021-01-11～12-30 共 239 天）：C2v2d 每天比原版少 0.000228（t −1.11），虧在換高低 β 的那塊。2026-11-15 晚上約 21:55 使用者在特徵組的 session 看過後選維持 C2v2d（特徵組轉述，見 `memory/context/02-pipeline.md`「2026-11-15 晚上換成 C2v2d」）。在正式流程每天重訓的排名上重量（notebook 46c，2025-01-02～2026-10-08 的 428 天）：每天多 +0.000279（t 2.29），和 notebook 44 是同一批日子，只說明換成正式的排名結果不變，不算新的證據。
 
 上線前的檢查（2026-11-15，Kaggle `c2-tilt-production-code-check`，用 commit `748db97` 的程式）：
 

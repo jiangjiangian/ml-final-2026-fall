@@ -10,7 +10,7 @@
        組員已經手動交了的日子也做（自己跑爬蟲和特徵），一天只做一次。
     5. 收尾（wrap_up）：08:25 那次補日韓當天的開盤（只進長表）、step5_merge_raw 合併原始資料、推 data/。
 
-排程（memory/context/pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05、08:25（deploy/crontab.txt）。
+排程（memory/context/02-pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05、08:25（deploy/crontab.txt）。
 網站上已經有 t 的提交就直接結束，所以排很多次也不會重複上傳。
 之前的執行已經送出（upload_log 有「準備上傳」）卻沒有核對完成時，不再自動重送，留給人確認。
 
@@ -346,7 +346,7 @@ def sync_with_github(from_command_line: bool) -> tuple:
 
     這支檔案被 pull 更新時，用新版重新執行一次（os.execve 不會回來；鎖的 fd 不會傳下去，新的那次重新拿鎖）。
     重新執行的是排程當初叫的那支：cron 叫 run_daily_test.py 時從它開始，退回舊版（它又變回正式的主程式）時也接得上。
-    crontab 改成直接叫 run_daily.py 之後，回滾時這支不能變回骨架（memory/context/pipeline.md「檔案結構為什麼這樣」）。
+    crontab 改成直接叫 run_daily.py 之後，回滾時這支不能變回骨架（memory/context/02-pipeline.md「檔案結構為什麼這樣」）。
     """
     before = digest(SCRIPT)
     try:
@@ -485,7 +485,7 @@ def requirements_note() -> str | None:
     if not stamp.exists():
         return None
     if stamp.read_text().split()[0:1] != [digest(ROOT / "requirements.txt")]:
-        return "requirements.txt 和安裝時不一樣：套件可能要重裝（memory/reference/runner-hosts.md）"
+        return "requirements.txt 和安裝時不一樣：套件可能要重裝（memory/reference/06-runner-hosts.md）"
     return None
 
 

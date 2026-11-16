@@ -6,7 +6,7 @@
 
 - t 是預測日，i 是 t 之前最後一個台股交易日。時間都是台北時間。
 - 每一格只用台股 t 開盤（09:00）前就知道的值。唯一的例外是 `*_open_gap`，見註 4。
-- 「模型用」指 `manifest.json` 的 `model_columns`（55 欄），組員的邏輯迴歸 `online_lr` 用它。現在每天交件的排名集成只讀這張表的 `stock_ret_lag1`、`stock_ret_lag2` 和答案欄，其他欄從老師的個股檔自己算（見 `memory/reference/daily-model.md`）。
+- 「模型用」指 `manifest.json` 的 `model_columns`（55 欄），組員的邏輯迴歸 `online_lr` 用它。現在每天交件的排名集成只讀這張表的 `stock_ret_lag1`、`stock_ret_lag2` 和答案欄，其他欄從老師的個股檔自己算（見 `memory/reference/05-daily-model.md`）。
 - 請用欄名讀，不要用位置。欄的順序：鍵、產業、個股、yfinance、老師 global、`usd_twd_am`、台指期、只給研究的 19 欄、答案。
 
 110 欄怎麼來：3 個鍵、3 個產業欄、2 個答案、個股 25 欄、29 個序列各 2 欄（58 欄）、只給研究的 19 欄。
@@ -17,7 +17,7 @@
 
 - i−k 數的是這個序列自己的交易日，例如美股就數美股開盤的日子。
 - 股票和 ETF 用還原價（adj_close），其他用收盤價。
-- Yahoo 的資料先清理過（規則在 `memory/projects/features.md`），被拿掉的K棒當成沒有。
+- Yahoo 的資料先清理過（規則在 `memory/projects/03-features.md`），被拿掉的K棒當成沒有。
 
 總表裡寫「一般」的空白規則是這三條：
 
@@ -124,7 +124,7 @@
 ### 註 5：交易所 9 欄的共同規則
 
 - t 那列存 i 那天收盤後的值本身，沒有和前一天比。`lag1` 指的是用 i 那天。
-- 來源是 `data/raw/twse/`、`data/raw/tpex/`（見 `memory/reference/exchange-backfill.md`）。這檔股票在哪個交易所有 i 那天的列就用哪邊，6446 在 2024-01-25 從櫃買轉上市。
+- 來源是 `data/raw/twse/`、`data/raw/tpex/`（見 `memory/reference/03-exchange-backfill.md`）。這檔股票在哪個交易所有 i 那天的列就用哪邊，6446 在 2024-01-25 從櫃買轉上市。
 - 兩個交易所都沒有這檔 i 那天的列（停牌、還沒抓）時，9 欄都空白，不往前找。停牌那天交易所照樣有列（開高低收是 `--` 或 `----`、成交股數 0，估值沿用前一天），也當成沒有列。2020-01～2026-11 有 21 個這樣的股票日。
 - oop 早上抓不到交易所的那天先空白，之後 10 個交易日內補上。
 - 價格是交易所的原始價，沒有還原除權息，不要和老師的還原價混用。

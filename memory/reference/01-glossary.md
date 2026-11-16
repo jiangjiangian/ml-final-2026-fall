@@ -25,7 +25,7 @@
 - 額外指標：老師資料以外，用 yfinance 抓的 21 個序列（清單在 `configs/config.yaml` 的 `yfinance.tickers`）。
 - 台指期：期交所的臺股期貨（代號 TX）。日盤 08:45～13:45；夜盤（盤後交易時段）15:00 到隔天 05:00，期交所把它算在隔天的交易日。
 - 近月合約：到期月最早的那個合約。每月第三個週三到期，之後換成下一個月，兩個月的價格本來就有差距（價差）。
-- `tx_day`、`tx_night`：台指期日盤、夜盤的特徵，算法見 `memory/projects/features.md`。
+- `tx_day`、`tx_night`：台指期日盤、夜盤的特徵，算法見 `memory/projects/03-features.md`。
 
 ## 程式
 

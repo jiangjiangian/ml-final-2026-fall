@@ -113,5 +113,15 @@
     "tradingDate": "2026-11-13",
     "enabled": 1,
     "isCompetition": 0
+  },
+  {
+    "tradingDate": "2026-11-16",
+    "enabled": 1,
+    "isCompetition": 1
+  },
+  {
+    "tradingDate": "2026-11-17",
+    "enabled": 1,
+    "isCompetition": 1
   }
 ]

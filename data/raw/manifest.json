@@ -1,16 +1,13 @@
 {
   "run": {
-    "started_at": "2026-11-13T07:10:06+08:00",
-    "target_date": "2026-11-13",
+    "started_at": "2026-11-16T18:11:48+08:00",
+    "target_date": "2026-11-16",
     "mode": "daily",
     "status": "ok",
-    "prev_day": "2026-11-12",
-    "no_bar_i": [
-      "stoxx50e",
-      "kospi"
-    ],
-    "finished_at": "2026-11-13T07:12:31+08:00",
-    "yahoo_requests": 25,
+    "prev_day": "2026-11-13",
+    "no_bar_i": [],
+    "finished_at": "2026-11-16T18:14:14+08:00",
+    "yahoo_requests": 45,
     "yahoo_redirects": 0,
     "site_requests": 5,
     "taifex_requests": 1
@@ -24,7 +21,7 @@
   "phase2_days": {
     "status": "ok",
     "file": "phase2_days.json",
-    "days": 23
+    "days": 25
   },
   "teacher_live": {
     "status": "ok",
@@ -32,12 +29,12 @@
     "attempts": 1,
     "fallback_from": null,
     "error": null,
-    "zip_sha256": "31f94334e270aff1ad8083b83f8b0fafc7c1f951518c325882b16fe9a2757b56",
-    "files_sha256": "fcf52e4cc82dd922640beea9f445dd3b25f4924b9f2b092e12da2c291c974bad",
-    "date_max": "2026-11-13",
+    "zip_sha256": "4f7a07a83cbcd7f9c6bf9d54636772448f62d6615c217f28085104de83fd3efe",
+    "files_sha256": "cc181d343ae5a6d031b2e75c2267681888ab33acb2b1213a7b07136c4038603d",
+    "date_max": "2026-11-16",
     "has_t_row": true,
-    "prev_day": "2026-11-12",
-    "prev_day_planned": "2026-11-12",
+    "prev_day": "2026-11-13",
+    "prev_day_planned": "2026-11-13",
     "prev_day_never_filled": false,
     "prev_day_missing_stocks": []
   },
@@ -53,9 +50,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1726,
-      "date_max": "2026-11-12",
-      "sha256": "e43d1cecf61c33f0e38ed4d753fe7420ceab1c24b22242c9153487306f47d807",
+      "rows": 1727,
+      "date_max": "2026-11-13",
+      "sha256": "433ef80330dc679eec565bb9a7680118b8140adf70d506f09203e1d904672cff",
       "has_bar_i": true
     },
     "tsm_adr": {
@@ -69,9 +66,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1726,
-      "date_max": "2026-11-12",
-      "sha256": "8dcefed7674d7b742904aa4fe700439abcf33465e8e23a29040f5826a25b028c",
+      "rows": 1727,
+      "date_max": "2026-11-13",
+      "sha256": "d98120edf31006beb1d3c9e10a2c1e7854823ca1e5989402a3ea19b8961c7817",
       "has_bar_i": true
     },
     "nvda": {
@@ -85,9 +82,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1726,
-      "date_max": "2026-11-12",
-      "sha256": "dbb34773edb6e9dcdeb6b1bd3bcab30ba5b8b49701daae03f54eef02fc933e98",
+      "rows": 1727,
+      "date_max": "2026-11-13",
+      "sha256": "a245f1a2142d9eedde9dd600d400ad65018a48357bd36acab26f1681509c4de6",
       "has_bar_i": true
     },
     "usd_twd": {
@@ -101,9 +98,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1787,
-      "date_max": "2026-11-12",
-      "sha256": "8e319d4412dfdc4e0dad1b35cf81468a46eb257ab8a7da22b0b675096963f30c",
+      "rows": 1788,
+      "date_max": "2026-11-13",
+      "sha256": "144105bf54f2fc47800ddd92d4ec4943b5669e3f1677b3d3330cc64e89965d0f",
       "has_bar_i": true
     },
     "dxy": {
@@ -117,9 +114,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1728,
-      "date_max": "2026-11-12",
-      "sha256": "3ff4f7c0c3a7a173b321abe8962cb2eb5fa5e56d01b3e83f25a4a1bd35ca4496",
+      "rows": 1729,
+      "date_max": "2026-11-13",
+      "sha256": "89b65b6b9ba5b7a4d3937c01ad235cd15280ed1554e1a0ddca971f5b22d86a60",
       "has_bar_i": true
     },
     "us10y": {
@@ -133,9 +130,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1726,
-      "date_max": "2026-11-12",
-      "sha256": "efdfba466152f99613d83ef9666dcf83e8ac0b3767b766e492a91f629922d27f",
+      "rows": 1727,
+      "date_max": "2026-11-13",
+      "sha256": "d1b3f8cfc0b89f43f1275f937cdbd159eef4cbaef82a08cd2b0607aad05bad63",
       "has_bar_i": true
     },
     "us13w": {
@@ -149,9 +146,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1726,
-      "date_max": "2026-11-12",
-      "sha256": "69e3235db7c2d01c69bcebca82b0a75add001234f29820df164133836d6fda53",
+      "rows": 1727,
+      "date_max": "2026-11-13",
+      "sha256": "b127176bb36e2b085f117f74cd590c1736b0b28488463736719647075808ce46",
       "has_bar_i": true
     },
     "etf_0050": {
@@ -165,9 +162,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1666,
-      "date_max": "2026-11-12",
-      "sha256": "fefb9b1c0127e7754b03712a27095fb3a57d46968918755aa5a585397ba2f5fb",
+      "rows": 1667,
+      "date_max": "2026-11-13",
+      "sha256": "d9eed670a2673f089c14ddfab95c0fe679257995e841567889bb82ccde6421d5",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -181,9 +178,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1666,
-      "date_max": "2026-11-12",
-      "sha256": "238ab8b0a84e97736278b9dee8f7bfc77d9482d43fd5d336ab4ab08f2244e17d",
+      "rows": 1667,
+      "date_max": "2026-11-13",
+      "sha256": "d93f6eb9d3829370bab16d4597ff8c6883359252bc175607b149020627d1918e",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -197,9 +194,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1666,
-      "date_max": "2026-11-12",
-      "sha256": "662acfceacdcbb61613bface129d02cc5589ef5139f42fc6066bf5a50d8e2dfd",
+      "rows": 1667,
+      "date_max": "2026-11-13",
+      "sha256": "362dbdfae5c69ec39b548f9e345b6a45de7e6d6f251f29b13d7f2a367e084b25",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -213,9 +210,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1666,
-      "date_max": "2026-11-12",
-      "sha256": "0781af052a22b8f4a406ef42b19d8081807e372c5a30879238390fec2ef3b21a",
+      "rows": 1667,
+      "date_max": "2026-11-13",
+      "sha256": "68c00acc16c7f475b61c1000be552a0a67f407f688c02aee66bb43e8037fcac9",
       "has_bar_i": true
     },
     "dji": {
@@ -229,9 +226,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1726,
-      "date_max": "2026-11-12",
-      "sha256": "7bfd2946834f0746d5f8bb8700b6f12ab22abb816dec5a411754b8aca94becf5",
+      "rows": 1727,
+      "date_max": "2026-11-13",
+      "sha256": "d50bfac1202e4d0df71333a14adb224b24dc80c51ca34abfbd649af18693cd09",
       "has_bar_i": true
     },
     "n225": {
@@ -245,9 +242,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1674,
-      "date_max": "2026-11-12",
-      "sha256": "577777646c27751e2187364def0e12d1b90fae45246847211bc90c28e591e244",
+      "rows": 1675,
+      "date_max": "2026-11-13",
+      "sha256": "e03c04b00c10ec79b5293c33192caad7f8fa9a22da441540475042ea53c81cbb",
       "has_bar_i": true
     },
     "hsi": {
@@ -261,9 +258,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1689,
-      "date_max": "2026-11-12",
-      "sha256": "6bb29f3484d7e4144a2c02dd928fc475962603ee426c3a3d4294c2f0c20b2683",
+      "rows": 1690,
+      "date_max": "2026-11-13",
+      "sha256": "fd40f88ba9295feb4f2efcced350f0722e4280d8e0d3d95acfb5d0e0d5a438b3",
       "has_bar_i": true
     },
     "sse": {
@@ -277,26 +274,26 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1662,
-      "date_max": "2026-11-12",
-      "sha256": "bb61290e5c0abc85601954adb33286acd226fa14ad6d8a9ed12dc8fd172e7aee",
+      "rows": 1663,
+      "date_max": "2026-11-13",
+      "sha256": "b43a187decf28cfec0024c4a7396548fb223135ab1535d5df59d00c78aa6ace1",
       "has_bar_i": true
     },
     "stoxx50e": {
       "ticker": "^STOXX50E",
       "status": "ok",
       "file": "yfinance/stoxx50e.csv",
-      "attempts": 2,
+      "attempts": 1,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1728,
-      "date_max": "2026-11-11",
-      "sha256": "fa57bf13addf97b4c36ad8d94a16327e7f10e9243cbf6f19ff41aaccf419c019",
-      "has_bar_i": false
+      "rows": 1730,
+      "date_max": "2026-11-13",
+      "sha256": "cbfd24771baa8ad9dd95cbe7c70b2392500ed71a553e96ec77c4307a48944660",
+      "has_bar_i": true
     },
     "gdaxi": {
       "ticker": "^GDAXI",
@@ -309,9 +306,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1750,
-      "date_max": "2026-11-12",
-      "sha256": "ff14ace726871cc4b142c20a860c2dca99c5c78e83869f55a22de5492f7b10cf",
+      "rows": 1751,
+      "date_max": "2026-11-13",
+      "sha256": "f623417602b799a54a44b42b48a102e5055049ae8fb3513f7010318769b91bb6",
       "has_bar_i": true
     },
     "wti": {
@@ -323,12 +320,12 @@
       "dropped": {
         "on_or_after_t": 0,
         "weekend": 0,
-        "low_volume_last_bar_kept": true
+        "low_volume_last_bar_kept": false
       },
-      "rows": 1728,
-      "date_max": "2026-11-12",
-      "sha256": "6c31868557ec619d064acd22a3a1dcccb77c7c5e99e47e5d9033976797d44767",
-      "end": "2026-11-12T17:30:00-05:00",
+      "rows": 1729,
+      "date_max": "2026-11-13",
+      "sha256": "8bb08b9f54b5a361475b942048b114e57ca8cc7321d71e0a5ca93a68dfca24e7",
+      "end": "2026-11-15T17:30:00-05:00",
       "has_bar_i": true
     },
     "gold": {
@@ -340,12 +337,12 @@
       "dropped": {
         "on_or_after_t": 0,
         "weekend": 0,
-        "low_volume_last_bar_kept": true
+        "low_volume_last_bar_kept": false
       },
-      "rows": 1729,
-      "date_max": "2026-11-12",
-      "sha256": "8b85e613cf807b27dc7af6a9d7dbdaba3bf33a420e7f8a38839c464be6dded54",
-      "end": "2026-11-12T17:30:00-05:00",
+      "rows": 1730,
+      "date_max": "2026-11-13",
+      "sha256": "43429ea8f8af8bd4dff37c6e3101bc6d239e9bb9520935113749c8d78b195f04",
+      "end": "2026-11-15T17:30:00-05:00",
       "has_bar_i": true
     },
     "vix": {
@@ -359,26 +356,26 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1728,
-      "date_max": "2026-11-12",
-      "sha256": "a058b93ee11204fd74f35343deddff691f131b2ea7cdebde0776674ae034818d",
+      "rows": 1729,
+      "date_max": "2026-11-13",
+      "sha256": "98db8688eacefb537432d9ca303d3651e5cc5c7f7dbb1c347d3699b806d24e22",
       "has_bar_i": true
     },
     "kospi": {
       "ticker": "^KS11",
       "status": "ok",
       "file": "yfinance/kospi.csv",
-      "attempts": 2,
+      "attempts": 1,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1681,
-      "date_max": "2026-11-11",
-      "sha256": "73481b94e2dc3398fb492ddc20d7753a7364776a30f103b9e33c327a8ebd3daa",
-      "has_bar_i": false
+      "rows": 1683,
+      "date_max": "2026-11-13",
+      "sha256": "35e263538a070a626a6856ac58a6fecd122eba62c741948516534280833e2bba",
+      "has_bar_i": true
     },
     "usd_twd_1h": {
       "ticker": "TWD=X",
@@ -387,12 +384,12 @@
       "attempts": 1,
       "error": null,
       "status": "ok",
-      "fetched_rows": 143,
-      "start": "2026-11-05",
-      "rows": 16780,
+      "fetched_rows": 153,
+      "start": "2026-11-06",
+      "rows": 16805,
       "first": "2024-01-22T08:00:00+08:00",
-      "last": "2026-11-13T05:00:00+08:00",
-      "sha256": "3836dae263a08b48fb4c527ad775627aab9da78b504c9f984e2d65eb794bd027",
+      "last": "2026-11-14T06:00:00+08:00",
+      "sha256": "3ddf33a00211af6f2b28330dc12d4881a647c94c24fa54e8396448d845139ee7",
       "has_value_t": true
     }
   },
@@ -402,16 +399,16 @@
     "status": "ok",
     "requests": 1,
     "error": null,
-    "start": "2026-11-05",
+    "start": "2026-11-09",
     "dropped": {
-      "day_on_or_after_t": 0,
+      "day_on_or_after_t": 6,
       "night_after_t": 0,
       "night_t_not_ready": 0
     },
     "kept_previous_file": false,
-    "rows": 19916,
-    "date_max": "2026-11-13",
-    "sha256": "f34156aec8ffcd853d1c005c65fb55c2a34706cc2cf6b1a1034934e1918be333",
+    "rows": 19928,
+    "date_max": "2026-11-16",
+    "sha256": "b208ffc67101776f308dc78c5f22204a7b65f0377b7c0cc8057da69f01aed5f4",
     "has_day_i": true,
     "has_night_t": true
   },
@@ -426,24 +423,24 @@
     "missing_months": [],
     "failed_months": {},
     "new_dates": [
-      "2026-11-12"
+      "2026-11-13"
     ],
     "changed_dates": [],
     "vanished_dates": [],
-    "rows": 69,
+    "rows": 70,
     "last_dates": [
-      "2026-11-11",
-      "2026-11-12"
+      "2026-11-12",
+      "2026-11-13"
     ],
     "has_prev_day": true,
-    "sha256": "8cf4840679b48260b6686b0531aa87e0d7d446fb48b003c706102a58c1f58053"
+    "sha256": "431087ff5c8f31653b6cf7ff7de8960c78cda56460154da89c46f82c6d23be8b"
   },
   "cnn": {
     "status": "failed",
-    "error": "/index/fearandgreed/graphdata/2026-10-14：連線失敗（ConnectionError）",
+    "error": "/index/fearandgreed/graphdata/2026-10-17：連線失敗（ConnectionError）",
     "file": "cnn/fear_greed.csv",
     "requests": 1,
-    "start": "2026-10-14",
+    "start": "2026-10-17",
     "cache": null,
     "rows": 1451,
     "last_dates": [
@@ -456,13 +453,14 @@
   "exchange": {
     "status": "ok",
     "error": null,
-    "prev_day": "2026-11-12",
+    "prev_day": "2026-11-13",
     "markets": [
       "twse",
       "tpex"
     ],
     "locked": [],
     "dates": [
+      "2026-11-13",
       "2026-11-12",
       "2026-11-11",
       "2026-11-10",
@@ -471,8 +469,7 @@
       "2026-11-05",
       "2026-11-04",
       "2026-11-03",
-      "2026-11-02",
-      "2026-10-30"
+      "2026-11-02"
     ],
     "requests": {
       "twse": 2,
@@ -485,15 +482,15 @@
         "has_prev_day": true,
         "missing_dates": [],
         "new_dates": [
-          "2026-11-12"
+          "2026-11-13"
         ],
         "no_data": {},
         "failures": [],
         "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-12",
-        "sha256": "38902a6d5727d9fd230fc9abdeeb7e0c93b46d0dfb9c77114d15cb1c41447d12"
+        "last_date": "2026-11-13",
+        "sha256": "45df2297b08ec136528d1a172b0e9d6d5ded2a0ec0a208b7519f41662693cb70"
       },
       "twse_quotes": {
         "file": "twse/quotes.csv",
@@ -501,15 +498,15 @@
         "has_prev_day": true,
         "missing_dates": [],
         "new_dates": [
-          "2026-11-12"
+          "2026-11-13"
         ],
         "no_data": {},
         "failures": [],
         "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-12",
-        "sha256": "3e75f0ea10cd1fcc4826efa928780823a53309a426f5449a602656b31c64a04a"
+        "last_date": "2026-11-13",
+        "sha256": "8ad069e051128c86def49bac36c86e08c8c269dda206c03a10c4561532c882f1"
       },
       "tpex_valuation": {
         "file": "tpex/valuation.csv",
@@ -517,15 +514,15 @@
         "has_prev_day": true,
         "missing_dates": [],
         "new_dates": [
-          "2026-11-12"
+          "2026-11-13"
         ],
         "no_data": {},
         "failures": [],
         "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-12",
-        "sha256": "54c0213396b776b80608675860d66e75ed1bd5567e1cd55b5ac47bc3655d1af3"
+        "last_date": "2026-11-13",
+        "sha256": "76edf7f9168e9cfd7766501a339dc02a02d426a359b9ffed675c3237488b649e"
       },
       "tpex_quotes": {
         "file": "tpex/quotes.csv",
@@ -533,41 +530,16 @@
         "has_prev_day": true,
         "missing_dates": [],
         "new_dates": [
-          "2026-11-12"
+          "2026-11-13"
         ],
         "no_data": {},
         "failures": [],
         "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-12",
-        "sha256": "19645a429b8df43b19164caf2b4468ea1e8d53681997ff5670c3cee6f4b232b0"
+        "last_date": "2026-11-13",
+        "sha256": "87e7f8e94aec167f72fd3c91d73dd24912aaddadb2896c942193586723e4c048"
       }
     }
-  },
-  "open_today": {
-    "status": "ok",
-    "started_at": "2026-11-13T08:25:03+08:00",
-    "written": [
-      "kospi",
-      "n225"
-    ],
-    "series": {
-      "kospi": {
-        "status": "ok",
-        "attempts": 1,
-        "first_bar": "2026-11-13T09:00+09:00",
-        "open": 5452.41015625,
-        "prev_close": 5342.73
-      },
-      "n225": {
-        "status": "ok",
-        "attempts": 1,
-        "first_bar": "2026-11-13T09:00+09:00",
-        "open": 61223.41015625,
-        "prev_close": 60819.36
-      }
-    },
-    "finished_at": "2026-11-13T08:25:09+08:00"
   }
 }

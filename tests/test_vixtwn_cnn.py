@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src import crawler, features, utils
+from src.pipeline import step1_crawler as crawler, step2_features as features, utils
 from tests.test_crawler import (Clock, FakeHttp, FakeResp, at, crawl, fresh_yfdata, make_run,  # noqa: F401（fixture）
                                 no_network)
 from tests.test_features import bar, cfg_with, fake_repo, small_cfg, small_raw, weekdays, write_csv

@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]   # repo 根目錄（這個檔在 src/pipeline/）
 CONFIG_PATH = ROOT / "configs" / "config.yaml"
 ENV_PATH = ROOT / ".env"
 TAIPEI = ZoneInfo("Asia/Taipei")

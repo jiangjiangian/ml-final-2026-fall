@@ -1,5 +1,5 @@
-"""排名集成（src/rank_ensemble.py）：沒有答案的那天只用之前的資料、每天猜漲猜跌各一半；資料不對會丟錯；
-run_daily_test.py 的備援順序。"""
+"""排名集成（src/models/m3_rank_ensemble.py）：沒有答案的那天只用之前的資料、每天猜漲猜跌各一半；資料不對會丟錯；
+step3_train_predict 的備援順序。"""
 
 import json
 import logging
@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import run_daily_test as rdt
-from src import crawler, features, online_lr, persist_rule, rank_ensemble, site_api, utils
+from src.pipeline import step1_crawler as crawler, step2_features as features, step3_train_predict as tp, utils
+from src.models import m1_online_lr as online_lr, m2_persist_rule as persist_rule, m3_rank_ensemble as rank_ensemble
 
 COLUMNS = ["stock_ret_lag1", "stock_ret_lag2", "a_ret1", "a_intraday", "a_gap", "a_high", "a_low", "a_volume_ratio",
            "a_rsi", "a_bb_pos", "a_bb_width", "a_macd", "a_ema5_dev", "a_ema20_dev", "a_ema60_dev", "a_ema5_20",
@@ -247,14 +247,11 @@ def test_read_teacher_stock_drops_live_rows_without_prices(tmp_path):
     assert np.isnan(stock.loc["2026-09-01", "foreign_net"])    # Live 的 -1 是還沒公布
 
 
-# ---------------------------------------------------------------- run_daily_test.py 的備援順序
+# ---------------------------------------------------------------- step3_train_predict 的備援順序
 
 
 @pytest.fixture
 def chain(monkeypatch):
-    for name, module in (("crawler", crawler), ("features", features), ("online_lr", online_lr),
-                         ("site_api", site_api)):
-        monkeypatch.setattr(rdt, name, module)
     calls = []
 
     def fake(name, fail):
@@ -276,44 +273,44 @@ def chain(monkeypatch):
 def test_fallbacks_are_tried_in_order(chain, caplog):
     cfg = {"daily_model": {"kind": "rank_ensemble", "fallback": ["persist", "online_lr"]}}
     calls = chain(failing=())
-    assert rdt.daily_predict(cfg, None, ["2026-11-12"], ["2330"], LOG) == ("rank_ensemble", "rank_ensemble")
+    assert tp.train_and_predict(cfg, None, ["2026-11-12"], ["2330"], LOG) == ("rank_ensemble", "rank_ensemble")
     assert calls == ["rank_ensemble"]
     calls = chain(failing=("rank_ensemble", "persist"))
     calls.clear()
     with caplog.at_level(logging.ERROR):
-        name, pred = rdt.daily_predict(cfg, None, ["2026-11-12"], ["2330"], LOG)
+        name, pred = tp.train_and_predict(cfg, None, ["2026-11-12"], ["2330"], LOG)
     assert (name, pred) == ("online_lr（rank_ensemble 的備援）", "online_lr")
     assert calls == ["rank_ensemble", "persist", "online_lr"] and "rank_ensemble 算不出來" in caplog.text
     chain(failing=("rank_ensemble", "persist", "online_lr"))
     with pytest.raises(RuntimeError, match="online_lr 壞了"):
-        rdt.daily_predict(cfg, None, ["2026-11-12"], ["2330"], LOG)
+        tp.train_and_predict(cfg, None, ["2026-11-12"], ["2330"], LOG)
 
 
 def test_the_model_names_in_the_config_are_checked(chain, caplog):
     for kind in ("xgboost", "none"):   # 主模型不認得、或填 none：停下，不要默默換成備援
-        with pytest.raises(rdt.StopRun, match="daily_model.kind"):
-            rdt.daily_predict({"daily_model": {"kind": kind, "fallback": ["persist"]}}, None, [], [], LOG)
+        with pytest.raises(tp.ModelChoiceError, match="daily_model.kind"):
+            tp.train_and_predict({"daily_model": {"kind": kind, "fallback": ["persist"]}}, None, [], [], LOG)
     calls = chain(failing=("persist",))
     calls.clear()
     cfg = {"daily_model": {"kind": "persist", "fallback": ["online-lr", "None", "persist", "online_lr", "online_lr"]}}
     with caplog.at_level(logging.ERROR):
-        name, pred = rdt.daily_predict(cfg, None, ["2026-11-12"], ["2330"], LOG)
+        name, pred = tp.train_and_predict(cfg, None, ["2026-11-12"], ["2330"], LOG)
     assert (name, pred) == ("online_lr（persist 的備援）", "online_lr") and calls == ["persist", "online_lr"]
     assert "online-lr 不認得或重複" in caplog.text and "None 不認得" not in caplog.text
     calls.clear()
     chain(failing=())
-    assert rdt.daily_predict({"daily_model": {"kind": "persist", "fallback": ["xgboost"]}}, None, [], [], LOG)[0] == "persist"
+    assert tp.train_and_predict({"daily_model": {"kind": "persist", "fallback": ["xgboost"]}}, None, [], [], LOG)[0] == "persist"
 
 
 def test_the_fallback_log_does_not_write_the_home_directory(chain, monkeypatch, caplog):
     chain(failing=())
 
     def broken(data, cfg, dates, ids):
-        raise FileNotFoundError(f"{rdt.ROOT}/data/raw/teacher/x.csv 和 {Path.home()}/y 不見了")
+        raise FileNotFoundError(f"{utils.ROOT}/data/raw/teacher/x.csv 和 {Path.home()}/y 不見了")
 
     monkeypatch.setattr(rank_ensemble, "predict", broken)
     with caplog.at_level(logging.ERROR):
-        rdt.daily_predict({"daily_model": {"kind": "rank_ensemble", "fallback": "persist"}}, None, [], [], LOG)
+        tp.train_and_predict({"daily_model": {"kind": "rank_ensemble", "fallback": "persist"}}, None, [], [], LOG)
     assert "./data/raw/teacher/x.csv" in caplog.text and "~/y" in caplog.text
     assert str(Path.home()) not in caplog.text
 
@@ -321,8 +318,8 @@ def test_the_fallback_log_does_not_write_the_home_directory(chain, monkeypatch, 
 def test_a_model_that_cannot_be_loaded_falls_back(chain, monkeypatch, caplog):
     cfg = {"daily_model": {"kind": "rank_ensemble", "fallback": ["persist", "online_lr"]}}
     calls = chain(failing=())
-    monkeypatch.setitem(sys.modules, "src.rank_ensemble", None)   # 等於這個檔不見了：import 會丟 ImportError
+    monkeypatch.setitem(sys.modules, "src.models.m3_rank_ensemble", None)   # 等於這個檔不見了：import 會丟 ImportError
     with caplog.at_level(logging.ERROR):
-        name, pred = rdt.daily_predict(cfg, None, ["2026-11-12"], ["2330"], LOG)
+        name, pred = tp.train_and_predict(cfg, None, ["2026-11-12"], ["2330"], LOG)
     assert (name, pred) == ("persist（rank_ensemble 的備援）", "persist") and calls == ["persist"]
     assert "rank_ensemble 算不出來（ModuleNotFoundError" in caplog.text

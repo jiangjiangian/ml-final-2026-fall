@@ -94,9 +94,9 @@ yfinance 清理：照舊爬蟲的 R0～R5 依序做（規則、測試資料、�
     t 比已經存的最後一天早時（例如拿舊的 t 做研究）丟 FeatureError，不會把較新的月份蓋掉；要蓋掉加 --rebuild。
 
 用法：
-    python -m src.features                    t 用爬蟲 data/raw/manifest.json 的 target_date；沒有就不加 t 那列
-    python -m src.features --date 2026-11-17  指定 t：交易日只留早於 t 的，加上 t 那列
-    python -m src.features --rebuild          所有月份都重寫，刪掉多出來的月份
+    python -m src.pipeline.step2_features                    t 用爬蟲 data/raw/manifest.json 的 target_date；沒有就不加 t 那列
+    python -m src.pipeline.step2_features --date 2026-11-17  指定 t：交易日只留早於 t 的，加上 t 那列
+    python -m src.pipeline.step2_features --rebuild          所有月份都重寫，刪掉多出來的月份
 """
 
 import argparse
@@ -112,7 +112,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src import crawler, utils
+from src.pipeline import step1_crawler as crawler, utils
 
 TAIPEI = utils.TAIPEI
 HOURLY_COLUMNS = crawler.HOURLY_COLUMNS   # start：K棒開始時間，ISO 格式帶時區

@@ -3,7 +3,7 @@
 特徵表的交易所 9 欄（`val_*`、`quote_*`）讀這裡的四個檔，不進模型欄。設計和進度的紀錄在 `memory/projects/crawler.md`。
 
 ```bash
-python -m src.crawler --exchange-backfill [--start 2020-01-02] [--end YYYY-MM-DD] [--markets twse,tpex] [--max-requests N]
+python -m src.pipeline.step1_crawler --exchange-backfill [--start 2020-01-02] [--end YYYY-MM-DD] [--markets twse,tpex] [--max-requests N]
 ```
 
 從證交所（上市）和櫃買中心（上櫃）抓 2020-01-02 起每個交易日的全市場日資料，只留老師的 100 檔。2026-11-09 回補完 2020-01-02～2026-11-06 的 1,662 天，沒有失敗。

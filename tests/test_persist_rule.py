@@ -1,4 +1,4 @@
-"""持續性規則（src/persist_rule.py）：算法和 notebook 14 一樣、不偷看當天和之後的答案；run_daily_test.py 的模型開關。"""
+"""持續性規則（src/models/m2_persist_rule.py）：算法和 notebook 14 一樣、不偷看當天和之後的答案；step3_train_predict 的模型開關。"""
 
 import logging
 
@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import run_daily_test as rdt
-from src import crawler, features, online_lr, persist_rule, site_api, utils
+from src.models import MODEL_KINDS, m1_online_lr as online_lr, m2_persist_rule as persist_rule
+from src.pipeline import step3_train_predict as tp, utils
 
 CFG = {"persist_rule": {"days": 20, "min_days": 10, "max_stale_days": 3, "min_scored_share": 0.8}}
 LOG = logging.getLogger("test_persist_rule")
@@ -107,21 +107,18 @@ def test_config_selects_known_models_and_has_the_rule_settings():
     cfg = utils.load_config()
     fallback = cfg["daily_model"]["fallback"]
     order = [cfg["daily_model"]["kind"]] + ([fallback] if isinstance(fallback, str) else list(fallback))
-    assert order[0] in rdt.MODEL_KINDS and len(set(order)) == len(order)
-    assert all(kind in rdt.MODEL_KINDS or kind == "none" for kind in order[1:])
+    assert order[0] in MODEL_KINDS and len(set(order)) == len(order)
+    assert all(kind in MODEL_KINDS or kind == "none" for kind in order[1:])
     assert set(cfg["persist_rule"]) == {"days", "min_days", "max_stale_days", "min_scored_share"}
     assert cfg["persist_rule"]["min_days"] <= cfg["persist_rule"]["days"]
 
 
-# ---------------------------------------------------------------- run_daily_test.py 的模型開關
+# ---------------------------------------------------------------- step3_train_predict 的模型開關
 
 
 @pytest.fixture
 def switch(monkeypatch):
-    """rdt 的 src 模組換成真的（平常 import_src 之後才有），online_lr.predict 換成只回傳記號的假函式。"""
-    for name, module in (("crawler", crawler), ("features", features), ("online_lr", online_lr),
-                         ("site_api", site_api)):
-        monkeypatch.setattr(rdt, name, module)
+    """online_lr.predict 換成只回傳記號的假函式。"""
     monkeypatch.setattr(online_lr, "predict", lambda data, cfg, dates, ids: "組員的模型")
     table, days, codes = make_table(unlabeled=1)
     return table, [days[-1].strftime("%Y-%m-%d")], codes
@@ -129,7 +126,7 @@ def switch(monkeypatch):
 
 def test_persist_is_used_when_selected(switch):
     table, dates, codes = switch
-    name, pred = rdt.daily_predict({**CFG, "daily_model": {"kind": "persist", "fallback": "online_lr"}},
+    name, pred = tp.train_and_predict({**CFG, "daily_model": {"kind": "persist", "fallback": "online_lr"}},
                                    table, dates, codes, LOG)
     assert name == "persist" and pred["pred"].sum() == 5
 
@@ -139,16 +136,16 @@ def test_persist_failure_falls_back_to_online_lr(switch, caplog):
     cfg = {"persist_rule": {**CFG["persist_rule"], "min_scored_share": 2.0},   # 要求 200% 的股票有分數，一定不夠
            "daily_model": {"kind": "persist", "fallback": "online_lr"}}
     with caplog.at_level(logging.ERROR):
-        name, pred = rdt.daily_predict(cfg, table, dates, codes, LOG)
+        name, pred = tp.train_and_predict(cfg, table, dates, codes, LOG)
     assert pred == "組員的模型" and name == "online_lr（persist 的備援）" and "persist 算不出來" in caplog.text
     cfg["daily_model"]["fallback"] = "none"
     with pytest.raises(persist_rule.RuleError):
-        rdt.daily_predict(cfg, table, dates, codes, LOG)
+        tp.train_and_predict(cfg, table, dates, codes, LOG)
 
 
 def test_online_lr_is_the_default_and_unknown_kinds_stop(switch):
     table, dates, codes = switch
-    assert rdt.daily_predict(CFG, table, dates, codes, LOG) == ("online_lr", "組員的模型")
-    assert rdt.daily_predict({**CFG, "daily_model": {"kind": "online_lr"}}, table, dates, codes, LOG)[0] == "online_lr"
-    with pytest.raises(rdt.StopRun):
-        rdt.daily_predict({**CFG, "daily_model": {"kind": "lightgbm"}}, table, dates, codes, LOG)
+    assert tp.train_and_predict(CFG, table, dates, codes, LOG) == ("online_lr", "組員的模型")
+    assert tp.train_and_predict({**CFG, "daily_model": {"kind": "online_lr"}}, table, dates, codes, LOG)[0] == "online_lr"
+    with pytest.raises(tp.ModelChoiceError):
+        tp.train_and_predict({**CFG, "daily_model": {"kind": "lightgbm"}}, table, dates, codes, LOG)

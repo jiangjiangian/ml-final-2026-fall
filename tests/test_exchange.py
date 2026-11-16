@@ -1,4 +1,4 @@
-"""src/crawler.py 證交所、櫃買回補（--exchange-backfill）的離線測試。
+"""src/pipeline/step1_crawler.py 證交所、櫃買回補（--exchange-backfill）的離線測試。
 
 不連網：主機是假的 requests.Session，時鐘也是假的（sleep 只把時間往後撥）。
 tests/data_exchange/ 是 2026-11-08 存下來的真回應剪小的版本：欄名和格子原樣，只留我們的 100 檔和幾檔別的。
@@ -17,7 +17,7 @@ import pytest
 import requests
 from curl_cffi.requests import Session as CurlSession
 
-from src import crawler, utils
+from src.pipeline import step1_crawler as crawler, utils
 
 DATA = Path(__file__).parent / "data_exchange"
 TAIPEI = ZoneInfo("Asia/Taipei")

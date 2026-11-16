@@ -45,9 +45,9 @@
 
 ## 更新
 
-排程每次上傳完、推資料之前跑 `python -m src.merge_raw`：來源檔的指紋沒變就跳過；有變就重算全部，只寫內容不一樣的檔，所以通常只動最後一個月和 `market.csv.gz`。休市日不跑，失敗只寫警告，不影響上傳。07:10 那次跑完約 07:30 推上來，那時 t 那列的老師個股欄還是 `-1`。
+排程每次上傳完、推資料之前跑 `python -m src.pipeline.step5_merge_raw`：來源檔的指紋沒變就跳過；有變就重算全部，只寫內容不一樣的檔，所以通常只動最後一個月和 `market.csv.gz`。休市日不跑，失敗只寫警告，不影響上傳。07:10 那次跑完約 07:30 推上來，那時 t 那列的老師個股欄還是 `-1`。
 
 ```bash
-python -m src.merge_raw              # 來源有變才重算
-python -m src.merge_raw --rebuild    # 不看指紋，全部重算
+python -m src.pipeline.step5_merge_raw              # 來源有變才重算
+python -m src.pipeline.step5_merge_raw --rebuild    # 不看指紋，全部重算
 ```

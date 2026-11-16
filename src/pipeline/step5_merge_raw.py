@@ -14,8 +14,8 @@
 d 那列能不能當 t 的特徵，看 README「合併的原始資料」。不併進來的：yfinance/usd_twd_1h.csv（1 小時K棒）、
 open_today/（當天開盤）、json 紀錄檔。這支程式不讀也不寫 data/processed/。
 
-    python -m src.merge_raw              # 來源檔有變才重算，只寫內容不一樣的檔
-    python -m src.merge_raw --rebuild    # 不看指紋，全部重算
+    python -m src.pipeline.step5_merge_raw              # 來源檔有變才重算，只寫內容不一樣的檔
+    python -m src.pipeline.step5_merge_raw --rebuild    # 不看指紋，全部重算
 """
 
 import argparse
@@ -27,7 +27,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src import crawler, utils
+from src.pipeline import step1_crawler as crawler, utils
 
 FORMAT = 1   # 欄位或寫法改了就加 1，下次執行就算來源沒變也會重算
 STOCK_KEY = ("date", "stock_id")

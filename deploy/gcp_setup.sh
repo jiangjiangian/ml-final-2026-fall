@@ -55,12 +55,12 @@ chmod 600 .env
 
 echo "== 6. 排程（台北 07:10、07:25、07:40、07:55、08:05、08:25）"
 mkdir -p .cache
-# 換掉舊的 run_daily_test 行和 crontab.txt 自己的 SHELL、PATH 兩行（重跑才不會一直多一組），別的行留著
-{ crontab -l 2>/dev/null | grep -v -x -F -f <(grep -v '^#' deploy/crontab.txt | grep '=') | grep -v 'run_daily_test.py' || true
+# 換掉舊的 run_daily.py、run_daily_test.py（舊名字）行和 crontab.txt 自己的 SHELL、PATH 兩行（重跑才不會一直多一組），別的行留著
+{ crontab -l 2>/dev/null | grep -v -x -F -f <(grep -v '^#' deploy/crontab.txt | grep '=') | grep -v -E 'run_daily(_test)?\.py' || true
   grep -v '^#' deploy/crontab.txt | sed "s#__REPO__#$REPO_DIR#g"; } | crontab -
 sudo systemctl restart cron
 crontab -l
 
-echo "== 完成。填好 .env 後試跑：cd $REPO_DIR && .venv/bin/python run_daily_test.py --dry-run"
+echo "== 完成。填好 .env 後試跑：cd $REPO_DIR && .venv/bin/python run_daily.py --dry-run"
 }
 main "$@"

@@ -5,7 +5,7 @@ import copy
 import pandas as pd
 import pytest
 
-from src import crawler, features
+from src.pipeline import step1_crawler as crawler, step2_features as features
 from tests.test_features import bar, hour, small_cfg, small_raw, stock_row, weekdays
 
 KEYS = ("date", "stock_id", "is_top50")

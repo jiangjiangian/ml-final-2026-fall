@@ -1,4 +1,4 @@
-"""組員的邏輯迴歸，run_daily_test.py 用（使用者 2026-11-06：先用組員的方法和模型跑自動化）。
+"""組員的邏輯迴歸，run_daily.py 用（使用者 2026-11-06：先用組員的方法和模型跑自動化）。
 
 方法照 notebooks/feature_switch.ipynb 第 6 節：
     1. 預測日所在的那一週 W，fit_end = W 往前 online_lr.online_weeks 週的週一。
@@ -24,7 +24,7 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
-from src import crawler, features, utils
+from src.pipeline import step1_crawler as crawler, step2_features as features, utils
 
 RENAME = {
     "etl:adj_close": "close", "etl:adj_open": "open", "etl:adj_high": "high", "etl:adj_low": "low",

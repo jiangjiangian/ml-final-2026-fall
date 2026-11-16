@@ -22,5 +22,5 @@ sed "s#__REPO__#$REPO_DIR#g" deploy/mac/com.mlfinal.backup.plist > "$PLIST"
 launchctl bootout "gui/$(id -u)/com.mlfinal.backup" 2>/dev/null || true
 for i in 1 2 3 4 5; do launchctl bootstrap "gui/$(id -u)" "$PLIST" 2>/dev/null && break; sleep 2; done
 launchctl print "gui/$(id -u)/com.mlfinal.backup" >/dev/null
-echo "裝好了：每天 08:15、08:25、08:35 跑 $REPO_DIR/run_daily_test.py --sync，紀錄在 $REPO_DIR/.cache/launchd.log"
+echo "裝好了：每天 08:15、08:25、08:35 跑 $REPO_DIR/run_daily.py --sync，紀錄在 $REPO_DIR/.cache/launchd.log"
 echo "現在手動試跑一次（確認鑰匙圈的 GitHub 帳密能用）：launchctl kickstart -k gui/$(id -u)/com.mlfinal.backup"

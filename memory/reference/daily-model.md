@@ -1,10 +1,10 @@
 # 每天交件的模型
 
-`configs/config.yaml` 的 `daily_model` 選模型：`kind` 是主模型，`fallback` 是它算不出來時照順序改用的備援。改完 push，oop 下一次執行就生效。2026-11-12 早上起用 `persist`；同一天晚上使用者決定換成 `rank_ensemble`。2026-11-15 晚上使用者決定換成 `c2v2d`，備援是 `[c2, rank_ensemble, persist, online_lr]`，11-16 07:10 起生效；12-06 再看要不要改成 `c2`。決定的經過和驗證在 `memory/context/pipeline.md` 的「每天交件的模型」。
+`configs/config.yaml` 的 `daily_model` 選模型（名字和檔案的對照在 `src/models/__init__.py`，選和換備援的程式在 `src/pipeline/step3_train_predict.py`）：`kind` 是主模型，`fallback` 是它算不出來時照順序改用的備援。改完 push，oop 下一次執行就生效。2026-11-12 早上起用 `persist`；同一天晚上使用者決定換成 `rank_ensemble`。2026-11-15 晚上使用者決定換成 `c2v2d`，備援是 `[c2, rank_ensemble, persist, online_lr]`，11-16 07:10 起生效；12-06 再看要不要改成 `c2`。決定的經過和驗證在 `memory/context/pipeline.md` 的「每天交件的模型」。
 
 ## c2v2d：排名集成加上大盤方向的傾斜（現在用的）
 
-`src/c2_tilt.py`，組員的 C2（`c2_tilt_backtest.ipynb`），Kaggle notebook 44 照它重做過。每天先算 `rank_ensemble` 的三個模型，再看「今天 50 檔平均會不會漲」的機率 p，換一些高 β 或低 β 的股票（β 是這檔跟著大盤動的程度）：
+`src/models/m4_c2_tilt.py`，組員的 C2（`c2_tilt_backtest.ipynb`），Kaggle notebook 44 照它重做過。每天先算 `rank_ensemble` 的三個模型，再看「今天 50 檔平均會不會漲」的機率 p，換一些高 β 或低 β 的股票（β 是這檔跟著大盤動的程度）：
 
 1. combined：ridge、kernel ridge、LightGBM 各自在 50 檔裡的名次 − 0.5，取平均。
 2. β̃：每檔過去 120 個有答案的交易日，盤中報酬對 100 檔平均盤中報酬的斜率，換成 50 檔裡的名次 − 0.5。
@@ -14,6 +14,8 @@
 沒有用日韓當天的開盤：`kospi_open_gap`、`n225_open_gap` 不能當狀態，程式裡有檢查。韓股只用前一天的收盤。
 
 回測（notebook 44，2025-01-02～2026-10-08）：每天比 `rank_ensemble` 多 +0.000324（t 2.54），`c2`（14 個狀態，沒有長表那 9 欄）多 +0.000285。MT 24 拆開來看：一部分等於「依大盤預測換高低 β」的押注，另外每天約 +0.00018 跟著 p 走，是個股層級的效應。
+
+2021 的確認沒過（Kaggle notebook 42，2021-01-11～12-30 共 239 天）：C2v2d 每天比原版少 0.000228（t −1.11），虧在換高低 β 的那塊。2026-11-15 晚上約 21:55 使用者在特徵組的 session 看過後選維持 C2v2d（特徵組轉述，見 `memory/context/pipeline.md`「2026-11-15 晚上換成 C2v2d」）。在正式流程每天重訓的排名上重量（notebook 46c，2025-01-02～2026-10-08 的 428 天）：每天多 +0.000279（t 2.29），和 notebook 44 是同一批日子，只說明換成正式的排名結果不變，不算新的證據。
 
 上線前的檢查（2026-11-15，Kaggle `c2-tilt-production-code-check`，用 commit `748db97` 的程式）：
 
@@ -32,7 +34,7 @@
 
 ## rank_ensemble：排名集成（第二個備援）
 
-`src/rank_ensemble.py`，Kaggle notebook 16 的 `X_price`。每天早上用 t 之前 500 個有答案的交易日重新訓練，約 30 秒：
+`src/models/m3_rank_ensemble.py`，Kaggle notebook 16 的 `X_price`。每天早上用 t 之前 500 個有答案的交易日重新訓練，約 30 秒：
 
 1. 41 個價量欄（`rank_ensemble.columns`）：老師個股檔每天收盤後算得出的欄退一天，加長表的 `stock_ret_lag1`、`stock_ret_lag2`，和 4 個持續性欄（這檔過去比同伴強多少）。
 2. 每一欄換成當天在 100 檔裡的排名（−1～1），沒有值的格子給 0。
@@ -54,13 +56,13 @@
 - 爬蟲記下前一個交易日在老師 Live 整天還沒填（`data/raw/manifest.json`）。只有幾檔沒填時不停，那幾檔 t 那列當成空白。
 - 要預測的 50 檔少了，或它們 t 那列空白的格子超過 10%，或有一欄全部空白。
 - 有答案的交易日不到 250 天、表裡 t 之前有還沒答案的日子，或模型的預測不是有限的數。
-- `src/rank_ensemble.py` 不見或載入失敗。
+- `src/models/m3_rank_ensemble.py` 不見或載入失敗。
 
 換模型後第一個早上，看 `data/submission/run_<t>.log` 的「模型」那行用了哪個。有「算不出來」就是那天用了備援，流程不會停，要看 log 才知道。
 
 ## persist：持續性規則（第三個備援）
 
-`src/persist_rule.py`。不用訓練，只讀特徵表的 `label_intraday_return`（盤中報酬，收盤 ÷ 開盤 − 1）：
+`src/models/m2_persist_rule.py`。不用訓練，只讀特徵表的 `label_intraday_return`（盤中報酬，收盤 ÷ 開盤 − 1）：
 
 1. 只看要預測的 50 檔。每個有答案的交易日，e = 這檔的盤中報酬 − 當天 50 檔的平均，也就是這檔那天比同伴強多少。
 2. t 的分數 = 這檔股票在 t 之前 120 個有答案的交易日的 e 的平均。
@@ -72,9 +74,9 @@
 
 ## online_lr：組員的邏輯迴歸（第四個備援）
 
-`src/online_lr.py`，2026-11-07～11-11 每天交件用的模型：每週重訓、每天用前一天的答案微調，每天早上重新 fit。特徵是組員的 26 個個股特徵加特徵表的 55 欄（`manifest.json` 的 `model_columns`）。11-09、11-10 它 50 檔全猜 0，分數和網站的 `Always down` 基準一樣（−0.028121、−0.000071）。
+`src/models/m1_online_lr.py`，2026-11-07～11-11 每天交件用的模型：每週重訓、每天用前一天的答案微調，每天早上重新 fit。特徵是組員的 26 個個股特徵加特徵表的 55 欄（`manifest.json` 的 `model_columns`）。11-09、11-10 它 50 檔全猜 0，分數和網站的 `Always down` 基準一樣（−0.028121、−0.000071）。
 
-`online_lr` 在流程一開始就載入，特徵也是用它的 `load_data` 讀的，所以這個檔壞掉時整次停下，不會換備援。
+`online_lr` 在流程一開始就載入，所有模型的輸入表也是用它的 `load_data` 讀的（`step3_train_predict.load_model_input`），所以這個檔壞掉時整次停下，不會換備援。
 
 ## 換模型
 

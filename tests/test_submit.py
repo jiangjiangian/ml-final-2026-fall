@@ -1,4 +1,4 @@
-"""上傳流程（src/submit.py、src/site_api.py、run_daily_test.py 的跳過規則），用假網站，不連網。"""
+"""上傳流程（src/pipeline/step4_submit.py、site_api.py、run_daily.py 的跳過規則），用假網站，不連網。"""
 
 import copy
 import json
@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-import run_daily_test
-from src import crawler, site_api, submit, utils
+import run_daily
+from src.pipeline import site_api, step1_crawler as crawler, step4_submit as submit, utils
 
 T = "2026-11-09"
 DATES = ["2026-06-01", "2026-06-02", "2026-06-03"]
@@ -245,7 +245,7 @@ def test_quota_used_up_blocks(env, tmp_path):
     assert site.posts == []
 
 
-# ---------------------------------------------------------------- run_daily_test 的跳過規則
+# ---------------------------------------------------------------- run_daily 的跳過規則
 
 
 def test_already_submitted_rules():
@@ -365,9 +365,9 @@ def test_backup_download_failure_does_not_block(env, tmp_path):
 
 
 def test_data_only_paths():
-    assert run_daily_test.data_only(["data/raw/manifest.json", "data/submission/upload_log.jsonl"])
-    assert not run_daily_test.data_only(["data/raw/x", "src/submit.py"])
-    assert not run_daily_test.data_only(["data/rawish"])
+    assert run_daily.data_only(["data/raw/manifest.json", "data/submission/upload_log.jsonl"])
+    assert not run_daily.data_only(["data/raw/x", "src/pipeline/step4_submit.py"])
+    assert not run_daily.data_only(["data/rawish"])
 
 
 def test_phase2_log_lookup_ignores_the_day(env):

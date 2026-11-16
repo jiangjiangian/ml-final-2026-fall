@@ -4,19 +4,46 @@
 
 ## 流程
 
-學校主機 oop 每個交易日早上自動跑 `run_daily_test.py --sync`，照機器學習的四步走：
+學校主機 oop 每個交易日早上自動跑 `run_daily.py --sync`。每一步在 `src/pipeline/` 有一個檔，照執行順序編號：
 
 | 步驟 | 程式 | 做什麼 | 產出 |
 |---|---|---|---|
-| 1. 爬蟲 | `src/crawler.py` | 下載老師的 Training 和 Live、Yahoo 21 個指標、期交所的台指期和 VIXTWN、CNN 恐懼貪婪指數、證交所和櫃買的日資料，原樣存檔 | `data/raw/` |
-| 2. 特徵 | `src/features.py` | 清理 Yahoo 的資料，對齊到預測日 t，算 lag。一列是一檔股票的一天 | `data/processed/features/` |
-| 3. 模型 | `src/c2_tilt.py`（現在用 `c2v2d`，備援 `c2`）、`src/rank_ensemble.py`、`src/persist_rule.py`、`src/online_lr.py`（備援） | 讀特徵表，輸出 50 檔的 0/1。用哪一個看 `configs/config.yaml` 的 `daily_model`，說明在 [daily-model.md](memory/reference/daily-model.md) | `data/submission/submission_<t>.csv` |
-| 4. 上傳 | `src/submit.py`、`src/site_api.py` | 照網站範本寫 CSV，上傳後下載回來逐格核對 | 課程網站 |
+| 1. 爬蟲 | `src/pipeline/step1_crawler.py` | 下載老師的 Training 和 Live、Yahoo 21 個指標、期交所的台指期和 VIXTWN、CNN 恐懼貪婪指數、證交所和櫃買的日資料，原樣存檔 | `data/raw/` |
+| 2. 特徵 | `src/pipeline/step2_features.py` | 清理 Yahoo 的資料，對齊到預測日 t，算 lag。一列是一檔股票的一天 | `data/processed/features/` |
+| 3. 訓練和預測 | `src/pipeline/step3_train_predict.py` | 照 `configs/config.yaml` 的 `daily_model` 選 `src/models/` 的模型，用 t 之前的答案訓練，輸出 50 檔的 0/1；算不出來照順序換備援 | `data/submission/scores_<t>.csv` |
+| 4. 上傳 | `src/pipeline/step4_submit.py`、`site_api.py` | 照網站範本寫 CSV，上傳後下載回來逐格核對 | `data/submission/submission_<t>.csv`、課程網站 |
+| 5. 合併 | `src/pipeline/step5_merge_raw.py` | 把原始資料併成個股表和市場表，給組員研究，模型不看 | `data/merged/` |
 
-- 串起來的程式：`run_daily_test.py`。四步跑完，再用 `src/merge_raw.py` 把原始資料併成兩張表（`data/merged/`），最後把 `data/` commit、push 到這個分支。
+- 串起來的程式：`run_daily.py`。開始前先 `git pull`，五步跑完把 `data/` commit、push 到這個分支。舊名字 `run_daily_test.py` 會直接轉到它。
 - 時間：台北 07:10 跑第一次，沒交成就在 07:25、07:40、07:55、08:05 再試；網站上已經有當天的提交就直接結束。08:25 再跑一次，只補日韓當天的開盤。
 - t（預測日）不是交易日就不跑。
-- 共用的小函式（讀設定、台北時間、log）在 `src/utils.py`。
+- 共用的小函式（讀設定、台北時間、log）在 `src/pipeline/utils.py`。
+
+### 模型
+
+`src/models/` 一個檔一個模型，照做出來的日期編號。說明和回測在 [daily-model.md](memory/reference/daily-model.md)。
+
+| 檔案 | config 的名字 | 做出來 | 現在 |
+|---|---|---|---|
+| `m1_online_lr.py` | `online_lr` | 2026-11-05 | 第四個備援（11-07～11-11 交件用） |
+| `m2_persist_rule.py` | `persist` | 2026-11-12 | 第三個備援（11-12 交件用） |
+| `m3_rank_ensemble.py` | `rank_ensemble` | 2026-11-12 | 第二個備援（11-13 交件用），也是 C2 的底 |
+| `m4_c2_tilt.py` | `c2v2d`、`c2` | 2026-11-15 | 主模型 `c2v2d`，第一個備援 `c2`（11-16 起） |
+
+每個模型都在預測那天早上從頭訓練，不存檔，所以根目錄的 `models/` 是空的。
+
+### 手動跑
+
+```bash
+python run_daily.py --dry-run                     # 跑完整個流程，不上傳
+python run_daily.py --phase 2 --date 2026-11-17   # 指定 t（不是今天時不跑爬蟲和特徵）
+python -m src.pipeline.step1_crawler              # 只跑爬蟲（研究模式，不檢查時間）
+python -m src.pipeline.step2_features --rebuild   # 特徵欄改了以後，重建整張特徵表
+python -m src.pipeline.step5_merge_raw            # 重算合併表
+python -m pytest tests/                           # 離線測試
+```
+
+舊的 import 只有 `from src import features` 這種寫法還能用；`import src.features`、`from src.features import ...`、`python -m src.features` 都要改成新路徑。
 
 ## 組員怎麼拿資料
 
@@ -122,26 +149,28 @@ tsmc = pd.read_csv(f"{RAW}/teacher/live/market/2330.csv")                       
 ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 ├── README.md                  流程、組員怎麼拿資料、檔案樹（這份）
 ├── CLAUDE.md                  給 Claude Code：規則和 memory/ 的索引
-├── run_daily_test.py          排程跑的這支：爬蟲 → 特徵 → 模型 → 上傳 → 合併 → 推資料
-├── run_daily.py               骨架，沒在用
+├── run_daily.py               排程跑的這支：同步 → 爬蟲 → 特徵 → 訓練和預測 → 上傳 → 合併 → 推資料
+├── run_daily_test.py          舊名字，直接轉到 run_daily.py（oop 裝好的 crontab 還在叫它）
 ├── requirements.txt           套件和鎖定的版本
 ├── .env.example               帳號密碼的範例；真的值放 .env（不進 Git）
 ├── configs/
 │   ├── config.yaml            所有設定：網址、Yahoo 代號、特徵、模型、截止時間
 │   └── live_ca.pem            Live 網址的自簽憑證（公開的，不是密碼）
 ├── src/
-│   ├── crawler.py             1. 爬蟲：下載所有來源到 data/raw/
-│   ├── features.py            2. 特徵：data/raw/ → data/processed/features/
-│   ├── c2_tilt.py             3. 模型：C2v2d（現在用）、C2（第一個備援）
-│   ├── rank_ensemble.py       3. 模型：排名集成（c2_tilt 的底，第二個備援）
-│   ├── persist_rule.py        3. 模型：持續性規則（第三個備援）
-│   ├── online_lr.py           3. 模型：組員的邏輯迴歸（第四個備援）
-│   ├── submit.py              4. 上傳：寫 CSV、上傳、下載回來核對
-│   ├── site_api.py            4. 上傳：課程網站的 API（登入、範本、上傳、下載）
-│   ├── merge_raw.py           data/raw/ → data/merged/ 的兩張表
-│   ├── utils.py               共用：讀設定和帳密、台北時間、截止檢查、log
-│   ├── train.py               骨架，沒在用
-│   └── predict.py             骨架，沒在用
+│   ├── pipeline/              每天的流程，照執行順序編號
+│   │   ├── step1_crawler.py        1. 爬蟲：下載所有來源到 data/raw/
+│   │   ├── step2_features.py       2. 特徵：data/raw/ → data/processed/features/
+│   │   ├── step3_train_predict.py  3. 訓練和預測：選模型、換備援、存每檔的分數
+│   │   ├── step4_submit.py         4. 上傳：寫 CSV、上傳、下載回來核對
+│   │   ├── step5_merge_raw.py      5. 合併：data/raw/ → data/merged/ 的兩張表
+│   │   ├── site_api.py             課程網站的 API（登入、範本、上傳、下載）
+│   │   └── utils.py                共用：讀設定和帳密、台北時間、截止檢查、log
+│   └── models/                每天交件可以選的模型，照做出來的日期編號
+│       ├── __init__.py             config 的名字和檔案的對照（MODEL_KINDS），每個模型的輸入和輸出
+│       ├── m1_online_lr.py         組員的邏輯迴歸（2026-11-05）
+│       ├── m2_persist_rule.py      持續性規則（2026-11-12）
+│       ├── m3_rank_ensemble.py     排名集成（2026-11-12）
+│       └── m4_c2_tilt.py           C2、C2v2d：排名集成加大盤方向的傾斜（2026-11-15，現在用 c2v2d）
 ├── data/
 │   ├── raw/                   爬蟲寫的，和來源一模一樣
 │   │   ├── teacher/           training/ 是 Training ZIP 解開（不會再變）；live/ 是 Live ZIP 解開，每天換新
@@ -193,17 +222,17 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   ├── test_features.py       特徵：清理、交易日、lag、和舊分支凍結資料的對照
 │   ├── test_features_new_columns.py   特徵：只給研究的欄
 │   ├── test_no_future_data.py 特徵：只能用 t 之前的資料
+│   ├── test_rank_ensemble.py  模型：排名集成、備援的順序
 │   ├── test_persist_rule.py   模型：持續性規則、模型開關
 │   ├── test_online_lr.py      模型：組員的邏輯迴歸
 │   ├── test_submit.py         上傳：假網站，不重試、核對
 │   ├── test_submission_format.py   上傳：CSV 的欄位、列數、0/1
-│   ├── test_run_daily_test.py 每日流程：git 同步、log
+│   ├── test_run_daily.py      每日流程：git 同步、log、舊名字和舊路徑還能用
 │   ├── test_merge_raw.py      合併表
 │   ├── fixtures/              舊分支 data-collection 的凍結資料，只給對照測試用，不要改
 │   └── data_exchange/         證交所、櫃買真回應剪小的版本
-├── models/                    空的
+├── models/                    放訓練好的模型檔；現在的模型每天重訓、不存檔，只有 README.md
 ├── .claude/                   Claude Code 的專案設定和輸出風格
 ├── .gitignore                 哪些檔案不進 Git
-│   ├── test_rank_ensemble.py  模型：排名集成、備援的順序
 └── .gitattributes             data/raw/、tests/fixtures/ 不改換行；upload_log.jsonl 用 union 合併
 ```

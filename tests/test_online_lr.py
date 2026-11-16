@@ -1,4 +1,4 @@
-"""組員的邏輯迴歸（src/online_lr.py）：個股特徵不偷看當天和之後的資料，每天的模式和回測一樣。"""
+"""組員的邏輯迴歸（src/models/m1_online_lr.py）：個股特徵不偷看當天和之後的資料，每天的模式和回測一樣。"""
 
 import copy
 import json
@@ -7,7 +7,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src import crawler, online_lr, utils
+from src.pipeline import step1_crawler as crawler, utils
+
+from src.models import m1_online_lr as online_lr
 
 RAW_NUMERIC = ["close", "open", "high", "low", "n_trades", "value", "shares", "foreign_hold_pct", "foreign_net",
                "trust_net", "dealer_net", "dealer_hedge_net", "RSI", "SMA", "MACD", "ATR", "BBANDS_upper",

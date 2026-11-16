@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src import crawler, features, utils
+from src.pipeline import step1_crawler as crawler, step2_features as features, utils
 from tests.test_features import bar, fake_repo, hour, small_cfg, small_raw, weekdays, write_csv
 
 SPECS = {(s.market, s.kind): s for s in crawler.EXCHANGE_SPECS}

@@ -2,7 +2,7 @@
 
 import pytest
 
-from src import site_api, submit
+from src.pipeline import site_api, step4_submit as submit
 
 T = "2026-11-09"
 IDS = ["2330", "2317", "0050"]

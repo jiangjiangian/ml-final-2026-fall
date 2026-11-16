@@ -1,4 +1,4 @@
-"""課程網站的 API：登入、/api/state、範本、上傳、下載提交。submit.py 和 run_daily_test.py 共用。
+"""課程網站的 API：登入、/api/state、範本、上傳、下載提交。submit.py 和 run_daily.py 共用。
 
 格式是 2026-11-06 從網站前端的程式碼查到的（memory/context/competition.md）：
     上傳：POST /api/submissions，JSON {phase, tradingDate, fileName, payload, note}
@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from src import crawler, utils
+from src.pipeline import step1_crawler as crawler, utils
 
 SITE_TIME = re.compile(r"^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?$")
 STATE_MAX_BYTES = 8 * 2**20

@@ -1,6 +1,6 @@
 """C2、C2v2d：排名集成加上「看大盤方向，換高 β 或低 β 股票」的傾斜（組員的 c2_tilt_backtest.ipynb）。
 
-config 的 daily_model.kind 是 c2v2d 或 c2 時 run_daily_test.py 用它（使用者 2026-11-15 決定換成 c2v2d，備援 c2）。
+config 的 daily_model.kind 是 c2v2d 或 c2 時 run_daily.py 用它（使用者 2026-11-15 決定換成 c2v2d，備援 c2）。
 猜漲檔數不變（每天一半猜 1），只換「哪幾檔」。算式照組員那本和 Kaggle notebook 44：
 
     1. combined：rank_ensemble.predict 的三個模型（ridge、kridge、lgbm）各自換成當天要預測的股票裡的名次 − 0.5，
@@ -19,7 +19,7 @@ config 的 daily_model.kind 是 c2v2d 或 c2 時 run_daily_test.py 用它（使�
 回測（notebook 44，2025-01-02～2026-10-08，排名用每月重訓的版本）：C2v2d 每天比原版多 +0.000324（t 2.54），
 C2 +0.000285。MT 24 拆解：押大盤那塊和 Decider P4 的調檔規則是同一件事；另外約 +0.00018 是跟著 p 走的個股效應。
 
-資料不對就丟 TiltError（rank_ensemble 的 EnsembleError 照樣往上丟），讓 run_daily_test.py 換備援：
+資料不對就丟 TiltError（rank_ensemble 的 EnsembleError 照樣往上丟），讓 run_daily.py 換備援：
     - 老師 global 表沒有 t 那列的美股（排程 07:10 時通常已經有；美國或韓國休市時可能沒有，那天就用備援）。
     - t 的狀態缺超過 max_missing_states 個（例如長表的市場欄沒更新）。
     - 要預測的股票在 t 之前的交易日不夠訓練方向模型（少於 min_train_days）。
@@ -30,7 +30,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src import rank_ensemble, utils
+from src.models import m3_rank_ensemble as rank_ensemble
+from src.pipeline import utils
 
 STATES_14 = ["us_gspc", "us_ixic", "vix", "vix_chg", "twii_prev", "ks11_prev", "oi_chg1", "oi_chg5",
              "mkt_1", "mkt_3", "mkt_5", "gap_prev", "disp_prev", "us_gspc_5"]

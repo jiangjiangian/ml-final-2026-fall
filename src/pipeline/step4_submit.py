@@ -9,7 +9,7 @@
        網站回傳的時間沒帶時區，當成 UTC。
     3. 網站上目前有效的那份先下載存到 data/submission/backup/（Phase 1 排行從所有版本取最高分，
        上傳新的不會蓋掉最高分，但留一份比較好核對）。和這份 CSV 一樣就不再送。
-    4. 寫一筆「準備上傳」，呼叫 before_post（run_daily_test.py --sync 用它先 commit、push 這筆紀錄；
+    4. 寫一筆「準備上傳」，呼叫 before_post（run_daily.py --sync 用它先 commit、push 這筆紀錄；
        push 失敗就不上傳，不然下一次在新機器上跑看不到這筆紀錄）。
     5. POST 前再檢查一次：截止、網站的開放時間、網站上的提交有沒有變（別台交了就不送）、upload_log 裡別次執行
        有沒有也在準備上傳（before_post 的 pull 會帶來別台的紀錄）。
@@ -18,8 +18,8 @@
 
 submit.enabled 是 false 時只印出要送的內容，不真的上傳。
 
-用法：python -m src.submit --phase 2 --file data/submission/submission_2026-11-09.csv --date 2026-11-09
-      python -m src.submit --phase 1 --file data/submission/submission_phase1_2026-11-07.csv
+用法：python -m src.pipeline.step4_submit --phase 2 --file data/submission/submission_2026-11-09.csv --date 2026-11-09
+      python -m src.pipeline.step4_submit --phase 1 --file data/submission/submission_phase1_2026-11-07.csv
 """
 
 import argparse
@@ -33,7 +33,7 @@ import sys
 import uuid
 from pathlib import Path
 
-from src import crawler, site_api, utils
+from src.pipeline import site_api, step1_crawler as crawler, utils
 
 STATUS_DONE = "done"
 
@@ -211,7 +211,7 @@ def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, befo
     clock() 回傳現在時間（測試時換掉）。截止和網站的開放時間在 POST 前會再檢查一次，
     因為 before_post（推資料）可能花好幾分鐘。
     respect_existing（排程用）：網站上已經有這次的提交（existing()，例如組員手動交了）就不送；
-    手動跑 python -m src.submit 時是 False，可以蓋掉舊的。
+    手動跑 python -m src.pipeline.step4_submit 時是 False，可以蓋掉舊的。
     """
     clock = clock or utils.taipei_now
     csv_path = Path(csv_path)
@@ -220,7 +220,7 @@ def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, befo
     rows = read_rows(csv_path)
     # 網站前端在 Phase 1 不帶 tradingDate（undefined 不會出現在 JSON 裡），這裡也一樣
     body = {"phase": phase, **({"tradingDate": t} if phase == 2 else {}), "fileName": csv_path.name,
-            "payload": payload(rows, phase), "note": "auto: run_daily_test.py"}
+            "payload": payload(rows, phase), "note": "auto: run_daily.py"}
     digest = hashlib.sha256(csv_path.read_bytes()).hexdigest()
     key = site_api.submission_key(phase, t)
     base = {"phase": phase, "trading_date": key, "file": csv_path.name, "sha256": digest}

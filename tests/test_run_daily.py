@@ -1,13 +1,14 @@
-"""run_daily_test.py 的 git 同步和 log：用暫存資料夾裡的假 remote，不連網。"""
+"""run_daily.py 的 git 同步和 log（用暫存資料夾裡的假 remote，不連網）、舊名字 run_daily_test.py、src/ 的新舊路徑。"""
 
 import logging
+import shutil
 import subprocess
 import sys
 
 import pytest
 
-import run_daily_test as rdt
-from src import utils
+import run_daily as rdt
+from src.pipeline import utils
 
 BRANCH = rdt.BRANCH
 
@@ -139,8 +140,76 @@ def test_push_refuses_other_branches(repos):
         rdt.git_start()
 
 
-def test_script_does_not_import_src_before_sync():
+@pytest.mark.parametrize("script", ["run_daily", "run_daily_test"])
+def test_script_does_not_import_src_before_sync(script):
     """git pull 之前不能載入 src/：不然推上去的修正這次用不到，新程式壞掉時也拿不到修正。"""
-    code = "import sys; sys.path.insert(0, '.'); import run_daily_test; print(any(m.startswith('src') for m in sys.modules))"
+    code = f"import sys; sys.path.insert(0, '.'); import {script}; print(any(m.startswith('src') for m in sys.modules))"
     out = subprocess.run([sys.executable, "-c", code], cwd=utils.ROOT, capture_output=True, text=True, check=True)
     assert out.stdout.strip() == "False"
+
+
+def test_old_script_name_runs_run_daily():
+    """oop 裝好的 crontab 還在叫 run_daily_test.py：要原封不動轉到 run_daily.py（參數照傳）。"""
+    out = subprocess.run([sys.executable, "run_daily_test.py", "--help"], cwd=utils.ROOT, capture_output=True,
+                         text=True, check=True)
+    assert "run_daily.py" in out.stdout and "--sync" in out.stdout and "--dry-run" in out.stdout
+
+
+def test_old_name_passes_its_own_path_and_arguments(tmp_path):
+    """舊名字轉過去時帶上自己的路徑（RUN_DAILY_ENTRY）和原本的參數。"""
+    shutil.copy(utils.ROOT / "run_daily_test.py", tmp_path / "run_daily_test.py")
+    (tmp_path / "run_daily.py").write_text("import os, sys\nprint(os.environ['RUN_DAILY_ENTRY'], *sys.argv[1:])\n")
+    out = subprocess.run([sys.executable, str(tmp_path / "run_daily_test.py"), "--sync", "--dry-run"],
+                         capture_output=True, text=True, check=True)
+    assert out.stdout.split() == [str((tmp_path / "run_daily_test.py").resolve()), "--sync", "--dry-run"]
+
+
+def test_reexec_starts_from_the_script_cron_called(tmp_path, monkeypatch):
+    """run_daily.py 被 pull 更新時重新執行排程叫的那支：退回舊版時 run_daily_test.py 又是正式的主程式，也接得上。"""
+    script = tmp_path / "run_daily.py"
+    calls = []
+
+    def pulled():
+        script.write_text("new")   # 像 git pull 換掉這支檔案
+        return []
+
+    monkeypatch.setattr(rdt, "SCRIPT", script)
+    monkeypatch.setattr(rdt, "git_start", pulled)
+    monkeypatch.setattr(rdt.os, "execve", lambda exe, argv, env: calls.append((argv, env)))
+    monkeypatch.delenv(rdt.REEXEC_FLAG, raising=False)
+    monkeypatch.setenv(rdt.ENTRY_VAR, "/repo/run_daily_test.py")
+    script.write_text("old")
+    assert rdt.sync_with_github(True) == ([], None)
+    assert calls[-1][0][1] == "/repo/run_daily_test.py" and calls[-1][1][rdt.REEXEC_FLAG] == "1"
+    monkeypatch.delenv(rdt.ENTRY_VAR)
+    script.write_text("old")
+    rdt.sync_with_github(True)
+    assert calls[-1][0][1] == str(script)                     # 直接叫 run_daily.py 時從它自己開始
+    script.write_text("old")
+    rdt.sync_with_github(False)                                # main(argv) 從程式裡呼叫（測試）時不重新執行
+    monkeypatch.setenv(rdt.REEXEC_FLAG, "1")
+    script.write_text("old")
+    rdt.sync_with_github(True)                                 # 已經重新執行過一次就不再來
+    assert len(calls) == 2
+
+
+def test_old_import_names_still_work():
+    """組員舊的 notebook 寫 from src import features：還是拿到搬家後的同一個模組。"""
+    import src
+    from src import features, rank_ensemble
+    from src.models import m3_rank_ensemble
+    from src.pipeline import step2_features
+    assert features is step2_features and rank_ensemble is m3_rank_ensemble
+    assert set(src.OLD_NAMES) == {"crawler", "features", "submit", "merge_raw", "site_api", "utils", "online_lr",
+                                  "persist_rule", "rank_ensemble", "c2_tilt"}
+    with pytest.raises(ImportError):
+        from src import no_such_module  # noqa: F401
+
+
+def test_every_model_in_the_registry_loads():
+    """config 能填的每個名字都找得到 predict 函式（檔名或函式名打錯，這裡就會壞，不用等到早上換備援）。"""
+    from src.models import MODEL_KINDS
+    from src.pipeline import step3_train_predict
+    assert set(MODEL_KINDS) == {"online_lr", "persist", "rank_ensemble", "c2", "c2v2d"}
+    for kind in MODEL_KINDS:
+        assert callable(step3_train_predict.load_model(kind)), kind

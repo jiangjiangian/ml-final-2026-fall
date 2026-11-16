@@ -1,5 +1,5 @@
 """日韓當天的開盤（使用者 2026-11-11）：crawler.open_today 從 Yahoo 一分鐘K棒拿當地今天第一根，features 用它算
-t 那列的 open_gap，run_daily_test.py 的 open_today_step 把兩邊接起來。全部離線，Yahoo 用假的 fetch。"""
+t 那列的 open_gap，run_daily.py 的 fill_today_open 把兩邊接起來。全部離線，Yahoo 用假的 fetch。"""
 
 import json
 import logging
@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import run_daily_test as rdt
-from src import crawler, features, online_lr, site_api, submit, utils
+import run_daily as rdt
+from src.pipeline import site_api, step1_crawler as crawler, step2_features as features, step4_submit as submit, utils
 from tests.test_features import bar, fake_repo, small_raw, write_csv
 from tests.test_features_new_columns import gap_cfg
 
@@ -215,7 +215,7 @@ def test_config_and_crontab_agree():
     assert all(name in cfg["yfinance"]["tickers"] for name in conf["series"])
     assert conf["not_before"] >= "08:20"   # 韓國 09:00（台北 08:00）開盤，Yahoo 晚 20 分
     lines = [line.split() for line in (utils.ROOT / "deploy" / "crontab.txt").read_text(encoding="utf-8").splitlines()
-             if "run_daily_test.py" in line and not line.startswith("#")]
+             if "run_daily.py" in line and not line.startswith("#")]
     times = [f"{int(hour):02d}:{int(minute):02d}" for minute, hour, *_ in lines]
     assert times == ["07:10", "07:25", "07:40", "07:55", "08:05", "08:25"]
     assert conf["not_before"] <= times[-1] and all(x < conf["not_before"] for x in times[:-1])
@@ -330,14 +330,14 @@ def test_main_fills_the_t_row_once_the_file_has_it(tmp_path, monkeypatch):
     pd.testing.assert_series_equal(before.loc[rest, "kospi_open_gap"], after.loc[rest, "kospi_open_gap"])
 
 
-# ---------------------------------------------------------------- run_daily_test.py
+# ---------------------------------------------------------------- run_daily.py
 
 
 @pytest.fixture
 def daily(tmp_path, monkeypatch):
     """rdt 的 src 模組換成真的（平常 import_src 之後才有），open_today 和 features.main 換成記錄呼叫的假函式。"""
-    for name, module in (("crawler", crawler), ("features", features), ("online_lr", online_lr),
-                         ("site_api", site_api), ("submit", submit), ("utils", utils)):
+    for name, module in (("crawler", crawler), ("features", features), ("site_api", site_api), ("submit", submit),
+                         ("utils", utils)):
         monkeypatch.setattr(rdt, name, module)
     monkeypatch.setattr(rdt, "ROOT", tmp_path)
     state = {"calls": [], "entry": {"status": "skipped", "written": []}, "last_date": T}
@@ -359,7 +359,7 @@ def daily(tmp_path, monkeypatch):
     def step():
         manifest.write_text(json.dumps({"last_date": state["last_date"]}))
         state["calls"].clear()
-        rdt.open_today_step(state.get("t", T), T, LOG)
+        rdt.fill_today_open(state.get("t", T), T, LOG)
         return state["calls"]
 
     monkeypatch.setattr(crawler, "open_today", open_today)
@@ -394,5 +394,5 @@ def test_step_never_raises(daily, tmp_path):
     assert step() == [("open", T), ("features", ["--date", T])]
     (tmp_path / "data" / "processed" / "manifest.json").unlink()        # 沒有特徵表的 manifest
     state["calls"].clear()
-    rdt.open_today_step(T, T, LOG)
+    rdt.fill_today_open(T, T, LOG)
     assert state["calls"] == []

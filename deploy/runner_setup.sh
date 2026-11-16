@@ -46,7 +46,7 @@ else
   "$UV" pip install --python .venv/bin/python -q -r requirements.txt
 fi
 .venv/bin/python -c "import pandas, sklearn, yfinance, curl_cffi; print('套件 OK')"
-sha256sum requirements.txt > .venv/requirements.sha256   # run_daily_test.py 用它發現 requirements.txt 改了、套件要重裝
+sha256sum requirements.txt > .venv/requirements.sha256   # run_daily.py 用它發現 requirements.txt 改了、套件要重裝
 
 echo "== 5. 帳密"
 [ -f .env ] || { cp .env.example .env; echo "   建了 .env，請填入三個值"; }
@@ -54,10 +54,10 @@ chmod 600 .env
 
 echo "== 6. 排程（台北 07:10、07:25、07:40、07:55、08:05、08:25）：保留 crontab 裡別的行"
 mkdir -p .cache
-# 換掉舊的 run_daily_test 行和 crontab.txt 自己的 SHELL、PATH 兩行（重跑才不會一直多一組），別的行留著
-{ crontab -l 2>/dev/null | grep -v -x -F -f <(grep -v '^#' deploy/crontab.txt | grep '=') | grep -v 'run_daily_test.py' || true
+# 換掉舊的 run_daily.py、run_daily_test.py（舊名字）行和 crontab.txt 自己的 SHELL、PATH 兩行（重跑才不會一直多一組），別的行留著
+{ crontab -l 2>/dev/null | grep -v -x -F -f <(grep -v '^#' deploy/crontab.txt | grep '=') | grep -v -E 'run_daily(_test)?\.py' || true
   grep -v '^#' deploy/crontab.txt | sed "s#__REPO__#$REPO_DIR#g"; } | crontab -
 crontab -l
-echo "== 完成。試跑：cd $REPO_DIR && .venv/bin/python run_daily_test.py --dry-run"
+echo "== 完成。試跑：cd $REPO_DIR && .venv/bin/python run_daily.py --dry-run"
 }
 main "$@"

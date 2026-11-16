@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src import crawler, features, utils
+from src.pipeline import step1_crawler as crawler, step2_features as features, utils
 
 REF = utils.ROOT / "tests" / "fixtures" / "data-collection"
 CFG = utils.load_config()

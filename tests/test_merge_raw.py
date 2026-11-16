@@ -1,4 +1,4 @@
-"""src/merge_raw.py：data/raw/ 合併成 data/merged/ 的個股表和市場表。用暫存資料夾裡的小假資料，不連網。"""
+"""src/pipeline/step5_merge_raw.py：data/raw/ 合併成 data/merged/ 的個股表和市場表。用暫存資料夾裡的小假資料，不連網。"""
 
 import csv
 import gzip
@@ -9,8 +9,8 @@ import logging
 import pandas as pd
 import pytest
 
-import run_daily_test as rdt
-from src import crawler, merge_raw
+import run_daily as rdt
+from src.pipeline import step1_crawler as crawler, step5_merge_raw as merge_raw
 
 CFG = {"yfinance": {"tickers": {"sox": "^SOX", "vix": "^VIX"}},
        "vixtwn": {"file": "taifex/vixtwn.csv"}, "cnn": {"file": "cnn/fear_greed.csv"}}
@@ -192,7 +192,7 @@ def test_live_stock_missing_from_training_is_an_error(raw, tmp_path):
 
 def test_real_config_lists_every_yfinance_file():
     """config 的 tickers 都要有 data/raw/yfinance/<名稱>.csv（每天的合併靠它）；1 小時K棒不併。"""
-    from src import utils
+    from src.pipeline import utils
     cfg = utils.load_config()
     raw_dir = utils.ROOT / cfg["data"]["raw_dir"]
     assert cfg["data"]["merged_dir"] == "data/merged"
@@ -201,13 +201,13 @@ def test_real_config_lists_every_yfinance_file():
     assert "yfinance/usd_twd_1h.csv" not in names
 
 
-# ---------------------------------------------------------------- run_daily_test.py
+# ---------------------------------------------------------------- run_daily.py
 
 
 def test_daily_commit_includes_merged_and_the_step_never_raises(monkeypatch, caplog):
     assert "data/merged" in rdt.DATA_PATHS and rdt.data_only(["data/merged/stock/2026-11.csv.gz"])
-    from src import crawler as c, features, online_lr, site_api, submit
-    for name, module in (("crawler", c), ("features", features), ("merge_raw", merge_raw), ("online_lr", online_lr),
+    from src.pipeline import site_api, step1_crawler as c, step2_features as features, step4_submit as submit
+    for name, module in (("crawler", c), ("features", features), ("merge_raw", merge_raw),
                          ("site_api", site_api), ("submit", submit)):
         monkeypatch.setattr(rdt, name, module)
     calls = []
@@ -219,6 +219,6 @@ def test_daily_commit_includes_merged_and_the_step_never_raises(monkeypatch, cap
     monkeypatch.setattr(merge_raw, "main", boom)
     log = logging.getLogger("test_merge_raw")
     with caplog.at_level(logging.WARNING, logger="test_merge_raw"):
-        rdt.merged_step(log)
+        rdt.merge_raw_data(log)
     assert calls == [[]]
     assert "合併原始資料沒做完" in caplog.text and "vix.csv" in caplog.text

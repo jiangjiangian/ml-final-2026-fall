@@ -25,7 +25,7 @@ Phase 2 用什麼模型還沒決定，見 `memory/context/open-questions.md`。
 | 當天範本 | `GET /api/sample-submission?phase=2&tradingDate={date}` | 用 `utf-8-sig` 讀，開頭可能有 BOM |
 | Phase 1 範本 | `GET /api/sample-submission?phase=1` | 表頭 `id` 加 84 個交易日（2026-06-01～09-30） |
 | 狀態 | `GET /api/state` | `phase2Days`、`openAt`、`deadline`、`uploadQuota`、`mySubmissions` |
-| 上傳 | `POST /api/submissions` | JSON `{phase, tradingDate, fileName, payload, note}`，Phase 1 不帶 tradingDate；payload 見 `src/site_api.py` |
+| 上傳 | `POST /api/submissions` | JSON `{phase, tradingDate, fileName, payload, note}`，Phase 1 不帶 tradingDate；payload 見 `src/pipeline/site_api.py` |
 | 下載目前的提交 | `GET /api/submissions/{id}?record=current` | id 來自 `mySubmissions` |
 
 `/api/state` 回傳的時間沒帶時區，當成 UTC。
@@ -33,7 +33,7 @@ Phase 2 用什麼模型還沒決定，見 `memory/context/open-questions.md`。
 ## 上傳的規矩
 
 - 截止：過了 t 當天台北 09:00 就不上傳。`submit.py` 自己用 08:50（`competition.upload_cutoff`），留時間核對。網站的截止更早時以網站為準。
-- 順序照 `src/submit.py` 開頭：先查 `/api/state`（休市就結束，不算失敗；要在 `openAt` 和網站的 deadline 之間；`uploadQuota` 要有剩）。網站目前的有效提交和這份 CSV 一樣就不送。要送時，先在 `data/submission/upload_log.jsonl` 寫「準備上傳」，再 POST。
+- 順序照 `src/pipeline/step4_submit.py` 開頭：先查 `/api/state`（休市就結束，不算失敗；要在 `openAt` 和網站的 deadline 之間；`uploadQuota` 要有剩）。網站目前的有效提交和這份 CSV 一樣就不送。要送時，先在 `data/submission/upload_log.jsonl` 寫「準備上傳」，再 POST。
 - 全新的雲端機器：這筆「準備上傳」要先 commit 並 push 成功才 POST，push 失敗就不上傳。不然下一次執行看不到紀錄，可能重送。
 - POST 失敗或逾時：不自動重試。回去查網站有沒有收到。每天的上傳次數有上限。
 - 核對：POST 拿到 200 也要把網站上的版本下載回來逐格比對，一致才算完成。

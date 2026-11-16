@@ -10,7 +10,7 @@
   <array>
     <string>/bin/bash</string>
     <string>-c</string>
-    <string>for i in $(seq 12); do /usr/bin/curl -sS -m 5 -o /dev/null https://github.com &amp;&amp; break; sleep 10; done; cd __REPO__ &amp;&amp; .venv/bin/python run_daily_test.py --sync &gt;&gt; .cache/launchd.log 2&gt;&amp;1</string>
+    <string>for i in $(seq 12); do /usr/bin/curl -sS -m 5 -o /dev/null https://github.com &amp;&amp; break; sleep 10; done; cd __REPO__ &amp;&amp; .venv/bin/python run_daily.py --sync &gt;&gt; .cache/launchd.log 2&gt;&amp;1</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict><key>GIT_TERMINAL_PROMPT</key><string>0</string><key>RUNNER_NAME</key><string>mac</string></dict>

@@ -1,6 +1,6 @@
 """排名集成：三個模型學「同一天哪幾檔比較強」（Kaggle notebook 15、16 的 X 系列）。
 
-config 的 daily_model.kind 是 rank_ensemble 時 run_daily_test.py 用它。算式和 notebook 16 一樣，在 oop 逐格比對過。
+config 的 daily_model.kind 是 rank_ensemble 時 run_daily.py 用它。算式和 notebook 16 一樣，在 oop 逐格比對過。
 
     1. 個股欄：老師個股檔每天收盤後算得出的欄（a_、c_、o_ 開頭），退一天變成隔天開盤前的值；加上長表的
        stock_ret_lag1、lag2，和 4 個持續性欄（p_ 開頭：這檔股票過去相對同伴的盤中報酬和跳空）。
@@ -17,7 +17,7 @@ config 的 daily_model.kind 是 rank_ensemble 時 run_daily_test.py 用它。算
 （t 6.0），11 季都是正的；2022～2023 八季每天 +0.00080（t 4.9）。正式流程每天重訓，沒有單獨回測過；notebook 18
 每 5 個交易日重訓的版本和每月重訓最多差 0.0001。oop 用這份程式重播 1,175 天，0／1 有 99.45% 的格子和 notebook 一樣。
 
-資料不對就丟 EnsembleError，讓 run_daily_test.py 換備援模型：
+資料不對就丟 EnsembleError，讓 run_daily.py 換備援模型：
     - 爬蟲記下「前一個交易日在老師 Live 裡還沒填」（data/raw/manifest.json）。這時短期的欄會落後一天。
       只有幾檔自己那天沒填時，不丟錯，那幾檔 t 那列當成空白，算進下一條的空白比例。
     - 要預測的股票少了，或它們的欄空白太多（超過 max_missing，或有一欄全部空白）。
@@ -30,7 +30,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src import features, utils
+from src.pipeline import step2_features as features, utils
 
 TEACHER_RENAME = {
     "etl:adj_close": "close", "etl:adj_open": "open", "etl:adj_high": "high", "etl:adj_low": "low",

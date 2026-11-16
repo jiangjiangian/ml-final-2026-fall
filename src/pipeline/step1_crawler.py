@@ -25,9 +25,9 @@
     data/raw/exchange_backfill.json  回補的進度：每個來源寫了幾天、no_data 的日子、失敗、請求數、有沒有被擋
 
 三種用法：
-    python -m src.crawler                    研究模式：t 取台北今天，不檢查時間，Live 沒有金鑰就跳過
-    python -m src.crawler --date 2026-11-17  每日模式（run_daily.py 用）：t 是預測日，07:00 前不跑，08:30 後不再重試
-    python -m src.crawler --exchange-backfill [--start 2020-01-02] [--end YYYY-MM-DD] [--markets twse,tpex]
+    python -m src.pipeline.step1_crawler                    研究模式：t 取台北今天，不檢查時間，Live 沒有金鑰就跳過
+    python -m src.pipeline.step1_crawler --date 2026-11-17  每日模式（run_daily.py 用）：t 是預測日，07:00 前不跑，08:30 後不再重試
+    python -m src.pipeline.step1_crawler --exchange-backfill [--start 2020-01-02] [--end YYYY-MM-DD] [--markets twse,tpex]
                           [--max-requests N]
                                              研究用的回補：只抓證交所、櫃買，不下載老師資料和 yfinance，不寫 manifest.json
 
@@ -102,7 +102,7 @@ VIXTWN、CNN 恐懼貪婪（使用者 2026-11-09 加，只進長表，在台指�
       CNN 沒有公開的 API，這是它網頁畫圖用的網址。
     - 失敗、格式變了都只寫警告和 manifest，不設 stale，不改回傳值。過了爬蟲截止就跳過。
 
-日韓當天的開盤（使用者 2026-11-11 加，只進長表）：不在 crawl() 裡，run_daily_test.py 在每天的流程結束後呼叫 open_today()。
+日韓當天的開盤（使用者 2026-11-11 加，只進長表）：不在 crawl() 裡，run_daily.py 在每天的流程結束後呼叫 open_today()。
     - 台北 open_today.not_before（08:22）以後才抓，排程是 08:25。Yahoo 的 ^KS11 晚 20 分、^N225 晚 15 分，
       當地 09:00（台北 08:00）開盤的第一根要到這時候才看得到。
     - 每個序列一個請求：今天的一分鐘K棒，拿第一根的 open 和 meta 的前一個交易日收盤，存
@@ -155,7 +155,7 @@ from zoneinfo import ZoneInfo
 import requests
 from curl_cffi.requests import Session as CurlSession
 
-from src import utils
+from src.pipeline import utils
 
 try:
     import fcntl   # 回補的鎖；Windows 沒有，就不鎖
@@ -1947,7 +1947,7 @@ def download_open_today(run: Run, session, fetch=fetch_first_bar) -> dict:
 
 def open_today(cfg: dict, t: str, log, *, raw_dir=None, now=utils.taipei_now, sleep=time.sleep, session=None,
                fetch=fetch_first_bar) -> dict:
-    """run_daily_test.py 在每天的流程結束後呼叫。不放在 crawl() 裡：crawl 07:10 跑，那時日韓還沒開盤。
+    """run_daily.py 在每天的流程結束後呼叫。不放在 crawl() 裡：crawl 07:10 跑，那時日韓還沒開盤。
 
     open_today.enabled 是 false、t 不是台北今天、還沒到 open_today.not_before（Yahoo 的韓國指數晚 20 分、日經晚
     15 分，2026-11-11 量的）：回傳 status skipped。每個序列都已經有 t 那列：回傳 ok。這兩種都不送請求、不寫檔。
@@ -2638,7 +2638,7 @@ class ExchangeBackfill:
 
 
 def exchange_locks(lock_dir: Path, markets) -> list:
-    """每個交易所一個鎖（lock_dir/exchange_<市場>.lock，和 run_daily_test.py 一樣用 flock）。已經有別的回補
+    """每個交易所一個鎖（lock_dir/exchange_<市場>.lock，和 run_daily.py 一樣用 flock）。已經有別的回補
     或每天的爬蟲（download_exchange）在跑同一個交易所就丟 CrawlerError，免得兩個程序對同一個主機各自限流、
     請求變兩倍。回傳開著的鎖檔，關掉就放開。"""
     if fcntl is None:   # Windows 沒有 flock：不鎖

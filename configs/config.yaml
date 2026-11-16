@@ -15,7 +15,7 @@ course_site:
   template: /api/sample-submission?phase=2&tradingDate={date}   # 當天的範本，定出 50 檔順序；用 utf-8-sig 讀
   template_phase1: /api/sample-submission?phase=1             # Phase 1 的範本：表頭 id 加 84 個交易日（2026-06-01～09-30）
   state: /api/state              # 交易日和截止（phase2Days、openAt、deadline）、上傳次數（uploadQuota）、目前的提交（mySubmissions）
-  submissions: /api/submissions  # POST 上傳，JSON 格式見 src/submit.py；舊程式的研究整理出來的，還沒實際送過
+  submissions: /api/submissions  # POST 上傳，JSON 格式見 src/pipeline/step4_submit.py；舊程式的研究整理出來的，還沒實際送過
   submission_file: /api/submissions/{id}?record=current   # 下載目前有效的那份；id 來自 state 的 mySubmissions
   timeout_seconds: [10, 90]      # 課程網站和 Live 的連線、讀取逾時
   total_timeout_seconds: 120     # 每個請求從送出到下載完的總時間上限（含轉址）
@@ -80,7 +80,7 @@ cnn:                             # CNN Fear & Greed（使用者 2026-11-09 加�
   max_mb: 5                      # 從 2021-02-01 抓全部約 1 MB
 
 open_today:                      # 日韓當天的開盤（使用者 2026-11-11 加），只進長表：features 算 t 那列的 kospi_open_gap、n225_open_gap
-  enabled: true                  # run_daily_test.py 在每天的流程結束後要不要抓（crawler.open_today）；不影響上傳
+  enabled: true                  # run_daily.py 在每天的流程結束後要不要抓（crawler.open_today）；不影響上傳
   dir: open_today                # 放在 data.raw_dir 底下，一個序列一檔：date, open, prev_close（前一個當地交易日收盤）, fetched_at
   not_before: "08:22"            # 台北幾點以後才抓。Yahoo 的韓國指數晚 20 分、日經晚 15 分（2026-11-11 量的），
                                  # 當地 09:00（台北 08:00）開盤那一根這時候才看得到。排程是 08:25（deploy/crontab.txt）
@@ -126,7 +126,7 @@ data:
   raw_dir: data/raw
   processed_dir: data/processed
   submission_dir: data/submission
-  merged_dir: data/merged          # src/merge_raw.py 的輸出：data/raw/ 合併成個股表、市場表給組員研究（使用者 2026-11-11）
+  merged_dir: data/merged          # src/pipeline/step5_merge_raw.py 的輸出：data/raw/ 合併成個股表、市場表給組員研究（使用者 2026-11-11）
 
 yfinance:
   min_interval_seconds: 2        # 每個請求（含 cookie、crumb、轉址）至少間隔幾秒，從上一個請求結束算起
@@ -239,7 +239,7 @@ model:
   path: models/model.txt
   feature_list: models/feature_columns.json
 
-online_lr:                       # 組員的方法（notebooks/feature_switch.ipynb 第 6 節），run_daily_test.py 用（使用者 2026-11-06）
+online_lr:                       # 組員的方法（notebooks/feature_switch.ipynb 第 6 節），run_daily.py 用（使用者 2026-11-06）
   train_months: 14               # 每週重訓：用 fit_end 之前這麼多個月有答案的列（100 檔都用）
   online_weeks: 2                # fit_end = 預測那週的週一往前這麼多週；之後每天用前一天的答案做 GD
   C: 0.05                        # LogisticRegression 的正則化強度的倒數（越小越強）
@@ -249,8 +249,8 @@ online_lr:                       # 組員的方法（notebooks/feature_switch.ip
   clip_z: 5                      # 標準化後截在 ±5
   threshold: 0.5                 # 機率 > 這個猜 1
 
-daily_model:                     # run_daily_test.py 每天交件用哪個模型（使用者 2026-11-12 早上換成 persist，晚上換成 rank_ensemble；2026-11-15 換成 c2v2d）
-  kind: c2v2d                    # c2v2d、c2 = 排名集成再依大盤方向換高低 β（src/c2_tilt.py）；rank_ensemble = 排名集成（src/rank_ensemble.py）；persist = 持續性規則（src/persist_rule.py）；online_lr = 組員的邏輯迴歸。換模型改 kind 和下面的 fallback 兩行
+daily_model:                     # run_daily.py 每天交件用哪個模型（使用者 2026-11-12 早上換成 persist，晚上換成 rank_ensemble；2026-11-15 換成 c2v2d）
+  kind: c2v2d                    # c2v2d、c2 = 排名集成再依大盤方向換高低 β（src/models/m4_c2_tilt.py）；rank_ensemble = 排名集成（src/models/m3_rank_ensemble.py）；persist = 持續性規則（src/models/m2_persist_rule.py）；online_lr = 組員的邏輯迴歸。換模型改 kind 和下面的 fallback 兩行
   fallback: [c2, rank_ensemble, persist, online_lr] # kind 算不出來時照順序改用這些，當天照樣交件；填一個名字也可以；none 是停下不交
 
 persist_rule:                    # 持續性規則的設定，照 Kaggle notebook 14 的 persist120
@@ -259,7 +259,7 @@ persist_rule:                    # 持續性規則的設定，照 Kaggle noteboo
   max_stale_days: 3              # 最新的答案和預測日中間隔超過這麼多個交易日，當成資料沒更新，不用這條規則
   min_scored_share: 0.8          # 有分數的股票不到這個比例（50 檔裡 40 檔），當成資料有問題，不用這條規則
 
-rank_ensemble:                   # 排名集成（src/rank_ensemble.py）：Kaggle notebook 16 的 X_price。daily_model.kind 填 rank_ensemble 才會用
+rank_ensemble:                   # 排名集成（src/models/m3_rank_ensemble.py）：Kaggle notebook 16 的 X_price。daily_model.kind 填 rank_ensemble 才會用
   columns: [                     # notebook 16 選出的 41 個價量欄，早上一定有值。順序不能動（LightGBM 抽欄和順序有關）
             stock_ret_lag1, stock_ret_lag2, a_ret1, a_intraday, a_gap, a_high, a_low, a_volume_ratio, a_rsi,
             a_bb_pos, a_bb_width, a_macd, a_ema5_dev, a_ema20_dev, a_ema60_dev, a_ema5_20, a_ema20_60,
@@ -281,7 +281,7 @@ rank_ensemble:                   # 排名集成（src/rank_ensemble.py）：Kagg
   lgbm: {objective: regression, num_leaves: 7, min_child_samples: 100, n_estimators: 200, learning_rate: 0.03,
          subsample: 0.8, subsample_freq: 1, colsample_bytree: 0.7, reg_lambda: 1.0, verbose: -1, n_jobs: 1}
 
-c2_tilt:                         # C2、C2v2d（src/c2_tilt.py，組員的 c2_tilt_backtest.ipynb）：rank_ensemble 再依大盤方向換高低 β。kind 填 c2v2d 或 c2 才會用
+c2_tilt:                         # C2、C2v2d（src/models/m4_c2_tilt.py，組員的 c2_tilt_backtest.ipynb）：rank_ensemble 再依大盤方向換高低 β。kind 填 c2v2d 或 c2 才會用
   gamma: 2.0                     # 傾斜強度，組員在 2023～2024 從 {0.25, 0.5, 1, 2} 挑的，固定
   beta_days: 120                 # β 用每檔前幾個有答案的交易日算（至少一半）
   direction_start: "2020-03-01"  # 方向模型的訓練資料從這天開始，之後一直累積
@@ -290,4 +290,4 @@ c2_tilt:                         # C2、C2v2d（src/c2_tilt.py，組員的 c2_ti
 
 submit:
   enabled: true                  # 使用者 2026-11-06 確認舊系統的排程停了才打開；false 時只印出要送的內容
-  phase: 2                       # run_daily_test.py 交哪一個：1 = Phase 1（84 天回測），2 = 每天的 t（使用者 2026-11-07：Phase 1 自動化測試成功後改 2）
+  phase: 2                       # run_daily.py 交哪一個：1 = Phase 1（84 天回測），2 = 每天的 t（使用者 2026-11-07：Phase 1 自動化測試成功後改 2）

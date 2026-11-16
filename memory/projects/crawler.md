@@ -1,4 +1,6 @@
-# src/crawler.py
+# src/pipeline/step1_crawler.py
+
+2026-11-15 前叫 `src/crawler.py`，下面的紀錄保留當時的檔名（`run_daily_test.py` 現在是 `run_daily.py`）。
 
 ## 狀態
 

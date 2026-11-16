@@ -4,7 +4,7 @@
 
 ## oop（主跑）
 
-`oop.cs.nccu.edu.tw`：Ubuntu 22.04、16 核、24 GB、時區台北。沒有 root，不能用 Docker。cron 在台北 07:10、07:25、07:40、07:55、08:05、08:25 跑 `run_daily_test.py --sync`（`deploy/crontab.txt`）。
+`oop.cs.nccu.edu.tw`：Ubuntu 22.04、16 核、24 GB、時區台北。沒有 root，不能用 Docker。cron 在台北 07:10、07:25、07:40、07:55、08:05、08:25 跑 `run_daily.py --sync`（2026-11-15 前裝的 crontab 寫 `run_daily_test.py`，會直接轉過去）（`deploy/crontab.txt`）。
 
 1. 從校外要先連政大 SSL VPN（Ivanti Secure Access，伺服器 `https://sslvpn.nccu.edu.tw`）才 SSH 得進去。cron 在主機上自己跑，不需要 VPN。
 2. 2026-11-06 在 oop 上用 pip 連不到 pypi.org，所以套件在 Mac 上下載 Linux 版，再複製過去：
@@ -20,7 +20,7 @@
    WHEELS=~/wheels bash runner_setup.sh
    ```
    第一次會建 deploy key 並印出公鑰。到 GitHub repo → Settings → Deploy keys 加上它，勾 Allow write access，再跑一次。
-4. 填 `~/ml-final-2026-fall/.env`，試跑 `.venv/bin/python run_daily_test.py --dry-run`。
+4. 填 `~/ml-final-2026-fall/.env`，試跑 `.venv/bin/python run_daily.py --dry-run`。
 
 `requirements.txt` 改了以後，要重做第 2、3 步重裝套件。
 

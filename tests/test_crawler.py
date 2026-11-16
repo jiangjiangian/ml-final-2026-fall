@@ -1,4 +1,4 @@
-"""src/crawler.py 的離線測試。
+"""src/pipeline/step1_crawler.py 的離線測試。
 
 不連網：課程網站、Live、Yahoo 都是測試裡的假伺服器，時鐘也是假的（sleep 只是把時間往後撥）。
 老師 ZIP 在測試裡現做，100 檔股票、幾天的資料。
@@ -20,7 +20,7 @@ import pytest
 import requests
 from curl_cffi.requests import Session as CurlSession
 
-from src import crawler, utils
+from src.pipeline import step1_crawler as crawler, utils
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 NY = ZoneInfo("America/New_York")

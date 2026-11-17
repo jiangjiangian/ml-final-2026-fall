@@ -6,7 +6,7 @@
 
 ```mermaid
 flowchart TD
-  Z["run_daily.py<br/>0. git pull（--sync）"] --> A["1. 看網站<br/>休市、已經交過就結束"]
+  Z["run_daily.py<br/>0. git pull（--sync）"] --> A["1. 看網站<br/>休市就結束；已經交過不上傳<br/>沒爬過先補爬"]
   A --> B["step1_crawler<br/>老師 Training／Live、yfinance、期交所、交易所"]
   B --> R[("data/raw/")]
   R --> C["step2_features<br/>一列＝一股 × 一天<br/>只用 t 之前的資料"]
@@ -95,8 +95,9 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 - 組員的模型：`src/models/m1_online_lr.py`，組員 `feature_switch.ipynb` 第 6 節的方法。每天早上重新 fit，不讀 `models/`：每週重訓、每天用前一天的答案微調是這個方法的一部分。
 - 開關：`configs/config.yaml` 的 `submit.phase`。1 是 Phase 1（網站範本的 84 天 × 50 檔，測自動化用），2 是每天的 t。使用者 2026-11-06：先交 Phase 1 測試，之後改 2。2026-11-07 07:10 oop 第一次自動交 Phase 1 成功（網站分數 0.0012354，排行仍是 0.0027732；07:40 看到已交就結束），使用者同一天要改成 2。
 - 休市（使用者 2026-11-07：不要寫死，要靈活）：每次執行都看網站的 `phase2Days`（`site_api.day_status`），不看星期幾、也沒有假日表。t 不在清單上就記「休市」結束，不爬、不上傳。在清單上但 `enabled` 是 0 時（沒看過這種狀態；使用者提醒可能只是還沒更新），照常準備，上傳前再看一次，還是停用就記 not_open、這次不送，不擋下一次排程。特徵的交易日曆看老師資料（至少 `min_stocks_filled` 檔填好），新的颱風假自動排除；`closed_days` 只用來把關 10/23。網站的 `phase2Days` 只列到今天為止，沒有週末和 10/23；開放和截止看網站每天的 `openAt`、`deadline`：2026-11-08 起前一個交易日 09:01 開放到當天 09:00（見 `memory/context/01-competition.md`），以前是前一天 15:00 開放。
-- 跳過：Phase 1 今天（台北）已經交過，或 `upload_log.jsonl` 今天有 done／same 就結束；Phase 2 網站上 t 已經有提交（不算「強制繳交」）就結束。所以後面的時段和 Mac 只在前面沒交成時才做事。
+- 跳過：Phase 1 今天（台北）已經交過，或 `upload_log.jsonl` 今天有 done／same 就結束；Phase 2 網站上 t 已經有提交（不算「強制繳交」）就不上傳（2026-11-17 起，t 還沒爬過時照樣補爬）。所以後面的時段和 Mac 只在前面沒交成時才做事。
 - t 不是交易日（不在 `phase2Days`）：不跑爬蟲和特徵。Phase 2 直接結束，Phase 1 用現有的特徵表。
+- 不上傳也補爬（使用者 2026-11-17）：Phase 2、t 是今天、網站沒說休市時，組員先交了、這台已經交好、上次送出還沒核對完成、網站的 `/api/state` 讀不到，這幾種不上傳的情況都先看 t 爬過了沒有（`ensure_crawled`、`crawled`），沒爬過就爬、照樣推上 GitHub。要交件的那條路照舊每次都爬。細節在下面的「2026-11-17 的決定」。
 - 上傳前：`--sync` 時先 commit 並 push `data/` 和「準備上傳」紀錄，push 失敗或出錯就寫 not_sent、不上傳。推完再檢查一次截止（08:50）、網站的開放時間、網站上的提交有沒有變（別台交了就不送）、別台有沒有也在準備上傳，都過了才 POST。
 - POST 失敗後不自動重送：`upload_log.jsonl` 今天有某次執行（`run_id`）的「準備上傳」，同一個 `run_id` 卻沒有 done 或 not_sent 時，之後的執行（後面的時段、Mac）停下，留給人到網站確認後手動處理。
 - git：只有 `--sync` 才做，而且先同步完才寫 log（log 檔也在 Git 裡）。開始前 data/ 以外有改動就停；data/ 裡上次留下的改動先 commit 再 `pull --rebase`。pull 失敗時，本機多出來的 commit 只動 data/、也沒有 data/ 以外沒追蹤的檔，才丟掉、對齊 origin（資料這次重抓）。git 逾時當成失敗。`upload_log.jsonl` 用 union 合併。`submit.phase` 在 pull 之後才讀。
@@ -161,11 +162,26 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 - 使用者 2026-11-16 決定（這個 session 問了「影子跑是什麼」之後）：每天把 `daily_model.shadow` 的五個模型都算一遍，存檔不上傳，組員先手動交的日子也做。同一天也決定請組員別再先手動交，讓排程交 C2v2d（使用者自己跟組員講）。
 - 程式：`run_daily.py` 的 `shadow_run` 決定什麼時候做；`src/pipeline/step3_train_predict.py` 的 `shadow_predict` 算、`shadow_scores` 對答案。設定是 `configs/config.yaml` 的 `daily_model.shadow`。檔案和欄的說明在 `memory/reference/05-daily-model.md` 的「影子跑」。
 - 交件那次：`submit.run` 回來之後才做，POST 丟錯就不做。交件的模型（`kind_of(model_name)`）直接拿交出去的預測；`c2` 用 `m4_c2_tilt` 的快取（同一次執行不重訓 `rank_ensemble`），`rank_ensemble` 拿 `c2v2d` 的 `base_pred`，所以只多算 `persist`、`online_lr`。
-- 組員先交了（`check_site` 回 already_submitted）：自己跑爬蟲、特徵、讀範本再算，約多 3 分鐘。這種日子 08:25 那次補日韓開盤也做得成了（以前特徵表沒有 t 那列，所以不補）。爬蟲失敗只記 WARNING，結果還是 already_submitted、exit 0，下一次排程再試。
+- 組員先交了（`check_site` 回 already_submitted）：先由 `ensure_crawled` 補爬（2026-11-17 起，t 爬過就不重爬；之前是影子跑自己爬），再讀特徵表、讀範本算，約多 3 分鐘。這種日子 08:25 那次補日韓開盤也做得成了（以前特徵表沒有 t 那列，所以不補）。爬蟲失敗只記 WARNING，結果還是 already_submitted、exit 0，下一次排程再試。
 - 一天一次：`shadow_<t>.csv` 已經有就跳過。Phase 1、過了 t 的 09:00、`shadow: []` 都不做。任何錯誤只記 WARNING，不改執行結果，不上傳任何東西。
 - `scores_<t>.csv` 照舊（特徵組 notebook 45 讀它），影子跑是另外的檔。
-- 11-16 沒有影子跑：那天排程在爬蟲之前就結束，事後補算會用到 09:00 以後的資料。第一份是 11-17。
+- 11-16 沒有影子跑：那天排程在爬蟲之前就結束。使用者問了之後，18:16 在 oop 另開的 clone 事後重算五個模型（不進 `data/submission/`，不算影子跑），結果在 `memory/context/01-competition.md` 的「正式期第一天」。第一份真的影子跑是 11-17。
 - 換回去：`shadow: []`，或 revert 這次的 commit（733cce8 的程式不認得 `daily_model.shadow`，留著也沒關係）。
+
+### 2026-11-17 的決定
+
+- 背景：使用者問「爬蟲不管怎樣都應該跑吧」，接著說明目標是「盡全力得到 9:00 前完整的特徵」，資料要齊到能放進模型、在台灣 09:00 前上傳。
+- 11-17 的排程照舊，不推程式（使用者：「明天請照舊」）。
+- 不上傳也補爬（使用者選「照這樣改」）：爬過的定義是 `data/raw/manifest.json` 的 `run.target_date` 是 t、`status` 是 ok 或 stale，而且 `data/processed/manifest.json` 的 `last_date` 是 t。爬到一半停下（running、failed）不算，下一次排程再試。休市日、t 不是今天、Phase 1 不做。失敗只記 WARNING（這次本來就不上傳）。`shadow_run` 不再自己爬，由 `submit_today` 先呼叫 `ensure_crawled`。網站讀不到時照樣試爬：爬蟲會再讀一次 `/api/state`，還是讀不到時要上次存的 `phase2_days.json` 有 t 才繼續。早上存的清單通常只到前一個交易日，所以這種情況多半停下，只記 WARNING，`data/raw/manifest.json` 記 failed（審查 `wf_77cc1c0f-6c1` 查到的，行為照使用者的決定不改）。補爬失敗時 log 會多一行爬蟲自己的 ERROR「爬蟲停下」，不影響結果。Kaggle 對照 rs3（`modelnovice/catch-up-crawl-test-gate`）過了才推，避開台北 07:00～08:40。
+- 每天先交 c2 系列（使用者：「請預先可上傳 c2 系列 model 為主即可」）：維持 `c2v2d`，備援 `c2`。
+- 等 SD 回測（`memory/projects/12-same-day-features.md`）完成再討論，現在不做：08:47 再跑一次、用當天資料重算重交（使用者：「回測表現有變好才要走後續納入新特徵的 model」）；某次爬到的資料不完整（有序列沿用舊檔，或 c2v2d 換成備援）時要不要重交；GitHub 連不上時要不要照爬照交。
+- SD 01 跑完並驗證（2026-11-17）：當天資料沒有讓任何模型變好，08:47 不做模型重算（`memory/projects/12-same-day-features.md`）。
+- 回測完再問的三題，使用者 2026-11-17 的回答：
+  1. 資料不完整時「先交保底，補齊後預測變了就重交」：第一次成功的排程照樣交 c2 系列。之後的排程看到那份用的資料不完整（爬蟲有序列沿用舊檔，或 c2v2d 因缺資料換成 c2 以下的備援），就重爬重算；資料補齊、預測又不一樣才重交，08:50 前為止。只蓋排程自己交的那份，組員手動交的不動。
+  2. GitHub 連不上時「重試約 2 分鐘，還是連不上就照爬照交」：用 oop 上次 pull 到的程式，資料和上傳紀錄先留在 oop，下次連得上再推。放寬「準備上傳的紀錄推不上 GitHub 就不上傳」（當初為了兩台排程互看紀錄，現在只有 oop）。
+  3. 加 08:47 的排程，只把台指期 08:45 的開盤抓進長表 t 那列給組員研究，模型和上傳不動。先找期交所的即時來源，新欄的定義給使用者確認再做。
+- 11-17 的排程（第一次由排程交 c2v2d）：07:10 又因為解析不到 `github.com` 停下。07:25 爬蟲 165 秒，期交所連不上、沿用舊檔，台指期夜盤空白，c2v2d「狀態缺 1 個」，p = 0.649，07:29:26 上傳、核對一致；影子跑 6 秒寫好（online_lr 0 檔猜漲）。之後四次都是已經交過，08:25 補了日韓開盤。08:29 在 oop 另開的複本 `~/recheck-1117` 重爬（期交所已經好了）、重算：狀態缺 0 個，p = 0.650，50 檔和交的那份 0 格不同，所以不用重交。
+- 查到的事（2026-11-17）：近 5 個交易日有 4 天 07:10 沒跑成（11-10、11-11、11-12、11-15），原因都是 oop 解析不到 `github.com`，`git pull` 失敗就整次停下；07:25 都成功。過去爬到時的警告只有不進模型的欄（CNN、`stoxx50e`、`kospi`）。一次完整流程約 3～4 分鐘（爬蟲 145～160 秒）。
 
 ### 2026-11-12 凌晨補推重建的特徵表
 

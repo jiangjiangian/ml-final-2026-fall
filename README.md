@@ -15,7 +15,7 @@
 | 5. 合併 | `src/pipeline/step5_merge_raw.py` | 把原始資料併成個股表和市場表，給組員研究，模型不看 | `data/merged/` |
 
 - 串起來的程式：`run_daily.py`。開始前先 `git pull`，五步跑完把 `data/` commit、push 到這個分支。舊名字 `run_daily_test.py` 會直接轉到它。
-- 時間：台北 07:10 跑第一次，沒交成就在 07:25、07:40、07:55、08:05 再試；網站上已經有當天的提交就直接結束。08:25 再跑一次，只補日韓當天的開盤。
+- 時間：台北 07:10 跑第一次，沒交成就在 07:25、07:40、07:55、08:05 再試；網站上已經有當天的提交就不上傳；t 還沒爬過時照樣補爬、推資料（2026-11-18 起）。08:25 再跑一次，只補日韓當天的開盤。
 - t（預測日）不是交易日就不跑。
 - 影子跑（2026-11-16 起）：交件後，或組員已經手動交了時，`daily_model.shadow` 的五個模型都預測 t，存 `shadow_<t>.csv`，不上傳；收盤後每個模型的官方分數在 `shadow_scores.csv`。說明在 [`memory/reference/05-daily-model.md`](memory/reference/05-daily-model.md) 的「影子跑」。
 - 共用的小函式（讀設定、台北時間、log）在 `src/pipeline/utils.py`。

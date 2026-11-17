@@ -1,10 +1,14 @@
 """影子跑（使用者 2026-11-16）：step3_train_predict 的 shadow_predict、shadow_scores，和 run_daily.py 什麼時候做。
+沒上傳的日子也補爬（使用者 2026-11-17）：run_daily.py 的 ensure_crawled、crawled。
 
 模型都換成假函式，不訓練、不連網。
 """
 
+import json
 import logging
 from datetime import datetime
+
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -166,7 +170,8 @@ def test_scores_use_the_official_formula_and_skip_days_without_answers(tmp_path,
 
 @pytest.fixture
 def runner(monkeypatch, tmp_path):
-    """run_daily 的爬蟲、讀特徵、範本、影子跑換成只記錄的假函式；現在時間固定在台北 t 的 07:30。"""
+    """run_daily 的爬蟲、讀特徵、範本、影子跑換成只記錄的假函式；現在時間固定在台北 t 的 07:30。
+    兩個 manifest 放在 tmp_path，一開始都沒有（t 還沒爬過）。"""
     rd.import_src()
     steps = []
     monkeypatch.setattr(rd, "crawl_and_build_features",
@@ -182,7 +187,9 @@ def runner(monkeypatch, tmp_path):
     monkeypatch.setattr(rd.train_predict, "shadow_predict", shadow)
     monkeypatch.setattr(rd.train_predict, "shadow_scores", lambda cfg, data, log: steps.append("scores"))
     clock(monkeypatch, 7, 30)
-    cfg = {"daily_model": {"kind": "c2v2d", "shadow": ["persist"]}, "data": {"submission_dir": str(tmp_path)},
+    cfg = {"daily_model": {"kind": "c2v2d", "shadow": ["persist"]},
+           "data": {"submission_dir": str(tmp_path), "raw_dir": str(tmp_path / "raw"),
+                    "processed_dir": str(tmp_path / "processed")},
            "competition": {"deadline": "09:00"}}
     return cfg, steps, {"phase2Days": [{"tradingDate": T, "enabled": 1}]}
 
@@ -192,13 +199,12 @@ def clock(monkeypatch, hour, minute):
     monkeypatch.setattr(utils, "taipei_now", lambda now=None: fixed if now is None else now)
 
 
-def test_a_manual_upload_day_crawls_and_writes_the_shadow_once(runner):
-    cfg, steps, state = runner
-    rd.shadow_run(cfg, 2, T, T, LOG, site="SITE", state=state)
-    assert steps == [("crawl", T, True), "load", ("template", "SITE", "DATA"), ("shadow", "DATA", tuple(STOCKS), None),
-                     "scores"]
+def test_a_manual_upload_day_writes_the_shadow_once(runner):
+    cfg, steps, _ = runner
+    rd.shadow_run(cfg, 2, T, T, LOG, site="SITE")   # 爬蟲由 submit_today 的 ensure_crawled 先做
+    assert steps == ["load", ("template", "SITE", "DATA"), ("shadow", "DATA", tuple(STOCKS), None), "scores"]
     steps.clear()
-    rd.shadow_run(cfg, 2, T, T, LOG, site="SITE", state=state)   # 07:25 那次：已經有了
+    rd.shadow_run(cfg, 2, T, T, LOG, site="SITE")   # 07:25 那次：已經有了
     assert steps == []
 
 
@@ -209,32 +215,31 @@ def test_the_submitting_run_reuses_its_data_and_prediction(runner):
 
 
 def test_no_shadow_in_phase_1_when_switched_off_or_after_the_deadline(runner, monkeypatch):
-    cfg, steps, state = runner
-    rd.shadow_run(cfg, 1, T, T, LOG, site="SITE", state=state)
-    rd.shadow_run({**cfg, "daily_model": {"shadow": []}}, 2, T, T, LOG, site="SITE", state=state)
-    rd.shadow_run({key: value for key, value in cfg.items() if key != "daily_model"}, 2, T, T, LOG, site="SITE",
-                  state=state)
+    cfg, steps, _ = runner
+    rd.shadow_run(cfg, 1, T, T, LOG, site="SITE")
+    rd.shadow_run({**cfg, "daily_model": {"shadow": []}}, 2, T, T, LOG, site="SITE")
+    rd.shadow_run({key: value for key, value in cfg.items() if key != "daily_model"}, 2, T, T, LOG, site="SITE")
     clock(monkeypatch, 9, 0)
-    rd.shadow_run(cfg, 2, T, T, LOG, site="SITE", state=state)
+    rd.shadow_run(cfg, 2, T, T, LOG, site="SITE")
     assert steps == []
 
 
 def test_shadow_errors_only_warn_and_the_next_run_tries_again(runner, monkeypatch, caplog):
-    cfg, steps, state = runner
+    cfg, steps, _ = runner
+    working = rd.train_predict.load_model_input
 
-    def broken(phase, t, today, trading, log):
-        raise RuntimeError("爬蟲壞了")
+    def broken(cfg):
+        raise RuntimeError("特徵表壞了")
 
-    monkeypatch.setattr(rd, "crawl_and_build_features", broken)
+    monkeypatch.setattr(rd.train_predict, "load_model_input", broken)
     with caplog.at_level(logging.WARNING):
-        assert rd.shadow_run(cfg, 2, T, T, LOG, site="SITE", state=state) is None
-        rd.shadow_run({"daily_model": "c2v2d", "data": cfg["data"]}, 2, T, T, LOG, site="SITE", state=state)
-    assert "影子跑沒做完（RuntimeError: 爬蟲壞了）" in caplog.text and "影子跑沒做完（AttributeError）" in caplog.text
+        assert rd.shadow_run(cfg, 2, T, T, LOG, site="SITE") is None
+        rd.shadow_run({"daily_model": "c2v2d", "data": cfg["data"]}, 2, T, T, LOG, site="SITE")
+    assert "影子跑沒做完（RuntimeError: 特徵表壞了）" in caplog.text and "影子跑沒做完（AttributeError）" in caplog.text
     assert not tp.shadow_path(cfg, T).exists() and steps == []
-    monkeypatch.setattr(rd, "crawl_and_build_features",
-                        lambda phase, t, today, trading, log: steps.append(("crawl", t, trading)))
-    rd.shadow_run(cfg, 2, T, T, LOG, site="SITE", state=state)
-    assert steps[0] == ("crawl", T, True) and tp.shadow_path(cfg, T).exists()
+    monkeypatch.setattr(rd.train_predict, "load_model_input", working)
+    rd.shadow_run(cfg, 2, T, T, LOG, site="SITE")
+    assert steps[0] == "load" and tp.shadow_path(cfg, T).exists()
 
 
 def test_submit_today_runs_the_shadow_after_the_upload_and_on_manual_upload_days(runner, monkeypatch):
@@ -257,8 +262,8 @@ def test_submit_today_runs_the_shadow_after_the_upload_and_on_manual_upload_days
 
     monkeypatch.setattr(rd, "check_site", lambda *args: "already_submitted")   # 組員先交了
     assert rd.submit_today(cfg, 2, T, T, LOG, sync=False) == "already_submitted"
-    assert steps == ["shadow", "close"] and shadows[0]["state"] is state and isinstance(shadows[0]["site"], Site)
-    assert "data" not in shadows[0]
+    assert steps == [("crawl", T, True), "shadow", "close"]   # 還沒爬過：先補爬，再影子跑
+    assert isinstance(shadows[0]["site"], Site) and "data" not in shadows[0] and "state" not in shadows[0]
 
     steps.clear(), shadows.clear()
     monkeypatch.setattr(rd, "check_site", lambda *args: "closed")   # 休市：不做
@@ -285,3 +290,131 @@ def test_submit_today_runs_the_shadow_after_the_upload_and_on_manual_upload_days
     with pytest.raises(RuntimeError, match="POST 失敗"):
         rd.submit_today(cfg, 2, T, T, LOG, sync=False)
     assert shadows == []
+
+
+# ---------------------------------------------------------------- 沒上傳的日子也補爬（使用者 2026-11-17）
+
+
+def mark_crawled(cfg, t, status="ok", last=None):
+    """寫兩個 manifest：爬蟲的 run 是 t、狀態 status；特徵表的 last_date 是 last（預設 t）。"""
+    raw, processed = Path(cfg["data"]["raw_dir"]), Path(cfg["data"]["processed_dir"])
+    raw.mkdir(exist_ok=True), processed.mkdir(exist_ok=True)
+    (raw / "manifest.json").write_text(json.dumps({"run": {"target_date": t, "status": status}}))
+    (processed / "manifest.json").write_text(json.dumps({"last_date": last or t}))
+
+
+def fake_site(monkeypatch, steps, state=None, error=None):
+    class Site:
+        def __init__(self, cfg, secrets):
+            pass
+
+        def state(self):
+            if error:
+                raise error
+            return state
+
+        def close(self):
+            steps.append("close")
+
+    monkeypatch.setattr(rd.site_api, "Site", Site)
+    monkeypatch.setattr(rd.utils, "load_secrets", lambda: {})
+
+
+def test_crawled_needs_both_manifests_to_say_t(runner):
+    cfg, _, _ = runner
+    assert not rd.crawled(cfg, T)   # 兩個都沒有
+    for status, ok in [("ok", True), ("stale", True), ("running", False), ("failed", False)]:
+        mark_crawled(cfg, T, status)
+        assert rd.crawled(cfg, T) is ok, status
+    mark_crawled(cfg, "2026-11-12")
+    assert not rd.crawled(cfg, T)   # 上一天的
+    mark_crawled(cfg, T, last="2026-11-12")
+    assert not rd.crawled(cfg, T)   # 爬好了，特徵表沒重寫
+    (Path(cfg["data"]["processed_dir"]) / "manifest.json").write_text("{壞掉")
+    assert not rd.crawled(cfg, T)
+
+
+def test_already_submitted_days_crawl_once_even_without_shadow_or_after_9(runner, monkeypatch):
+    cfg, steps, state = runner
+    cfg = {**cfg, "daily_model": {"kind": "c2v2d", "shadow": []}}   # 影子跑關掉也要爬
+    fake_site(monkeypatch, steps, state)
+    monkeypatch.setattr(rd, "check_site", lambda *args: "already_submitted")
+    assert rd.submit_today(cfg, 2, T, T, LOG, sync=False) == "already_submitted"
+    assert steps == [("crawl", T, True), "close"]
+    steps.clear()
+    mark_crawled(cfg, T)   # 07:25 那次：已經爬過
+    assert rd.submit_today(cfg, 2, T, T, LOG, sync=False) == "already_submitted"
+    assert steps == ["close"]
+    steps.clear()
+    mark_crawled(cfg, "2026-11-12")
+    clock(monkeypatch, 9, 30)   # 09:00 以後手動跑
+    rd.submit_today(cfg, 2, T, T, LOG, sync=False)
+    assert steps == [("crawl", T, True), "close"]
+
+
+def test_an_unverified_upload_crawls_and_still_stops(runner, monkeypatch):
+    cfg, steps, state = runner
+    fake_site(monkeypatch, steps, state)
+
+    def pending(*args):
+        raise rd.StopRun("已經送過但沒有核對完成")
+
+    monkeypatch.setattr(rd, "check_site", pending)
+    monkeypatch.setattr(rd, "shadow_run", lambda *args, **kwargs: steps.append("shadow"))
+    with pytest.raises(rd.StopRun, match="沒有核對完成"):
+        rd.submit_today(cfg, 2, T, T, LOG, sync=False)
+    assert steps == [("crawl", T, True), "close"]   # 不上傳、不影子跑
+
+
+def test_site_down_still_crawls_and_the_error_comes_through(runner, monkeypatch):
+    cfg, steps, _ = runner
+    fake_site(monkeypatch, steps, error=ConnectionError("網站連不上"))
+    with pytest.raises(ConnectionError, match="網站連不上"):
+        rd.submit_today(cfg, 2, T, T, LOG, sync=False)
+    assert steps == [("crawl", T, True), "close"]
+
+
+def test_closed_days_other_dates_and_phase_1_do_not_crawl(runner, monkeypatch):
+    cfg, steps, state = runner
+    fake_site(monkeypatch, steps, state)
+    monkeypatch.setattr(rd, "check_site", lambda *args: "closed")
+    assert rd.submit_today(cfg, 2, T, T, LOG, sync=False) == "closed"
+    rd.ensure_crawled(cfg, 2, T, "2026-11-14", True, LOG)   # t 不是今天
+    rd.ensure_crawled(cfg, 1, T, T, True, LOG)   # Phase 1
+    rd.ensure_crawled(cfg, 2, T, T, False, LOG)   # 網站說休市
+    assert steps == ["close"]
+
+
+def test_a_failed_catch_up_crawl_only_warns_and_the_next_run_tries_again(runner, monkeypatch, caplog):
+    cfg, steps, state = runner
+    fake_site(monkeypatch, steps, state)
+    monkeypatch.setattr(rd, "check_site", lambda *args: "already_submitted")
+    monkeypatch.setattr(rd, "shadow_run", lambda *args, **kwargs: steps.append("shadow"))
+
+    def broken(phase, t, today, trading, log):
+        raise RuntimeError("Live 還沒好")
+
+    monkeypatch.setattr(rd, "crawl_and_build_features", broken)
+    with caplog.at_level(logging.WARNING):
+        assert rd.submit_today(cfg, 2, T, T, LOG, sync=False) == "already_submitted"
+    assert "補爬沒做完（RuntimeError: Live 還沒好）" in caplog.text and steps == ["shadow", "close"]
+    monkeypatch.setattr(rd, "crawl_and_build_features",
+                        lambda phase, t, today, trading, log: steps.append(("crawl", t, trading)))
+    steps.clear()
+    rd.submit_today(cfg, 2, T, T, LOG, sync=False)
+    assert steps == [("crawl", T, True), "shadow", "close"]
+
+
+def test_the_submitting_path_crawls_every_time(runner, monkeypatch):
+    cfg, steps, state = runner
+    fake_site(monkeypatch, steps, state)
+    mark_crawled(cfg, T)   # 已經爬過也照爬：Live 晚更新時下一次才抓得到
+    monkeypatch.setattr(rd, "check_site", lambda *args: None)
+    monkeypatch.setattr(rd.train_predict, "train_and_predict", lambda cfg, data, dates, stocks, log: ("c2v2d", "PRED"))
+    monkeypatch.setattr(rd.train_predict, "log_direction", lambda *args: None)
+    monkeypatch.setattr(rd.train_predict, "save_scores", lambda *args: None)
+    monkeypatch.setattr(rd, "write_submission", lambda *args: "PATH")
+    monkeypatch.setattr(rd.submit, "run", lambda *args, **kwargs: steps.append("upload") or "done")
+    monkeypatch.setattr(rd, "shadow_run", lambda *args, **kwargs: steps.append("shadow"))
+    assert rd.submit_today(cfg, 2, T, T, LOG, sync=False) == "done"
+    assert steps[0] == ("crawl", T, True) and steps[-3:] == ["upload", "shadow", "close"]

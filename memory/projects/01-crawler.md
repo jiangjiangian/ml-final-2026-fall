@@ -413,3 +413,26 @@
 
 - 2026-11-05：最後一根K棒的檢查改成「有沒有 i 那根」，取代「每個市場的前一個交易日加假日清單」。這和舊分支 `data/transform/`、`panel_lag.csv.gz` 的算法一樣（用 i 那根，沒有就空白）。
 - 2026-11-05：使用者同意照這個計畫開始寫程式和離線測試。第一次連網試跑前要先問。
+
+## 台指期日盤開盤（08:47，使用者 2026-11-17）
+
+### 決定
+
+- 2026-11-17 使用者要「盡全力得到 9:00 前完整的特徵」。SD 01 回測看不出當天資料對模型有用，所以只進長表給組員研究，模型和上傳不動（`memory/projects/12-same-day-features.md`）。
+- 定義（使用者確認「照這樣做」）：來源是期交所行情資訊網的即時報價，取近月合約（到期月最早、有開盤價的那張）的日盤開盤價；只在日期是 t、時間不早於 08:45 時採用，否則留空。原始值存 `data/raw/taifex/tx_day_open.csv`。長表加兩欄，和 Decider D02 一樣：`tx_am_gap` = 日盤開盤 ÷ t 當天 05:00 收的夜盤收盤 − 1；`tx_open_gap` = 日盤開盤 ÷ 前一個日盤收盤 − 1。歷史的列用 `data/raw/taifex/tx.csv` 一般列的開盤價；t 那列 08:47 先填，隔天爬到 `tx.csv` 之後用期交所每日行情的值蓋掉。兩欄不進 `model_columns`。
+- `CLAUDE.md`「絕對不要」的例外要從「日韓開盤跳空」擴大到「台指期日盤開盤」，程式上線時一起改。
+- 排程：oop 加一個 08:47 的時段（`deploy/crontab.txt`），上線時一起裝。
+
+### 來源（workflow `wf_b1c0deae-776`，2026-11-17）
+
+- 用：`POST https://mis.taifex.com.tw/futures/api/getQuoteList`，header 只要 `Content-Type: application/json`，body `{"MarketType":"0","SymbolType":"F","KindID":"1","CID":"TXF","ExpireMonth":"","RowSize":"全部","PageNo":"","SortColumn":"","AscDesc":"A"}`（`MarketType` 0 是日盤，1 是夜盤）。回 `RtData.QuoteList`，每筆欄位都是字串。
+- 挑合約：只收 `SymbolID` 符合 `^TXF([A-L])(\d)-F$` 的筆（`TXF-S` 是現貨指數，`-M` 是夜盤）。月份字母 A～L 是 1～12 月，年份取不早於 t 那年、尾數等於那一位的最小年份。近月是到期月最早而且 `COpenPrice` > 0 的那張。採用條件：`CDate == t`、`CTime >= "084500"`、`COpenPrice` > 0，三個都成立；否則留空。不能用的欄：`CTestPrice`（08:45 前的試撮）、`CRefPrice`（前一天結算價）、`SettlementPrice`。
+- 驗證：11-17 的日盤開盤 40590，MIS、期交所每日行情（`futDataDown` 的 202611 一般列）、鉅亨、Yahoo 奇摩、HiStock 五個都一樣；MIS 的高低收、結算、未平倉也和每日行情對得上。從 Mac 和 oop 用 curl 都回 200（oop 0.3 秒，系統 CA 就通過）。日盤的開盤價收盤後還留在報價裡（17:23 還有）。
+- 還沒驗證：08:45～08:47 當下的回應（只抓到收盤後的值）、開盤前和休市日的回應、11-18 結算日會不會換月、oop 上用 Python urllib 送中文 body 的寫法。
+- 條款：期交所網站使用條款第三條「沒有書面同意不得逕自使用、修改、重製、公開播送、改作、散布」，和每天抓的 `futDataDown` 同一份；沒有提到自動化存取，MIS 沒有 robots.txt。一天只打 1～3 次，隔天用每日行情的值蓋掉。
+- 不用的：Yahoo 奇摩（條款禁止自動化存取，Python 的 UA 回 404）、HiStock（條款禁止規避排除標頭，回 403）、Yahoo Finance 國際版（robots 全擋、沒有台指期）、鉅亨 ws.api（不是期交所的資料、沒有月份和時段欄、15:00 後當天日盤K棒就沒了、條款寫不得提供他人；只記下來當最後的備援）。
+
+### 探測（2026-11-18，使用者同意）
+
+- oop 上 `~/probe_mis.sh`（`nohup`，不改 crontab）在 11-18 台北 08:40、08:47 各打一次日盤，失敗最多再試 2 次，原始回應存 `~/mis_probe/mis_day_HHMMSS.json`、`~/mis_probe/log.txt`。看完結果寫在這裡，再寫程式。
+

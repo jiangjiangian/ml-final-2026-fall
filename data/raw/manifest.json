@@ -1,12 +1,12 @@
 {
   "run": {
-    "started_at": "2026-11-19T07:10:36+08:00",
+    "started_at": "2026-11-19T07:25:06+08:00",
     "target_date": "2026-11-19",
     "mode": "daily",
     "status": "ok",
     "prev_day": "2026-11-18",
     "no_bar_i": [],
-    "finished_at": "2026-11-19T07:11:58+08:00",
+    "finished_at": "2026-11-19T07:26:09+08:00",
     "yahoo_requests": 23,
     "yahoo_redirects": 0,
     "site_requests": 5,
@@ -68,7 +68,7 @@
       },
       "rows": 1730,
       "date_max": "2026-11-18",
-      "sha256": "71027d3382ee7ea8f13ffa4eb8bdaabf205b38614e2dc252d51adc68c4a438d1",
+      "sha256": "f1db541665292a2ae5e17c500ce5bb370e4cc671a3115bfe8b8a46ce6aabd7f7",
       "has_bar_i": true
     },
     "nvda": {
@@ -84,7 +84,7 @@
       },
       "rows": 1730,
       "date_max": "2026-11-18",
-      "sha256": "71b512de5004f0814e66a83b739ffae97a45349244da030dc683b2309d2ad10e",
+      "sha256": "dd769d24a9530094bed78f88ead468a99f40e82a4774bc90da38a86b51fbb9d7",
       "has_bar_i": true
     },
     "usd_twd": {
@@ -164,7 +164,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "1f67930fc897770dd1d8c592aeb746f533118eac259e511a018df0672a327e3b",
+      "sha256": "c550ac4dd44c37980c0ca2048fe0e2fefe9f5403923bc3588c447ec7bb1a0de9",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -180,7 +180,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "bc4479f9bc6dfabcd7dd64a6a18c6efd7928437b7fb7f5fec80b31c85ecf0d8c",
+      "sha256": "57fdf3f5816d0c0c5fe0db2b19c9a5728cb34cf9fbd1c6bdec304ce298301c9c",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -196,7 +196,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "178de168706eb94e0270ad68050d0c97d252a81a833668861e9e1922c834dfb4",
+      "sha256": "d45359afe9609906bcf67fc3e0985db1ed0192dc29b1bef8cf744c912d825634",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -212,7 +212,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "f4a5177fef282eb075121e90d91b995294e226520792940c45885096e19d3349",
+      "sha256": "bdcf8057e72d95dd9defd2bc986017453dc7599b51c3a60d926f9cb442773acb",
       "has_bar_i": true
     },
     "dji": {
@@ -399,7 +399,7 @@
     "status": "ok",
     "requests": 1,
     "error": null,
-    "start": "2026-11-09",
+    "start": "2026-11-12",
     "dropped": {
       "day_on_or_after_t": 0,
       "night_after_t": 0,
@@ -422,11 +422,7 @@
     ],
     "missing_months": [],
     "failed_months": {},
-    "new_dates": [
-      "2026-11-16",
-      "2026-11-17",
-      "2026-11-18"
-    ],
+    "new_dates": [],
     "changed_dates": [],
     "vanished_dates": [],
     "rows": 73,
@@ -474,8 +470,8 @@
       "2026-11-05"
     ],
     "requests": {
-      "twse": 2,
-      "tpex": 2
+      "twse": 0,
+      "tpex": 0
     },
     "sources": {
       "twse_valuation": {
@@ -483,12 +479,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-18"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-18",
@@ -499,12 +493,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-18"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-18",
@@ -515,12 +507,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-18"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-18",
@@ -531,12 +521,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-18"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-18",

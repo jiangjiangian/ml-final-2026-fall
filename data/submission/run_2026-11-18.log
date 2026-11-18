@@ -81,3 +81,6 @@
 2026-11-18 16:57:57,177 finpred.run_daily INFO 影子跑 2026-11-18 的官方分數：c2v2d -0.00114、c2 -0.00424、rank_ensemble -0.00055、persist -0.01082、online_lr +0.00656（答案來自 live；每天的分數在 data/submission/shadow_scores.csv）
 2026-11-18 16:57:57,191 finpred.run_daily INFO 2026-11-18 傍晚打分：全猜 0 +0.01377；網站上我們 -0.00114（submission_2026-11-18.csv，和 c2v2d 一樣）；當天第 84／126 名；累計 +0.01146，第 78／126 名（全部強制繳交的 27 隊以外第 51 名）
 2026-11-18 16:57:57,193 finpred.run_daily INFO 結束：scored
+2026-11-18 20:00:05,796 finpred.run_daily INFO 開始傍晚打分：Phase 2，t = 2026-11-18，--sync（執行代號 afc91825）
+2026-11-18 20:00:06,288 finpred.run_daily INFO 傍晚已經打過 2026-11-18 的分數，不重做
+2026-11-18 20:00:06,290 finpred.run_daily INFO 結束：done_before

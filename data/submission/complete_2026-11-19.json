@@ -10,8 +10,8 @@
  ],
  "site_id": "21b02dad-0292-4d15-bc7d-02bd8249a903",
  "sha256": "df0c822f53d5a2e6017497b7a6f7e9a7685ff02eeb849e19c969012547c70e2f",
- "redo": 2,
- "redo_time": "2026-11-19T07:40:06+08:00",
+ "redo": 3,
+ "redo_time": "2026-11-19T07:55:06+08:00",
  "last_reasons": [
   "用了備援 rank_ensemble（c2v2d 的備援）"
  ]

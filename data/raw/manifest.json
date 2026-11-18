@@ -1,12 +1,12 @@
 {
   "run": {
-    "started_at": "2026-11-19T07:40:06+08:00",
+    "started_at": "2026-11-19T07:55:06+08:00",
     "target_date": "2026-11-19",
     "mode": "daily",
     "status": "ok",
     "prev_day": "2026-11-18",
     "no_bar_i": [],
-    "finished_at": "2026-11-19T07:41:12+08:00",
+    "finished_at": "2026-11-19T07:56:11+08:00",
     "yahoo_requests": 23,
     "yahoo_redirects": 0,
     "site_requests": 5,
@@ -29,8 +29,8 @@
     "attempts": 1,
     "fallback_from": null,
     "error": null,
-    "zip_sha256": "f282a7af70b8473437a34fc728b1f4b0dca8d7d66dbc145a905d0ed90b39634d",
-    "files_sha256": "3ca90ac31156eea569e570dc0dbebdd86c08df6918505e82f88867fc66356439",
+    "zip_sha256": "838535dbfdc8868fd08b5a6dbc567187e64802cb44bbdd0a8c41ce51b9711b82",
+    "files_sha256": "559dc63293edf44aa455eeba15752978a293aa7ab4bc0571a12aee8d1b9f18a1",
     "date_max": "2026-11-19",
     "has_t_row": true,
     "prev_day": "2026-11-18",
@@ -68,7 +68,7 @@
       },
       "rows": 1730,
       "date_max": "2026-11-18",
-      "sha256": "c621d552d49f2e707b89cd647fb216b0a1743d210ef5097bba87d01b0e0acb87",
+      "sha256": "e362695198d91eb38e7722fc2ad98ff193b237c9c3e45cbd489c3d45ecb34cbb",
       "has_bar_i": true
     },
     "nvda": {
@@ -84,7 +84,7 @@
       },
       "rows": 1730,
       "date_max": "2026-11-18",
-      "sha256": "63a3763c63544d64007129383b9b981389ad29f0b9e37160c058e3efbc3b5402",
+      "sha256": "0852fce4f1de316e1a5e0c98ac8a7153d743cbb06b648cf1b1b73296f9c95ba6",
       "has_bar_i": true
     },
     "usd_twd": {
@@ -100,7 +100,7 @@
       },
       "rows": 1791,
       "date_max": "2026-11-18",
-      "sha256": "612d3aa6c6dc8bc3c89c69df238e31bfbe381c00134b8f417b6d5a6cc318921d",
+      "sha256": "1eef4b71ea380f6acbc98a9464249edd9b09ca151ff783058882231c6d16f196",
       "has_bar_i": true
     },
     "dxy": {
@@ -164,7 +164,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "1f13277aa41b2b143405482b65384875a9e2cde4b2b8ca9c5455283fe7eecdd4",
+      "sha256": "de10cd8d40a2dca341257202371318093b389a69bfb091d7feeb461bf196a4bd",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -180,7 +180,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "3058049f07ba1e0d5651511433c5ba810298162965cb662254d07e1a329b452d",
+      "sha256": "0cfc34d7a4ae540f37d3c5350e877a355abd57190cc6108e3cbc1086cfcf0c40",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -196,7 +196,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "d523fb6b267d6ed371c282465ce5f0cc56b73b2ca2bbec232388e84107409b43",
+      "sha256": "1cd44da8d56ae550ffe9b0f128f6d19e9dd32de541c57cfc489e4622ccc440c1",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -212,7 +212,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "d5cacce440604c21a63d6a1ecb01653e1bcafdf76d5730705ea781c75fb06ac0",
+      "sha256": "997f40df5dcec3d3bc04052273ea74fb2bd85aa2714068710674bd4560a74a81",
       "has_bar_i": true
     },
     "dji": {
@@ -324,7 +324,7 @@
       },
       "rows": 1732,
       "date_max": "2026-11-18",
-      "sha256": "a2a1a3d80f954427efaad66021cca1abc6a5a15dad7f08d629368ea2841ba72a",
+      "sha256": "d4525950dba1b8adc98cc883830560a4414ca7b17d9c2d2d7e12591eebe909a3",
       "end": "2026-11-18T17:30:00-05:00",
       "has_bar_i": true
     },
@@ -341,7 +341,7 @@
       },
       "rows": 1733,
       "date_max": "2026-11-18",
-      "sha256": "a53a4a41257356f1c368b1ff2d4268c88f0bc0a209381c48d37dbec5d9a5d15a",
+      "sha256": "08ee47a45048c851812ced35b39a220add02eb5dcd2d92626ec74af25ecc8a48",
       "end": "2026-11-18T17:30:00-05:00",
       "has_bar_i": true
     },
@@ -440,8 +440,8 @@
     "requests": 1,
     "start": "2026-10-20",
     "cache": {
-      "Age": "0",
-      "X-Cache": "MISS, MISS"
+      "Age": "899",
+      "X-Cache": "MISS, HIT"
     },
     "now": {
       "score": 24.607722007722,
@@ -453,17 +453,8 @@
       "on_or_after_t": 0,
       "before_start": 0
     },
-    "new_dates": [
-      "2026-11-11",
-      "2026-11-12",
-      "2026-11-13",
-      "2026-11-16",
-      "2026-11-17",
-      "2026-11-18"
-    ],
-    "changed_dates": [
-      "2026-11-10"
-    ],
+    "new_dates": [],
+    "changed_dates": [],
     "vanished_dates": [],
     "rows": 1457,
     "last_dates": [

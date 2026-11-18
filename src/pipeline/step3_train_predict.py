@@ -5,7 +5,8 @@
     save_scores(cfg, pred, t, model_name, log)     → data/submission/scores_<t>.csv（只給研究用）
     log_direction(pred, model_name, log)           → c2、c2v2d 當天押的大盤方向寫進 log
     shadow_predict(cfg, data, t, stocks, log, known) → data/submission/shadow_<t>.csv（影子跑，不上傳）
-    shadow_scores(cfg, data, log)                  → data/submission/shadow_scores.csv（影子跑對上答案的分數）
+    shadow_scores(cfg, data, log, source)          → data/submission/shadow_scores.csv（影子跑對上答案的分數；
+                                                     早上用特徵表的答案，傍晚 step6_evening_score 用老師 Live）
 
 模型在 src/models/，名字和檔案的對照是 src/models/__init__.py 的 MODEL_KINDS。每個模型都在 predict 裡從頭訓練，
 不讀也不寫 repo 根目錄的 models/。
@@ -90,6 +91,27 @@ def train_and_predict(cfg: dict, data, dates: list, stocks: list, log) -> tuple:
 def kind_of(model_name: str) -> str:
     """train_and_predict 回傳的模型名稱 → MODEL_KINDS 的名字（「c2（c2v2d 的備援）」→ c2）。"""
     return model_name.split("（", 1)[0]
+
+
+def completeness(cfg: dict, model_name: str, pred) -> tuple:
+    """交件的那份用的資料完不完整（使用者 2026-11-17）。回傳（完整與否, 原因的清單, 方向模型缺的狀態數或 None）。
+
+    不完整的兩種：用了備援（模型不是 daily_model.kind），或預測表的 missing_states > 0（c2、c2v2d 的方向模型
+    有狀態是空白，缺值補成訓練期平均）。這是使用者定義（「爬蟲有序列沿用舊檔，或 c2v2d 因為缺資料換成備援」）
+    的精確版：c2 系列的輸入是老師的個股資料（Live 沒好時爬蟲會停下，不會交件）和方向模型的狀態；yfinance、
+    期交所的序列沒抓到，會變成狀態的空白，算在 missing_states 裡。不進模型的序列（CNN、VIXTWN、證交所等）
+    沒抓到，預測不會變，所以不算。
+    """
+    reasons = []
+    wanted = (cfg.get("daily_model") or {}).get("kind", "online_lr")
+    if kind_of(model_name) != wanted:
+        reasons.append(f"用了備援 {model_name}")
+    missing = None
+    if "missing_states" in pred and pred["missing_states"].notna().any():
+        missing = int(pred["missing_states"].max())
+        if missing > 0:
+            reasons.append(f"方向模型的狀態缺 {missing} 個")
+    return not reasons, reasons, missing
 
 
 def public_reason(e: BaseException) -> str:
@@ -231,15 +253,20 @@ def tilt_base(outputs: dict):
     return None
 
 
-def shadow_scores(cfg: dict, data, log) -> Path | None:
-    """每一份 shadow_<日期>.csv 對上答案，重寫 shadow_scores.csv，回傳路徑；還沒有任何一天有答案時不寫、回傳 None。
+def shadow_scores(cfg: dict, data, log, source: str = "features") -> Path | None:
+    """每一份 shadow_<日期>.csv 對上答案，更新 shadow_scores.csv，回傳路徑；檔裡一列都沒有時不寫、回傳 None。
 
-    答案是那天收盤後才有的 label_intraday_return，隔天早上的特徵表才有，所以 t 早上算到的是 t 之前的日子。
+    data 是有答案的表（date、stock_id、label_y、label_intraday_return）：早上是特徵表（source 是 features），
+    答案是那天收盤後才有的 label_intraday_return，隔天早上的特徵表才有，所以 t 早上算到的是 t 之前的日子；
+    傍晚是老師 Live 的 t 那列（step6_evening_score，source 是 live），當天就算得到。
     每天每個模型一列：date、model、cells（格數）、score（官方分數：每格 (2 × pred − 1) × 當天盤中報酬，取平均）、
-    accuracy（猜對的比例）、pred_up（猜漲的比例）。那天那個模型有任何一格缺答案就不寫。
+    accuracy（猜對的比例）、pred_up（猜漲的比例）、source（答案從哪裡來）。那天那個模型有任何一格缺答案就不算。
+    合併（使用者 2026-11-17）：這次算得到的蓋掉舊的同一列；這次算不到的日子留著舊的（例如隔天早上的爬蟲沒跑成，
+    傍晚的分數不會不見）。同一列的分數和之前差超過 1e-9 時記 WARNING（傍晚和隔天早上的答案應該一樣）。
     """
     folder = utils.ROOT / cfg["data"]["submission_dir"]
-    rows = []
+    out = folder / SHADOW_SCORES
+    fresh = {}
     for path in sorted(folder.glob("shadow_*.csv")):
         match = SHADOW_NAME.fullmatch(path.name)
         if not match:
@@ -251,18 +278,46 @@ def shadow_scores(cfg: dict, data, log) -> Path | None:
                 continue
             got = online_lr.official_score(part.astype({"pred": int}), data)
             if "score" in got:
-                rows.append({"date": match.group(1), "model": column[len("pred_"):], "cells": got["cells"],
-                             "score": got["score"], "accuracy": got["accuracy"], "pred_up": got["pred_up"]})
-    if not rows:
+                day, model = match.group(1), column[len("pred_"):]
+                fresh[(day, model)] = {"date": day, "model": model, "cells": got["cells"], "score": got["score"],
+                                       "accuracy": got["accuracy"], "pred_up": got["pred_up"], "source": source}
+    old = read_ledger(out)
+    for key, row in fresh.items():
+        before = old.get(key)
+        if before is not None and abs(float(before["score"]) - row["score"]) > 1e-9:
+            log.warning("影子跑 %s %s 的分數和之前（答案來自 %s）不一樣：之前 %+.6f，這次（%s）%+.6f",
+                        key[0], key[1], before.get("source") or "features", float(before["score"]), source,
+                        row["score"])
+    merged = {**old, **fresh}
+    if not merged:
         log.info("影子跑：還沒有哪一天有答案，%s 先不寫", SHADOW_SCORES)
         return None
-    ledger = pd.DataFrame(rows)
-    out = folder / SHADOW_SCORES
+    ledger = pd.DataFrame([merged[key] for key in sorted(merged, key=lambda k: k[0])], columns=LEDGER_COLUMNS)
     crawler.write_atomic(out, ledger.to_csv(index=False).encode("utf-8"))
-    last = ledger[ledger["date"] == ledger["date"].max()]
-    log.info("影子跑 %s 的官方分數：%s（每天的分數在 %s）", last["date"].iloc[0],
-             "、".join(f"{r.model} {r.score:+.5f}" for r in last.itertuples()), shown(out))
+    days = sorted({key[0] for key in fresh})
+    if days:
+        last = ledger[ledger["date"] == days[-1]]
+        log.info("影子跑 %s 的官方分數：%s（答案來自 %s；每天的分數在 %s）", days[-1],
+                 "、".join(f"{r.model} {r.score:+.5f}" for r in last.itertuples()), source, shown(out))
     return out
+
+
+LEDGER_COLUMNS = ["date", "model", "cells", "score", "accuracy", "pred_up", "source"]
+
+
+def read_ledger(path: Path) -> dict:
+    """shadow_scores.csv 的每一列，{(date, model): 那列}。沒有檔或讀不了是空的；2026-11-17 前的檔沒有 source，當成 features。"""
+    try:
+        table = pd.read_csv(path, dtype={"date": str, "model": str})
+    except (OSError, ValueError):
+        return {}
+    if not {"date", "model", "score"} <= set(table.columns):
+        return {}
+    if "source" not in table.columns:
+        table["source"] = "features"
+    table = table.reindex(columns=LEDGER_COLUMNS)
+    table["source"] = table["source"].fillna("features")
+    return {(r["date"], r["model"]): r for r in table.to_dict("records")}
 
 
 def shown(path: Path) -> str:

@@ -32,6 +32,25 @@
 
 每天的 log 有一行「模型 c2v2d：大盤方向 p = …，傾斜 …，和 rank_ensemble 換了 N 組，狀態缺 N 個，重訓日 …」。每檔的分數在 `scores_<t>.csv`：`base_pred` 是 `rank_ensemble` 的選法，`pred` 是交出去的，另外有 `combined`、`beta_rank`、`p_up`、`tilt`、`score`、`variant`。
 
+## 資料不完整時重交（使用者 2026-11-17）
+
+排程交好之後，`data/submission/complete_<t>.json` 記下那份用的資料完不完整。不完整有兩種：
+
+- 用了備援：模型不是 `daily_model.kind`（現在是 `c2v2d`）。
+- 方向模型的狀態有缺：預測表的 `missing_states` 大於 0。yfinance、期交所的序列沒抓到時會這樣，缺的狀態補成訓練期的平均。
+
+不進模型的序列（CNN、VIXTWN、證交所、`stoxx50e`、`kospi` 等）沒抓到，預測不會變，不算不完整。檔案的欄：`model`、`missing_states`、`complete`、`reasons`（不完整的原因）、`site_id`（網站上那份的 id）、`redo`（重做了幾次）等。
+
+不完整時，之後的時段（07:25、07:40…）重爬、重算：
+
+- 還是不完整：不重交，下一個時段再試。
+- 補齊了，50 檔的猜法一樣：不重交，紀錄改成完整。
+- 補齊了，猜法不一樣：原本的檔改名成 `submission_<t>_first.csv`，新的 `submission_<t>.csv` 取代網站上那份，`scores_<t>.csv`、`shadow_<t>.csv` 跟著重寫。
+
+不重做的情況：網站上那份是組員手動交的、已經重交過一次、08:44 以後、上傳次數用完、有一次送出後還沒核對完。開關是 `configs/config.yaml` 的 `submit.redo_incomplete`，最晚的時間是 `submit.redo_latest`。
+
+美國休市的隔天 `c2v2d` 本來就會換備援（見上一節），那天之後的時段會一直重算到 08:44，不會補齊。
+
 ## rank_ensemble：排名集成（第二個備援）
 
 `src/models/m3_rank_ensemble.py`，Kaggle notebook 16 的 `X_price`。每天早上用 t 之前 500 個有答案的交易日重新訓練，約 30 秒：
@@ -85,7 +104,8 @@
 ### 檔案
 
 - `data/submission/shadow_<t>.csv`：每檔一列。每個模型兩欄，`pred_<模型>`（0/1）和 `prob_<模型>`（當天名次換成 0～1；`online_lr` 是機率）。`c2`、`c2v2d` 另有 `p_up_<模型>`（大盤方向的機率）。算不出來的模型那幾欄空白，原因在 `run_<t>.log`。
-- `data/submission/shadow_scores.csv`：每天每個模型一列。`score` 是官方分數（每格 (2·pred − 1)·盤中報酬的平均），另有 `accuracy`（猜對的比例）、`pred_up`（猜漲的比例）、`cells`（格數）。答案要等 t 收盤，隔天早上那次執行才補上 t 的分數。
+- `data/submission/shadow_scores.csv`：每天每個模型一列。`score` 是官方分數（每格 (2·pred − 1)·盤中報酬的平均），另有 `accuracy`（猜對的比例）、`pred_up`（猜漲的比例）、`cells`（格數）、`source`（答案從哪裡來）。t 當天 18:00 的傍晚打分用老師 Live 的 t 那列先算（`source` 是 `live`）；隔天早上用特徵表的答案再算一次（`features`），兩邊不一樣時 log 有 WARNING。早上算不到的日子留著傍晚的分數。
+- `data/submission/site_scores.csv`（2026-11-18 起）：網站上我們那份每天一列。`file`（排程的檔名 `submission_<t>.csv`；組員取的其他檔名一律寫 `other`，不存）、`same_as`（和影子跑哪個模型的 50 檔一樣）、`site_score`（網站給的分數）、`rescored`（用老師 Live 重算，應該和網站一樣；差超過 1e-6 時 log 有 WARNING）、`all_zero`（全猜 0 的分數）、`day_rank`／`day_teams`（當天名次／有分數的隊數）、`total_score`、`total_rank`（累計分數和網站的名次）、`teams`、`all_forced_teams`（每天都是網站強制繳交的隊數）、`self_rank`（扣掉那些隊以後的累計名次）、`read_at`。只存我們這隊，不存任何隊名。
 
 ```python
 import pandas as pd
@@ -97,7 +117,9 @@ s.pivot(index="date", columns="model", values="score").cumsum()   # 每個模型
 
 - 排程自己交的那次：上傳之後，用交件那次的特徵表。交件的模型直接拿交出去的猜法，所以那一欄和 `submission_<t>.csv` 一樣。`rank_ensemble` 從 `c2v2d` 輸出的 `base_pred` 拿，`c2` 和 `c2v2d` 共用同一次訓練，不多花時間。
 - 組員先交了：排程先補爬（t 當天還沒爬過才爬），再算，約多 3 分鐘。
-- 一天只算一次，`shadow_<t>.csv` 已經有就跳過；過了 09:00 不算（之後的資料可能被改過）。
+- 資料不完整、補齊後重交的那次：用補齊後的特徵表重寫（見「資料不完整時重交」）。
+- 一天只算一次，`shadow_<t>.csv` 已經有就跳過（重交時例外）；過了 09:00 不算（之後的資料可能被改過）。
+- 打分：t 當天 18:00 的傍晚打分（`src/pipeline/step6_evening_score.py`），老師 Live 還沒填好 t 那列就 20:00 再試。只下載 Live，不上傳、不重建特徵表；Live 寫進 `data/raw/teacher/live/`，組員傍晚就拿得到。
 - 算不出來只記一行 WARNING，不影響交件。
 - 關掉：`shadow: []`。
 

@@ -292,3 +292,6 @@ c2_tilt:                         # C2、C2v2d（src/models/m4_c2_tilt.py，組�
 submit:
   enabled: true                  # 使用者 2026-11-06 確認舊系統的排程停了才打開；false 時只印出要送的內容
   phase: 2                       # run_daily.py 交哪一個：1 = Phase 1（84 天回測），2 = 每天的 t（使用者 2026-11-07：Phase 1 自動化測試成功後改 2）
+  redo_incomplete: true          # 重做（使用者 2026-11-17）：排程交的那份資料不完整（用了備援或方向模型的狀態有缺）時，之後的排程重爬、重算，補齊後預測變了才重交
+  redo_latest: "08:44"           # 這個時間（台北）以後不再開始重做；一次重做約 3～4 分鐘，上傳截止是 competition.upload_cutoff（08:50）
+  require_push_before_post: false   # 「準備上傳」的紀錄推不上 GitHub 時要不要停下不上傳。只有 oop 一台排程時用 false（使用者 2026-11-17）；裝第二台排程（Mac 備援）之前要改回 true

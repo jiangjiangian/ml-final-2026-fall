@@ -140,6 +140,132 @@ def test_push_refuses_other_branches(repos):
         rdt.git_start()
 
 
+# ---------------------------------------------------------------- GitHub 連不上時照爬照交（使用者 2026-11-17）
+
+
+OOP_DNS = ("ssh: Could not resolve hostname github.com: Name or service not known\n"
+           "fatal: Could not read from remote repository.")   # oop 2026-11-10～11-17 的 07:10 看到的
+
+
+def failing_remote(real, code, message):
+    """pull、fetch 都回傳 code 和 message 的 git；其他指令照常跑。"""
+    def fake(*args, **kw):
+        if args[0] in ("pull", "fetch"):
+            return subprocess.CompletedProcess(args, code, "", message)
+        return real(*args, **kw)
+    return fake
+
+
+@pytest.mark.parametrize("code, message", [(128, OOP_DNS), (124, "git fetch 超過 180 秒")], ids=["dns", "timeout"])
+def test_unreachable_github_continues_with_the_local_code(repos, monkeypatch, code, message):
+    work, _ = repos
+    monkeypatch.setattr(rdt, "OFFLINE", False)
+    monkeypatch.setattr(rdt, "GIT_RETRY_SECONDS", 0)   # 不等：試一次就放棄
+    monkeypatch.setattr(rdt, "GIT_RETRY_WAIT", 1)
+    real = rdt.git
+    monkeypatch.setattr(rdt, "git", failing_remote(real, code, message))
+    (work / "data" / "submission" / "run.log").write_text("a\nleft from last run\n")
+    notes = rdt.git_start()
+    head = sh(work, "rev-parse", "--short", "HEAD").strip()
+    assert notes[0] == "上次留下沒 commit 的資料，先 commit 了"
+    assert notes[-1].startswith("連不上 GitHub（") and "試了 1 次" in notes[-1] and f"commit {head}" in notes[-1]
+    assert notes[-1].endswith("資料和上傳紀錄下次再推") and rdt.OFFLINE is True
+    monkeypatch.setattr(rdt, "git", real)   # 下一次連得上：照常 pull
+    assert rdt.git_start() == [] and rdt.OFFLINE is False
+
+
+def test_a_git_failure_that_is_not_the_network_still_stops(repos, tmp_path, monkeypatch):
+    work, _ = repos
+    monkeypatch.setattr(rdt, "OFFLINE", False)
+    monkeypatch.setattr(rdt, "GIT_RETRY_SECONDS", 0)
+    monkeypatch.setattr(rdt, "GIT_RETRY_WAIT", 1)
+    sh(work, "remote", "set-url", "origin", str(tmp_path / "moved.git"))   # 例如 repo 搬家：不是連不上網路
+    with pytest.raises(rdt.StopRun, match="不像是連不上網路"):
+        rdt.git_start()
+    assert rdt.OFFLINE is False
+    real = rdt.git
+    monkeypatch.setattr(rdt, "git", failing_remote(real, 128, "ERROR: Permission to repo denied to deploy key\n"
+                                                             "fatal: Could not read from remote repository."))
+    with pytest.raises(rdt.StopRun, match="不像是連不上網路"):   # deploy key 被撤
+        rdt.git_start()
+    assert rdt.OFFLINE is False
+
+
+def test_reset_after_an_offline_day_keeps_this_days_submission_files(repos):
+    """07:10 連不上 GitHub、交件檔只 commit 在本機；組員晚上推了重建的資料，07:25 pull --rebase 衝突、對齊 origin。"""
+    work, other = repos
+    (other / "data" / "raw" / "x.csv").write_text("theirs\n")
+    sh(other, "commit", "-qam", "rebuilt data")
+    sh(other, "push", "-q", "origin", BRANCH)
+    sub = work / "data" / "submission"
+    files = {"submission_2026-11-18.csv": "id,2026-11-18\n2330,1\n", "complete_2026-11-18.json": '{"complete": false}\n',
+             "run.log": "a\n07:10 offline\n"}   # run.log 在 origin 也有，這台改過
+    for name, text in files.items():
+        (sub / name).write_text(text)
+    (sub / "upload_log.jsonl").write_text('{"status": "done", "run_id": "a"}\n')
+    (work / "data" / "raw" / "x.csv").write_text("ours\n")
+    rdt.commit_data("Daily run 2026-11-18: data and prepared upload")
+    notes = rdt.git_start()
+    assert "丟掉並對齊 origin" in notes[-1] and "upload_log 補回 1 行" in notes[-1] and "data/submission/ 留回 3 個檔" in notes[-1]
+    assert (work / "data" / "raw" / "x.csv").read_text() == "theirs\n"   # 資料照 origin
+    assert all((sub / name).read_text() == text for name, text in files.items())
+    assert '"done"' in (sub / "upload_log.jsonl").read_text()
+    assert sh(work, "status", "--porcelain").strip() == ""
+    assert sh(work, "log", "-1", "--format=%s").strip() == "Keep upload records from dropped commits"
+
+
+def test_git_pull_is_retried_while_github_is_unreachable(repos, monkeypatch):
+    work, _ = repos
+    monkeypatch.setattr(rdt, "OFFLINE", False)
+    monkeypatch.setattr(rdt, "GIT_RETRY_SECONDS", 1000)
+    monkeypatch.setattr(rdt, "GIT_RETRY_WAIT", 0)
+    real, calls = rdt.git, []
+
+    def flaky(*args, **kw):
+        if args[0] in ("pull", "fetch"):
+            calls.append(args[0])
+            if len(calls) <= 2:   # 第一次 pull 和 fetch 都失敗
+                return subprocess.CompletedProcess(args, 128, "", "Could not resolve host: github.com")
+        return real(*args, **kw)
+
+    monkeypatch.setattr(rdt, "git", flaky)
+    assert rdt.git_start() == ["git pull 第 2 次才成功"]
+    assert calls == ["pull", "fetch", "pull"] and rdt.OFFLINE is False
+
+
+def before_post_result(monkeypatch, caplog, *, pushed, require=None, offline=False):
+    """before_post_for 回傳的函式跑一次：commit 換成假的，push 回傳 pushed。回傳（結果, 有沒有呼叫 push）。"""
+    calls = []
+    monkeypatch.setattr(rdt, "commit_data", lambda message: True)
+    monkeypatch.setattr(rdt, "push", lambda log: calls.append(1) or pushed)
+    monkeypatch.setattr(rdt, "OFFLINE", offline)
+    cfg = {"submit": {} if require is None else {"require_push_before_post": require}}
+    with caplog.at_level(logging.WARNING):
+        result = rdt.before_post_for(cfg, "2026-11-13", logging.getLogger("test"))()
+    return result, bool(calls)
+
+
+def test_before_post_uploads_without_push_only_when_the_config_says_so(monkeypatch, caplog):
+    assert before_post_result(monkeypatch, caplog, pushed=True, require=True) == (True, True)
+    assert before_post_result(monkeypatch, caplog, pushed=False, require=True) == (False, True)
+    assert before_post_result(monkeypatch, caplog, pushed=False) == (False, True)   # 沒寫就是 true（舊的規則）
+    assert "推不上 GitHub" not in caplog.text
+    assert before_post_result(monkeypatch, caplog, pushed=False, require=False) == (True, True)
+    assert "「準備上傳」的紀錄推不上 GitHub，先留在本機（只有 oop 一台排程，使用者 2026-11-17）；照樣上傳" in caplog.text
+
+
+def test_before_post_does_not_push_when_github_was_unreachable(monkeypatch, caplog):
+    assert before_post_result(monkeypatch, caplog, pushed=True, require=False, offline=True) == (True, False)
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert warnings == ["「準備上傳」的紀錄沒推（這次連不上 GitHub），先留在本機（只有 oop 一台排程，使用者 2026-11-17）；照樣上傳"]
+    assert before_post_result(monkeypatch, caplog, pushed=True, require=True, offline=True) == (False, False)
+
+
+def test_the_config_allows_upload_without_push_and_redo():
+    cfg = utils.load_config()["submit"]
+    assert cfg["require_push_before_post"] is False and cfg["redo_incomplete"] is True and cfg["redo_latest"] == "08:44"
+
+
 @pytest.mark.parametrize("script", ["run_daily", "run_daily_test"])
 def test_script_does_not_import_src_before_sync(script):
     """git pull 之前不能載入 src/：不然推上去的修正這次用不到，新程式壞掉時也拿不到修正。"""

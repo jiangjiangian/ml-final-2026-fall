@@ -9,8 +9,9 @@
        網站回傳的時間沒帶時區，當成 UTC。
     3. 網站上目前有效的那份先下載存到 data/submission/backup/（Phase 1 排行從所有版本取最高分，
        上傳新的不會蓋掉最高分，但留一份比較好核對）。和這份 CSV 一樣就不再送。
-    4. 寫一筆「準備上傳」，呼叫 before_post（run_daily.py --sync 用它先 commit、push 這筆紀錄；
-       push 失敗就不上傳，不然下一次在新機器上跑看不到這筆紀錄）。
+    4. 寫一筆「準備上傳」，呼叫 before_post（run_daily.py --sync 用它先 commit、push 這筆紀錄），回傳 False 就不上傳。
+       run_daily 在 push 失敗時看 submit.require_push_before_post：true 回傳 False（不然下一次在別台跑看不到這筆紀錄）；
+       false（只有 oop 一台排程，使用者 2026-11-17）回傳 True，照樣上傳。
     5. POST 前再檢查一次：截止、網站的開放時間、網站上的提交有沒有變（別台交了就不送）、upload_log 裡別次執行
        有沒有也在準備上傳（before_post 的 pull 會帶來別台的紀錄）。
        然後 POST 一次。失敗或逾時不重試，改讀 /api/state 看網站有沒有收到。
@@ -153,10 +154,11 @@ def open_prepared(cfg: dict, phase: int, key: str, day: str, exclude_run=None):
     return None
 
 
-def finished_today(cfg: dict, phase: int, key: str, day: str):
-    """day 這天已經 done（上傳並核對完成）或 same（網站上已經一樣）就回傳那筆。"""
+def finished_today(cfg: dict, phase: int, key: str, day: str, ignore_site=None):
+    """day 這天已經 done（上傳並核對完成）或 same（網站上已經一樣）就回傳那筆。
+    ignore_site：重交時不算「交的就是要被取代的那份（site_id 相同）」的 done。"""
     for e in today_entries(cfg, phase, key, day):
-        if e.get("status") in ("done", "same"):
+        if e.get("status") in ("done", "same") and not (ignore_site and str(e.get("site_id")) == str(ignore_site)):
             return e
     return None
 
@@ -198,6 +200,11 @@ def check_window(state: dict, phase: int, t: str | None, now):
     return None if start <= now < end else f"不在 {t} 的開放時間（{start} ～ {end}）"
 
 
+def is_entry(entry, site_id) -> bool:
+    """entry（網站上的一筆提交）的 id 是 site_id。"""
+    return entry is not None and site_id is not None and str(entry.get("id")) == str(site_id)
+
+
 def same_entry(a, b) -> bool:
     if a is None or b is None:
         return a is None and b is None
@@ -205,13 +212,15 @@ def same_entry(a, b) -> bool:
 
 
 def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, before_post=None, clock=None,
-        respect_existing=False) -> str:
+        respect_existing=False, replace_own=None) -> str:
     """照檔案開頭的順序上傳。回傳狀態：done、same、closed、dry_run、already_submitted；不能上傳或核對失敗就丟錯。
 
     clock() 回傳現在時間（測試時換掉）。截止和網站的開放時間在 POST 前會再檢查一次，
     因為 before_post（推資料）可能花好幾分鐘。
     respect_existing（排程用）：網站上已經有這次的提交（existing()，例如組員手動交了）就不送；
     手動跑 python -m src.pipeline.step4_submit 時是 False，可以蓋掉舊的。
+    replace_own（run_daily 的重做用，使用者 2026-11-17）：網站上目前那份的 id 等於它才送，POST 前再看一次也要等於它；
+    upload_log 裡交那份的 done 不算「已經交過」。網站上那份換了（例如組員交了）就回 already_submitted，不送。
     """
     clock = clock or utils.taipei_now
     csv_path = Path(csv_path)
@@ -244,7 +253,11 @@ def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, befo
         raise site_api.SiteError("今天的上傳次數用完了")
 
     today = clock().date().isoformat()
-    if respect_existing and existing(state, phase, t, today) is not None:
+    if replace_own is not None and not is_entry(existing(state, phase, t, today), replace_own):
+        log.info("網站上目前那份不是要取代的 %s（換過了），不送", replace_own)
+        append_log(cfg, {**base, "status": "already_submitted", "detail": f"要取代的 {replace_own} 不是網站上目前那份"})
+        return "already_submitted"
+    if respect_existing and replace_own is None and existing(state, phase, t, today) is not None:
         log.info("網站上已經有這次的提交，不送")
         append_log(cfg, {**base, "status": "already_submitted"})
         return "already_submitted"
@@ -301,12 +314,13 @@ def run(cfg: dict, site, phase: int, csv_path: Path, t: str | None, log, *, befo
         not_sent(f"推資料的這段時間 {t} 變成{'不在清單上' if problem == 'closed' else '停用'}")
         log.warning("%s 在網站上變成%s，這次不上傳", t, "不在清單上" if problem == "closed" else "停用（enabled = 0）")
         return problem
+    fresh_own = existing(fresh, phase, t, today)
     if not same_entry(site_api.current_entry(fresh, phase, t), current) or (
-            respect_existing and existing(fresh, phase, t, today) is not None):
+            respect_existing and fresh_own is not None and not (replace_own is not None and is_entry(fresh_own, replace_own))):
         not_sent("網站上的提交在這段時間變了（別台或組員已經交了）")
         log.info("網站上的提交在準備期間變了，應該是別台或組員交了，這次不送")
         return "already_submitted"
-    done = finished_today(cfg, phase, key, today)   # before_post 的 pull 可能帶來別台「完成」的紀錄
+    done = finished_today(cfg, phase, key, today, ignore_site=replace_own)   # before_post 的 pull 可能帶來別台「完成」的紀錄
     if done is not None and done.get("run_id") != RUN_ID:
         not_sent(f"{done.get('runner')} 已經{done.get('status')}")
         log.info("上傳紀錄說 %s 已經交了，這次不送", done.get("runner"))

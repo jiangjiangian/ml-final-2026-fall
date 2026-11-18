@@ -216,8 +216,10 @@ def test_config_and_crontab_agree():
     assert conf["not_before"] >= "08:20"   # 韓國 09:00（台北 08:00）開盤，Yahoo 晚 20 分
     lines = [line.split() for line in (utils.ROOT / "deploy" / "crontab.txt").read_text(encoding="utf-8").splitlines()
              if "run_daily.py" in line and not line.startswith("#")]
-    times = [f"{int(hour):02d}:{int(minute):02d}" for minute, hour, *_ in lines]
+    times = [f"{int(hour):02d}:{int(minute):02d}" for minute, hour, *rest in lines if "--evening" not in rest]
     assert times == ["07:10", "07:25", "07:40", "07:55", "08:05", "08:25"]
+    evening = [f"{int(hour):02d}:{int(minute):02d}" for minute, hour, *rest in lines if "--evening" in rest]
+    assert evening == ["18:00", "20:00"]   # 傍晚打分（使用者 2026-11-17）
     assert conf["not_before"] <= times[-1] and all(x < conf["not_before"] for x in times[:-1])
 
 

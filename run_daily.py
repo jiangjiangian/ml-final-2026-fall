@@ -7,12 +7,20 @@
     2. 爬蟲和特徵（crawl_and_build_features → step1_crawler、step2_features）：t 是今天的交易日才跑。
     3. 訓練和預測（step3_train_predict）：照 config 的 daily_model 選模型，預測 t 的 50 檔，失敗照順序換備援。
     4. 上傳（write_submission、step4_submit）：寫 submission_<t>.csv，先推上 GitHub 再 POST，最後核對網站上的檔。
+       交好後寫 complete_<t>.json：那份用的資料完不完整（step3_train_predict.completeness）。
+       重做（redo_upload，使用者 2026-11-17）：排程自己交的那份不完整時，之後的排程重爬、重算；
+       補齊了而且預測不一樣才重交（取代網站上那份），08:44 以後不再重做。
        影子跑（shadow_run）：上傳之後，config 的 daily_model.shadow 列的模型都算一遍，存 shadow_<t>.csv，不上傳。
        組員已經手動交了的日子也做（用第 1 步補爬的特徵表），一天只做一次。
     5. 收尾（wrap_up）：08:25 那次補日韓當天的開盤（只進長表）、step5_merge_raw 合併原始資料、推 data/。
+    傍晚打分（--evening，step6_evening_score，使用者 2026-11-17）：18:00、20:00 只下載老師 Live，替當天的影子跑和
+    網站上我們那份打分，寫 shadow_scores.csv、site_scores.csv，推 data/。不跑第 1～5 步，不上傳、不重建特徵表。
 
-排程（memory/context/02-pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05、08:25（deploy/crontab.txt）。
+排程（memory/context/02-pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05、08:25，
+傍晚打分 18:00、20:00（deploy/crontab.txt）。
 網站上已經有 t 的提交就不上傳（t 還沒爬過時照樣補爬、推資料），所以排很多次也不會重複上傳。
+唯一的例外是上面的重做：網站上那份是排程交的、資料不完整、補齊後預測又不一樣，一天最多多交一次。
+GitHub 連不上（pull、fetch 都失敗，重試約 2 分鐘）時，用本機現有的程式照爬照交，資料和上傳紀錄下次再推。
 之前的執行已經送出（upload_log 有「準備上傳」）卻沒有核對完成時，不再自動重送，留給人確認。
 
 用法：
@@ -20,6 +28,7 @@
     python run_daily.py --phase 2    指定 Phase；--date 2026-11-09 指定 t（不是今天時不跑爬蟲和特徵）
     python run_daily.py --sync       排程用：開始前 git pull，上傳前先推資料和「準備上傳」紀錄，結束後推 data/
     python run_daily.py --dry-run    不上傳，只印出要送的內容
+    python run_daily.py --evening    傍晚打分（排程加 --sync）；--date 可以補打以前的日子
 
 Phase 1（測自動化用）：預測網站範本的 84 天（2026-06-01～09-30）× 50 檔。今天（台北）已經交過 Phase 1 就結束。
 Phase 2：預測 t 的 50 檔。網站上 t 已經有提交（不算「強制繳交」）就不上傳。
@@ -35,21 +44,26 @@ import os
 import subprocess
 import sys
 import time
-from datetime import date
+from datetime import date, datetime, time as clock_time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 SCRIPT = Path(__file__).resolve()
 BRANCH = "claude/stock-market-challenger"   # 只推這個分支（CLAUDE.md）
 DATA_PATHS = ("data/raw", "data/processed", "data/submission", "data/merged")   # 排程會 commit 的資料夾
-UPLOAD_LOG = "data/submission/upload_log.jsonl"   # 和 config 的 data.submission_dir 一致；git_start 在讀 config 前用
+SUBMISSION_DIR = "data/submission"   # 和 config 的 data.submission_dir 一致；git_start 在讀 config 前用
+UPLOAD_LOG = f"{SUBMISSION_DIR}/upload_log.jsonl"
 LOCK_PATH = ROOT / ".cache" / "run_daily_test.lock"   # 檔名沿用舊的：交接那一次，舊版和新版還是互相擋住
 REEXEC_FLAG = "RUN_DAILY_REEXEC"
 ENTRY_VAR = "RUN_DAILY_ENTRY"   # 舊名字 run_daily_test.py 轉過來時，它的路徑（重新執行時從它開始）
 PUSH_ATTEMPTS, PUSH_WAIT = 2, 15   # oop 連 GitHub 偶爾失敗（2026-11-07 看到一次），推送失敗等 15 秒再試一次
+GIT_RETRY_SECONDS, GIT_RETRY_WAIT = 120, 30   # pull、fetch 都連不上時每 30 秒再試，約 2 分鐘後改用本機的程式（2026-11-17）
+NETWORK_ERRORS = ("could not resolve host", "temporary failure in name resolution", "connection timed out",
+                  "network is unreachable", "failed to connect")   # 算「連不上網路」的 git 錯誤（oop 看過的是第一種）
+OFFLINE = False   # 這次執行連不上 GitHub（git_start 設）：上傳前不推「準備上傳」紀錄，收尾照樣試著推
 
 # src/ 的模組在 git pull 之後才載入（import_src），之前都是 None
-crawler = features = train_predict = submit = merge_raw = site_api = utils = None
+crawler = features = train_predict = submit = merge_raw = site_api = utils = evening_score = None
 
 
 class StopRun(RuntimeError):
@@ -58,10 +72,10 @@ class StopRun(RuntimeError):
 
 def import_src():
     """git pull 之後才載入 src/：推上去的修正這次就用到；新程式 import 失敗時，修正推上去後下一次還是會先 pull。"""
-    global crawler, features, train_predict, submit, merge_raw, site_api, utils
+    global crawler, features, train_predict, submit, merge_raw, site_api, utils, evening_score
     from src.pipeline import (site_api, step1_crawler as crawler, step2_features as features,  # noqa: F811
                               step3_train_predict as train_predict, step4_submit as submit,
-                              step5_merge_raw as merge_raw, utils)
+                              step5_merge_raw as merge_raw, step6_evening_score as evening_score, utils)
 
 
 # ================================================================ 整次執行
@@ -86,6 +100,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--date", help="預測日 t（YYYY-MM-DD）；不給就是台北今天")
     parser.add_argument("--sync", action="store_true", help="git pull、push（排程用的專用 clone 才加）")
     parser.add_argument("--dry-run", action="store_true", help="不上傳，只印出要送的內容")
+    parser.add_argument("--evening", action="store_true",
+                        help="傍晚打分（step6_evening_score）：只下載老師 Live 打分，不上傳、不重建特徵表")
     args = parser.parse_args(argv)
     if args.date:
         try:
@@ -116,13 +132,16 @@ def run(args, from_command_line: bool = True) -> int:
             raise sync_error
         cfg = utils.load_config()   # pull 之後才讀，推上去的 config（例如 submit.phase、daily_model）這次就生效
         phase = args.phase or cfg["submit"]["phase"]
-        log.info("開始：Phase %s，t = %s%s%s（執行代號 %s）", phase, t, "，--sync" if args.sync else "",
-                 "，--dry-run" if args.dry_run else "", submit.RUN_ID)
+        log.info("開始%s：Phase %s，t = %s%s%s（執行代號 %s）", "傍晚打分" if args.evening else "", phase, t,
+                 "，--sync" if args.sync else "", "，--dry-run" if args.dry_run else "", submit.RUN_ID)
         for note in notes + [n for n in [requirements_note()] if n]:
             log.warning(note)
         if args.dry_run:
             cfg["submit"]["enabled"] = False
-        status = submit_today(cfg, phase, t, today, log, sync=args.sync)
+        if args.evening:
+            status = evening_score.main(cfg, phase, t, log)   # 傍晚打分：不上傳，不跑第 1～5 步
+        else:
+            status = submit_today(cfg, phase, t, today, log, sync=args.sync)
         code = 0
     except BaseException as e:
         log.error("停下：%s", describe(e))
@@ -156,6 +175,9 @@ def submit_today(cfg: dict, phase: int, t: str, today: str, log, *, sync: bool) 
             ensure_crawled(cfg, phase, t, today, trading, log)   # 上次送出還沒核對完：不重送，資料照爬
             raise
         if status == "already_submitted":
+            record = redo_wanted(cfg, state, phase, t, today, log)
+            if record is not None:   # 排程自己交的那份資料不完整：重爬、重算，補齊後預測變了才重交
+                return redo_upload(cfg, site, phase, t, today, key, trading, record, log, sync=sync)
             ensure_crawled(cfg, phase, t, today, trading, log)   # 已經交過（組員先交或這台交好了）：沒爬過才爬
             shadow_run(cfg, phase, t, today, log, site=site)                            # 影子跑
         if status is not None:
@@ -173,17 +195,202 @@ def submit_today(cfg: dict, phase: int, t: str, today: str, log, *, sync: bool) 
         path = write_submission(cfg, phase, t, today, header, stocks, dates, pred, model_name, log)  # 第 4 步
         if phase == 2:
             train_predict.save_scores(cfg, pred, t, model_name, log)
-
-        def before_post():   # POST 前先把資料和「準備上傳」紀錄推上 GitHub，別台排程看得到
-            commit_data(f"Daily run {key}: data and prepared upload")
-            return push(log)
-
         result = submit.run(cfg, site, phase, path, t if phase == 2 else None, log,
-                            before_post=before_post if sync else None, respect_existing=True)
+                            before_post=before_post_for(cfg, key, log) if sync else None, respect_existing=True)
+        if phase == 2 and result == submit.STATUS_DONE:
+            record_upload(cfg, t, today, key, path, model_name, pred, log)
         shadow_run(cfg, phase, t, today, log, data=data, stocks=stocks, known={train_predict.kind_of(model_name): pred})
         return result
     finally:
         site.close()
+
+
+def before_post_for(cfg: dict, key: str, log):
+    """POST 前先把資料和「準備上傳」紀錄 commit、推上 GitHub（別台排程看得到）。回傳給 step4_submit.run 的函式。
+
+    推不上去（或這次 git_start 已經連不上 GitHub）時：submit.require_push_before_post 是 false 就記 WARNING、
+    照樣上傳，紀錄留在本機的 commit，下次執行再推（使用者 2026-11-17：只有 oop 一台排程）；是 true 就不上傳。
+    """
+    def before_post():
+        commit_data(f"Daily run {key}: data and prepared upload")
+        if not OFFLINE and push(log):   # 這次已經連不上 GitHub 就不試著推
+            return True
+        if not cfg["submit"].get("require_push_before_post", True):
+            log.warning("「準備上傳」的紀錄%s，先留在本機（只有 oop 一台排程，使用者 2026-11-17）；照樣上傳",
+                        "沒推（這次連不上 GitHub）" if OFFLINE else "推不上 GitHub")
+            return True
+        return False
+    return before_post
+
+
+# ================================================================ 重做：資料不完整時補齊後重交（使用者 2026-11-17）
+
+
+def record_path(cfg: dict, t: str) -> Path:
+    return ROOT / cfg["data"]["submission_dir"] / f"complete_{t}.json"
+
+
+def read_record(cfg: dict, t: str):
+    """complete_<t>.json 的內容；沒有或壞掉回傳 None。"""
+    try:
+        record = json.loads(record_path(cfg, t).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return record if isinstance(record, dict) else None
+
+
+def write_record(cfg: dict, t: str, record: dict) -> None:
+    crawler.write_atomic(record_path(cfg, t), (json.dumps(record, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
+
+
+def own_done(cfg: dict, key: str, today: str):
+    """upload_log 裡這次執行（submit.RUN_ID）最後一筆 done；沒有回傳 None。"""
+    entries = [e for e in submit.today_entries(cfg, 2, key, today)
+               if e.get("status") == submit.STATUS_DONE and e.get("run_id") == submit.RUN_ID]
+    return entries[-1] if entries else None
+
+
+def record_upload(cfg: dict, t: str, today: str, key: str, path: Path, model_name: str, pred, log, *,
+                  previous=None) -> None:
+    """排程上傳成功（done）後寫 complete_<t>.json：t、run_id、time、model、missing_states、complete、reasons、
+    site_id（網站上那份的 id）、檔案的 sha256、redo（重做了幾次）。重交成功時 previous 是上一筆，記下被取代的 site_id。
+    失敗只記 WARNING：上傳已經好了，少了這個檔只是之後不會重做。"""
+    try:
+        complete, reasons, missing = train_predict.completeness(cfg, model_name, pred)
+        done = own_done(cfg, key, today) or {}
+        record = {"t": t, "run_id": submit.RUN_ID, "time": utils.taipei_now().isoformat(timespec="seconds"),
+                  "model": model_name, "missing_states": missing, "complete": complete, "reasons": reasons,
+                  "site_id": done.get("site_id"), "sha256": digest(path), "redo": int((previous or {}).get("redo") or 0)}
+        if previous:
+            record["replaced_site_id"] = previous.get("site_id")
+        write_record(cfg, t, record)
+        log.info("交件紀錄 %s：%s", train_predict.shown(record_path(cfg, t)),
+                 "資料完整" if complete else f"資料不完整（{'、'.join(reasons)}），之後的排程會重爬、重算")
+    except Exception as e:
+        log.warning("交件紀錄 complete_%s.json 沒寫成（%s）：上傳不受影響，只是之後不會重做", t, describe(e))
+
+
+def posted(cfg: dict, key: str, today: str) -> bool:
+    """這次執行（submit.RUN_ID）可能已經 POST 了：upload_log 有這次的「準備上傳」，卻沒有 not_sent。
+    step4_submit.run 寫了「準備上傳」之後、POST 之前停下的每一條路都會先寫 not_sent；POST 拿到 200 之後
+    核對時出錯（例如讀 /api/state 逾時）不會寫任何一行，所以不能只看 POST 之後的狀態。"""
+    mine = [e.get("status") for e in submit.today_entries(cfg, 2, key, today) if e.get("run_id") == submit.RUN_ID]
+    return "prepared" in mine and "not_sent" not in mine
+
+
+def redo_limit(cfg: dict, t: str) -> datetime:
+    hour, minute = (int(x) for x in str(cfg["submit"].get("redo_latest", "08:44")).split(":"))
+    return datetime.combine(date.fromisoformat(t), clock_time(hour, minute), utils.TAIPEI)
+
+
+def redo_wanted(cfg: dict, state: dict, phase: int, t: str, today: str, log):
+    """要不要重做：回傳 complete_<t>.json 的內容（要重做）或 None。
+
+    要全部成立：Phase 2、t 是今天、submit.redo_incomplete 是 true；complete_<t>.json 說 complete 是 false，
+    而且還沒重交過（一天最多多交一次）；網站上目前那份（submit.existing）的 id 等於紀錄的 site_id（是排程交的，
+    不是組員手動交的）；upload_log 沒有送出後還沒核對完的上傳（POST 失敗不自動重送）；
+    現在早於 submit.redo_latest（08:44）；上傳次數還有剩。出錯就不重做。
+    """
+    try:
+        if phase != 2 or t != today or not (cfg.get("submit") or {}).get("redo_incomplete", False):
+            return None
+        record = read_record(cfg, t)
+        if record is None or record.get("complete") is not False or record.get("replaced_site_id") is not None:
+            return None
+        current = submit.existing(state, phase, t, today)
+        if current is None or str(current.get("id")) != str(record.get("site_id")):
+            log.info("網站上那份不是排程交的那份（%s），資料不完整也不重做", current and current.get("fileName"))
+            return None
+        if submit.open_prepared(cfg, phase, site_api.submission_key(phase, t), today) is not None:
+            log.info("upload_log 有送出後還沒核對完的上傳，不重做（POST 失敗不自動重送）")
+            return None
+        if utils.taipei_now() >= redo_limit(cfg, t):
+            log.info("排程交的那份資料不完整（%s），但已經過了 %s，不重做", "、".join(record.get("reasons") or []),
+                     cfg["submit"].get("redo_latest", "08:44"))
+            return None
+        left = site_api.quota_left(site_api.quota(state, phase, t))
+        if left is not None and left <= 0:
+            log.info("今天的上傳次數用完了，不重做")
+            return None
+        return record
+    except Exception as e:
+        log.warning("看要不要重做時出錯（%s），這次不重做", describe(e))
+        return None
+
+
+def redo_upload(cfg: dict, site, phase: int, t: str, today: str, key: str, trading: bool, record: dict, log, *,
+                sync: bool) -> str:
+    """重做（使用者 2026-11-17）：不看 crawled()，直接重爬、重建特徵、重算。
+
+    還是不完整：不重交，下一次排程再試。補齊了、50 檔和 submission_<t>.csv 逐格一樣：不重交，complete 改成 true。
+    補齊了而且不一樣：舊檔改名成 submission_<t>_first.csv，寫新的 submission_<t>.csv，
+    用 submit.run(replace_own=那份的 site_id) 取代網站上那份；done 之後重寫 scores_<t>.csv、更新紀錄、重寫影子跑。
+    沒有重交的幾種，影子跑照一般「已經交過」那樣做（shadow_<t>.csv 已經有就不重算）。
+    重算之前的錯誤只記 WARNING（網站上那份不變）。重交那段（寫檔、submit.run）的錯照樣往上丟：還沒 POST（posted()）
+    就把 submission_<t>.csv 還原、下一次排程再試；可能已經 POST 就兩個檔都留著，走「沒核對完成」那條，不再重做。
+    網站上那份已經和重算的一樣（submit.run 回 same）時留著新的檔，紀錄改成完整。
+    """
+    record = {**record, "redo": int(record.get("redo") or 0) + 1,
+              "redo_time": utils.taipei_now().isoformat(timespec="seconds")}
+    log.info("網站上那份是排程交的，資料不完整（%s）：重爬、重算（第 %d 次）", "、".join(record.get("reasons") or []),
+             record["redo"])
+    try:
+        crawl_and_build_features(phase, t, today, trading, log)   # 強制重爬，不看 crawled()
+        utils.check_deadline(cfg, t, key="deadline")
+        data = timed(log, "讀特徵", lambda: train_predict.load_model_input(cfg))
+        header, stocks, dates = read_template(site, phase, t, data)
+        model_name, pred = timed(log, "模型", lambda: train_predict.train_and_predict(cfg, data, dates, stocks, log))
+        train_predict.log_direction(pred, model_name, log)
+        complete, reasons, missing = train_predict.completeness(cfg, model_name, pred)
+        path = ROOT / cfg["data"]["submission_dir"] / f"submission_{t}.csv"
+        values = {(r.date, r.stock_id): int(r.pred) for r in pred.itertuples()}
+        same = submit.same_cells(submit.read_rows(path), submit.build_rows(phase, header, stocks, values))
+    except Exception as e:
+        log.warning("重做沒做完（%s）：網站上那份不變，下一次排程再試", describe(e))
+        write_record(cfg, t, record)
+        shadow_run(cfg, phase, t, today, log, site=site)
+        return "already_submitted"
+    if not complete:
+        log.info("還是不完整（%s），不重交，下一次排程再試", "、".join(reasons))
+        write_record(cfg, t, {**record, "last_reasons": reasons})
+        shadow_run(cfg, phase, t, today, log, site=site)
+        return "already_submitted"
+    if same:
+        log.info("補齊了，預測一樣，不重交")
+        write_record(cfg, t, {**record, "complete": True, "completed_by": submit.RUN_ID, "completed_model": model_name,
+                              "completed_missing_states": missing})
+        shadow_run(cfg, phase, t, today, log, site=site)
+        return "already_submitted"
+    first = path.with_name(f"submission_{t}_first.csv")
+    os.replace(path, first)
+    try:
+        write_record(cfg, t, record)
+        new_path = write_submission(cfg, phase, t, today, header, stocks, dates, pred, model_name, log)
+        log.info("補齊了，預測和交的那份不一樣：舊檔留在 %s，取代網站上的 %s", train_predict.shown(first), record.get("site_id"))
+        result = submit.run(cfg, site, phase, new_path, t, log, respect_existing=True, replace_own=record.get("site_id"),
+                            before_post=before_post_for(cfg, key, log) if sync else None)
+    except Exception:
+        if not posted(cfg, key, today):   # 還沒 POST：submission_<t>.csv 還原成網站上那份，下一次排程才比得對
+            os.replace(first, path)
+            log.warning("重交還沒送出就出錯（錯誤見下一行）：%s 還原成原本交的那份，下一次排程再試", train_predict.shown(path))
+        else:   # 送出了：upload_log 留著沒核對完的「準備上傳」，之後不再重做，留給人看
+            log.warning("重交送出後出錯：%s 是重算的那份，原本交的在 %s；網站上是哪一份看 upload_log 和網站",
+                        train_predict.shown(path), train_predict.shown(first))
+        raise
+    if result == "same":   # 網站上那份已經和重算的一樣：新的檔留著（和網站一樣），紀錄改成完整
+        log.info("網站上那份已經和重算的一樣，不重交；%s 留著重算的那份", train_predict.shown(new_path))
+        write_record(cfg, t, {**record, "complete": True, "completed_by": submit.RUN_ID})
+    elif result != submit.STATUS_DONE:   # 沒有 POST（網站上的那份換了、休市、dry run…）：檔案還原成網站上那份
+        os.replace(first, new_path)
+        log.info("這次沒有重交（%s），%s 還原成原本交的那份", result, train_predict.shown(new_path))
+    if result != submit.STATUS_DONE:
+        shadow_run(cfg, phase, t, today, log, site=site)
+        return result
+    train_predict.save_scores(cfg, pred, t, model_name, log)   # 重交成功才換：沒重交時 scores_<t>.csv 還是交的那份
+    record_upload(cfg, t, today, key, new_path, model_name, pred, log, previous=record)
+    train_predict.shadow_path(cfg, t).unlink(missing_ok=True)   # 影子跑用補齊後的資料重寫
+    shadow_run(cfg, phase, t, today, log, data=data, stocks=stocks, known={train_predict.kind_of(model_name): pred})
+    return result
 
 
 # ================================================================ 第 1～5 步
@@ -305,15 +512,18 @@ def write_submission(cfg: dict, phase: int, t: str, today: str, header: list, st
 
 
 def wrap_up(args, t: str, today: str, phase, status: str, interrupted: bool, branch_ok: bool, log) -> bool:
-    """第 5 步，前面成功或失敗都做。休市日和被中斷時只推資料。回傳資料有沒有推上去（沒有 --sync 時是 True）。"""
-    if args.sync and not interrupted and status != "closed":
+    """第 5 步，前面成功或失敗都做。休市日、被中斷和傍晚打分時只推資料（傍晚不補當天開盤：那一步會重建特徵表）。
+    回傳資料有沒有推上去（沒有 --sync 時是 True）。"""
+    evening = getattr(args, "evening", False)
+    extras = not interrupted and status != "closed" and not evening
+    if args.sync and extras:
         fill_today_open(t, today, log)   # 只在排程的 clone 做
-    if not interrupted and status != "closed":
+    if extras:
         merge_raw_data(log)
     if not (args.sync and branch_ok):
         return True
     try:
-        commit_data(f"Daily run {t} (Phase {phase}): {status}")
+        commit_data(f"{'Evening score' if evening else 'Daily run'} {t} (Phase {phase}): {status}")
         if push(log):
             return True
         log.error("資料推不上去，下次執行會再推")
@@ -329,7 +539,8 @@ def shadow_run(cfg: dict, phase: int, t: str, today: str, log, *, site=None, dat
 
     交件的那次在上傳之後做，用交件那次的特徵表和預測（data、stocks、known）。組員已經手動交了的日子
     （check_site 回 already_submitted）沒有這些：submit_today 先用 ensure_crawled 補爬，這裡讀特徵表、讀範本（給 site）。
-    只在 Phase 2、t 當天的截止時間（09:00）前、shadow_<t>.csv 還沒有時做，所以一天六次排程只做一次；
+    只在 Phase 2、t 當天的截止時間（09:00）前、shadow_<t>.csv 還沒有時做，所以一天六次排程只做一次
+    （重交成功時 redo_upload 先刪掉它，用補齊後的資料重寫）；
     截止後不做，因為之後的資料可能被改過（例如老師的 WTI、黃金在 07:10 之後還會更新）。
     任何錯誤只記一行 WARNING，不改這次執行的結果，也不會上傳任何東西。
     """
@@ -462,9 +673,13 @@ def push(log) -> bool:
 def git_start() -> list:
     """開始前同步。data/ 以外有改動就停（不自動清掉）；data/ 裡上次留下的改動先 commit；再 pull --rebase。
 
-    pull 失敗時先 fetch，再在本機 rebase（不用網路，暫時連不上時這樣就好了）。還是衝突，而且本機多出來的
+    pull、fetch 都失敗而且是連不上網路（network_error：git 逾時，或 DNS、連線的錯誤）時每 GIT_RETRY_WAIT 秒再試，
+    約 GIT_RETRY_SECONDS 秒後不再試：不停下，設 OFFLINE、回傳一條提醒，用本機現有的程式繼續（使用者 2026-11-17）。
+    其他原因（例如 deploy key 被撤、repo 的網址變了）照舊停下。
+    pull 失敗但 fetch 成功時，在本機 rebase（不用網路，暫時連不上時這樣就好了）。還是衝突，而且本機多出來的
     commit 只動 data/、也沒有 data/ 以外沒追蹤的檔，才丟掉它們、對齊 origin（資料這次重抓）；丟之前把
-    upload_log 裡 origin 沒有的行補回去，「沒送出」「失敗」這些紀錄不能跟著不見。不然停下等人處理。
+    upload_log 裡 origin 沒有的行補回去，「沒送出」「失敗」這些紀錄不能跟著不見；data/submission/ 裡本機新增或
+    改過的檔（例如連不上 GitHub 那次的交件檔和 complete_<t>.json）照本機的版本留回去。不然停下等人處理。
     這裡不寫 log（log 檔本身在 data/submission/，寫了會讓 pull 失敗），要記的話回傳給呼叫的人，pull 完再寫。
     """
     notes = []
@@ -475,12 +690,30 @@ def git_start() -> list:
         raise StopRun(f"工作目錄有 data/ 以外的改動，不自動同步：{[p for p in changed if not data_only([p])][:5]}")
     if commit_data("Leftover data from an earlier run"):
         notes.append("上次留下沒 commit 的資料，先 commit 了")
-    r = git("pull", "--rebase", "origin", BRANCH)
-    if r.returncode == 0:
-        return notes
-    git("rebase", "--abort")
-    if git("fetch", "origin", BRANCH).returncode != 0:
-        raise StopRun(f"git pull、fetch 都失敗（網路？）：{short(r.stderr or r.stdout)}")
+    global OFFLINE
+    OFFLINE = False
+    give_up = time.monotonic() + GIT_RETRY_SECONDS
+    tries = 0
+    while True:   # pull、fetch 都失敗（連不上 GitHub）時每 GIT_RETRY_WAIT 秒再試，約 GIT_RETRY_SECONDS 秒後放棄
+        tries += 1
+        r = git("pull", "--rebase", "origin", BRANCH)
+        if r.returncode == 0:
+            if tries > 1:
+                notes.append(f"git pull 第 {tries} 次才成功")
+            return notes
+        git("rebase", "--abort")
+        fetched = git("fetch", "origin", BRANCH)
+        if fetched.returncode == 0:
+            break
+        if not network_error(fetched):   # 例如 deploy key 被撤、repo 的網址變了：用舊程式一直交下去不對，停下
+            raise StopRun(f"git pull、fetch 都失敗，不像是連不上網路：{short(fetched.stderr or fetched.stdout)}")
+        if time.monotonic() + GIT_RETRY_WAIT > give_up:
+            OFFLINE = True
+            head = git("rev-parse", "--short", "HEAD").stdout.strip()
+            notes.append(f"連不上 GitHub（{short(fetched.stderr or fetched.stdout)}），試了 {tries} 次；用本機的程式繼續"
+                         f"（commit {head}）；資料和上傳紀錄下次再推")
+            return notes
+        time.sleep(GIT_RETRY_WAIT)
     if git("rebase", f"origin/{BRANCH}").returncode == 0:
         notes.append("git pull 失敗，fetch 之後在本機 rebase 成功")
         return notes
@@ -490,21 +723,36 @@ def git_start() -> list:
     untracked = git("ls-files", "--others", "--exclude-standard").stdout.split()
     if not (ahead and data_only(touched) and data_only(untracked)):
         raise StopRun(f"git pull --rebase 失敗：{short(r.stderr or r.stdout)}")
+    # data/submission/ 裡本機新增或改過的檔（交件檔、complete_<t>.json、scores、shadow、run log）：照本機的版本留回去
+    mine = [p for p in git("diff", "--name-only", "--no-renames", "--diff-filter=AM", f"origin/{BRANCH}...HEAD",
+                           "--", SUBMISSION_DIR).stdout.splitlines() if p and p != UPLOAD_LOG]
+    saved = {p: (ROOT / p).read_bytes() for p in mine if (ROOT / p).is_file()}
     ours = read_lines(ROOT / UPLOAD_LOG)
     git("reset", "--hard", f"origin/{BRANCH}")
+    for p, content in saved.items():
+        (ROOT / p).parent.mkdir(parents=True, exist_ok=True)
+        (ROOT / p).write_bytes(content)
     theirs = set(read_lines(ROOT / UPLOAD_LOG))
     keep = [line for line in ours if line and line not in theirs]
     if keep:
         (ROOT / UPLOAD_LOG).parent.mkdir(parents=True, exist_ok=True)
         with open(ROOT / UPLOAD_LOG, "a", encoding="utf-8") as f:
             f.write("".join(line + "\n" for line in keep))
+    if keep or saved:
         commit_data("Keep upload records from dropped commits")
     notes.append(f"git pull 失敗；本機多出的 {len(ahead)} 個 commit 只動 data/，丟掉並對齊 origin"
-                 f"（{', '.join(c[:8] for c in ahead)}），upload_log 補回 {len(keep)} 行")
+                 f"（{', '.join(c[:8] for c in ahead)}），upload_log 補回 {len(keep)} 行"
+                 + (f"，{SUBMISSION_DIR}/ 留回 {len(saved)} 個檔" if saved else ""))
     return notes
 
 
 # ================================================================ 小工具
+
+
+def network_error(result) -> bool:
+    """git 失敗的原因是連不上網路：git() 逾時（回傳碼 124），或 stderr 有 NETWORK_ERRORS 的字。"""
+    text = f"{result.stderr}\n{result.stdout}".lower()
+    return result.returncode == 124 or any(p in text for p in NETWORK_ERRORS)
 
 
 def timed(log, name: str, fn):

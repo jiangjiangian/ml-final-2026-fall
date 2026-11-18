@@ -1,12 +1,12 @@
 {
   "run": {
-    "started_at": "2026-11-19T07:25:06+08:00",
+    "started_at": "2026-11-19T07:40:06+08:00",
     "target_date": "2026-11-19",
     "mode": "daily",
     "status": "ok",
     "prev_day": "2026-11-18",
     "no_bar_i": [],
-    "finished_at": "2026-11-19T07:26:09+08:00",
+    "finished_at": "2026-11-19T07:41:12+08:00",
     "yahoo_requests": 23,
     "yahoo_redirects": 0,
     "site_requests": 5,
@@ -29,8 +29,8 @@
     "attempts": 1,
     "fallback_from": null,
     "error": null,
-    "zip_sha256": "166ff32117b4ad05b69e76d3008bcca55283f9d6f76b70cf225adf33e49634ab",
-    "files_sha256": "5c09bc9198131776cc7afb1cc2610e9bdcc4698d4f14888f77a33b8937ec9345",
+    "zip_sha256": "f282a7af70b8473437a34fc728b1f4b0dca8d7d66dbc145a905d0ed90b39634d",
+    "files_sha256": "3ca90ac31156eea569e570dc0dbebdd86c08df6918505e82f88867fc66356439",
     "date_max": "2026-11-19",
     "has_t_row": true,
     "prev_day": "2026-11-18",
@@ -52,7 +52,7 @@
       },
       "rows": 1730,
       "date_max": "2026-11-18",
-      "sha256": "c49165221a98130933de4956e40448ef5f5abf4ce8e000730350d01d00f686a8",
+      "sha256": "77118427970355dcd0aaf3064c334effdabb7251d100f53e1607f15aa6a377bd",
       "has_bar_i": true
     },
     "tsm_adr": {
@@ -68,7 +68,7 @@
       },
       "rows": 1730,
       "date_max": "2026-11-18",
-      "sha256": "f1db541665292a2ae5e17c500ce5bb370e4cc671a3115bfe8b8a46ce6aabd7f7",
+      "sha256": "c621d552d49f2e707b89cd647fb216b0a1743d210ef5097bba87d01b0e0acb87",
       "has_bar_i": true
     },
     "nvda": {
@@ -84,7 +84,7 @@
       },
       "rows": 1730,
       "date_max": "2026-11-18",
-      "sha256": "dd769d24a9530094bed78f88ead468a99f40e82a4774bc90da38a86b51fbb9d7",
+      "sha256": "63a3763c63544d64007129383b9b981389ad29f0b9e37160c058e3efbc3b5402",
       "has_bar_i": true
     },
     "usd_twd": {
@@ -100,7 +100,7 @@
       },
       "rows": 1791,
       "date_max": "2026-11-18",
-      "sha256": "f4eeaab3bd63873a7ea736fc775e405feee848d27c48179335b35d12a0b7f699",
+      "sha256": "612d3aa6c6dc8bc3c89c69df238e31bfbe381c00134b8f417b6d5a6cc318921d",
       "has_bar_i": true
     },
     "dxy": {
@@ -116,7 +116,7 @@
       },
       "rows": 1732,
       "date_max": "2026-11-18",
-      "sha256": "9d4cd468e4f46f1a917680ca6773f8731350a63db31187fd8015bfd5110e0a0b",
+      "sha256": "9b9e00683d6d63949a5584d3e04122eba06de70ae93be4552c02db65bb731034",
       "has_bar_i": true
     },
     "us10y": {
@@ -132,7 +132,7 @@
       },
       "rows": 1730,
       "date_max": "2026-11-18",
-      "sha256": "4e1409090e5ca77c5db7bb424294f28fbfc5bd4f01c3c4743b86d84b3f803d5a",
+      "sha256": "4487db62eac4ade20ec18a562592ef40153e141b9ca3be908bd192e70b1c2515",
       "has_bar_i": true
     },
     "us13w": {
@@ -148,7 +148,7 @@
       },
       "rows": 1730,
       "date_max": "2026-11-18",
-      "sha256": "5f7353bcecbe968781f51ff2609715b29d99f97a7e36562233efd8cc77bead96",
+      "sha256": "67b8db48cdde00dd42abf1bb35e26b57c8a7919326211e943a79910f932aab73",
       "has_bar_i": true
     },
     "etf_0050": {
@@ -164,7 +164,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "c550ac4dd44c37980c0ca2048fe0e2fefe9f5403923bc3588c447ec7bb1a0de9",
+      "sha256": "1f13277aa41b2b143405482b65384875a9e2cde4b2b8ca9c5455283fe7eecdd4",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -180,7 +180,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "57fdf3f5816d0c0c5fe0db2b19c9a5728cb34cf9fbd1c6bdec304ce298301c9c",
+      "sha256": "3058049f07ba1e0d5651511433c5ba810298162965cb662254d07e1a329b452d",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -196,7 +196,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "d45359afe9609906bcf67fc3e0985db1ed0192dc29b1bef8cf744c912d825634",
+      "sha256": "d523fb6b267d6ed371c282465ce5f0cc56b73b2ca2bbec232388e84107409b43",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -212,7 +212,7 @@
       },
       "rows": 1670,
       "date_max": "2026-11-18",
-      "sha256": "bdcf8057e72d95dd9defd2bc986017453dc7599b51c3a60d926f9cb442773acb",
+      "sha256": "d5cacce440604c21a63d6a1ecb01653e1bcafdf76d5730705ea781c75fb06ac0",
       "has_bar_i": true
     },
     "dji": {
@@ -320,11 +320,11 @@
       "dropped": {
         "on_or_after_t": 0,
         "weekend": 0,
-        "low_volume_last_bar_kept": false
+        "low_volume_last_bar_kept": true
       },
       "rows": 1732,
       "date_max": "2026-11-18",
-      "sha256": "050bd53507aede1b53922ddbb12b51a8b324932c253f635e45ff3e610064b408",
+      "sha256": "a2a1a3d80f954427efaad66021cca1abc6a5a15dad7f08d629368ea2841ba72a",
       "end": "2026-11-18T17:30:00-05:00",
       "has_bar_i": true
     },
@@ -337,11 +337,11 @@
       "dropped": {
         "on_or_after_t": 0,
         "weekend": 0,
-        "low_volume_last_bar_kept": false
+        "low_volume_last_bar_kept": true
       },
       "rows": 1733,
       "date_max": "2026-11-18",
-      "sha256": "4ed78b7f6c020cfecb11af7fe620ffa1b72d7b190252cb78fd70da9f7605d23f",
+      "sha256": "a53a4a41257356f1c368b1ff2d4268c88f0bc0a209381c48d37dbec5d9a5d15a",
       "end": "2026-11-18T17:30:00-05:00",
       "has_bar_i": true
     },
@@ -358,7 +358,7 @@
       },
       "rows": 1732,
       "date_max": "2026-11-18",
-      "sha256": "59f6977b567b38143be24b1e93bb7443ef1230d126e74043d049cb293396e566",
+      "sha256": "2584d351140dbe70caa402dba99742c0264e1c01baaa8642a88d0b7246120742",
       "has_bar_i": true
     },
     "kospi": {
@@ -384,7 +384,7 @@
       "attempts": 1,
       "error": null,
       "status": "ok",
-      "fetched_rows": 135,
+      "fetched_rows": 136,
       "start": "2026-11-11",
       "rows": 16869,
       "first": "2024-01-22T08:00:00+08:00",
@@ -434,19 +434,44 @@
     "sha256": "08378167fb7ffa9ac1505fd2250ec3253bbd8885fc1bcde0d84856372510c25c"
   },
   "cnn": {
-    "status": "failed",
-    "error": "/index/fearandgreed/graphdata/2026-10-20：連線失敗（ConnectionError）",
+    "status": "ok",
+    "error": null,
     "file": "cnn/fear_greed.csv",
     "requests": 1,
     "start": "2026-10-20",
-    "cache": null,
-    "rows": 1451,
-    "last_dates": [
-      "2026-11-09",
+    "cache": {
+      "Age": "0",
+      "X-Cache": "MISS, MISS"
+    },
+    "now": {
+      "score": 24.607722007722,
+      "previous_close": 25.2297455968689,
+      "timestamp": "2026-11-18T23:25:34+00:00"
+    },
+    "dropped": {
+      "not_daily": 1,
+      "on_or_after_t": 0,
+      "before_start": 0
+    },
+    "new_dates": [
+      "2026-11-11",
+      "2026-11-12",
+      "2026-11-13",
+      "2026-11-16",
+      "2026-11-17",
+      "2026-11-18"
+    ],
+    "changed_dates": [
       "2026-11-10"
     ],
+    "vanished_dates": [],
+    "rows": 1457,
+    "last_dates": [
+      "2026-11-17",
+      "2026-11-18"
+    ],
     "has_prev_day": null,
-    "sha256": "7954690e0e7a13ae70f28c9eb2d45d1b3e112e23abe30a43f589ffcd686abea3"
+    "sha256": "eaf63f952650a9dfa7b9d566ec28ed69b8785de2812ce96259d1c546d60b8c86"
   },
   "exchange": {
     "status": "ok",

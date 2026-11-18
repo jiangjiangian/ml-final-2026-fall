@@ -541,5 +541,30 @@
         "sha256": "ad1fbe0e1d577347ca44901375a8ade91a51d6295fffe8a317c8865381f10e46"
       }
     }
+  },
+  "open_today": {
+    "status": "ok",
+    "started_at": "2026-11-18T08:25:06+08:00",
+    "written": [
+      "kospi",
+      "n225"
+    ],
+    "series": {
+      "kospi": {
+        "status": "ok",
+        "attempts": 1,
+        "first_bar": "2026-11-18T09:00+09:00",
+        "open": 5098.81982421875,
+        "prev_close": 4968.48
+      },
+      "n225": {
+        "status": "ok",
+        "attempts": 1,
+        "first_bar": "2026-11-18T09:00+09:00",
+        "open": 59007.3984375,
+        "prev_close": 58860.43
+      }
+    },
+    "finished_at": "2026-11-18T08:25:13+08:00"
   }
 }

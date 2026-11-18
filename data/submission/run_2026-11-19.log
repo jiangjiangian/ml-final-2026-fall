@@ -1,0 +1,23 @@
+2026-11-19 07:10:36,032 finpred.run_daily INFO 開始：Phase 2，t = 2026-11-19，--sync（執行代號 7489bf5d）
+2026-11-19 07:10:36,032 finpred.run_daily WARNING git pull 第 2 次才成功
+2026-11-19 07:10:37,094 finpred.crawler INFO Training：本機的檔案和上次一樣，不下載
+2026-11-19 07:11:37,855 finpred.crawler WARNING CNN 這一步失敗（/index/fearandgreed/graphdata/2026-10-20：連線失敗（ConnectionError）），沿用舊檔；這些欄不在模型裡
+2026-11-19 07:11:55,050 finpred.crawler INFO 2026-11-18 twse_valuation：91 檔
+2026-11-19 07:11:55,050 finpred.crawler INFO 2026-11-18 twse_quotes：91 檔
+2026-11-19 07:11:55,050 finpred.crawler INFO 2026-11-18 tpex_valuation：9 檔
+2026-11-19 07:11:55,050 finpred.crawler INFO 2026-11-18 tpex_quotes：9 檔
+2026-11-19 07:11:58,005 finpred.crawler INFO twse_valuation：檔案裡 1670 天（2020-01-02～2026-11-18），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-19 07:11:58,006 finpred.crawler INFO twse_quotes：檔案裡 1670 天（2020-01-02～2026-11-18），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-19 07:11:58,006 finpred.crawler INFO tpex_valuation：檔案裡 1670 天（2020-01-02～2026-11-18），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-19 07:11:58,006 finpred.crawler INFO tpex_quotes：檔案裡 1670 天（2020-01-02～2026-11-18），這次新寫 1 天、no_data 0 天、失敗 0 天、請求 1 次
+2026-11-19 07:11:58,265 finpred.crawler INFO 爬蟲完成：ok
+2026-11-19 07:11:58,267 finpred.run_daily INFO 爬蟲 完成（82 秒）
+2026-11-19 07:12:09,241 finpred.features WARNING t 那列的 ['fear_greed_lag1', 'fear_greed_chg_lag1'] 空白（只進長表的欄，原因見 fear_greed_values、vixtwn_values）
+2026-11-19 07:12:10,768 finpred.features INFO 特徵表：167100 列、1671 天，最後一天 2026-11-19；寫了 ['2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 26, 'empty_close': 9, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-19 07:12:11,134 finpred.run_daily INFO 特徵 完成（13 秒）
+2026-11-19 07:12:31,121 finpred.run_daily INFO 讀特徵 完成（20 秒）
+2026-11-19 07:13:23,372 finpred.run_daily ERROR c2v2d 算不出來（TiltError: 老師 global 表沒有 2026-11-19 那列的美股（t 以前最後一列是 2026-11-18）），改用 c2
+2026-11-19 07:13:24,061 finpred.run_daily ERROR c2 算不出來（TiltError: 老師 global 表沒有 2026-11-19 那列的美股（t 以前最後一列是 2026-11-18）），改用 rank_ensemble
+2026-11-19 07:13:54,997 finpred.run_daily INFO 模型 完成（84 秒）
+2026-11-19 07:13:55,000 finpred.run_daily INFO 寫好 data/submission/submission_2026-11-19.csv：50 檔 × 1 天，模型 rank_ensemble（c2v2d 的備援），猜漲 0.500
+2026-11-19 07:13:55,004 finpred.run_daily INFO 另存 data/submission/scores_2026-11-19.csv（每檔的分數，只給研究用）

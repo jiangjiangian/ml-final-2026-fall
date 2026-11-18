@@ -21,3 +21,14 @@
 2026-11-19 07:13:54,997 finpred.run_daily INFO 模型 完成（84 秒）
 2026-11-19 07:13:55,000 finpred.run_daily INFO 寫好 data/submission/submission_2026-11-19.csv：50 檔 × 1 天，模型 rank_ensemble（c2v2d 的備援），猜漲 0.500
 2026-11-19 07:13:55,004 finpred.run_daily INFO 另存 data/submission/scores_2026-11-19.csv（每檔的分數，只給研究用）
+2026-11-19 07:14:04,714 finpred.run_daily INFO 上傳送出，網站回 200
+2026-11-19 07:14:04,861 finpred.run_daily INFO 核對完成：網站上的版本 21b02dad-0292-4d15-bc7d-02bd8249a903 和送出的逐格一樣（上傳時間 2026-11-18T23:14:04.700Z，分數 None）
+2026-11-19 07:14:04,863 finpred.run_daily INFO 交件紀錄 data/submission/complete_2026-11-19.json：資料不完整（用了備援 rank_ensemble（c2v2d 的備援）），之後的排程會重爬、重算
+2026-11-19 07:14:05,598 finpred.run_daily WARNING 影子跑：c2v2d 算不出來（TiltError: 老師 global 表沒有 2026-11-19 那列的美股（t 以前最後一列是 2026-11-18）），那幾欄空白
+2026-11-19 07:14:06,283 finpred.run_daily WARNING 影子跑：c2 算不出來（TiltError: 老師 global 表沒有 2026-11-19 那列的美股（t 以前最後一列是 2026-11-18）），那幾欄空白
+2026-11-19 07:14:12,831 finpred.run_daily INFO 影子跑寫好 data/submission/shadow_2026-11-19.csv：猜漲的檔數 rank_ensemble 25、persist 25、online_lr 1；和 rank_ensemble 猜得不同的檔數 persist 10、online_lr 24；算不出來 c2v2d、c2（不上傳）
+2026-11-19 07:14:12,832 finpred.run_daily INFO 影子跑 完成（8 秒）
+2026-11-19 07:14:14,152 finpred.run_daily INFO 影子跑 2026-11-18 的官方分數：c2v2d -0.00114、c2 -0.00424、rank_ensemble -0.00055、persist -0.01082、online_lr +0.00656（答案來自 features；每天的分數在 data/submission/shadow_scores.csv）
+2026-11-19 07:14:14,160 finpred.run_daily INFO 結束：done
+2026-11-19 07:14:30,503 finpred.merge_raw INFO 合併表：個股 167567 列、市場 1795 列；寫了 3 個檔 ['stock/2026-11.csv.gz', 'market.csv.gz', 'manifest.json']
+2026-11-19 07:14:30,504 finpred.run_daily INFO 合併原始資料 完成（16 秒）

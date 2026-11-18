@@ -104,7 +104,7 @@
 ### 檔案
 
 - `data/submission/shadow_<t>.csv`：每檔一列。每個模型兩欄，`pred_<模型>`（0/1）和 `prob_<模型>`（當天名次換成 0～1；`online_lr` 是機率）。`c2`、`c2v2d` 另有 `p_up_<模型>`（大盤方向的機率）。算不出來的模型那幾欄空白，原因在 `run_<t>.log`。
-- `data/submission/shadow_scores.csv`：每天每個模型一列。`score` 是官方分數（每格 (2·pred − 1)·盤中報酬的平均），另有 `accuracy`（猜對的比例）、`pred_up`（猜漲的比例）、`cells`（格數）、`source`（答案從哪裡來）。t 當天 18:00 的傍晚打分用老師 Live 的 t 那列先算（`source` 是 `live`）；隔天早上用特徵表的答案再算一次（`features`），兩邊不一樣時 log 有 WARNING。早上算不到的日子留著傍晚的分數。
+- `data/submission/shadow_scores.csv`：每天每個模型一列。`score` 是官方分數（每格 (2·pred − 1)·盤中報酬的平均），另有 `accuracy`（猜對的比例）、`pred_up`（猜漲的比例）、`cells`（格數）、`source`（答案從哪裡來）。t 當天 16:10 的傍晚打分用老師 Live 的 t 那列先算（`source` 是 `live`）；隔天早上用特徵表的答案再算一次（`features`），兩邊不一樣時 log 有 WARNING。早上算不到的日子留著傍晚的分數。
 - `data/submission/site_scores.csv`（2026-11-18 起）：網站上我們那份每天一列。`file`（排程的檔名 `submission_<t>.csv`；組員取的其他檔名一律寫 `other`，不存）、`same_as`（和影子跑哪個模型的 50 檔一樣）、`site_score`（網站給的分數）、`rescored`（用老師 Live 重算，應該和網站一樣；差超過 1e-6 時 log 有 WARNING）、`all_zero`（全猜 0 的分數）、`day_rank`／`day_teams`（當天名次／有分數的隊數）、`total_score`、`total_rank`（累計分數和網站的名次）、`teams`、`all_forced_teams`（每天都是網站強制繳交的隊數）、`self_rank`（扣掉那些隊以後的累計名次）、`read_at`。只存我們這隊，不存任何隊名。
 
 ```python
@@ -119,7 +119,7 @@ s.pivot(index="date", columns="model", values="score").cumsum()   # 每個模型
 - 組員先交了：排程先補爬（t 當天還沒爬過才爬），再算，約多 3 分鐘。
 - 資料不完整、補齊後重交的那次：用補齊後的特徵表重寫（見「資料不完整時重交」）。
 - 一天只算一次，`shadow_<t>.csv` 已經有就跳過（重交時例外）；過了 09:00 不算（之後的資料可能被改過）。
-- 打分：t 當天 18:00 的傍晚打分（`src/pipeline/step6_evening_score.py`），老師 Live 還沒填好 t 那列就 20:00 再試。只下載 Live，不上傳、不重建特徵表；Live 寫進 `data/raw/teacher/live/`，組員傍晚就拿得到。
+- 打分：t 當天 16:10 的傍晚打分（`src/pipeline/step6_evening_score.py`），老師 Live 還沒填好 t 那列就 20:00 再試。只下載 Live，不上傳、不重建特徵表；Live 寫進 `data/raw/teacher/live/`，組員傍晚就拿得到。
 - 算不出來只記一行 WARNING，不影響交件。
 - 關掉：`shadow: []`。
 

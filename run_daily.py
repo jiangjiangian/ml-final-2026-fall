@@ -13,11 +13,11 @@
        影子跑（shadow_run）：上傳之後，config 的 daily_model.shadow 列的模型都算一遍，存 shadow_<t>.csv，不上傳。
        組員已經手動交了的日子也做（用第 1 步補爬的特徵表），一天只做一次。
     5. 收尾（wrap_up）：08:25 那次補日韓當天的開盤（只進長表）、step5_merge_raw 合併原始資料、推 data/。
-    傍晚打分（--evening，step6_evening_score，使用者 2026-11-17）：18:00、20:00 只下載老師 Live，替當天的影子跑和
+    傍晚打分（--evening，step6_evening_score，使用者 2026-11-17）：16:10、20:00 只下載老師 Live，替當天的影子跑和
     網站上我們那份打分，寫 shadow_scores.csv、site_scores.csv，推 data/。不跑第 1～5 步，不上傳、不重建特徵表。
 
 排程（memory/context/02-pipeline.md）：學校的 oop 台北 07:10、07:25、07:40、07:55、08:05、08:25，
-傍晚打分 18:00、20:00（deploy/crontab.txt）。
+傍晚打分 16:10、20:00（deploy/crontab.txt）。
 網站上已經有 t 的提交就不上傳（t 還沒爬過時照樣補爬、推資料），所以排很多次也不會重複上傳。
 唯一的例外是上面的重做：網站上那份是排程交的、資料不完整、補齊後預測又不一樣，一天最多多交一次。
 GitHub 連不上（pull、fetch 都失敗，重試約 2 分鐘）時，用本機現有的程式照爬照交，資料和上傳紀錄下次再推。

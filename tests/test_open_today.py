@@ -219,7 +219,7 @@ def test_config_and_crontab_agree():
     times = [f"{int(hour):02d}:{int(minute):02d}" for minute, hour, *rest in lines if "--evening" not in rest]
     assert times == ["07:10", "07:25", "07:40", "07:55", "08:05", "08:25"]
     evening = [f"{int(hour):02d}:{int(minute):02d}" for minute, hour, *rest in lines if "--evening" in rest]
-    assert evening == ["18:00", "20:00"]   # 傍晚打分（使用者 2026-11-17）
+    assert evening == ["16:10", "20:00"]   # 傍晚打分（使用者 2026-11-17 加，11-18 改成 16:10）
     assert conf["not_before"] <= times[-1] and all(x < conf["not_before"] for x in times[:-1])
 
 

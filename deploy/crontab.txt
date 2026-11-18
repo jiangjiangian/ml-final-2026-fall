@@ -4,8 +4,8 @@
 # 多排幾次是為了撐過短暫的網路故障（2026-11-08 07:10 學校 DNS 查不到 github.com）。上傳用的最後一次是 08:05，離爬蟲截止 08:30 留 25 分鐘。
 # 08:25 那次是抓日韓當天的開盤（使用者 2026-11-11）：Yahoo 晚 15～20 分，這時候才看得到。只補特徵表 t 那列的 open_gap 兩欄，
 # 不影響上傳；前面五次都沒交成時，它也會照常跑完整的流程。
-# 18:00、20:00 是傍晚打分（使用者 2026-11-17，--evening）：只下載老師 Live，替當天的影子跑和網站上我們那份打分，推 data/。
-# 不上傳、不重建特徵表；18:00 打完了，20:00 那次就直接結束。
+# 16:10、20:00 是傍晚打分（使用者 2026-11-17 加，11-18 從 18:00 改成 16:10，--evening）：只下載老師 Live，替當天的影子跑和網站上我們那份打分，推 data/。
+# 不上傳、不重建特徵表；16:10 打完了，20:00 那次就直接結束。
 SHELL=/bin/bash
 PATH=/usr/local/bin:/usr/bin:/bin
 10 7 * * * cd __REPO__ && .venv/bin/python run_daily.py --sync >> .cache/cron.log 2>&1
@@ -14,5 +14,5 @@ PATH=/usr/local/bin:/usr/bin:/bin
 55 7 * * * cd __REPO__ && .venv/bin/python run_daily.py --sync >> .cache/cron.log 2>&1
 5 8 * * * cd __REPO__ && .venv/bin/python run_daily.py --sync >> .cache/cron.log 2>&1
 25 8 * * * cd __REPO__ && .venv/bin/python run_daily.py --sync >> .cache/cron.log 2>&1
-0 18 * * * cd __REPO__ && .venv/bin/python run_daily.py --sync --evening >> .cache/cron.log 2>&1
+10 16 * * * cd __REPO__ && .venv/bin/python run_daily.py --sync --evening >> .cache/cron.log 2>&1
 0 20 * * * cd __REPO__ && .venv/bin/python run_daily.py --sync --evening >> .cache/cron.log 2>&1

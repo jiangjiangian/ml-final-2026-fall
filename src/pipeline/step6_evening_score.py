@@ -1,6 +1,6 @@
 """傍晚打分（使用者 2026-11-17）：t 收盤、老師 Live 填好 t 那列以後，當天就替影子跑和網站上我們那份打分。
 
-排程：oop 台北 18:00 跑一次，沒打完時 20:00 再試（deploy/crontab.txt 的 run_daily.py --sync --evening）。
+排程：oop 台北 16:10 跑一次（使用者 2026-11-18 從 18:00 改過來），沒打完時 20:00 再試（deploy/crontab.txt 的 run_daily.py --sync --evening）。
     1. 讀網站的 /api/state（只讀，不上傳）。t 不在交易日清單就結束；傍晚已經打完分（site_scores.csv 有 t 那列和
        網站的分數，影子跑也打過分）也結束。
     2. 下載老師的 Live（不抓 yfinance 和其他來源）。要打分的每一檔（shadow_<t>.csv 和網站上那份的股票）都有填好的

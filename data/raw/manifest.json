@@ -1,13 +1,16 @@
 {
   "run": {
-    "started_at": "2026-11-19T07:55:06+08:00",
-    "target_date": "2026-11-19",
+    "started_at": "2026-11-20T07:10:07+08:00",
+    "target_date": "2026-11-20",
     "mode": "daily",
     "status": "ok",
-    "prev_day": "2026-11-18",
-    "no_bar_i": [],
-    "finished_at": "2026-11-19T07:56:11+08:00",
-    "yahoo_requests": 23,
+    "prev_day": "2026-11-19",
+    "no_bar_i": [
+      "stoxx50e",
+      "kospi"
+    ],
+    "finished_at": "2026-11-20T07:12:33+08:00",
+    "yahoo_requests": 25,
     "yahoo_redirects": 0,
     "site_requests": 5,
     "taifex_requests": 1
@@ -21,7 +24,7 @@
   "phase2_days": {
     "status": "ok",
     "file": "phase2_days.json",
-    "days": 27
+    "days": 28
   },
   "teacher_live": {
     "status": "ok",
@@ -29,19 +32,14 @@
     "attempts": 1,
     "fallback_from": null,
     "error": null,
-    "zip_sha256": "498f4fce29753cbb597c942a4f4df0c41fe8f84193a4420cdae2453de782bdc9",
-    "files_sha256": "063a94e62df49feb39380215c8f41dcfad2ec297bd1ea60172cc9410173fd0e4",
-    "date_max": "2026-11-19",
+    "zip_sha256": "9e3f50e6db77d84ff68b6f512b03811af048d9fb36c38cab45e20f4f2fe35e94",
+    "files_sha256": "15bbf7310168d1de13edceb7b60a4a5e2f96011b36708db00072dbc7614fe034",
+    "date_max": "2026-11-20",
     "has_t_row": true,
-    "prev_day": "2026-11-18",
-    "prev_day_planned": "2026-11-18",
+    "prev_day": "2026-11-19",
+    "prev_day_planned": "2026-11-19",
     "prev_day_never_filled": false,
-    "prev_day_missing_stocks": [],
-    "evening_refresh": {
-      "t": "2026-11-19",
-      "time": "2026-11-19 16:11",
-      "source": "140.112.31.182:8444/data.zip"
-    }
+    "prev_day_missing_stocks": []
   },
   "yfinance": {
     "sox": {
@@ -55,9 +53,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1730,
-      "date_max": "2026-11-18",
-      "sha256": "77118427970355dcd0aaf3064c334effdabb7251d100f53e1607f15aa6a377bd",
+      "rows": 1731,
+      "date_max": "2026-11-19",
+      "sha256": "6f051ac57f71c89178dbfd621b21a1e7da4498157ccba20067be417aac7a3885",
       "has_bar_i": true
     },
     "tsm_adr": {
@@ -71,9 +69,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1730,
-      "date_max": "2026-11-18",
-      "sha256": "e362695198d91eb38e7722fc2ad98ff193b237c9c3e45cbd489c3d45ecb34cbb",
+      "rows": 1731,
+      "date_max": "2026-11-19",
+      "sha256": "12ff23407b3da194ab837d466e69730379422c892bddd3517ab1f4a8f622c3fd",
       "has_bar_i": true
     },
     "nvda": {
@@ -87,9 +85,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1730,
-      "date_max": "2026-11-18",
-      "sha256": "0852fce4f1de316e1a5e0c98ac8a7153d743cbb06b648cf1b1b73296f9c95ba6",
+      "rows": 1731,
+      "date_max": "2026-11-19",
+      "sha256": "20672921826aca8cb6134dcf59b6effa5fea3b85978d26843dfa2402dfa19833",
       "has_bar_i": true
     },
     "usd_twd": {
@@ -103,9 +101,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1791,
-      "date_max": "2026-11-18",
-      "sha256": "1eef4b71ea380f6acbc98a9464249edd9b09ca151ff783058882231c6d16f196",
+      "rows": 1792,
+      "date_max": "2026-11-19",
+      "sha256": "518a669417af825b53832634c850ff21d4632b7f7df44471d14a91145f4da479",
       "has_bar_i": true
     },
     "dxy": {
@@ -119,9 +117,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1732,
-      "date_max": "2026-11-18",
-      "sha256": "9b9e00683d6d63949a5584d3e04122eba06de70ae93be4552c02db65bb731034",
+      "rows": 1733,
+      "date_max": "2026-11-19",
+      "sha256": "ff3c4149b6a8de6c9ff8f12179c2acaafc8df39648aed0c70c795972ad6ba0fd",
       "has_bar_i": true
     },
     "us10y": {
@@ -135,9 +133,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1730,
-      "date_max": "2026-11-18",
-      "sha256": "4487db62eac4ade20ec18a562592ef40153e141b9ca3be908bd192e70b1c2515",
+      "rows": 1731,
+      "date_max": "2026-11-19",
+      "sha256": "702c1d9fcab5b1ba4af0c857659283e0dc46b8ae695479014699f38c83813b81",
       "has_bar_i": true
     },
     "us13w": {
@@ -151,9 +149,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1730,
-      "date_max": "2026-11-18",
-      "sha256": "67b8db48cdde00dd42abf1bb35e26b57c8a7919326211e943a79910f932aab73",
+      "rows": 1731,
+      "date_max": "2026-11-19",
+      "sha256": "e26f72e8b08e50f54ce2fcf234f2fce705fa9029d7d145552a9c74d1e73afa07",
       "has_bar_i": true
     },
     "etf_0050": {
@@ -167,9 +165,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1670,
-      "date_max": "2026-11-18",
-      "sha256": "de10cd8d40a2dca341257202371318093b389a69bfb091d7feeb461bf196a4bd",
+      "rows": 1671,
+      "date_max": "2026-11-19",
+      "sha256": "a7f2f4d01f33d833f2400528e52788d5782a52c923d052ca0efd0dc24d41e8b8",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -183,9 +181,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1670,
-      "date_max": "2026-11-18",
-      "sha256": "0cfc34d7a4ae540f37d3c5350e877a355abd57190cc6108e3cbc1086cfcf0c40",
+      "rows": 1671,
+      "date_max": "2026-11-19",
+      "sha256": "9ee772418325040228c4fa6212acc3e12c757d0293c4e0c57b5e5a56828cef69",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -199,9 +197,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1670,
-      "date_max": "2026-11-18",
-      "sha256": "1cd44da8d56ae550ffe9b0f128f6d19e9dd32de541c57cfc489e4622ccc440c1",
+      "rows": 1671,
+      "date_max": "2026-11-19",
+      "sha256": "8a578b4ef7c33acea91f016c29822116a9e1614979a8450a666d9dbc5ba839d4",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -215,9 +213,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1670,
-      "date_max": "2026-11-18",
-      "sha256": "997f40df5dcec3d3bc04052273ea74fb2bd85aa2714068710674bd4560a74a81",
+      "rows": 1671,
+      "date_max": "2026-11-19",
+      "sha256": "4d05e7c8ea813172e4b259846f3b5e2082fc6dcd3c350097bdc969c354e7c0b0",
       "has_bar_i": true
     },
     "dji": {
@@ -231,9 +229,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1730,
-      "date_max": "2026-11-18",
-      "sha256": "ba426f4b045de4043351f464fb8486c9b792c17a5c0d5f838b53a474eec63ad2",
+      "rows": 1731,
+      "date_max": "2026-11-19",
+      "sha256": "f5cb5a4768e0216021df9ea3bc841d225a835ce868ea61cd2df063b77dfcd81f",
       "has_bar_i": true
     },
     "n225": {
@@ -247,9 +245,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1678,
-      "date_max": "2026-11-18",
-      "sha256": "b3020d91c826d8e08fb81afd0cf8559d8602096211d9ced264c44600759384cf",
+      "rows": 1679,
+      "date_max": "2026-11-19",
+      "sha256": "0feca9ef45b5498ea88999d56c8b61de4cf17a213dae93d0a1ec22ab66f7d4ac",
       "has_bar_i": true
     },
     "hsi": {
@@ -263,9 +261,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1693,
-      "date_max": "2026-11-18",
-      "sha256": "7f425ab48c7babbc84e62fd0b5fe444882490145098c73c6ede9f9bd43fc7f25",
+      "rows": 1694,
+      "date_max": "2026-11-19",
+      "sha256": "409c0621d70e1174a7d91a0e46526b79808af982975dd9e9d33082c056ddcb80",
       "has_bar_i": true
     },
     "sse": {
@@ -279,16 +277,16 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1666,
-      "date_max": "2026-11-18",
-      "sha256": "d08da6366826d1a9a135b20f11842e50a6a48b8ce29c9548b55f3a94fe4fc4e8",
+      "rows": 1667,
+      "date_max": "2026-11-19",
+      "sha256": "adbdd9cd6a26d288ea71a7f447bd58552530e3b69c79f75d1261541c23de1d42",
       "has_bar_i": true
     },
     "stoxx50e": {
       "ticker": "^STOXX50E",
       "status": "ok",
       "file": "yfinance/stoxx50e.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
@@ -297,8 +295,8 @@
       },
       "rows": 1733,
       "date_max": "2026-11-18",
-      "sha256": "5ee5c4a4b9a6a5c1d8bea778c51042f710df22accc9194f677a5a2fb75e66b1e",
-      "has_bar_i": true
+      "sha256": "262e332b0c16d34e589f3bf5e57d54161c6d5e83113d19eaf4528074dbec0f3c",
+      "has_bar_i": false
     },
     "gdaxi": {
       "ticker": "^GDAXI",
@@ -311,9 +309,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1754,
-      "date_max": "2026-11-18",
-      "sha256": "56ea38d982c1f57a38ee51546b322025889d05e0a5305c8c2d087bd3d9407bf0",
+      "rows": 1755,
+      "date_max": "2026-11-19",
+      "sha256": "88b1763710ef695f85e8c5a33e5970e22fac685af02cc98f59535b47994e006f",
       "has_bar_i": true
     },
     "wti": {
@@ -327,10 +325,10 @@
         "weekend": 0,
         "low_volume_last_bar_kept": true
       },
-      "rows": 1732,
-      "date_max": "2026-11-18",
-      "sha256": "d4525950dba1b8adc98cc883830560a4414ca7b17d9c2d2d7e12591eebe909a3",
-      "end": "2026-11-18T17:30:00-05:00",
+      "rows": 1733,
+      "date_max": "2026-11-19",
+      "sha256": "83149ef8bf445e3dc9243c75b70856151bbd303d716b1808aef7de00adb71312",
+      "end": "2026-11-19T17:30:00-05:00",
       "has_bar_i": true
     },
     "gold": {
@@ -344,10 +342,10 @@
         "weekend": 0,
         "low_volume_last_bar_kept": true
       },
-      "rows": 1733,
-      "date_max": "2026-11-18",
-      "sha256": "08ee47a45048c851812ced35b39a220add02eb5dcd2d92626ec74af25ecc8a48",
-      "end": "2026-11-18T17:30:00-05:00",
+      "rows": 1734,
+      "date_max": "2026-11-19",
+      "sha256": "3e4eeb274445ecc78f9688ddd3c6a1afdb6c04b75aa44d2546858c643a647233",
+      "end": "2026-11-19T17:30:00-05:00",
       "has_bar_i": true
     },
     "vix": {
@@ -361,16 +359,16 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1732,
-      "date_max": "2026-11-18",
-      "sha256": "2584d351140dbe70caa402dba99742c0264e1c01baaa8642a88d0b7246120742",
+      "rows": 1733,
+      "date_max": "2026-11-19",
+      "sha256": "48ab0f423d95d624560a05818f3591f11bd2b7ad22b5c4b595f16c6a1b8d02c9",
       "has_bar_i": true
     },
     "kospi": {
       "ticker": "^KS11",
       "status": "ok",
       "file": "yfinance/kospi.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
@@ -379,8 +377,8 @@
       },
       "rows": 1686,
       "date_max": "2026-11-18",
-      "sha256": "5090881df0c3e9f016ea21242df88006e4353c02f4197d92c23be9f3f9d4ce2f",
-      "has_bar_i": true
+      "sha256": "c556473b3036d22729bcd67cd24beb6f643640c9d05760f5b35652ac88272f45",
+      "has_bar_i": false
     },
     "usd_twd_1h": {
       "ticker": "TWD=X",
@@ -389,12 +387,12 @@
       "attempts": 1,
       "error": null,
       "status": "ok",
-      "fetched_rows": 136,
+      "fetched_rows": 167,
       "start": "2026-11-11",
-      "rows": 16869,
+      "rows": 16899,
       "first": "2024-01-22T08:00:00+08:00",
-      "last": "2026-11-18T23:00:00+08:00",
-      "sha256": "c52e918b96b2d1a5f2aa73650bd220a4d825a9caae7d5209362d6a7f4739be5f",
+      "last": "2026-11-20T05:00:00+08:00",
+      "sha256": "322f80cfbb574448276d361e51b638e253f89fdc5634b0d2efb4467d65d0ca9f",
       "has_value_t": true
     }
   },
@@ -411,9 +409,9 @@
       "night_t_not_ready": 0
     },
     "kept_previous_file": false,
-    "rows": 19963,
-    "date_max": "2026-11-19",
-    "sha256": "a7dd0205e3d3fa90f48627cebc614176cc141dd8d1a5ac1a747adfb2a2a0746c",
+    "rows": 19975,
+    "date_max": "2026-11-20",
+    "sha256": "6946c150848a02734fa8302396944557b07b51e727c08791c198ed2a6950e357",
     "has_day_i": true,
     "has_night_t": true
   },
@@ -427,40 +425,26 @@
     ],
     "missing_months": [],
     "failed_months": {},
-    "new_dates": [],
+    "new_dates": [
+      "2026-11-19"
+    ],
     "changed_dates": [],
     "vanished_dates": [],
-    "rows": 73,
+    "rows": 74,
     "last_dates": [
-      "2026-11-17",
-      "2026-11-18"
+      "2026-11-18",
+      "2026-11-19"
     ],
     "has_prev_day": true,
-    "sha256": "08378167fb7ffa9ac1505fd2250ec3253bbd8885fc1bcde0d84856372510c25c"
+    "sha256": "cde415fc05ede199314b304d226a0fd966c8dcfaee3acf0574aee44278dd8c2a"
   },
   "cnn": {
-    "status": "ok",
-    "error": null,
+    "status": "failed",
+    "error": "/index/fearandgreed/graphdata/2026-10-21：連線失敗（ConnectionError）",
     "file": "cnn/fear_greed.csv",
     "requests": 1,
-    "start": "2026-10-20",
-    "cache": {
-      "Age": "899",
-      "X-Cache": "MISS, HIT"
-    },
-    "now": {
-      "score": 24.607722007722,
-      "previous_close": 25.2297455968689,
-      "timestamp": "2026-11-18T23:25:34+00:00"
-    },
-    "dropped": {
-      "not_daily": 1,
-      "on_or_after_t": 0,
-      "before_start": 0
-    },
-    "new_dates": [],
-    "changed_dates": [],
-    "vanished_dates": [],
+    "start": "2026-10-21",
+    "cache": null,
     "rows": 1457,
     "last_dates": [
       "2026-11-17",
@@ -472,13 +456,14 @@
   "exchange": {
     "status": "ok",
     "error": null,
-    "prev_day": "2026-11-18",
+    "prev_day": "2026-11-19",
     "markets": [
       "twse",
       "tpex"
     ],
     "locked": [],
     "dates": [
+      "2026-11-19",
       "2026-11-18",
       "2026-11-17",
       "2026-11-16",
@@ -487,12 +472,11 @@
       "2026-11-11",
       "2026-11-10",
       "2026-11-09",
-      "2026-11-06",
-      "2026-11-05"
+      "2026-11-06"
     ],
     "requests": {
-      "twse": 0,
-      "tpex": 0
+      "twse": 2,
+      "tpex": 2
     },
     "sources": {
       "twse_valuation": {
@@ -500,79 +484,65 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [],
+        "new_dates": [
+          "2026-11-19"
+        ],
         "no_data": {},
         "failures": [],
-        "requests": 0,
+        "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-18",
-        "sha256": "ff32432df3dd8ad8f8e70216f42619775a609fd525b03c8d736ca971449d8509"
+        "last_date": "2026-11-19",
+        "sha256": "c9b28c6b864137fe9ae8b5c724dfa86dd5a1c98cd62a0fdab22d88bf415d2b2f"
       },
       "twse_quotes": {
         "file": "twse/quotes.csv",
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [],
+        "new_dates": [
+          "2026-11-19"
+        ],
         "no_data": {},
         "failures": [],
-        "requests": 0,
+        "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-18",
-        "sha256": "66d6c136eaa5d81cf44c3858da16ebde404bdaa3dc96a2539ca5eb3d9ec94d14"
+        "last_date": "2026-11-19",
+        "sha256": "cb4925e9ed15e21763b92fde93a2eed802589dbfc6af0ce91941d4b551fd532a"
       },
       "tpex_valuation": {
         "file": "tpex/valuation.csv",
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [],
+        "new_dates": [
+          "2026-11-19"
+        ],
         "no_data": {},
         "failures": [],
-        "requests": 0,
+        "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-18",
-        "sha256": "2b7cd7ee3ec9f1632f45aca13dbe366922ef9d6046ebcdd9e399996f06385651"
+        "last_date": "2026-11-19",
+        "sha256": "2b8deb6a6ca4721e32fa68c1957e89e8a6f0f64c8f7f540f02d70a02750c1574"
       },
       "tpex_quotes": {
         "file": "tpex/quotes.csv",
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [],
+        "new_dates": [
+          "2026-11-19"
+        ],
         "no_data": {},
         "failures": [],
-        "requests": 0,
+        "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-18",
-        "sha256": "12d68bcb3469fafd8bb9d46636de1f7fa035138d68c87fdf86cb067506855101"
+        "last_date": "2026-11-19",
+        "sha256": "a862b988141714b937571bface2c59d78dd254c3436fd1481dcf1985bd609014"
       }
     }
-  },
-  "open_today": {
-    "status": "partial",
-    "started_at": "2026-11-19T08:25:06+08:00",
-    "written": [
-      "n225"
-    ],
-    "series": {
-      "kospi": {
-        "status": "error",
-        "attempts": 4,
-        "error": "YFPricesMissingError"
-      },
-      "n225": {
-        "status": "ok",
-        "attempts": 1,
-        "first_bar": "2026-11-19T09:00+09:00",
-        "open": 59025.19140625,
-        "prev_close": 59024.28
-      }
-    },
-    "finished_at": "2026-11-19T08:26:43+08:00"
   }
 }

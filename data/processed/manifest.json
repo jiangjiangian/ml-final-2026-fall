@@ -1,8 +1,8 @@
 {
-  "target_date": "2026-11-19",
-  "last_date": "2026-11-19",
-  "rows": 167100,
-  "dates": 1671,
+  "target_date": "2026-11-20",
+  "last_date": "2026-11-20",
+  "rows": 167200,
+  "dates": 1672,
   "months": [
     "2020-01",
     "2020-02",
@@ -260,7 +260,7 @@
   "cleaning_counts": {
     "bad_tick": 2,
     "bond_holiday": 26,
-    "empty_close": 9,
+    "empty_close": 7,
     "placeholder": 29,
     "split": 1,
     "dividend": 6
@@ -579,13 +579,13 @@
     {
       "series": "etf_0050",
       "rule": "empty_close",
-      "date": "2026-11-18",
-      "open": 95.69999694824219,
-      "high": 95.94999694824219,
-      "low": 92.3499984741211,
+      "date": "2026-11-19",
+      "open": 94.05000305175781,
+      "high": 94.5,
+      "low": 89.80000305175781,
       "close": null,
       "adj_close": null,
-      "volume": 303186275.0
+      "volume": 467675924.0
     },
     {
       "series": "etf_0050",
@@ -595,7 +595,7 @@
       "high": 33.162498474121094,
       "low": 33.162498474121094,
       "close": 33.162498474121094,
-      "adj_close": 30.95209503173828,
+      "adj_close": 30.952098846435547,
       "volume": 0.0
     },
     {
@@ -678,13 +678,13 @@
     {
       "series": "etf_0052",
       "rule": "empty_close",
-      "date": "2026-11-18",
-      "open": 54.75,
-      "high": 55.04999923706055,
-      "low": 53.04999923706055,
+      "date": "2026-11-19",
+      "open": 54.150001525878906,
+      "high": 54.650001525878906,
+      "low": 51.650001525878906,
       "close": null,
       "adj_close": null,
-      "volume": 24608839.0
+      "volume": 33957730.0
     },
     {
       "series": "etf_0052",
@@ -800,40 +800,40 @@
       "series": "etf_0052",
       "rule": "dividend",
       "date": "2023-04-21",
-      "yahoo_fraction": 0.005383167859268845,
-      "rescaled_fraction": 0.03768217501488191
+      "yahoo_fraction": 0.00538324505323351,
+      "rescaled_fraction": 0.03768271537263457
     },
     {
       "series": "etf_0052",
       "rule": "dividend",
       "date": "2022-04-20",
-      "yahoo_fraction": 0.01208559170223622,
-      "rescaled_fraction": 0.08459914191565354
+      "yahoo_fraction": 0.01208558670663773,
+      "rescaled_fraction": 0.08459910694646411
     },
     {
       "series": "etf_0052",
       "rule": "dividend",
       "date": "2021-04-20",
-      "yahoo_fraction": 0.0011495333563315002,
-      "rescaled_fraction": 0.008046733494320502
+      "yahoo_fraction": 0.0011495959295929614,
+      "rescaled_fraction": 0.00804717150715073
     },
     {
       "series": "etf_0052",
       "rule": "dividend",
       "date": "2020-04-22",
-      "yahoo_fraction": 0.004235172339026705,
-      "rescaled_fraction": 0.029646206373186934
+      "yahoo_fraction": 0.004235236443432822,
+      "rescaled_fraction": 0.02964665510402975
     },
     {
       "series": "etf_0055",
       "rule": "empty_close",
-      "date": "2026-11-18",
-      "open": 50.5,
-      "high": 50.599998474121094,
-      "low": 48.11000061035156,
+      "date": "2026-11-19",
+      "open": 48.91999816894531,
+      "high": 48.91999816894531,
+      "low": 45.900001525878906,
       "close": null,
       "adj_close": null,
-      "volume": 3638979.0
+      "volume": 3576352.0
     },
     {
       "series": "etf_0055",
@@ -876,7 +876,7 @@
       "high": 13.75,
       "low": 13.75,
       "close": 13.75,
-      "adj_close": 11.39530086517334,
+      "adj_close": 11.395299911499023,
       "volume": 0.0
     },
     {
@@ -898,7 +898,7 @@
       "high": 10.720000267028809,
       "low": 10.720000267028809,
       "close": 10.720000267028809,
-      "adj_close": 8.884191513061523,
+      "adj_close": 8.884190559387207,
       "volume": 0.0
     },
     {
@@ -981,10 +981,10 @@
     {
       "series": "n225",
       "rule": "empty_close",
-      "date": "2026-11-18",
-      "open": 59007.3984375,
-      "high": 59630.94921875,
-      "low": 58279.26171875,
+      "date": "2026-11-19",
+      "open": 59025.19140625,
+      "high": 59660.609375,
+      "low": 58750.53125,
       "close": null,
       "adj_close": null,
       "volume": 0.0
@@ -992,10 +992,10 @@
     {
       "series": "hsi",
       "rule": "empty_close",
-      "date": "2026-11-18",
-      "open": 23428.720703125,
-      "high": 23436.970703125,
-      "low": 23208.130859375,
+      "date": "2026-11-19",
+      "open": 23049.650390625,
+      "high": 23049.650390625,
+      "low": 22772.2109375,
       "close": null,
       "adj_close": null,
       "volume": 0.0
@@ -1003,46 +1003,24 @@
     {
       "series": "sse",
       "rule": "empty_close",
-      "date": "2026-11-18",
-      "open": 3596.550048828125,
-      "high": 3596.550048828125,
-      "low": 3560.449462890625,
+      "date": "2026-11-19",
+      "open": 3583.120849609375,
+      "high": 3584.281494140625,
+      "low": 3547.939697265625,
       "close": null,
       "adj_close": null,
-      "volume": 3738777536.0
-    },
-    {
-      "series": "stoxx50e",
-      "rule": "empty_close",
-      "date": "2026-11-18",
-      "open": 6223.14013671875,
-      "high": 6232.93994140625,
-      "low": 6175.9599609375,
-      "close": null,
-      "adj_close": null,
-      "volume": 0.0
+      "volume": 2636569836.0
     },
     {
       "series": "gdaxi",
       "rule": "empty_close",
-      "date": "2026-11-18",
-      "open": 26082.630859375,
-      "high": 26139.16015625,
-      "low": 25834.380859375,
+      "date": "2026-11-19",
+      "open": 25887.08984375,
+      "high": 25945.51953125,
+      "low": 25463.810546875,
       "close": null,
       "adj_close": null,
       "volume": 0.0
-    },
-    {
-      "series": "kospi",
-      "rule": "empty_close",
-      "date": "2026-11-18",
-      "open": 5098.81982421875,
-      "high": 5133.14013671875,
-      "low": 4943.169921875,
-      "close": null,
-      "adj_close": null,
-      "volume": 219090.0
     }
   ]
 }

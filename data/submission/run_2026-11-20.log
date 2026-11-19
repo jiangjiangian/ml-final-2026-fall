@@ -38,3 +38,10 @@
 2026-11-20 07:25:06,724 finpred.run_daily INFO 結束：already_submitted
 2026-11-20 07:25:07,117 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-20 07:25:07,118 finpred.run_daily INFO 合併原始資料 完成（0 秒）
+2026-11-20 07:40:05,771 finpred.run_daily INFO 開始：Phase 2，t = 2026-11-20，--sync（執行代號 1439e897）
+2026-11-20 07:40:06,038 finpred.run_daily INFO 網站上已經有這次的提交（submission_2026-11-20.csv，2026-11-19T23:14:09.147Z 交），不上傳
+2026-11-20 07:40:06,039 finpred.run_daily INFO 2026-11-20 的資料之前已經爬過，不重爬
+2026-11-20 07:40:06,040 finpred.run_daily INFO 影子跑：data/submission/shadow_2026-11-20.csv 已經有了，不重算
+2026-11-20 07:40:06,041 finpred.run_daily INFO 結束：already_submitted
+2026-11-20 07:40:06,436 finpred.merge_raw INFO 合併表：來源沒變，不重算
+2026-11-20 07:40:06,436 finpred.run_daily INFO 合併原始資料 完成（0 秒）

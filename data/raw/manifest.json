@@ -547,5 +547,27 @@
         "sha256": "12d68bcb3469fafd8bb9d46636de1f7fa035138d68c87fdf86cb067506855101"
       }
     }
+  },
+  "open_today": {
+    "status": "partial",
+    "started_at": "2026-11-19T08:25:06+08:00",
+    "written": [
+      "n225"
+    ],
+    "series": {
+      "kospi": {
+        "status": "error",
+        "attempts": 4,
+        "error": "YFPricesMissingError"
+      },
+      "n225": {
+        "status": "ok",
+        "attempts": 1,
+        "first_bar": "2026-11-19T09:00+09:00",
+        "open": 59025.19140625,
+        "prev_close": 59024.28
+      }
+    },
+    "finished_at": "2026-11-19T08:26:43+08:00"
   }
 }

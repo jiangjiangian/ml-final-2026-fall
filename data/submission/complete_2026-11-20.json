@@ -1,0 +1,12 @@
+{
+ "t": "2026-11-20",
+ "run_id": "75603466",
+ "time": "2026-11-20T07:14:09+08:00",
+ "model": "c2v2d",
+ "missing_states": 0,
+ "complete": true,
+ "reasons": [],
+ "site_id": "e75e6080-5396-4f49-9a19-f86fc84a0095",
+ "sha256": "d8a28a018d251bad58245db8321c9a87a9369e36b0e075b3e56bdb2528f59154",
+ "redo": 0
+}

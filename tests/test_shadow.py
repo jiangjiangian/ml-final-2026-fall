@@ -131,7 +131,7 @@ def test_the_shadow_list_comes_from_the_config(caplog):
     with caplog.at_level(logging.ERROR):
         got = tp.shadow_models({"daily_model": {"shadow": ["c2", "xgb", "c2", "persist"]}}, LOG)
     assert got == ["c2", "persist"] and "xgb 不認得或重複" in caplog.text
-    assert tp.shadow_models(utils.load_config()) == KINDS   # 使用者 2026-11-16：五個模型都做
+    assert tp.shadow_models(utils.load_config()) == KINDS + ["overnight_up"]   # 使用者 2026-11-16：五個模型都做；11-20 加隔夜大跌全猜漲
 
 
 def test_kind_of_strips_the_fallback_note():

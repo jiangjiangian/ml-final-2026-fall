@@ -252,7 +252,7 @@ online_lr:                       # 組員的方法（notebooks/teammate/02_featu
 daily_model:                     # run_daily.py 每天交件用哪個模型（使用者 2026-11-12 早上換成 persist，晚上換成 rank_ensemble；2026-11-15 換成 c2v2d）
   kind: c2v2d                    # c2v2d、c2 = 排名集成再依大盤方向換高低 β（src/models/m4_c2_tilt.py）；rank_ensemble = 排名集成（src/models/m3_rank_ensemble.py）；persist = 持續性規則（src/models/m2_persist_rule.py）；online_lr = 組員的邏輯迴歸。換模型改 kind 和下面的 fallback 兩行
   fallback: [c2, rank_ensemble, persist, online_lr] # kind 算不出來時照順序改用這些，當天照樣交件；填一個名字也可以；none 是停下不交
-  shadow: [c2v2d, c2, rank_ensemble, persist, online_lr] # 影子跑（使用者 2026-11-16）：交件後這些模型都預測 t，存 data/submission/shadow_<t>.csv，不上傳；組員先交的日子也做。[] 是不做
+  shadow: [c2v2d, c2, rank_ensemble, persist, online_lr, overnight_up] # 影子跑（使用者 2026-11-16）：交件後這些模型都預測 t，存 data/submission/shadow_<t>.csv，不上傳；組員先交的日子也做。[] 是不做
 
 persist_rule:                    # 持續性規則的設定，照 Kaggle notebook 14 的 persist120
   days: 120                      # 每檔股票往回看幾個有答案的交易日
@@ -288,6 +288,14 @@ c2_tilt:                         # C2、C2v2d（src/models/m4_c2_tilt.py，組�
   direction_start: "2020-03-01"  # 方向模型的訓練資料從這天開始，之後一直累積
   min_train_days: 250            # 方向模型的訓練天數不到這麼多就不用這個模型
   max_missing_states: 3          # t 的狀態缺超過這麼多個（例如長表的市場欄沒更新），就不用這個模型
+
+overnight_up:                    # 隔夜大跌全猜漲（src/models/m5_overnight_up.py，使用者 2026-11-20）：只給影子跑，不能填在 kind、fallback
+  std_days: 250                  # 每個美股成分的漲跌除以前幾個台股交易日的標準差（不含 t）
+  min_std_days: 200              # 這 250 天裡至少要有這麼多天有值才算標準差
+  min_parts: 2                   # 三個成分（台積電 ADR、費半、S&P 500）至少幾個有值才算訊號；老師 global 缺列的日子 S&P 500 是空白
+  rank_days: 250                 # 隔夜訊號的絕對值和前幾個台股交易日比（不含 t）
+  min_rank_share: 0.8            # 這 250 天裡至少要有這個比例有訊號才算分位
+  quantile: 0.90                 # 訊號是負的、分位到這個數以上，當天 50 檔全猜漲（Kaggle BT 05 的前 10% 規則）
 
 submit:
   enabled: true                  # 使用者 2026-11-06 確認舊系統的排程停了才打開；false 時只印出要送的內容

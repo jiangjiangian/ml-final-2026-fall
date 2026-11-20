@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.models import MODEL_KINDS
+from src.models import MODEL_KINDS, SHADOW_ONLY
 from src.models import m1_online_lr as online_lr
 from src.pipeline import step1_crawler as crawler, utils
 
@@ -49,15 +49,19 @@ def model_order(cfg: dict, log) -> list:
     沒有 daily_model 這個設定時用 online_lr。"""
     choice = cfg.get("daily_model") or {}
     kind = choice.get("kind", "online_lr")
-    if kind not in MODEL_KINDS:
-        raise ModelChoiceError(f"daily_model.kind 只能填 {list(MODEL_KINDS)}：{kind}")
+    usable = [name for name in MODEL_KINDS if name not in SHADOW_ONLY]   # 只給影子跑的模型不能交件
+    if kind not in usable:
+        raise ModelChoiceError(f"daily_model.kind 只能填 {usable}：{kind}")
     fallback = choice.get("fallback") or []
     order = [kind]
     for name in [fallback] if isinstance(fallback, str) else list(fallback):
         if str(name).lower() == "none":
             continue
+        if name in SHADOW_ONLY:
+            log.error("daily_model.fallback 的 %s 只能填在 shadow（影子跑），跳過（可以填 %s）", name, usable)
+            continue
         if name not in MODEL_KINDS or name in order:
-            log.error("daily_model.fallback 的 %s 不認得或重複，跳過（可以填 %s）", name, list(MODEL_KINDS))
+            log.error("daily_model.fallback 的 %s 不認得或重複，跳過（可以填 %s）", name, usable)
             continue
         order.append(name)
     return order
@@ -162,6 +166,8 @@ def short_reason(e: BaseException) -> str:
 SHADOW_NAME = re.compile(r"shadow_(\d{4}-\d{2}-\d{2})\.csv")
 SHADOW_SCORES = "shadow_scores.csv"
 TILT_MODELS = ("c2v2d", "c2")   # 輸出帶 rank_ensemble 的猜法（base_pred、base_prob）和大盤方向（p_up）
+EXTRA_COLUMNS = {"c2v2d": ("p_up",), "c2": ("p_up",),                     # 影子跑多存的欄：shadow_<t>.csv 的 <欄>_<模型>
+                 "overnight_up": ("o", "o_absq", "o_parts", "us_last_bar")}   # 隔夜訊號、分位、用了幾個成分、最後一根美股K棒
 
 
 def shadow_models(cfg: dict, log=None) -> list:
@@ -191,7 +197,8 @@ def shadow_predict(cfg: dict, data, t: str, stocks: list, log, known: dict | Non
     輸入：data 是 load_model_input 的表；stocks 是網站範本的股票代號；known 是這次已經算好的
           {模型名字: 預測表}（交件用的那個），直接拿、不重算，所以影子跑裡那一欄和交出去的一樣。
     輸出：每檔一列。欄是 date、stock_id，每個模型 pred_<模型>（0／1）和 prob_<模型>（當天名次換成 0～1；
-          online_lr 是機率），c2、c2v2d 另有 p_up_<模型>（大盤方向的機率）。
+          online_lr 是機率），c2、c2v2d 另有 p_up_<模型>（大盤方向的機率），overnight_up 另有 o_、o_absq_、
+          o_parts_、us_last_bar_<模型>（隔夜訊號、分位、用了幾個成分、用到的最後一根美股K棒；EXTRA_COLUMNS）。
     算不出來的模型那幾欄空白，原因記一行 WARNING，其他模型照算。
     rank_ensemble 從 c2v2d 或 c2 的輸出拿：它們先算 rank_ensemble 再調整，輸出的 base_pred、base_prob 就是它的猜法。
     兩個都沒算出來才自己訓練。c2 和 c2v2d 在同一次執行裡共用 rank_ensemble 的三個模型（m4_c2_tilt 的快取）。
@@ -218,8 +225,8 @@ def shadow_predict(cfg: dict, data, t: str, stocks: list, log, known: dict | Non
         day = days.get(kind)
         table[f"pred_{kind}"] = day["pred"].astype(int).to_numpy() if day is not None else None
         table[f"prob_{kind}"] = day["prob"].to_numpy() if day is not None and "prob" in day else None
-        if kind in TILT_MODELS:
-            table[f"p_up_{kind}"] = day["p_up"].to_numpy() if day is not None and "p_up" in day else None
+        for extra in EXTRA_COLUMNS.get(kind, ()):
+            table[f"{extra}_{kind}"] = day[extra].to_numpy() if day is not None and extra in day else None
     path = shadow_path(cfg, t)
     crawler.write_atomic(path, table.to_csv(index=False).encode("utf-8"))
     ups = "、".join(f"{k} {int(days[k]['pred'].sum())}" for k in kinds if k in days)

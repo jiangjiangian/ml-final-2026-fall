@@ -99,11 +99,11 @@
 
 ## 影子跑：每個模型每天都算，不上傳
 
-使用者 2026-11-16 決定：每天交件之後，`daily_model.shadow` 列的模型（現在是 `c2v2d`、`c2`、`rank_ensemble`、`persist`、`online_lr`）都預測 t，存檔但不上傳。這樣比的是上線後的真實日子，不是回測。組員已經手動交了的日子也做。
+使用者 2026-11-16 決定：每天交件之後，`daily_model.shadow` 列的模型（現在是 `c2v2d`、`c2`、`rank_ensemble`、`persist`、`online_lr`，2026-11-20 加 `overnight_up`）都預測 t，存檔但不上傳。這樣比的是上線後的真實日子，不是回測。組員已經手動交了的日子也做。
 
 ### 檔案
 
-- `data/submission/shadow_<t>.csv`：每檔一列。每個模型兩欄，`pred_<模型>`（0/1）和 `prob_<模型>`（當天名次換成 0～1；`online_lr` 是機率）。`c2`、`c2v2d` 另有 `p_up_<模型>`（大盤方向的機率）。算不出來的模型那幾欄空白，原因在 `run_<t>.log`。
+- `data/submission/shadow_<t>.csv`：每檔一列。每個模型兩欄，`pred_<模型>`（0/1）和 `prob_<模型>`（當天名次換成 0～1；`online_lr` 是機率）。`c2`、`c2v2d` 另有 `p_up_<模型>`（大盤方向的機率）。`overnight_up` 另有四欄，見下面「隔夜大跌全猜漲」。算不出來的模型那幾欄空白，原因在 `run_<t>.log`。
 - `data/submission/shadow_scores.csv`：每天每個模型一列。`score` 是官方分數（每格 (2·pred − 1)·盤中報酬的平均），另有 `accuracy`（猜對的比例）、`pred_up`（猜漲的比例）、`cells`（格數）、`source`（答案從哪裡來）。t 當天 16:10 的傍晚打分用老師 Live 的 t 那列先算（`source` 是 `live`）；隔天早上用特徵表的答案再算一次（`features`），兩邊不一樣時 log 有 WARNING。早上算不到的日子留著傍晚的分數。
 - `data/submission/site_scores.csv`（2026-11-18 起）：網站上我們那份每天一列。`file`（排程的檔名 `submission_<t>.csv`；組員取的其他檔名一律寫 `other`，不存）、`same_as`（和影子跑哪個模型的 50 檔一樣）、`site_score`（網站給的分數）、`rescored`（用老師 Live 重算，應該和網站一樣；差超過 1e-6 時 log 有 WARNING）、`all_zero`（全猜 0 的分數）、`day_rank`／`day_teams`（當天名次／有分數的隊數）、`total_score`、`total_rank`（累計分數和網站的名次）、`teams`、`all_forced_teams`（每天都是網站強制繳交的隊數）、`self_rank`（扣掉那些隊以後的累計名次）、`read_at`。只存我們這隊，不存任何隊名。
 
@@ -122,6 +122,16 @@ s.pivot(index="date", columns="model", values="score").cumsum()   # 每個模型
 - 打分：t 當天 16:10 的傍晚打分（`src/pipeline/step6_evening_score.py`），老師 Live 還沒填好 t 那列就 20:00 再試。只下載 Live，不上傳、不重建特徵表；Live 寫進 `data/raw/teacher/live/`，組員傍晚就拿得到。
 - 算不出來只記一行 WARNING，不影響交件。
 - 關掉：`shadow: []`。
+
+### 隔夜大跌全猜漲（`overnight_up`，2026-11-23 起）
+
+使用者 2026-11-20 決定加進影子跑。它只能填在 `daily_model.shadow`，填在 `kind` 或 `fallback` 會被擋下，所以不會被交出去。程式在 `src/models/m5_overnight_up.py`，設定在 `configs/config.yaml` 的 `overnight_up`。
+
+- 規則：前一晚台積電 ADR、費城半導體指數、S&P 500 三個「從上一個台股交易日開盤前到 t 開盤前」的漲跌，各除以自己前 250 個台股交易日的標準差，再平均，得到隔夜訊號 O。O 是負的，而且絕對值排進前 250 天的前 10%，t 的 50 檔全猜漲。其他日子和 `rank_ensemble` 一樣。
+- 為什麼只影子跑：回測只有一點跡象（Kaggle BT 05、07、09）。測試期 37 個觸發日一共多 0.137，但 39% 來自 2025-04-11 一天，拿掉最好的三天只剩 0.016。要靠之後每天的紀錄才分得出真假，一年大約觸發 15 天。
+- 和研究用的版本差在哪：研究用四個成分，多一個美國掛牌的台灣 ETF（EWT），每天的爬蟲沒有抓。三個成分的版本在 2024-01-02～2026-10-08 觸發 43 天，研究的版本 37 天，兩邊都有的 32 天。
+- S&P 500 來自老師 global 表。美國或韓國休市的台股交易日老師沒有那一列（約 13% 的日子），那天和隔天 O 只用另外兩個成分。
+- `shadow_<t>.csv` 多的四欄：`o_overnight_up`（隔夜訊號 O）、`o_absq_overnight_up`（|O| 在前 250 天的分位，0～1）、`o_parts_overnight_up`（用了幾個成分，2 或 3）、`us_last_bar_overnight_up`（用到的最後一根美股K棒的日期）。同一天每檔都一樣。`pred_overnight_up` 50 檔都是 1 的日子就是觸發日。
 
 ## 換模型
 

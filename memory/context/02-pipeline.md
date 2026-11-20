@@ -167,6 +167,12 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
 - `scores_<t>.csv` 照舊（特徵組 notebook 45 讀它），影子跑是另外的檔。
 - 11-16 沒有影子跑：那天排程在爬蟲之前就結束。使用者問了之後，18:16 在 oop 另開的 clone 事後重算五個模型（不進 `data/submission/`，不算影子跑），結果在 `memory/context/01-competition.md` 的「正式期第一天」。第一份真的影子跑是 11-17。
 - 換回去：`shadow: []`，或 revert 這次的 commit（733cce8 的程式不認得 `daily_model.shadow`，留著也沒關係）。
+- 2026-11-20 加第六個 `overnight_up`（使用者用選擇題選的：BT 研究的「隔夜大跌就全猜漲」只記不交；成分先用爬蟲已經有的三個，不加抓 EWT）。`src/models/m5_overnight_up.py`，規則和欄在 `memory/reference/05-daily-model.md` 的「隔夜大跌全猜漲」。
+  - 只能影子跑：`src/models/__init__.py` 的 `SHADOW_ONLY`，`model_order` 看到它在 `kind` 就丟 `ModelChoiceError`，在 `fallback` 就記 ERROR 跳過。
+  - 不多訓練：`rank_ensemble` 的猜法從 `m4_c2_tilt.load_inputs` 的快取拿，所以在 `shadow` 裡要排在 `c2v2d`、`c2` 後面（排前面也算得出來，只是那次會自己訓練一遍）。
+  - `shadow_predict` 多存的欄改成查表 `EXTRA_COLUMNS`（`c2`、`c2v2d` 的 `p_up` 也在裡面）。
+  - 驗證（2026-11-20，oop 另開的 worktree `~/mlfinal-ou`，不訓練）：全部測試 600 個通過；用真資料算每天的訊號，11-17 觸發（O −2.08，分位 0.96；BT 07 四成分的版本是 −2.32，也觸發），11-16、11-18、11-19、11-20 沒觸發（−0.73、−0.80、+0.03、−1.36）。測試期和研究版本的觸發日 32 天相同，只有研究版本的 5 天，只有這版的 11 天。老師的 ^GSPC 和 yfinance 道瓊的同一天相關 0.88，前後各錯一天是 −0.18、−0.13，日期對得上。
+  - 第一次正式跑：2026-11-23 07:10。換回去：從 `shadow` 拿掉 `overnight_up`。
 
 ### 2026-11-17 的決定
 

@@ -32,14 +32,19 @@
     "attempts": 1,
     "fallback_from": null,
     "error": null,
-    "zip_sha256": "9e3f50e6db77d84ff68b6f512b03811af048d9fb36c38cab45e20f4f2fe35e94",
-    "files_sha256": "15bbf7310168d1de13edceb7b60a4a5e2f96011b36708db00072dbc7614fe034",
+    "zip_sha256": "371047ff1c50a5160bd2f34686ae9b3a725a3aaf1809030d914d1c5ae5089710",
+    "files_sha256": "32655449961787897f04a9546e258a21cf9d0c93086573a5c1b478c31f1522b5",
     "date_max": "2026-11-20",
     "has_t_row": true,
     "prev_day": "2026-11-19",
     "prev_day_planned": "2026-11-19",
     "prev_day_never_filled": false,
-    "prev_day_missing_stocks": []
+    "prev_day_missing_stocks": [],
+    "evening_refresh": {
+      "t": "2026-11-20",
+      "time": "2026-11-20 16:10",
+      "source": "140.112.31.182:8444/data.zip"
+    }
   },
   "yfinance": {
     "sox": {

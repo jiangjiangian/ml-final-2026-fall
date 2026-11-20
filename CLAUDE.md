@@ -30,6 +30,7 @@
 | 突破研究 BT（在模擬 Phase 2 超過第一名：第一名的分數解剖、選擇性擇時、HMM 和馬可夫切換、動態追蹤，Kaggle BT 01 起，使用者 2026-11-15 用 `/goal` 交辦，和 Decider、MT 分開）：狀態、主持人查到的事實、評估規則、每本的六段紀錄 | `memory/projects/11-breakthrough-research.md` |
 | 解封研究 UB（不綁 25 漲 25 跌、自己決定每天猜幾檔漲的模型，Kaggle UB 01 起，使用者 2026-11-19 交辦；過關標準是回測贏 c2v2d 再影子跑 5 天，過關前每天照交 c2v2d）：目標、使用者的決定、以前測過的、規則 | `memory/projects/13-unbound-count-model.md` |
 | C2 架構和訓練期 CT（c2、c2v2d 每一層的設定，包括方向模型、β、排名集成用多近的資料訓練，Kaggle CT 01 起，使用者 2026-11-20 用 `/goal` 交辦）：事先登記的家族、格子、期間、判斷 | `memory/projects/14-c2-tuning.md` |
+| DoubleAdapt DA（使用者 2026-11-20 給的 Colab notebook：KDD 2023 的增量元學習，能不能對抗大幅波動，Kaggle DA 01 起，只報告）：方法、資料和標籤、比較、事先寫的判讀 | `memory/projects/15-doubleadapt.md` |
 
 `README.md` 給組員看，只放四樣（使用者 2026-11-12）：流程（爬蟲 → 特徵 → 模型 → 上傳）、組員怎麼拿資料、特徵表的摘要和連結、檔案樹。其他細節寫在 `memory/reference/`，用組員看得懂的寫法，README 只放連結；特徵欄有增減或定義改了，改 `memory/reference/02-feature-table.md`。新增、搬動或刪除檔案時，改 `README.md` 的檔案樹；`memory/` 多了或少了檔案時，也改上面的表。`memory/` 裡的路徑都從 repo 根目錄算。
 

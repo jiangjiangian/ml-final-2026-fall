@@ -99,11 +99,11 @@
 
 ## 影子跑：每個模型每天都算，不上傳
 
-使用者 2026-11-16 決定：每天交件之後，`daily_model.shadow` 列的模型（現在是 `c2v2d`、`c2`、`rank_ensemble`、`persist`、`online_lr`，2026-11-20 加 `overnight_up`）都預測 t，存檔但不上傳。這樣比的是上線後的真實日子，不是回測。組員已經手動交了的日子也做。
+使用者 2026-11-16 決定：每天交件之後，`daily_model.shadow` 列的模型（現在是 `c2v2d`、`c2`、`rank_ensemble`、`persist`、`online_lr`，2026-11-20 加 `overnight_up`、`rank_inst`）都預測 t，存檔但不上傳。這樣比的是上線後的真實日子，不是回測。組員已經手動交了的日子也做。
 
 ### 檔案
 
-- `data/submission/shadow_<t>.csv`：每檔一列。每個模型兩欄，`pred_<模型>`（0/1）和 `prob_<模型>`（當天名次換成 0～1；`online_lr` 是機率）。`c2`、`c2v2d` 另有 `p_up_<模型>`（大盤方向的機率）。`overnight_up` 另有四欄，見下面「隔夜大跌全猜漲」。算不出來的模型那幾欄空白，原因在 `run_<t>.log`。
+- `data/submission/shadow_<t>.csv`：每檔一列。每個模型兩欄，`pred_<模型>`（0/1）和 `prob_<模型>`（當天名次換成 0～1；`online_lr` 是機率）。`c2`、`c2v2d` 另有 `p_up_<模型>`（大盤方向的機率）。`overnight_up` 另有四欄，見下面「隔夜大跌全猜漲」；`rank_inst` 另有兩欄，見下面「法人組」。算不出來的模型那幾欄空白，原因在 `run_<t>.log`。
 - `data/submission/shadow_scores.csv`：每天每個模型一列。`score` 是官方分數（每格 (2·pred − 1)·盤中報酬的平均），另有 `accuracy`（猜對的比例）、`pred_up`（猜漲的比例）、`cells`（格數）、`source`（答案從哪裡來）。t 當天 16:10 的傍晚打分用老師 Live 的 t 那列先算（`source` 是 `live`）；隔天早上用特徵表的答案再算一次（`features`），兩邊不一樣時 log 有 WARNING。早上算不到的日子留著傍晚的分數。
 - `data/submission/site_scores.csv`（2026-11-18 起）：網站上我們那份每天一列。`file`（排程的檔名 `submission_<t>.csv`；組員取的其他檔名一律寫 `other`，不存）、`same_as`（和影子跑哪個模型的 50 檔一樣）、`site_score`（網站給的分數）、`rescored`（用老師 Live 重算，應該和網站一樣；差超過 1e-6 時 log 有 WARNING）、`all_zero`（全猜 0 的分數）、`day_rank`／`day_teams`（當天名次／有分數的隊數）、`total_score`、`total_rank`（累計分數和網站的名次）、`teams`、`all_forced_teams`（每天都是網站強制繳交的隊數）、`self_rank`（扣掉那些隊以後的累計名次）、`read_at`。只存我們這隊，不存任何隊名。
 
@@ -120,6 +120,7 @@ s.pivot(index="date", columns="model", values="score").cumsum()   # 每個模型
 - 資料不完整、補齊後重交的那次：用補齊後的特徵表重寫（見「資料不完整時重交」）。
 - 一天只算一次，`shadow_<t>.csv` 已經有就跳過（重交時例外）；過了 09:00 不算（之後的資料可能被改過）。
 - 打分：t 當天 16:10 的傍晚打分（`src/pipeline/step6_evening_score.py`），老師 Live 還沒填好 t 那列就 20:00 再試。只下載 Live，不上傳、不重建特徵表；Live 寫進 `data/raw/teacher/live/`，組員傍晚就拿得到。
+- 傍晚補算（2026-11-23 起）：`rank_inst` 早上沒算出來的日子，16:10 打分前用剛下載的老師 Live 再算一次，寫回 `shadow_<t>.csv`，當天一起打分。其他模型不補算。
 - 算不出來只記一行 WARNING，不影響交件。
 - 關掉：`shadow: []`。
 
@@ -132,6 +133,25 @@ s.pivot(index="date", columns="model", values="score").cumsum()   # 每個模型
 - 和研究用的版本差在哪：研究用四個成分，多一個美國掛牌的台灣 ETF（EWT），每天的爬蟲沒有抓。三個成分的版本在 2024-01-02～2026-10-08 觸發 43 天，研究的版本 37 天，兩邊都有的 32 天。
 - S&P 500 來自老師 global 表。美國或韓國休市的台股交易日老師沒有那一列（約 13% 的日子），那天和隔天 O 只用另外兩個成分。
 - `shadow_<t>.csv` 多的四欄：`o_overnight_up`（隔夜訊號 O）、`o_absq_overnight_up`（|O| 在前 250 天的分位，0～1）、`o_parts_overnight_up`（用了幾個成分，2 或 3）、`us_last_bar_overnight_up`（用到的最後一根美股K棒的日期）。同一天每檔都一樣。`pred_overnight_up` 50 檔都是 1 的日子就是觸發日。
+
+### 法人組（`rank_inst`，2026-11-23 起）
+
+使用者 2026-11-20 決定加進影子跑。和 `overnight_up` 一樣只能填在 `daily_model.shadow`，不會被交出去。程式在 `src/models/m6_rank_inst.py`，設定在 `configs/config.yaml` 的 `rank_inst`。
+
+- 做法：`rank_ensemble` 的 41 個價量欄，加法人 23 欄，共 64 欄。三個模型、參數、前 500 天訓練、每天早上重訓、25 檔猜漲 25 檔猜跌都和 `rank_ensemble` 一樣。這是 Kaggle notebook 33 的 `X_inst`。
+- 法人 23 欄：都從老師個股檔的外資、投信、自營商買賣超股數和外資持股比率算，每一格是 t 的前一個交易日收盤後的值。
+  - `c_foreign_pct`、`c_trust_pct`、`c_dealer_pct`：外資、投信、自營商當天買賣超 ÷ 當天成交股數。
+  - `c_foreign_pct5`、`c_foreign_hold_chg5`：外資 5 天累計買賣超 ÷ 5 天成交股數；外資持股比率 5 天的變化。
+  - `f_foreign_pct20`、`f_trust_pct5`、`f_trust_pct20`：外資 20 天、投信 5 天和 20 天累計買賣超 ÷ 同期成交股數。
+  - `f_inst_pct`：三大法人合計當天買賣超 ÷ 當天成交股數。
+  - `f_foreign_streak`、`f_trust_streak`：連續買超（正）或賣超（負）的天數，截在 ±20。
+  - `f_foreign_z60`：外資當天買賣超占比和自己前 60 天比的 z 分數。
+  - `f_foreign_hold`、`f_foreign_hold_chg20`：外資持股比率；20 天的變化。
+  - `f_foreign_ema5_gap` 等 9 欄：外資、投信、三大法人各自的「當天買賣超 − 自己的 5／10／20 天 EMA（指數移動平均）」÷ 20 天平均成交股數。
+- 為什麼只影子跑：回測在另外 50 檔每天比 `X_price` 多 0.00019，過了多重檢定；但用 2021 年做的確認沒過（p 0.078），模擬期 22 天還少。增量這麼小，大約要 250 天才分得出有沒有用，影子跑是留紀錄。
+- 早上法人資料沒到的日子：老師 Live 還沒填前一個交易日，或要預測的 50 檔裡法人欄有值的不到 45 檔（`min_filled_share: 0.9`），早上先不算，傍晚打分前補算。用的還是前一個交易日的資料，只是比早上晚拿到。
+- `shadow_<t>.csv` 多的兩欄：`inst_filled_rank_inst`（50 檔裡前一個交易日的法人欄有值的檔數）、`late_rank_inst`（0 是早上算的，1 是傍晚補算的）。`late` 是 1 的日子代表資料到齊時模型會怎麼猜，不代表早上交得出來，評估能不能上線時要分開看。
+- 和 notebook 33 對過：oop 重播 2026-08-03～2026-11-12 的 69 天，猜漲猜跌和 notebook 一樣的格子 Top50 98.9%、另外 50 檔 99.4%（同一段 `rank_ensemble` 對 notebook 是 98.7%、99.0%）。
 
 ## 換模型
 

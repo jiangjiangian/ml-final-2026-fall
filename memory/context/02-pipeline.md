@@ -173,6 +173,15 @@ python -m src.pipeline.step5_merge_raw            # 5. data/raw/ → data/merged
   - `shadow_predict` 多存的欄改成查表 `EXTRA_COLUMNS`（`c2`、`c2v2d` 的 `p_up` 也在裡面）。
   - 驗證（2026-11-20，oop 另開的 worktree `~/mlfinal-ou`，不訓練）：全部測試 600 個通過；用真資料算每天的訊號，11-17 觸發（O −2.08，分位 0.96；BT 07 四成分的版本是 −2.32，也觸發），11-16、11-18、11-19、11-20 沒觸發（−0.73、−0.80、+0.03、−1.36）。測試期和研究版本的觸發日 32 天相同，只有研究版本的 5 天，只有這版的 11 天。老師的 ^GSPC 和 yfinance 道瓊的同一天相關 0.88，前後各錯一天是 −0.18、−0.13，日期對得上。
   - 第一次正式跑：2026-11-23 07:10。換回去：從 `shadow` 拿掉 `overnight_up`。
+- 2026-11-20 加第七個 `rank_inst`（法人組，Kaggle notebook 33 的 `X_inst`：`rank_ensemble` 的 41 欄加法人 23 欄）。BT 第四波結案後使用者用選擇題選「寫進每天的流程」；主持人原本提「早上法人資料沒到就留空白」，使用者問「為何不在爬蟲完整資料後跑」，改成早上算、沒到就傍晚補算（選擇題確認）。`src/models/m6_rank_inst.py`，欄的定義在 `memory/reference/05-daily-model.md` 的「法人組」。
+  - 只能影子跑：加進 `SHADOW_ONLY`。每天交的模型和它的程式（`m3_rank_ensemble.py`、`m4_c2_tilt.py`）沒有動；`rank_inst` 把欄位清單換成 64 欄再呼叫 `m3_rank_ensemble.predict`。
+  - 早上：影子跑照常算，自己讀長表和老師檔、自己訓練一次（oop 約 40 秒）。爬蟲記下前一個交易日還沒填（`prev_day_never_filled`），或要預測的股票裡 `f_inst_pct`、`f_foreign_hold` 都有值的不到 `min_filled_share`（0.9），就丟 `InstError`，那幾欄先空白。
+  - 傍晚補算：`step6_evening_score` 寫好老師 Live 以後、打分以前呼叫 `step3_train_predict.shadow_backfill`。`LATE_MODELS`（現在只有 `rank_inst`）裡 pred 欄不在或有空白的模型，用 `predict(..., late=True)` 再算一次寫回 `shadow_<t>.csv`；`late=True` 不看爬蟲早上的紀錄。補算出錯只記 WARNING，不擋打分。傍晚已經打完分（`done_before`）就不會再補。
+  - 多存的欄：`inst_filled_rank_inst`、`late_rank_inst`（`EXTRA_COLUMNS`）。
+  - 和 notebook 33 不一樣：33 的法人欄在訓練期空白 30% 以內都用，這裡沿用 `rank_ensemble.max_missing` 的 10%。最近約 500 個交易日法人 23 欄沒有空白，沒有差別。
+  - 驗證（2026-11-20，oop 另開的 worktree `~/mlfinal-inst`）：全部測試 618 個通過。用真資料算 t = 11-20：早上和傍晚兩種模式都算得出來（各約 40 秒），50 檔的法人欄都有值，和 `rank_ensemble` 猜得不同的有 10 檔。重播 2026-08-03～11-12（69 天、5 個重訓日）和 notebook 33 的 `X_inst` 比：同邊 Top50 98.90%、另外 50 檔 99.36%（同一段 `rank_ensemble` 對 notebook 的 `X_price` 是 98.72%、98.96%）。ridge 的預測值除了 11-12 那天以外最大差 0.0014（價量欄那組是 0.0015）；11-12 是 notebook 資料的最後一天，100 檔裡 99 檔差超過 0.001，那天 notebook 用的前一天法人資料和現在的不一樣。
+  - 還沒查的：11-16 以後每個早上 07 點多法人欄到了沒有。之後看 `late_rank_inst` 和 run log 就知道。
+  - 第一次正式跑：2026-11-23 07:10。換回去：從 `shadow` 拿掉 `rank_inst`。
 
 ### 2026-11-17 的決定
 

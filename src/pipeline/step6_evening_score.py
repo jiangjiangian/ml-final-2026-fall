@@ -7,7 +7,8 @@
        t 那列，才寫進 data/raw/teacher/live/，組員傍晚就拿得到；有一檔沒填好就什麼都不寫，等下一次。
     3. 答案是 Live t 那列的還原收盤 ÷ 還原開盤 − 1，和網站、特徵表的 label_intraday_return 同一條算法
        （step2_features 用的 crawler.row_filled、COL_CLOSE、COL_OPEN）。shadow_<t>.csv 的每個模型打分，
-       更新 shadow_scores.csv（source 是 live；step3_train_predict.shadow_scores）。
+       更新 shadow_scores.csv（source 是 live；step3_train_predict.shadow_scores）。打分前先補算：早上沒算出來的
+       法人組（rank_inst）用剛寫好的老師 Live 再算一次，寫回 shadow_<t>.csv（shadow_backfill，使用者 2026-11-20）。
     4. 網站上我們那份的分數、當天名次、累計分數和名次寫進 site_scores.csv，一天一列。同一份答案也重算網站上那份，
        和網站的分數差超過 1e-6 時記 WARNING（網站的分數可能四捨五入過）。我們這隊用 /api/state 的 team.id 對榜上的
        teamId，只存我們的分數、名次和隊數，不存任何隊名、帳號；檔名只存排程的 submission_<t>.csv，其他寫 other。
@@ -62,6 +63,8 @@ def main(cfg: dict, phase: int, t: str, log, *, site=None, secrets=None) -> str:
         if truth is None:
             return "no_answer_yet"
         if shadow is not None:
+            if backfill(cfg, t, log):   # 早上沒算出來的影子模型（法人組）用剛寫好的老師 Live 補算，再一起打分
+                shadow = read_shadow(cfg, t)
             train_predict.shadow_scores(cfg, truth, log, source="live")
         record = site_record(state, t, entry, sent, truth, shadow, stocks, log)
         write_site_scores(cfg, record)
@@ -90,6 +93,15 @@ def read_shadow(cfg: dict, t: str):
     if not path.exists():
         return None
     return pd.read_csv(path, dtype={"date": str, "stock_id": str})
+
+
+def backfill(cfg: dict, t: str, log) -> list:
+    """step3_train_predict.shadow_backfill，出任何錯都只記 WARNING、回傳 []：補算失敗不擋打分。"""
+    try:
+        return train_predict.shadow_backfill(cfg, t, log)
+    except Exception as e:
+        log.warning("影子跑補算沒做完（%s）：不影響打分", train_predict.short_reason(e))
+        return []
 
 
 def scored_before(cfg: dict, t: str) -> bool:

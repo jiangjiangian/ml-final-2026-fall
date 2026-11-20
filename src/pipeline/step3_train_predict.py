@@ -167,7 +167,9 @@ SHADOW_NAME = re.compile(r"shadow_(\d{4}-\d{2}-\d{2})\.csv")
 SHADOW_SCORES = "shadow_scores.csv"
 TILT_MODELS = ("c2v2d", "c2")   # 輸出帶 rank_ensemble 的猜法（base_pred、base_prob）和大盤方向（p_up）
 EXTRA_COLUMNS = {"c2v2d": ("p_up",), "c2": ("p_up",),                     # 影子跑多存的欄：shadow_<t>.csv 的 <欄>_<模型>
-                 "overnight_up": ("o", "o_absq", "o_parts", "us_last_bar")}   # 隔夜訊號、分位、用了幾個成分、最後一根美股K棒
+                 "overnight_up": ("o", "o_absq", "o_parts", "us_last_bar"),   # 隔夜訊號、分位、用了幾個成分、最後一根美股K棒
+                 "rank_inst": ("inst_filled", "late")}                       # 法人欄有值的檔數、是不是傍晚補算的
+LATE_MODELS = ("rank_inst",)   # 早上算不出來時，傍晚可以用補齊的老師 Live 補算的影子模型（shadow_backfill，使用者 2026-11-20）
 
 
 def shadow_models(cfg: dict, log=None) -> list:
@@ -198,8 +200,9 @@ def shadow_predict(cfg: dict, data, t: str, stocks: list, log, known: dict | Non
           {模型名字: 預測表}（交件用的那個），直接拿、不重算，所以影子跑裡那一欄和交出去的一樣。
     輸出：每檔一列。欄是 date、stock_id，每個模型 pred_<模型>（0／1）和 prob_<模型>（當天名次換成 0～1；
           online_lr 是機率），c2、c2v2d 另有 p_up_<模型>（大盤方向的機率），overnight_up 另有 o_、o_absq_、
-          o_parts_、us_last_bar_<模型>（隔夜訊號、分位、用了幾個成分、用到的最後一根美股K棒；EXTRA_COLUMNS）。
-    算不出來的模型那幾欄空白，原因記一行 WARNING，其他模型照算。
+          o_parts_、us_last_bar_<模型>（隔夜訊號、分位、用了幾個成分、用到的最後一根美股K棒），rank_inst 另有
+          inst_filled_、late_<模型>（法人欄有值的檔數、是不是傍晚補算的；EXTRA_COLUMNS）。
+    算不出來的模型那幾欄空白，原因記一行 WARNING，其他模型照算。LATE_MODELS 的模型傍晚會再補算（shadow_backfill）。
     rank_ensemble 從 c2v2d 或 c2 的輸出拿：它們先算 rank_ensemble 再調整，輸出的 base_pred、base_prob 就是它的猜法。
     兩個都沒算出來才自己訓練。c2 和 c2v2d 在同一次執行裡共用 rank_ensemble 的三個模型（m4_c2_tilt 的快取）。
     """
@@ -235,6 +238,38 @@ def shadow_predict(cfg: dict, data, t: str, stocks: list, log, known: dict | Non
     log.info("影子跑寫好 %s：猜漲的檔數 %s%s%s（不上傳）", shown(path), ups or "（沒有）",
              f"；和 {first} 猜得不同的檔數 {gaps}" if gaps else "", f"；算不出來 {'、'.join(failed)}" if failed else "")
     return path
+
+
+def shadow_backfill(cfg: dict, t: str, log) -> list:
+    """傍晚補算（使用者 2026-11-20）：shadow_<t>.csv 裡 LATE_MODELS 的模型早上沒算出來（pred 欄不在，或有空白）時，
+    用現在 data/raw 的資料再算一次、寫回同一個檔，回傳補算成功的模型名字。
+
+    step6_evening_score 在老師 Live 寫好以後呼叫。模型的 predict 帶 late=True（不看爬蟲早上的紀錄；輸出的 late 是 1）。
+    用的還是 t 之前的資料，只是比早上晚拿到。影子檔不存在、沒有要補的模型時什麼都不做；還是算不出來只記 WARNING。
+    """
+    path = shadow_path(cfg, t)
+    kinds = [kind for kind in shadow_models(cfg) if kind in LATE_MODELS]
+    if not kinds or not path.exists():
+        return []
+    table = pd.read_csv(path, dtype={"date": str, "stock_id": str})
+    stocks, done = table["stock_id"].tolist(), []
+    for kind in kinds:
+        if f"pred_{kind}" in table.columns and table[f"pred_{kind}"].notna().all():
+            continue
+        try:
+            day = one_day(load_model(kind)(None, cfg, [t], stocks, late=True), t, stocks)
+        except Exception as e:
+            log.warning("影子跑補算：%s 還是算不出來（%s），那幾欄留空白", kind, public_reason(e))
+            continue
+        table[f"pred_{kind}"] = day["pred"].astype(int).to_numpy()
+        table[f"prob_{kind}"] = day["prob"].to_numpy() if "prob" in day else None
+        for extra in EXTRA_COLUMNS.get(kind, ()):
+            table[f"{extra}_{kind}"] = day[extra].to_numpy() if extra in day else None
+        done.append(kind)
+    if done:
+        crawler.write_atomic(path, table.to_csv(index=False).encode("utf-8"))
+        log.info("影子跑補算 %s：%s 用傍晚的資料算好，寫回 %s（不上傳）", t, "、".join(done), shown(path))
+    return done
 
 
 def one_day(pred, t: str, stocks: list) -> pd.DataFrame:

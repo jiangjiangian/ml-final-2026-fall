@@ -336,6 +336,6 @@ def test_every_model_in_the_registry_loads():
     """config 能填的每個名字都找得到 predict 函式（檔名或函式名打錯，這裡就會壞，不用等到早上換備援）。"""
     from src.models import MODEL_KINDS
     from src.pipeline import step3_train_predict
-    assert set(MODEL_KINDS) == {"online_lr", "persist", "rank_ensemble", "c2", "c2v2d", "overnight_up"}
+    assert set(MODEL_KINDS) == {"online_lr", "persist", "rank_ensemble", "c2", "c2v2d", "overnight_up", "rank_inst"}
     for kind in MODEL_KINDS:
         assert callable(step3_train_predict.load_model(kind)), kind

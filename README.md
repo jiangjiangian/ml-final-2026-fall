@@ -18,7 +18,7 @@
 - 串起來的程式：`run_daily.py`。開始前先 `git pull`，五步跑完把 `data/` commit、push 到這個分支。連不上 GitHub 時重試約 2 分鐘，再不行就用 oop 上次 pull 到的程式照爬照交，資料下次再推。舊名字 `run_daily_test.py` 會直接轉到它。
 - 時間：台北 07:10 跑第一次，沒交成就在 07:25、07:40、07:55、08:05 再試；網站上已經有當天的提交就不上傳；t 還沒爬過時照樣補爬、推資料（2026-11-18 起）。例外是排程自己交的那份用的資料不完整（用了備援，或方向模型的狀態有缺）：之後的時段重爬重算，補齊後預測變了才重交，一天最多多交一次，08:44 以後不再做，組員手動交的不動。08:25 再跑一次，只補日韓當天的開盤。16:10 跑 `run_daily.py --sync --evening` 打當天的分數，沒打完 20:00 再試（2026-11-18 起）。
 - t（預測日）不是交易日就不跑。
-- 影子跑（2026-11-16 起）：交件後，或組員已經手動交了時，`daily_model.shadow` 的模型（五個交件用的，2026-11-23 起加只記不交的 `overnight_up`）都預測 t，存 `shadow_<t>.csv`，不上傳；每個模型的官方分數在 `shadow_scores.csv`，當天傍晚就有（用老師 Live 的 t 那列打分）；網站上我們那份的分數和名次在 `site_scores.csv`。說明在 [`memory/reference/05-daily-model.md`](memory/reference/05-daily-model.md) 的「影子跑」。
+- 影子跑（2026-11-16 起）：交件後，或組員已經手動交了時，`daily_model.shadow` 的模型（五個交件用的，2026-11-23 起加只記不交的 `overnight_up`、`rank_inst`）都預測 t，存 `shadow_<t>.csv`，不上傳；每個模型的官方分數在 `shadow_scores.csv`，當天傍晚就有（用老師 Live 的 t 那列打分）；網站上我們那份的分數和名次在 `site_scores.csv`。說明在 [`memory/reference/05-daily-model.md`](memory/reference/05-daily-model.md) 的「影子跑」。
 - 共用的小函式（讀設定、台北時間、log）在 `src/pipeline/utils.py`。
 
 ### 模型
@@ -32,6 +32,7 @@
 | `m3_rank_ensemble.py` | `rank_ensemble` | 2026-11-12 | 第二個備援（11-13 交件用），也是 C2 的底 |
 | `m4_c2_tilt.py` | `c2v2d`、`c2` | 2026-11-15 | 主模型 `c2v2d`，第一個備援 `c2`（11-16 起） |
 | `m5_overnight_up.py` | `overnight_up` | 2026-11-20 | 只影子跑、不交件：前一晚美股大跌就全猜漲，其他日子照排名集成 |
+| `m6_rank_inst.py` | `rank_inst` | 2026-11-20 | 只影子跑、不交件：排名集成的 41 欄加法人買賣超 23 欄；早上法人資料沒到就傍晚補算 |
 
 每個模型都在預測那天早上從頭訓練，不存檔，所以根目錄的 `models/` 是空的。
 
@@ -175,7 +176,8 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │       ├── m2_persist_rule.py      持續性規則（2026-11-12）
 │       ├── m3_rank_ensemble.py     排名集成（2026-11-12）
 │       ├── m4_c2_tilt.py           C2、C2v2d：排名集成加大盤方向的傾斜（2026-11-15，現在用 c2v2d）
-│       └── m5_overnight_up.py      隔夜大跌全猜漲（2026-11-20，只影子跑，不能交件）
+│       ├── m5_overnight_up.py      隔夜大跌全猜漲（2026-11-20，只影子跑，不能交件）
+│       └── m6_rank_inst.py         法人組排名集成（2026-11-20，只影子跑，不能交件）
 ├── data/
 │   ├── raw/                   爬蟲寫的，和來源一模一樣
 │   │   ├── teacher/           training/ 是 Training ZIP 解開（不會再變）；live/ 是 Live ZIP 解開，每天換新
@@ -253,6 +255,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   ├── test_submission_format.py   上傳：CSV 的欄位、列數、0/1
 │   ├── test_run_daily.py      每日流程：git 同步、log、舊名字和舊路徑還能用
 │   ├── test_overnight_up.py   隔夜大跌全猜漲的規則（只影子跑）
+│   ├── test_rank_inst.py      法人組排名集成（只影子跑）和傍晚補算
 │   ├── test_redo.py           每日流程：資料不完整時補齊後重交
 │   ├── test_evening_score.py  傍晚打分：老師 Live 的答案、網站的分數和名次、不上傳
 │   ├── test_merge_raw.py      合併表

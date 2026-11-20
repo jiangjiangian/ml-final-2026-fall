@@ -252,7 +252,7 @@ online_lr:                       # 組員的方法（notebooks/teammate/02_featu
 daily_model:                     # run_daily.py 每天交件用哪個模型（使用者 2026-11-12 早上換成 persist，晚上換成 rank_ensemble；2026-11-15 換成 c2v2d）
   kind: c2v2d                    # c2v2d、c2 = 排名集成再依大盤方向換高低 β（src/models/m4_c2_tilt.py）；rank_ensemble = 排名集成（src/models/m3_rank_ensemble.py）；persist = 持續性規則（src/models/m2_persist_rule.py）；online_lr = 組員的邏輯迴歸。換模型改 kind 和下面的 fallback 兩行
   fallback: [c2, rank_ensemble, persist, online_lr] # kind 算不出來時照順序改用這些，當天照樣交件；填一個名字也可以；none 是停下不交
-  shadow: [c2v2d, c2, rank_ensemble, persist, online_lr, overnight_up] # 影子跑（使用者 2026-11-16）：交件後這些模型都預測 t，存 data/submission/shadow_<t>.csv，不上傳；組員先交的日子也做。[] 是不做
+  shadow: [c2v2d, c2, rank_ensemble, persist, online_lr, overnight_up, rank_inst] # 影子跑（使用者 2026-11-16）：交件後這些模型都預測 t，存 data/submission/shadow_<t>.csv，不上傳；組員先交的日子也做。[] 是不做
 
 persist_rule:                    # 持續性規則的設定，照 Kaggle notebook 14 的 persist120
   days: 120                      # 每檔股票往回看幾個有答案的交易日
@@ -296,6 +296,14 @@ overnight_up:                    # 隔夜大跌全猜漲（src/models/m5_overnig
   rank_days: 250                 # 隔夜訊號的絕對值和前幾個台股交易日比（不含 t）
   min_rank_share: 0.8            # 這 250 天裡至少要有這個比例有訊號才算分位
   quantile: 0.90                 # 訊號是負的、分位到這個數以上，當天 50 檔全猜漲（Kaggle BT 05 的前 10% 規則）
+
+rank_inst:                       # 法人組排名集成（src/models/m6_rank_inst.py，使用者 2026-11-20）：只給影子跑，不能填在 kind、fallback
+  columns: [                     # 法人 23 欄，接在 rank_ensemble.columns 的 41 欄後面（Kaggle notebook 33 的 X_inst）。順序不能動
+            c_foreign_pct, c_trust_pct, c_dealer_pct, c_foreign_pct5, c_foreign_hold_chg5,
+            f_foreign_pct20, f_trust_pct5, f_trust_pct20, f_inst_pct, f_foreign_streak, f_trust_streak, f_foreign_z60,
+            f_foreign_hold, f_foreign_hold_chg20, f_foreign_ema5_gap, f_foreign_ema10_gap, f_foreign_ema20_gap,
+            f_trust_ema5_gap, f_trust_ema10_gap, f_trust_ema20_gap, f_inst_ema5_gap, f_inst_ema10_gap, f_inst_ema20_gap]
+  min_filled_share: 0.9          # 要預測的股票裡，前一個交易日的法人欄有值的不到這個比例（50 檔裡 45 檔）就先不算，傍晚打分前補算
 
 submit:
   enabled: true                  # 使用者 2026-11-06 確認舊系統的排程停了才打開；false 時只印出要送的內容

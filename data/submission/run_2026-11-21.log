@@ -21,3 +21,6 @@
 2026-11-21 16:11:05,812 finpred.run_daily WARNING git pull 第 3 次才成功
 2026-11-21 16:11:06,337 finpred.run_daily INFO 2026-11-21 不在網站的交易日清單：不打分
 2026-11-21 16:11:06,338 finpred.run_daily INFO 結束：closed
+2026-11-21 20:00:06,147 finpred.run_daily INFO 開始傍晚打分：Phase 2，t = 2026-11-21，--sync（執行代號 3eb7d361）
+2026-11-21 20:00:06,784 finpred.run_daily INFO 2026-11-21 不在網站的交易日清單：不打分
+2026-11-21 20:00:06,787 finpred.run_daily INFO 結束：closed

@@ -1,15 +1,13 @@
 {
  "t": "2026-11-23",
- "run_id": "779e62b4",
- "time": "2026-11-23T07:17:26+08:00",
+ "run_id": "02cb1d9e",
+ "time": "2026-11-23T07:27:45+08:00",
  "model": "c2v2d",
- "missing_states": 1,
- "complete": false,
- "reasons": [
-  "方向模型的狀態缺 1 個"
- ],
+ "missing_states": 0,
+ "complete": true,
+ "reasons": [],
  "site_id": "f1295c05-cf5a-4039-adcc-7c8f82e1fcc7",
- "sha256": "69b6e948b5d5585f96129cc37d0467dc2841f9dfe4f6c7a0426cb66b6f68d187",
+ "sha256": "a7c9cb27a958ec13dc61a1c5eac5eb8c19d570150f5c5b4bb1effcc37673d0c4",
  "redo": 1,
- "redo_time": "2026-11-23T07:25:06+08:00"
+ "replaced_site_id": "f1295c05-cf5a-4039-adcc-7c8f82e1fcc7"
 }

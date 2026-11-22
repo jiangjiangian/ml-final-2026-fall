@@ -342,11 +342,11 @@
     "gold": "2026-11-20",
     "vix": "2026-11-20",
     "kospi": "2026-11-20",
-    "tx_day": "2026-11-19",
-    "tx_night": "2026-11-20",
-    "vixtwn": "2026-11-19",
-    "fear_greed": "2026-11-18",
+    "tx_day": "2026-11-20",
+    "tx_night": "2026-11-23",
+    "vixtwn": "2026-11-20",
+    "fear_greed": "2026-11-20",
     "stock": "2026-11-23"
   },
-  "source_digest": "60daffe7860645864a5c85d80df1fdd6d6f7a2bd5a1e7b7d510dd05a1516b751"
+  "source_digest": "0e05a327635cf5a3927ddfb5893e19e89ae1a05b976162c0339d494227d3f0ff"
 }

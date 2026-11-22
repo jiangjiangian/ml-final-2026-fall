@@ -5,6 +5,7 @@
 - 2026-11-20 20:50 使用者交辦（這個 session）：「請你把這個實驗跑通在 Kaggle，這個方法可以幫我們對抗大幅波動嗎」，附 `~/Downloads/Untitled.ipynb`（Colab）。
 - 使用者那本停在 DoubleAdapt 那步：`main.py` 不收 `--config`（那份 yaml 是自己寫的，DoubleAdapt 不讀），`main.py` 的資料和模型都綁 Qlib。DoubleAdapt 的 `src/`（`IncrementalManager`、`DoubleAdaptManager`、滾動任務的工具）不需要 Qlib，這條線直接用 `src/`，自己做資料和模型。
 - 2026-11-20 DA 01 跑完（Kaggle `da-01-doubleadapt-volatility-check`，version 1 smoke、version 2 full，T4，14.9 分鐘）：照登記判讀「這批資料上看不出能對抗大幅波動」，轉接器在 8 組裡也沒有一組比 naive 好。結案，只報告，正式流程不改。細節在「DA 01 的結果」。
+- 2026-11-21：Ian 要「DoubleAdapt 要重新的嚴格審查與實驗。不要受限於之前的研究」，DA 01 的審查和照論文重做在 `memory/projects/17-kdd-models-from-scratch.md` 的 KD 07（另一個 session 做）。
 - Kaggle collection 還沒建：建議「ML 2026 Fall｜13 DoubleAdapt（DA）」，放 DA 01。
 
 ## DoubleAdapt 是什麼

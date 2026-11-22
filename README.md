@@ -210,7 +210,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 ├── memory/                    專案的說明和紀錄，一個主題一個檔；整理原則在 memory/README.md
 │   ├── README.md              三個資料夾放什麼、檔名怎麼編號、增刪檔案時要改哪裡
 │   ├── context/               專案的規則和環境：01-competition、02-pipeline、03-open-questions、04-environment、05-data-rules
-│   ├── projects/              每條工作線的設計和進度：01-crawler 到 15-doubleadapt
+│   ├── projects/              每條工作線的設計和進度：01-crawler 到 19-ai-agent-feasibility
 │   └── reference/             給組員查的說明（2026-11-12 從 README 移過來）
 │       ├── 01-glossary.md          名詞
 │       ├── 02-feature-table.md     特徵表每一欄：來源、定義、時間、模型用不用、空白的情況
@@ -229,7 +229,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   │   ├── README.md          每本做什麼、輸入檔從哪裡來
 │   │   ├── exports/           html 匯出
 │   │   └── data/              連到 data/raw/teacher/ 的捷徑，notebook 用相對路徑讀
-│   └── kaggle/                2026-11-05～06 在 Kaggle 上平行訓練的模型研究（只在本機，沒進 Git；說明見 memory/projects/02-kaggle-models.md）
+│   └── kaggle/                在 Kaggle 上跑的研究，一個系列一個資料夾（只在本機，沒進 Git）：2026-11-05～06 的平行訓練（memory/projects/02-kaggle-models.md）、BT 突破研究（11-breakthrough-research）、DR 概念漂移（16-concept-drift）、KD 從頭設計（17-kdd-models-from-scratch）、RB 反彈訊號（18-rebound-signal）
 │       ├── README.md          怎麼建 dataset、推 notebook、收結果
 │       ├── build_dataset.sh   複製 raw、建立或更新 Kaggle dataset tw-intraday-data
 │       ├── push_all.sh        把每本 notebook 推到 Kaggle（--only <slug> 只推一本）

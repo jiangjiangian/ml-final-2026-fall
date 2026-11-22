@@ -1,19 +1,16 @@
 {
   "run": {
-    "started_at": "2026-11-23T07:11:07+08:00",
+    "started_at": "2026-11-23T07:25:06+08:00",
     "target_date": "2026-11-23",
     "mode": "daily",
-    "status": "stale",
+    "status": "ok",
     "prev_day": "2026-11-20",
-    "no_bar_i": [
-      "tx_day",
-      "tx_night"
-    ],
-    "finished_at": "2026-11-23T07:15:51+08:00",
+    "no_bar_i": [],
+    "finished_at": "2026-11-23T07:26:13+08:00",
     "yahoo_requests": 23,
     "yahoo_redirects": 0,
-    "site_requests": 8,
-    "taifex_requests": 3
+    "site_requests": 6,
+    "taifex_requests": 1
   },
   "teacher": {
     "status": "ok",
@@ -29,11 +26,11 @@
   "teacher_live": {
     "status": "ok",
     "source": "fin-pred-daily.jiangxuehaokeai.chatgpt.site/data.zip",
-    "attempts": 2,
-    "error": null,
+    "attempts": 1,
     "fallback_from": [
       "140.112.31.182:8444：/login：連線失敗（ConnectionError）"
     ],
+    "error": null,
     "zip_sha256": "94fc0eb81a196da741aac3f2599163942b32896d8a8cd4a751e6ad42387504bb",
     "files_sha256": "fb82ce1c12b8cf11a375a80980bc5a732ef45c9d989b0a9520727b0867ea217d",
     "date_max": "2026-11-23",
@@ -73,7 +70,7 @@
       },
       "rows": 1732,
       "date_max": "2026-11-20",
-      "sha256": "6d9c485948195c41285eefedb292abd665b3e062451c90819bb037942b9424f6",
+      "sha256": "0ba6b302c1725f0d6e3595660df168eb5ca7179bf1bd0dd56679b53d6740f510",
       "has_bar_i": true
     },
     "nvda": {
@@ -89,7 +86,7 @@
       },
       "rows": 1732,
       "date_max": "2026-11-20",
-      "sha256": "89ac6d02d53318c8f48c13942dcb8401b849965b3587e8244126fc159a3cdb62",
+      "sha256": "2433fce72520c2310cd9b5222ccf4a0c6f896e88e7486bca190a607874dafe00",
       "has_bar_i": true
     },
     "usd_twd": {
@@ -169,7 +166,7 @@
       },
       "rows": 1672,
       "date_max": "2026-11-20",
-      "sha256": "51e327eca4accc79cb88e31112b75686796c0a87762f101489bc7ad7bc4507d7",
+      "sha256": "b17007a20a591c2107be415a1444d55c0fb836007773b05fdfc198356230d884",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -185,7 +182,7 @@
       },
       "rows": 1672,
       "date_max": "2026-11-20",
-      "sha256": "1f9f52f4b9641ddb622c858252108dfe3fb92784a7bf95d054a3c4724d70affc",
+      "sha256": "7e9d357e3e530bba33ad2874008afd9e32dd03ffe10c802c9bd4a43060fe5bc1",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -201,7 +198,7 @@
       },
       "rows": 1672,
       "date_max": "2026-11-20",
-      "sha256": "0e20fd22adbfe0f764e6d0d9df445051790057da3600aa9b81cbbfeb7a3388e3",
+      "sha256": "6acbeb7e8d0a34fdab6dfa5290c2a81a129552f4e3d647f7f8f3a2e345c789cf",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -217,7 +214,7 @@
       },
       "rows": 1672,
       "date_max": "2026-11-20",
-      "sha256": "987cf4f0903a7bd8a620ab8870b3a00e83f958108b1cbfaddc23f9250b7cadc9",
+      "sha256": "896d4e2045e571e5be44cebe194adbcf3a76d823c66845fbaee5e46bea8fafd8",
       "has_bar_i": true
     },
     "dji": {
@@ -389,8 +386,8 @@
       "attempts": 1,
       "error": null,
       "status": "ok",
-      "fetched_rows": 142,
-      "start": "2026-11-13",
+      "fetched_rows": 119,
+      "start": "2026-11-14",
       "rows": 16924,
       "first": "2024-01-22T08:00:00+08:00",
       "last": "2026-11-21T06:00:00+08:00",
@@ -401,54 +398,80 @@
   "taifex": {
     "source": "www.taifex.com.tw/cht/3/futDataDown",
     "file": "taifex/tx.csv",
-    "status": "failed",
-    "requests": 3,
-    "error": "/cht/3/futDataDown：連線失敗（ConnectionError）",
+    "status": "ok",
+    "requests": 1,
+    "error": null,
     "start": "2026-11-13",
-    "kept_previous_file": true,
-    "rows": 19975,
-    "date_max": "2026-11-20",
-    "sha256": "6946c150848a02734fa8302396944557b07b51e727c08791c198ed2a6950e357",
-    "has_day_i": false,
-    "has_night_t": false
+    "dropped": {
+      "day_on_or_after_t": 0,
+      "night_after_t": 0,
+      "night_t_not_ready": 0
+    },
+    "kept_previous_file": false,
+    "rows": 19987,
+    "date_max": "2026-11-23",
+    "sha256": "a38dcbdce4cc5ff0b7a15d5470d1682affeacefc0f292afa349cfebb2a10f8ea",
+    "has_day_i": true,
+    "has_night_t": true
   },
   "vixtwn": {
-    "status": "failed",
-    "error": "i 所在的月份 202611 沒抓到（/file/taifex/Dailydownload/vix/log2data/202611new.txt：連線失敗（ConnectionError））",
+    "status": "ok",
+    "error": null,
     "file": "taifex/vixtwn.csv",
     "requests": 1,
     "months": [
       "202611"
     ],
     "missing_months": [],
-    "failed_months": {
-      "202611": "/file/taifex/Dailydownload/vix/log2data/202611new.txt：連線失敗（ConnectionError）"
-    },
-    "new_dates": [],
+    "failed_months": {},
+    "new_dates": [
+      "2026-11-20"
+    ],
     "changed_dates": [],
     "vanished_dates": [],
-    "rows": 74,
+    "rows": 75,
     "last_dates": [
-      "2026-11-18",
-      "2026-11-19"
+      "2026-11-19",
+      "2026-11-20"
     ],
-    "has_prev_day": false,
-    "sha256": "cde415fc05ede199314b304d226a0fd966c8dcfaee3acf0574aee44278dd8c2a"
+    "has_prev_day": true,
+    "sha256": "e634c19e54496b86a16c47e227e78066295e0df4b301725d8b50f1996c3b0a78"
   },
   "cnn": {
-    "status": "failed",
-    "error": "/index/fearandgreed/graphdata/2026-10-24：連線失敗（ConnectionError）",
+    "status": "ok",
+    "error": null,
     "file": "cnn/fear_greed.csv",
     "requests": 1,
     "start": "2026-10-24",
-    "cache": null,
-    "rows": 1457,
-    "last_dates": [
-      "2026-11-17",
+    "cache": {
+      "Age": "0",
+      "X-Cache": "MISS, MISS"
+    },
+    "now": {
+      "score": 9.67368421052632,
+      "previous_close": 18.6761904761905,
+      "timestamp": "2026-11-20T23:59:52+00:00"
+    },
+    "dropped": {
+      "not_daily": 1,
+      "on_or_after_t": 0,
+      "before_start": 0
+    },
+    "new_dates": [
+      "2026-11-19",
+      "2026-11-20"
+    ],
+    "changed_dates": [
       "2026-11-18"
     ],
+    "vanished_dates": [],
+    "rows": 1459,
+    "last_dates": [
+      "2026-11-19",
+      "2026-11-20"
+    ],
     "has_prev_day": null,
-    "sha256": "eaf63f952650a9dfa7b9d566ec28ed69b8785de2812ce96259d1c546d60b8c86"
+    "sha256": "4cbd39b4b954257281e60757b245299e5dcc8ce6b3abd79a0a16f1c7721dcaa8"
   },
   "exchange": {
     "status": "ok",
@@ -472,8 +495,8 @@
       "2026-11-09"
     ],
     "requests": {
-      "twse": 2,
-      "tpex": 2
+      "twse": 0,
+      "tpex": 0
     },
     "sources": {
       "twse_valuation": {
@@ -481,12 +504,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-20"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-20",
@@ -497,12 +518,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-20"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-20",
@@ -513,12 +532,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-20"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-20",
@@ -529,12 +546,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-20"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-20",

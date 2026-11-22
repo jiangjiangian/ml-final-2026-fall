@@ -39,3 +39,22 @@
 2026-11-23 07:18:14,562 finpred.run_daily INFO 結束：done
 2026-11-23 07:18:30,924 finpred.merge_raw INFO 合併表：個股 167767 列、市場 1797 列；寫了 3 個檔 ['stock/2026-11.csv.gz', 'market.csv.gz', 'manifest.json']
 2026-11-23 07:18:30,925 finpred.run_daily INFO 合併原始資料 完成（16 秒）
+2026-11-23 07:25:05,916 finpred.run_daily INFO 開始：Phase 2，t = 2026-11-23，--sync（執行代號 02cb1d9e）
+2026-11-23 07:25:06,180 finpred.run_daily INFO 網站上已經有這次的提交（submission_2026-11-23.csv，2026-11-22T23:17:26.273Z 交），不上傳
+2026-11-23 07:25:06,180 finpred.run_daily INFO 網站上那份是排程交的，資料不完整（方向模型的狀態缺 1 個）：重爬、重算（第 1 次）
+2026-11-23 07:25:06,716 finpred.crawler INFO Training：本機的檔案和上次一樣，不下載
+2026-11-23 07:25:06,722 finpred.crawler WARNING Live 140.112.31.182:8444 出錯（/login：連線失敗（ConnectionError）），改用 fin-pred-daily.jiangxuehaokeai.chatgpt.site
+2026-11-23 07:26:13,156 finpred.crawler INFO twse_valuation：檔案裡 1672 天（2020-01-02～2026-11-20），這次新寫 0 天、no_data 0 天、失敗 0 天、請求 0 次
+2026-11-23 07:26:13,157 finpred.crawler INFO twse_quotes：檔案裡 1672 天（2020-01-02～2026-11-20），這次新寫 0 天、no_data 0 天、失敗 0 天、請求 0 次
+2026-11-23 07:26:13,157 finpred.crawler INFO tpex_valuation：檔案裡 1672 天（2020-01-02～2026-11-20），這次新寫 0 天、no_data 0 天、失敗 0 天、請求 0 次
+2026-11-23 07:26:13,157 finpred.crawler INFO tpex_quotes：檔案裡 1672 天（2020-01-02～2026-11-20），這次新寫 0 天、no_data 0 天、失敗 0 天、請求 0 次
+2026-11-23 07:26:13,430 finpred.crawler INFO 爬蟲完成：ok
+2026-11-23 07:26:13,432 finpred.run_daily INFO 爬蟲 完成（67 秒）
+2026-11-23 07:26:25,991 finpred.features INFO 特徵表：167300 列、1673 天，最後一天 2026-11-23；寫了 ['2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 26, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-23 07:26:26,251 finpred.run_daily INFO 特徵 完成（13 秒）
+2026-11-23 07:26:46,222 finpred.run_daily INFO 讀特徵 完成（20 秒）
+2026-11-23 07:27:38,545 finpred.run_daily INFO 模型 完成（52 秒）
+2026-11-23 07:27:38,546 finpred.run_daily INFO 模型 c2v2d：大盤方向 p = 0.469，傾斜 -0.125，和 rank_ensemble 換了 1 組，狀態缺 0 個，重訓日 2026-11-02
+2026-11-23 07:27:38,551 finpred.run_daily INFO 寫好 data/submission/submission_2026-11-23.csv：50 檔 × 1 天，模型 c2v2d，猜漲 0.500
+2026-11-23 07:27:38,552 finpred.run_daily INFO 補齊了，預測和交的那份不一樣：舊檔留在 data/submission/submission_2026-11-23_first.csv，取代網站上的 f1295c05-cf5a-4039-adcc-7c8f82e1fcc7
+2026-11-23 07:27:38,731 finpred.run_daily INFO 網站上目前有效的那份（2026-11-22T23:17:26.273Z，分數 None）存到 data/submission/backup/phase2_2026-11-23_20261122T231726Z.csv

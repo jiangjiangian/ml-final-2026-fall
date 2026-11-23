@@ -89,3 +89,11 @@
 2026-11-23 08:05:05,695 finpred.run_daily INFO 結束：already_submitted
 2026-11-23 08:05:06,089 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-23 08:05:06,089 finpred.run_daily INFO 合併原始資料 完成（0 秒）
+2026-11-23 08:25:06,374 finpred.run_daily INFO 開始：Phase 2，t = 2026-11-23，--sync（執行代號 04454480）
+2026-11-23 08:25:06,627 finpred.run_daily INFO 網站上已經有這次的提交（submission_2026-11-23.csv，2026-11-22T23:27:45.027Z 交），不上傳
+2026-11-23 08:25:06,629 finpred.run_daily INFO 2026-11-23 的資料之前已經爬過，不重爬
+2026-11-23 08:25:06,629 finpred.run_daily INFO 影子跑：data/submission/shadow_2026-11-23.csv 已經有了，不重算
+2026-11-23 08:25:06,630 finpred.run_daily INFO 結束：already_submitted
+2026-11-23 08:26:51,519 finpred.run_daily WARNING 當天開盤沒有全部抓到（none，{'kospi': 'error', 'n225': 'no_bar'}）：沒抓到的序列 t 那列的 open_gap 空白，這些欄不在模型裡
+2026-11-23 08:26:51,891 finpred.merge_raw INFO 合併表：來源沒變，不重算
+2026-11-23 08:26:51,892 finpred.run_daily INFO 合併原始資料 完成（0 秒）

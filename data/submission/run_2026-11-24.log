@@ -1,0 +1,12 @@
+2026-11-24 07:10:05,783 finpred.run_daily INFO 開始：Phase 2，t = 2026-11-24，--sync（執行代號 98b8418d）
+2026-11-24 07:10:06,861 finpred.crawler INFO Training：本機的檔案和上次一樣，不下載
+2026-11-24 07:10:06,867 finpred.crawler WARNING Live 140.112.31.182:8444 出錯（/login：連線失敗（ConnectionError）），改用 fin-pred-daily.jiangxuehaokeai.chatgpt.site
+2026-11-24 07:10:07,063 finpred.crawler WARNING 140.112.31.182:8444：/login：連線失敗（ConnectionError）；fin-pred-daily.jiangxuehaokeai.chatgpt.site：/login：連線失敗（ConnectionError）；180 秒後再抓
+2026-11-24 07:13:07,070 finpred.crawler WARNING Live 140.112.31.182:8444 出錯（/login：連線失敗（ConnectionError）），改用 fin-pred-daily.jiangxuehaokeai.chatgpt.site
+2026-11-24 07:13:07,233 finpred.crawler WARNING 140.112.31.182:8444：/login：連線失敗（ConnectionError）；fin-pred-daily.jiangxuehaokeai.chatgpt.site：/login：連線失敗（ConnectionError）；180 秒後再抓
+2026-11-24 07:16:07,239 finpred.crawler WARNING Live 140.112.31.182:8444 出錯（/login：連線失敗（ConnectionError）），改用 fin-pred-daily.jiangxuehaokeai.chatgpt.site
+2026-11-24 07:16:07,240 finpred.crawler ERROR 爬蟲停下：Live 抓了 3 次還是不行：140.112.31.182:8444：/login：連線失敗（ConnectionError）；fin-pred-daily.jiangxuehaokeai.chatgpt.site：/login：連線失敗（ConnectionError）
+2026-11-24 07:16:07,243 finpred.run_daily ERROR 停下：CrawlerError: Live 抓了 3 次還是不行：140.112.31.182:8444：/login：連線失敗（ConnectionError）；fin-pred-daily.jiangxuehaokeai.chatgpt.site：/login：連線失敗（ConnectionError）
+2026-11-24 07:16:07,243 finpred.run_daily INFO 結束：failed
+2026-11-24 07:16:07,635 finpred.merge_raw INFO 合併表：來源沒變，不重算
+2026-11-24 07:16:07,635 finpred.run_daily INFO 合併原始資料 完成（0 秒）

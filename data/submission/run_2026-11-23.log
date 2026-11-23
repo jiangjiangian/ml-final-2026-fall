@@ -97,3 +97,8 @@
 2026-11-23 08:26:51,519 finpred.run_daily WARNING 當天開盤沒有全部抓到（none，{'kospi': 'error', 'n225': 'no_bar'}）：沒抓到的序列 t 那列的 open_gap 空白，這些欄不在模型裡
 2026-11-23 08:26:51,891 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-23 08:26:51,892 finpred.run_daily INFO 合併原始資料 完成（0 秒）
+2026-11-23 16:11:06,135 finpred.run_daily INFO 開始傍晚打分：Phase 2，t = 2026-11-23，--sync（執行代號 89fef525）
+2026-11-23 16:11:06,136 finpred.run_daily WARNING git pull 第 3 次才成功
+2026-11-23 16:11:07,462 finpred.run_daily WARNING Live 140.112.31.182:8444 出錯（/login：連線失敗（ConnectionError）），改用 fin-pred-daily.jiangxuehaokeai.chatgpt.site
+2026-11-23 16:11:07,574 finpred.run_daily WARNING 老師 Live 下載失敗（140.112.31.182:8444：/login：連線失敗（ConnectionError）；fin-pred-daily.jiangxuehaokeai.chatgpt.site：/login：連線失敗（ConnectionError））：這次不打分，下一次排程再試
+2026-11-23 16:11:07,575 finpred.run_daily INFO 結束：no_answer_yet

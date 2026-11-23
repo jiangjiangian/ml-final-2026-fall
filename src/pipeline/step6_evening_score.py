@@ -9,6 +9,9 @@
        （step2_features 用的 crawler.row_filled、COL_CLOSE、COL_OPEN）。shadow_<t>.csv 的每個模型打分，
        更新 shadow_scores.csv（source 是 live；step3_train_predict.shadow_scores）。打分前先補算：早上沒算出來的
        法人組（rank_inst）用剛寫好的老師 Live 再算一次，寫回 shadow_<t>.csv（shadow_backfill，使用者 2026-11-20）。
+       n1 影子跑的 data/submission/n1/n1_<t>.csv 也一起打分（模型 n1、js_n1，使用者 2026-11-23），log 寫和 c2v2d
+       的累計比較（停止規則見 config 的 daily_model.n1.stop_rule）。n1 的檔有問題只記 WARNING，影子跑和網站上那份
+       照常打分；n1 的股票代號只在沒有影子跑、網站上也沒有我們的提交時才拿來等 Live。
     4. 網站上我們那份的分數、當天名次、累計分數和名次寫進 site_scores.csv，一天一列。同一份答案也重算網站上那份，
        和網站的分數差超過 1e-6 時記 WARNING（網站的分數可能四捨五入過）。我們這隊用 /api/state 的 team.id 對榜上的
        teamId，只存我們的分數、名次和隊數，不存任何隊名、帳號；檔名只存排程的 submission_<t>.csv，其他寫 other。
@@ -55,17 +58,19 @@ def main(cfg: dict, phase: int, t: str, log, *, site=None, secrets=None) -> str:
         entry = site_api.current_entry(state, 2, t)
         sent = submitted(site, entry, t, log)
         shadow = read_shadow(cfg, t)
-        stocks = sorted((set(shadow["stock_id"]) if shadow is not None else set()) | set(sent or {}))
+        n1 = n1_stocks(cfg, t, log)
+        known = (set(shadow["stock_id"]) if shadow is not None else set()) | set(sent or {})
+        stocks = sorted(known or n1)   # n1 的代號只在沒有別的可以打分時才用：n1 的檔不能讓 Live「還沒填好」、擋住整個打分
         if not stocks:
             log.warning("%s 沒有影子跑，網站上也沒有我們的提交：沒有東西可以打分", t)
             return "nothing_to_score"
         truth = live_answers(cfg, t, stocks, secrets, log)
         if truth is None:
             return "no_answer_yet"
-        if shadow is not None:
-            if backfill(cfg, t, log):   # 早上沒算出來的影子模型（法人組）用剛寫好的老師 Live 補算，再一起打分
+        if shadow is not None or n1:
+            if shadow is not None and backfill(cfg, t, log):   # 早上沒算出來的影子模型（法人組）用剛寫好的老師 Live 補算
                 shadow = read_shadow(cfg, t)
-            train_predict.shadow_scores(cfg, truth, log, source="live")
+            train_predict.shadow_scores(cfg, truth, log, source="live")   # n1_<t>.csv 也在這裡打分（模型 n1、js_n1）
         record = site_record(state, t, entry, sent, truth, shadow, stocks, log)
         write_site_scores(cfg, record)
         log.info("%s 傍晚打分：全猜 0 %s；網站上我們 %s（%s，和 %s 一樣）；當天第 %s／%s 名；累計 %s，第 %s／%s 名"
@@ -95,6 +100,23 @@ def read_shadow(cfg: dict, t: str):
     return pd.read_csv(path, dtype={"date": str, "stock_id": str})
 
 
+def n1_path(cfg: dict, t: str):
+    """n1 影子跑（2026-11-23）的核對檔 data/submission/n1/n1_<t>.csv。"""
+    return folder(cfg) / train_predict.N1_DIR / f"n1_{t}.csv"
+
+
+def n1_stocks(cfg: dict, t: str, log) -> set:
+    """n1_<t>.csv 的股票代號；沒有檔或讀不了是空的（讀不了記 WARNING，影子跑和網站上那份照樣打分）。"""
+    path = n1_path(cfg, t)
+    if not path.exists():
+        return set()
+    try:
+        return set(pd.read_csv(path, dtype={"stock_id": str}, usecols=["stock_id"])["stock_id"])
+    except (OSError, ValueError) as e:
+        log.warning("n1_%s.csv 讀不了（%s），n1 這次不打分", t, train_predict.short_reason(e))
+        return set()
+
+
 def backfill(cfg: dict, t: str, log) -> list:
     """step3_train_predict.shadow_backfill，出任何錯都只記 WARNING、回傳 []：補算失敗不擋打分。"""
     try:
@@ -105,7 +127,8 @@ def backfill(cfg: dict, t: str, log) -> list:
 
 
 def scored_before(cfg: dict, t: str) -> bool:
-    """傍晚已經打完 t：site_scores.csv 有 t 那列和網站的分數，shadow_<t>.csv 有的話 shadow_scores.csv 也有 t 的 live 列。"""
+    """傍晚已經打完 t：site_scores.csv 有 t 那列和網站的分數，shadow_<t>.csv 有的話 shadow_scores.csv 也有 t 的 live 列，
+    n1_<t>.csv 有的話也有 t 的 n1 或 js_n1 的 live 列。"""
     try:
         table = pd.read_csv(folder(cfg) / SITE_SCORES, dtype={"date": str})
     except (OSError, ValueError):
@@ -113,10 +136,14 @@ def scored_before(cfg: dict, t: str) -> bool:
     row = table[table["date"] == t] if "date" in table.columns else table.iloc[0:0]
     if row.empty or "site_score" not in row or row["site_score"].isna().all():
         return False
-    if not train_predict.shadow_path(cfg, t).exists():
+    shadow, n1 = train_predict.shadow_path(cfg, t).exists(), n1_path(cfg, t).exists()
+    if not shadow and not n1:
         return True
     ledger = train_predict.read_ledger(folder(cfg) / train_predict.SHADOW_SCORES)
-    return any(day == t and r.get("source") == "live" for (day, _), r in ledger.items())
+    live = {model for (day, model), r in ledger.items() if day == t and r.get("source") == "live"}
+    if shadow and not live:
+        return False
+    return not n1 or bool(live & set(train_predict.N1_MODELS.values()))
 
 
 def write_site_scores(cfg: dict, record: dict) -> None:

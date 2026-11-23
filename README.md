@@ -19,6 +19,7 @@
 - 時間：台北 07:10 跑第一次，沒交成就在 07:25、07:40、07:55、08:05 再試；網站上已經有當天的提交就不上傳；t 還沒爬過時照樣補爬、推資料（2026-11-18 起）。例外是排程自己交的那份用的資料不完整（用了備援，或方向模型的狀態有缺）：之後的時段重爬重算，補齊後預測變了才重交，一天最多多交一次，08:44 以後不再做，組員手動交的不動。08:25 再跑一次，只補日韓當天的開盤。16:10 跑 `run_daily.py --sync --evening` 打當天的分數，沒打完 20:00 再試（2026-11-18 起）。
 - t（預測日）不是交易日就不跑。
 - 影子跑（2026-11-16 起）：交件後，或組員已經手動交了時，`daily_model.shadow` 的模型（五個交件用的，2026-11-23 起加只記不交的 `overnight_up`、`rank_inst`）都預測 t，存 `shadow_<t>.csv`，不上傳；每個模型的官方分數在 `shadow_scores.csv`，當天傍晚就有（用老師 Live 的 t 那列打分）；網站上我們那份的分數和名次在 `site_scores.csv`。說明在 [`memory/reference/05-daily-model.md`](memory/reference/05-daily-model.md) 的「影子跑」。
+- N1 影子跑（2026-11-23 起）：收尾時用自己的環境 `.venv-n1`（有 torch）開子程序，把 JS_ONLINE 加進 c2v2d 的排名集成，存 `data/submission/n1/n1_<t>.csv`，不上傳，出事也不影響交件。說明在同一份的「N1 影子跑」，裝法在 [`deploy/n1_setup.md`](deploy/n1_setup.md)。
 - 共用的小函式（讀設定、台北時間、log）在 `src/pipeline/utils.py`。
 
 ### 模型
@@ -33,8 +34,9 @@
 | `m4_c2_tilt.py` | `c2v2d`、`c2` | 2026-11-15 | 主模型 `c2v2d`，第一個備援 `c2`（11-16 起） |
 | `m5_overnight_up.py` | `overnight_up` | 2026-11-20 | 只影子跑、不交件：前一晚美股大跌就全猜漲，其他日子照排名集成 |
 | `m6_rank_inst.py` | `rank_inst` | 2026-11-20 | 只影子跑、不交件：排名集成的 41 欄加法人買賣超 23 欄；早上法人資料沒到就傍晚補算 |
+| `m7_n1_js_online.py` | 沒有（不在 `MODEL_KINDS`） | 2026-11-23 | N1 影子跑：Kaggle 訓練好的 JS_ONLINE 每天更新一步，加進 c2v2d 的排名集成；在 `.venv-n1` 用子程序跑，只記不交 |
 
-每個模型都在預測那天早上從頭訓練，不存檔，所以根目錄的 `models/` 是空的。
+m1～m6 都在預測那天早上從頭訓練，不存檔。根目錄的 `models/` 只放 m7 的起始狀態（`models/n1/`）。
 
 ### 手動跑
 
@@ -156,6 +158,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 ├── run_daily.py               排程跑的這支：同步 → 爬蟲 → 特徵 → 訓練和預測 → 上傳 → 合併 → 推資料
 ├── run_daily_test.py          舊名字，直接轉到 run_daily.py（oop 裝好的 crontab 還在叫它）
 ├── requirements.txt           套件和鎖定的版本
+├── requirements-n1.txt        N1 影子跑自己的環境 .venv-n1 的套件（torch CPU 版等，和 Kaggle 一樣的版本）
 ├── .env.example               帳號密碼的範例；真的值放 .env（不進 Git）
 ├── configs/
 │   ├── config.yaml            所有設定：網址、Yahoo 代號、特徵、模型、截止時間
@@ -177,11 +180,12 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │       ├── m3_rank_ensemble.py     排名集成（2026-11-12）
 │       ├── m4_c2_tilt.py           C2、C2v2d：排名集成加大盤方向的傾斜（2026-11-15，現在用 c2v2d）
 │       ├── m5_overnight_up.py      隔夜大跌全猜漲（2026-11-20，只影子跑，不能交件）
-│       └── m6_rank_inst.py         法人組排名集成（2026-11-20，只影子跑，不能交件）
+│       ├── m6_rank_inst.py         法人組排名集成（2026-11-20，只影子跑，不能交件）
+│       └── m7_n1_js_online.py      N1 影子跑：JS_ONLINE 每天更新、加進 c2v2d（2026-11-23，.venv-n1 的子程序，只記不交）
 ├── data/
 │   ├── raw/                   爬蟲寫的，和來源一模一樣
 │   │   ├── teacher/           training/ 是 Training ZIP 解開（不會再變）；live/ 是 Live ZIP 解開，每天換新
-│   │   ├── yfinance/          21 個指標，一個序列一個 CSV；usd_twd_1h.csv 是匯率的 1 小時K棒
+│   │   ├── yfinance/          21 個指標，一個序列一個 CSV；usd_twd_1h.csv 是匯率的 1 小時K棒；gspc.csv 只給 N1 影子跑，不進特徵表和合併表
 │   │   ├── taifex/            tx.csv：台指期日盤和夜盤；vixtwn.csv：VIXTWN
 │   │   ├── cnn/               fear_greed.csv：CNN 恐懼貪婪指數
 │   │   ├── open_today/        kospi.csv、n225.csv：日韓當天的開盤，08:25 抓
@@ -204,6 +208,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │       ├── shadow_YYYY-MM-DD.csv       影子跑：每個模型當天各自的猜法（2026-11-17 起，不上傳）
 │       ├── shadow_scores.csv           影子跑每天每個模型的官方分數（當天傍晚就有）
 │       ├── site_scores.csv             網站上我們那份每天的分數、名次、累計名次（2026-11-18 起）
+│       ├── n1/                         N1 影子跑：n1_YYYY-MM-DD.csv 每檔的猜法，inputs_YYYY-MM-DD.npz 當天用的輸入（2026-11-23 起）
 │       ├── run_YYYY-MM-DD.log          執行紀錄，失敗時先看這個
 │       ├── upload_log.jsonl            上傳紀錄
 │       └── backup/                     上傳前先下載網站上那一份
@@ -220,6 +225,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │       └── 06-runner-hosts.md      排程主機怎麼裝
 ├── deploy/
 │   ├── runner_setup.sh        排程主機（學校的 oop）的安裝
+│   ├── n1_setup.md            N1 影子跑的環境 .venv-n1：下載套件、在 oop 安裝、測試、重現檢查、試跑、上線
 │   ├── crontab.txt            排程的時間
 │   ├── mac/                   Mac 備援（還沒裝）
 │   └── gcp_setup.sh           GCP 主機的安裝（備用）
@@ -259,10 +265,13 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   ├── test_redo.py           每日流程：資料不完整時補齊後重交
 │   ├── test_evening_score.py  傍晚打分：老師 Live 的答案、網站的分數和名次、不上傳
 │   ├── test_merge_raw.py      合併表
-│   ├── fixtures/              舊分支 data-collection 的凍結資料，只給對照測試用，不要改
+│   ├── test_n1_shadow.py      N1 影子跑在正式環境這一側：什麼時候叫子程序、出事時照常收尾、打分、gspc 不進特徵表
+│   ├── test_n1_model.py       N1 影子跑本身（.venv-n1 跑）：和 Kaggle UB 04 逐位元一樣、每天的步驟、只寫自己的檔
+│   ├── fixtures/              凍結的參考資料，不要改：data-collection/ 是舊分支的對照資料，n1/ 是 Kaggle UB 04 的輸出
 │   └── data_exchange/         證交所、櫃買真回應剪小的版本
-├── models/                    放訓練好的模型檔；現在的模型每天重訓、不存檔，只有 README.md
+├── models/                    放訓練好的模型檔；交件的模型每天重訓、不存檔
+│   └── n1/ub04_v5/            N1 影子跑的起始狀態（Kaggle UB 04 第 5 版的 JS_ONLINE 權重），只讀；每天更新的狀態在 .cache/n1/（不進 Git）
 ├── .claude/                   Claude Code 的專案設定和輸出風格
 ├── .gitignore                 哪些檔案不進 Git
-└── .gitattributes             data/raw/、tests/fixtures/ 不改換行；upload_log.jsonl 用 union 合併
+└── .gitattributes             data/raw/、tests/fixtures/、models/n1/ 不改換行；upload_log.jsonl 用 union 合併
 ```

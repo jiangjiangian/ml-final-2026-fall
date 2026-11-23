@@ -83,6 +83,7 @@ def cfg(tmp_path):
     conf["yfinance"]["tickers"] = {"sox": "^SOX", "etf_0050": "0050.TW"}
     conf["yfinance"]["cache_dir"] = str(tmp_path / "yfcache")
     conf["yfinance"]["hourly"] = {}   # 1h 另外測
+    conf["yfinance"]["extra_tickers"] = {}   # gspc（n1 用，2026-11-23）另外測：test_extra_tickers_*
     conf["exchange"]["enabled"] = False   # 設定檔 2026-11-10 起是 true；交易所那一步要測的測試自己打開
     conf["vixtwn"]["enabled"] = conf["cnn"]["enabled"] = False   # 另外測（tests/test_vixtwn_cnn.py）
     return conf
@@ -859,6 +860,136 @@ def test_prices_missing_is_retried(tmp_path, cfg):
     assert entry["status"] == "failed" and entry["attempts"] == cfg["yfinance"]["max_retries"] + 1
     assert entry["error"] == "YFPricesMissingError"  # 也確認 hide_exceptions 是關的，錯誤真的丟出來
     assert [x for x in clock.sleeps if x >= 5] == cfg["yfinance"]["retry_wait_seconds"]
+
+
+# ---------------------------------------------------------------- extra_tickers（gspc，n1 影子跑用，2026-11-23）
+
+
+def gspc_yahoo(clock):
+    ny = "America/New_York"
+    return FakeYahoo(clock, {"^SOX": (ny, "INDEX", bars_on(["2026-11-13", "2026-11-16"], ny, volume=0)),
+                             "^GSPC": (ny, "INDEX", bars_on(["2026-11-12", "2026-11-13", "2026-11-16"], ny, close=6000.0))})
+
+
+def test_extra_tickers_are_fetched_last_with_the_same_pacing(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {"sox": "^SOX"}
+    cfg["yfinance"]["extra_tickers"] = {"gspc": "^GSPC"}
+    s = gspc_yahoo(clock)
+    run = make_run(tmp_path, cfg, clock)
+    run.prev_day = "2026-11-16"
+    crawler.download_yfinance(run, s)
+    path = run.raw_dir / "yfinance" / "gspc.csv"
+    lines = path.read_text().splitlines()
+    assert lines[0] == ",".join(crawler.YF_COLUMNS)   # 和 sox.csv 一樣的欄
+    assert [x.split(",")[0] for x in lines[1:]] == ["2026-11-12", "2026-11-13", "2026-11-16"]
+    assert s.history()[-1] is s.history("^GSPC")[-1] and len(s.history("^GSPC")) == 1   # 排在所有日K的最後
+    assert all(g >= 2.5 for g in gaps(s.sent))   # 同一個限流 session：每個請求至少隔 2 秒
+    assert "gspc" not in run.manifest["yfinance"] and list(run.manifest["yfinance"]) == ["sox"]
+    entry = run.manifest["yfinance_extra"]["gspc"]
+    assert entry["status"] == "ok" and entry["rows"] == 3 and entry["date_max"] == "2026-11-16"
+    assert entry["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    assert run.stale is False and "gspc" not in run.no_bar_i
+    assert json.loads((run.raw_dir / "manifest.json").read_text())["yfinance_extra"]["gspc"]["status"] == "ok"
+
+
+def test_extra_tickers_failure_keeps_old_file_and_does_not_mark_stale(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {"sox": "^SOX"}
+    cfg["yfinance"]["extra_tickers"] = {"gspc": "^GSPC"}
+    s = gspc_yahoo(clock)
+    s.chart_status["^GSPC"] = 500
+    run = make_run(tmp_path, cfg, clock, daily=False)
+    old = crawler.rows_to_csv([row("2020-01-02"), row("2026-11-13")])
+    crawler.write_atomic(run.raw_dir / "yfinance" / "gspc.csv", old)
+    crawler.download_yfinance(run, s)
+    assert (run.raw_dir / "yfinance" / "gspc.csv").read_bytes() == old
+    entry = run.manifest["yfinance_extra"]["gspc"]
+    assert entry["status"] == "failed" and entry["kept_previous_file"] is True
+    assert entry["attempts"] == cfg["yfinance"]["extra_retries"] + 1 == 1   # 不重試：交件前的爬蟲最多多等一次逾時
+    assert not [x for x in clock.sleeps if x >= 5]
+    assert run.manifest["yfinance"]["sox"]["status"] == "ok" and run.stale is False
+
+    cfg["yfinance"]["extra_retries"] = 1   # 設成重試時照 retry_wait_seconds 等
+    clock = Clock(at("2026-11-17", "07:10"))
+    s = gspc_yahoo(clock)
+    s.chart_status["^GSPC"] = 500
+    run = make_run(tmp_path, cfg, clock, daily=False)
+    crawler.download_yfinance(run, s)
+    assert run.manifest["yfinance_extra"]["gspc"]["attempts"] == 2
+    assert [x for x in clock.sleeps if x >= 5] == cfg["yfinance"]["retry_wait_seconds"][:1]
+
+
+def test_a_broken_extra_ticker_file_never_stops_the_crawl(tmp_path, cfg, monkeypatch):
+    """審查 M2：gspc 只給 n1 影子跑，排在交件前的爬蟲裡。舊檔最後多一行空白時照抓、重寫成乾淨的檔；
+    download_extra 裡任何一行丟錯（這裡讓讀 gspc.csv 丟 OSError）都只記 WARNING，爬蟲照樣回傳 0。"""
+    cfg["yfinance"]["extra_tickers"] = {"gspc": "^GSPC"}
+
+    def yahoo(clock):
+        s = default_yahoo(clock)
+        s.scenarios["^GSPC"] = ("America/New_York", "INDEX",
+                                bars_on(["2026-11-12", "2026-11-13", "2026-11-16"], "America/New_York", close=6000.0))
+        return s
+
+    gspc = tmp_path / "raw" / "yfinance" / "gspc.csv"
+    gspc.parent.mkdir(parents=True)
+    gspc.write_bytes(crawler.rows_to_csv([row("2026-11-12"), row("2026-11-13")]) + b"\n")   # 最後多一行空白
+    clock = Clock(at("2026-11-17", "07:10"))
+    code, run = crawl(tmp_path, cfg, clock, yahoo=yahoo(clock))
+    manifest = json.loads((run.raw_dir / "manifest.json").read_text())
+    assert code == 0 and manifest["run"]["status"] == "ok"
+    assert manifest["yfinance_extra"]["gspc"]["status"] == "ok" and manifest["yfinance_extra"]["gspc"]["rows"] == 3
+    assert b"\n\n" not in gspc.read_bytes() and crawler.read_series(gspc)[-1][0] == "2026-11-16"
+
+    real = crawler.read_series
+
+    def broken(path):
+        if path.name == "gspc.csv":
+            raise OSError("讀不了")
+        return real(path)
+
+    monkeypatch.setattr(crawler, "read_series", broken)
+    clock = Clock(at("2026-11-17", "07:40"))
+    code, run = crawl(tmp_path, cfg, clock, yahoo=yahoo(clock))
+    manifest = json.loads((run.raw_dir / "manifest.json").read_text())
+    assert code == 0 and manifest["run"]["status"] == "ok" and run.stale is False
+    assert manifest["yfinance"]["sox"]["status"] == "ok" and (run.raw_dir / "yfinance" / "sox.csv").exists()
+    assert {e["status"] for e in manifest["yfinance"].values()} == {"ok"}
+
+
+def test_extra_tickers_skip_on_name_clash_breaker_and_deadline(tmp_path, cfg):
+    clock = Clock(at("2026-11-17", "07:10"))
+    cfg["yfinance"]["tickers"] = {"sox": "^SOX"}
+    cfg["yfinance"]["extra_tickers"] = {"sox": "^GSPC"}   # 會蓋掉特徵表要讀的 sox.csv：不抓
+    s = gspc_yahoo(clock)
+    run = make_run(tmp_path, cfg, clock, daily=False)
+    crawler.download_yfinance(run, s)
+    assert run.manifest["yfinance_extra"]["sox"]["error"] == "name_used_by_tickers" and not s.history("^GSPC")
+    assert run.manifest["yfinance"]["sox"]["status"] == "ok"
+
+    cfg["yfinance"]["extra_tickers"] = {"gspc": "^GSPC"}
+    s = gspc_yahoo(clock)
+    s.chart_status["^SOX"] = 429
+    cfg["yfinance"]["breaker_series"] = 1
+    run = make_run(tmp_path, cfg, clock, daily=False)
+    crawler.download_yfinance(run, s)
+    assert run.manifest["yfinance_extra"]["gspc"]["error"] == "skipped_rate_limit_breaker" and not s.history("^GSPC")
+
+    clock = Clock(at("2026-11-17", "08:31"))
+    s = gspc_yahoo(clock)
+    run = make_run(tmp_path, cfg, clock)
+    crawler.download_yfinance(run, s)
+    assert run.manifest["yfinance_extra"]["gspc"]["error"] == "skipped_deadline" and not s.history()
+
+
+def test_config_extra_tickers_is_only_gspc_and_stays_out_of_the_feature_table():
+    """使用者 2026-11-23：gspc 只存原始檔給 n1，不進 tickers、model_series、optional_inputs（特徵表的欄不變）。"""
+    conf = utils.load_config()
+    assert conf["yfinance"]["extra_tickers"] == {"gspc": "^GSPC"}
+    assert "gspc" not in conf["yfinance"]["tickers"] and "^GSPC" not in conf["yfinance"]["tickers"].values()
+    assert "gspc" not in conf["features"]["model_series"]
+    assert "gspc" not in (conf["features"].get("optional_inputs") or [])
+    assert conf["yfinance"]["extra_retries"] == 0   # 審查 M2：失敗不重試，不拖慢交件
 
 
 def test_yfinance_after_deadline_skips_everything(tmp_path, cfg):

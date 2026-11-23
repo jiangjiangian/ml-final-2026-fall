@@ -5,7 +5,9 @@
     data/raw/teacher/training/     老師 Training ZIP 解開：info.json、global/global_data.csv、market/<代號>.csv
     data/raw/teacher/live/         老師 Live ZIP 解開：global/global_data.csv、market/<代號>.csv（沒有 info.json），
                                    每次整包換新。Live 本身從 9/1 到 t，每天多一列，所以在 Git 裡看起來是往後加
-    data/raw/yfinance/<名稱>.csv   yfinance.tickers 的額外指標各一檔：date, open, high, low, close, adj_close, volume
+    data/raw/yfinance/<名稱>.csv   yfinance.tickers 的額外指標各一檔：date, open, high, low, close, adj_close, volume。
+                                   yfinance.extra_tickers（gspc，使用者 2026-11-23）同樣的欄，只給 n1 影子跑，
+                                   特徵表和合併表不讀（download_extra）
     data/raw/yfinance/usd_twd_1h.csv  TWD=X 的 1 小時K棒（yfinance.hourly）：start, open, high, low, close, volume，
                                    start 是K棒開始時間（台北，ISO 帶時區）。每次和舊檔合併，Yahoo 只給大約兩年多
     data/raw/taifex/tx.csv         台指期（tx_futures.source 是 taifex 時）：期交所「期貨每日交易行情」的 TX 列，
@@ -75,6 +77,8 @@ yfinance：
       還是沒有就列在 run.no_bar_i，那個特徵當天空白。外國放假時常這樣，不算失敗（使用者 2026-11-06）。
     - 抓的順序：1h 先，再來是 features.model_series 裡的日K，最後是其他日K（fetch_order()）。過了截止或限流
       斷路器跳開時，先被跳過的是不在模型裡的序列。config 的順序（特徵欄的順序）和 manifest 的順序不變。
+    - extra_tickers 排在所有日K和「有沒有 i 那根」的重抓之後，紀錄在 manifest 的 yfinance_extra，失敗不設 stale、
+      不重試（extra_retries 是 0），那一步出任何錯都只記 WARNING，爬蟲照常。
     - 1h 只留結束時間不晚於「現在」和「t 那天 features.usd_twd_am.at（06:00）」的K棒；has_value_t 記 t 那天
       06:00 前 lookback_days 天內、而且比 i 那天 06:00 新的K棒有沒有（hourly_has_value）。沒有就列進
       run.no_bar_i、寫警告：1h 沒抓到時沿用 i 那天存的舊檔，usd_twd_am 會取到 i 的值。
@@ -1229,6 +1233,64 @@ def download_yfinance(run: Run, session: PacedSession):
 
     if any(e["status"] != "ok" for e in entries.values()):
         run.stale = True
+    try:
+        download_extra(run, session, out_dir, breaker, set(tickers) | set(hourly))
+    except Exception as e:   # 不進特徵表的序列：出任何錯都不擋爬蟲和交件（n1 會標 stale_us_n1 或回傳碼 2）
+        run.log.warning("yfinance.extra_tickers 沒做完（%s），只影響 n1 影子跑", type(e).__name__)
+
+
+def download_extra(run: Run, session: PacedSession, out_dir: Path, breaker: int, taken: set):
+    """yfinance.extra_tickers（使用者 2026-11-23）：只存原始檔、不進特徵表和合併表的日K，排在所有日K的最後抓。
+
+    用同一個限流 session，檔案的欄和 tickers 一樣（rows_to_csv）。限流斷路器已經跳開、過了爬蟲截止就跳過，
+    重試最多 yfinance.extra_retries 次（不拖慢交件）。失敗時舊檔留著。紀錄寫在 manifest 的 yfinance_extra，
+    不寫進 yfinance、不設 run.stale、不進 run.no_bar_i：特徵表和交件的模型都不讀這些檔（n1 影子跑自己標記舊K棒）。
+    名稱和 tickers、hourly 重複的跳過（會蓋掉特徵表要讀的檔）。舊檔裡的空白行不算（old_rows），舊檔被手動改壞時
+    照樣抓、重寫成乾淨的檔。download_yfinance 叫這裡時整段包著 try：這裡丟出的任何例外都只記 WARNING。"""
+    conf = run.cfg["yfinance"]
+    extra = dict(conf.get("extra_tickers") or {})
+    if not extra:
+        return
+    entries = {}
+
+    def old_rows(path):
+        return [r for r in read_series(path) if r]
+
+    for sid, ticker in extra.items():
+        path = out_dir / f"{sid}.csv"
+        entry = {"ticker": ticker, "status": "failed", "file": f"yfinance/{sid}.csv", "attempts": 0, "error": None}
+        if sid in taken:
+            entry["error"] = "name_used_by_tickers"
+            run.log.warning("yfinance.extra_tickers 的 %s 和 tickers 或 hourly 重名，跳過", sid)
+        elif breaker >= conf["breaker_series"]:
+            entry["error"] = "skipped_rate_limit_breaker"
+        elif run.past_deadline():
+            entry["error"] = "skipped_deadline"
+        else:
+            try:
+                rows, dropped, attempts, kind, name = fetch_series(run, session, ticker,
+                                                                   old_span(old_rows(path), run.t),
+                                                                   retries=conf.get("extra_retries", 0))
+                if rows is not None:
+                    write_atomic(path, rows_to_csv(rows))
+            except Exception as e:   # 不進特徵表的序列出任何錯都不擋爬蟲
+                rows, dropped, attempts, kind, name = None, None, entry["attempts"], "error", type(e).__name__
+            entry["attempts"] = attempts
+            if rows is None:
+                breaker = breaker + 1 if kind == "rate_limited" else 0
+                run.log.warning("%s（不進特徵表）失敗（%s），沿用舊檔", ticker, name)
+                entry["error"] = name
+            else:
+                breaker = 0
+                entry.update(status="ok", dropped=dropped)
+        if path.exists() and sid not in taken:
+            kept = old_rows(path)
+            if entry["status"] != "ok":
+                entry["kept_previous_file"] = True
+            entry.update(rows=len(kept), date_max=kept[-1][0] if kept else None, sha256=sha256_bytes(path.read_bytes()))
+        entries[sid] = entry
+    run.manifest["yfinance_extra"] = entries
+    run.save()
 
 
 # ---------------------------------------------------------------- 台指期（期交所）

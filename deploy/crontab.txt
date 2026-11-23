@@ -6,6 +6,7 @@
 # 不影響上傳；前面五次都沒交成時，它也會照常跑完整的流程。
 # 16:10、20:00 是傍晚打分（使用者 2026-11-17 加，11-18 從 18:00 改成 16:10，--evening）：只下載老師 Live，替當天的影子跑和網站上我們那份打分，推 data/。
 # 不上傳、不重建特徵表；16:10 打完了，20:00 那次就直接結束。
+# 改早上的時段時，configs/config.yaml 的 daily_model.n1.next_slots 也要一起改（n1 影子跑的逾時不佔到下一個時段，tests/test_n1_shadow.py 會比）。
 SHELL=/bin/bash
 PATH=/usr/local/bin:/usr/bin:/bin
 10 7 * * * cd __REPO__ && .venv/bin/python run_daily.py --sync >> .cache/cron.log 2>&1

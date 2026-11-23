@@ -42,6 +42,7 @@ def cfg(tmp_path):
     conf["yfinance"]["tickers"] = {"sox": "^SOX", "etf_0050": "0050.TW"}
     conf["yfinance"]["cache_dir"] = str(tmp_path / "yfcache")
     conf["yfinance"]["hourly"] = {}
+    conf["yfinance"]["extra_tickers"] = {}   # gspc（n1 用）在 tests/test_crawler.py 測
     conf["exchange"]["enabled"] = False   # 設定檔 2026-11-10 起是 true；交易所那一步在 tests/test_exchange.py 測
     return conf
 

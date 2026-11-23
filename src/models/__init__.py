@@ -15,11 +15,15 @@
     輸入  data：step3_train_predict.load_model_input 的表（特徵表接上個股特徵）
           cfg：configs/config.yaml；dates：要預測的日子（YYYY-MM-DD 的 list）；stocks：股票代號的 list
     輸出  每個 date × stock 一列，至少有 date、stock_id、pred（1 = 猜收盤高於開盤），通常還有 prob（排名分數）
-    訓練  在 predict 裡做，只用 t 之前有答案的列，每天早上從頭訓練、不存檔，所以 repo 根目錄的 models/ 是空的
+    訓練  在 predict 裡做，只用 t 之前有答案的列，每天早上從頭訓練、不存檔；repo 根目錄的 models/ 只放 m7（不在這張表）的只讀起始狀態 models/n1/
 
 算不出來就丟錯（各檔自己的 Error 類別），step3_train_predict 照 config 的 daily_model.fallback 換下一個。
-新增模型：多一個 m7_<名字>.py，在下面的 MODEL_KINDS 加一行，config 的 daily_model.kind 就能填它。
+新增模型：多一個 m8_<名字>.py，在下面的 MODEL_KINDS 加一行，config 的 daily_model.kind 就能填它。
 只給影子跑、不能交件的模型再加進 SHADOW_ONLY。
+
+m7_n1_js_online.py（2026-11-23，N1 影子跑）不在 MODEL_KINDS：它要 torch，在自己的環境 .venv-n1 用子程序跑
+（run_daily.py 的 run_n1），不是 predict(data, cfg, dates, stocks) 的樣子，不能填在 kind、fallback、shadow。
+這個檔只用標準函式庫，子程序在 .venv-n1 載入 src.models 時不需要正式流程的套件。
 """
 
 # config 的 daily_model.kind、fallback 可以填的名字 → 「模組:函式」。step3_train_predict 用到才載入。

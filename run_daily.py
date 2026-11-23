@@ -12,7 +12,8 @@
        補齊了而且預測不一樣才重交（取代網站上那份），08:44 以後不再重做。
        影子跑（shadow_run）：上傳之後，config 的 daily_model.shadow 列的模型都算一遍，存 shadow_<t>.csv，不上傳。
        組員已經手動交了的日子也做（用第 1 步補爬的特徵表），一天只做一次。
-    5. 收尾（wrap_up）：08:25 那次補日韓當天的開盤（只進長表）、step5_merge_raw 合併原始資料、推 data/。
+    5. 收尾（wrap_up）：08:25 那次補日韓當天的開盤（只進長表）、step5_merge_raw 合併原始資料、
+       n1 影子跑（run_n1，使用者 2026-11-23：.venv-n1 的子程序，有逾時，失敗只記 WARNING）、推 data/。
     傍晚打分（--evening，step6_evening_score，使用者 2026-11-17）：16:10、20:00 只下載老師 Live，替當天的影子跑和
     網站上我們那份打分，寫 shadow_scores.csv、site_scores.csv，推 data/。不跑第 1～5 步，不上傳、不重建特徵表。
 
@@ -37,6 +38,7 @@ t 不是交易日（不在網站的 phase2Days）：Phase 2 直接結束；Phase
 """
 
 import argparse
+import csv
 import fcntl
 import hashlib
 import json
@@ -513,6 +515,8 @@ def write_submission(cfg: dict, phase: int, t: str, today: str, header: list, st
 
 def wrap_up(args, t: str, today: str, phase, status: str, interrupted: bool, branch_ok: bool, log) -> bool:
     """第 5 步，前面成功或失敗都做。休市日、被中斷和傍晚打分時只推資料（傍晚不補當天開盤：那一步會重建特徵表）。
+    合併原始資料之後、commit 之前跑 n1 影子跑（run_n1），它的核對檔和這次的資料一起推。這次停下了（status 是
+    failed）或 --dry-run 時不跑 n1：停下的早上下一個時段要準時拿到鎖，--dry-run 不能用掉當天的一批。
     回傳資料有沒有推上去（沒有 --sync 時是 True）。"""
     evening = getattr(args, "evening", False)
     extras = not interrupted and status != "closed" and not evening
@@ -520,6 +524,8 @@ def wrap_up(args, t: str, today: str, phase, status: str, interrupted: bool, bra
         fill_today_open(t, today, log)   # 只在排程的 clone 做
     if extras:
         merge_raw_data(log)
+        if status != "failed" and not getattr(args, "dry_run", False):
+            run_n1(t, today, phase, log)
     if not (args.sync and branch_ok):
         return True
     try:
@@ -589,6 +595,124 @@ def merge_raw_data(log) -> None:
         timed(log, "合併原始資料", lambda: merge_raw.main([]))
     except Exception as e:
         log.warning("合併原始資料沒做完（%s）：只影響 data/merged/，下次執行會再做", describe(e))
+
+
+# ================================================================ n1 影子跑（使用者 2026-11-23）
+
+N1_MODULE = "src.models.m7_n1_js_online"   # 只用子程序叫，這支程式不 import 它（它會 import torch）
+N1_CODES = {2: "資料還不是 t 的", 3: "狀態檔或套件版本對不上", 4: "上一次的 n1 還在跑"}   # 子程序的回傳碼
+
+
+def run_n1(t: str, today: str, phase, log) -> None:
+    """N1 影子跑（只記不交）：用 .venv-n1 的 Python 以子程序跑 src/models/m7_n1_js_online.py，寫
+    data/submission/n1/n1_<t>.csv、inputs_<t>.npz，會變的狀態在 .cache/n1/（Git 不追蹤）。
+
+    全部成立才叫：config 的 daily_model.n1.enabled；Phase 2；t 是台北今天；台北時間早於 start_before（08:45）；
+    n1_<t>.csv 還沒有，或它最後一批記的 shadow_<t>.csv sha256 和現在的不一樣（重交後影子跑重寫了），而且還沒到
+    max_runs 批。休市、被中斷、傍晚打分、這次停下、--dry-run 時 wrap_up 不叫。
+    逾時（n1_timeout）：timeout_seconds、到 finish_by 的秒數、到下一個排程時段（next_slots）的秒數減 slot_margin_seconds，
+    取最小的；不到 30 秒就不叫。n1 跑的時候 run_daily 的鎖還拿著，下一個時段拿不到鎖會整個跳過（重交會晚 15 分鐘），
+    所以要在下一個時段開始前留時間給 commit、push。到了逾時 subprocess.run 會砍掉子程序。
+    逾時、回傳碼不是 0、任何例外都只記 WARNING，收尾（commit、push）照常。子程序的輸出先換掉路徑再寫進 log（n1_output）。
+    子程序自己拿 .cache/n1/n1.lock；這支程式不 import torch，也不 import m7。
+    """
+    timeout = None
+    try:
+        if phase != 2 or t != today:
+            return
+        cfg = utils.load_config()
+        conf = (cfg.get("daily_model") or {}).get("n1") or {}
+        if not conf.get("enabled"):
+            return
+        now = utils.taipei_now()
+        if now >= clock_on(t, conf.get("start_before", "08:45")):
+            log.info("n1：已經過了 %s，今天不再開始", conf.get("start_before", "08:45"))
+            return
+        submission = ROOT / cfg["data"]["submission_dir"]
+        shadow = submission / f"shadow_{t}.csv"
+        runs, last_shadow = n1_batches(submission / "n1" / f"n1_{t}.csv")
+        current = digest(shadow) if shadow.exists() else ""
+        if runs and last_shadow == current:
+            return   # 這份 shadow_<t>.csv 已經算過
+        max_runs = int(conf.get("max_runs", 2))
+        if runs >= max_runs:
+            log.info("n1：%s 已經算了 %d 批，shadow_%s.csv 又變了也不再算", t, runs, t)
+            return
+        python = ROOT / conf.get("python", ".venv-n1/bin/python")
+        if not python.exists():
+            log.warning("n1：沒有 %s（n1 自己的環境，裝法見 deploy/n1_setup.md），今天不算", conf.get("python"))
+            return
+        timeout, limit = n1_timeout(conf, t, now)
+        if timeout < 30:
+            log.info("n1：可以跑的時間只有 %.0f 秒（%s），不到 30 秒，這次不算", max(timeout, 0), limit)
+            return
+        command = [str(python), "-m", N1_MODULE, "--date", t, "--raw-dir", cfg["data"]["raw_dir"],
+                   "--submission-dir", cfg["data"]["submission_dir"], "--initial-dir", conf["initial_dir"],
+                   "--start-state", conf["start_state"], "--cache-dir", conf["cache_dir"], "--max-runs", str(max_runs)]
+        env = {k: v for k, v in os.environ.items() if not k.startswith("COURSE_")}   # 子程序用不到帳密
+        started = time.monotonic()
+        result = subprocess.run(command, cwd=ROOT, capture_output=True, encoding="utf-8", errors="replace",
+                                timeout=timeout, env=env)   # 不照 cron 的語系解碼：中文的摘要解不開也不丟錯
+        seconds = time.monotonic() - started
+        if result.returncode == 0:
+            log.info("n1 完成（%.0f 秒）：%s", seconds, n1_output(result.stdout) or "沒有輸出")
+        elif result.returncode in N1_CODES:
+            log.warning("n1 沒算（%s，%.0f 秒）：%s；不影響交件，下一個時段再試", N1_CODES[result.returncode], seconds,
+                        n1_output(result.stderr or result.stdout))
+        else:
+            log.warning("n1 失敗（回傳碼 %d，%.0f 秒）：%s；不影響交件", result.returncode, seconds,
+                        n1_output(result.stderr or result.stdout))
+    except subprocess.TimeoutExpired:
+        log.warning("n1 超過 %.0f 秒，子程序砍掉了；不影響交件，下一個時段再試", timeout)
+    except Exception as e:
+        log.warning("n1 沒做完（%s）：不影響交件", describe(e))
+
+
+def n1_output(text: str) -> str:
+    """子程序的輸出寫進 log 前先把路徑換成相對的（第二輪審查）：log 會推上 GitHub，不寫出主機的家目錄（oop 的含學號）。
+    m7 自己印的訊息已經換過（public），但 .venv-n1 壞掉、import 套件就失敗時，Python 直接印的 traceback 沒換過。
+    先換 repo 根目錄，再換家目錄（$HOME 和它的實際路徑），最後才截短：先截短的話可能留下半截家目錄。"""
+    text = (text or "").replace(str(ROOT), ".")
+    for home in sorted({str(Path.home()), str(Path.home().resolve())}, key=len, reverse=True):
+        text = text.replace(home, "~")
+    return short(text)
+
+
+def n1_timeout(conf: dict, t: str, now: datetime) -> tuple:
+    """n1 子程序的逾時（秒）和決定它的那一項（給 log）：timeout_seconds、到 finish_by 的秒數、到 next_slots 裡
+    晚於現在的第一個時段的秒數減 slot_margin_seconds（留給 commit、push），取最小的。沒有 next_slots 就不看時段。"""
+    finish_by = conf.get("finish_by", "08:58")
+    limits = [(float(conf.get("timeout_seconds", 150)), "timeout_seconds"),
+              ((clock_on(t, finish_by) - now).total_seconds(), f"到 {finish_by}")]
+    later = sorted(slot for slot in (clock_on(t, s) for s in conf.get("next_slots") or []) if slot > now)
+    if later:
+        margin = float(conf.get("slot_margin_seconds", 210))
+        limits.append(((later[0] - now).total_seconds() - margin,
+                       f"到下一個排程時段 {later[0]:%H:%M}，扣掉留給 commit、push 的 {margin:.0f} 秒"))
+    return min(limits, key=lambda item: item[0])
+
+
+def n1_batches(path: Path) -> tuple:
+    """n1_<t>.csv 已經算了幾批、最後一批記的 shadow_<t>.csv sha256（沒有寫空字串）。沒有檔或讀不了是 (0, None)。"""
+    try:
+        with open(path, encoding="utf-8", newline="") as f:
+            rows = list(csv.DictReader(f))
+    except OSError:
+        return 0, None
+    batches = {}
+    for row in rows:
+        try:
+            batches[int(row.get("run") or 0)] = row.get("shadow_sha_n1") or ""
+        except ValueError:
+            continue
+    if not batches:
+        return 0, None
+    return len(batches), batches[max(batches)]
+
+
+def clock_on(t: str, hhmm: str) -> datetime:
+    hour, minute = (int(x) for x in str(hhmm).split(":"))
+    return datetime.combine(date.fromisoformat(t), clock_time(hour, minute), utils.TAIPEI)
 
 
 # ================================================================ 第 0 步：和 GitHub 同步（只用標準函式庫）

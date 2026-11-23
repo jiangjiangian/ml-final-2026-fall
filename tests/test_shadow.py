@@ -24,6 +24,8 @@ T = "2026-11-13"
 STOCKS = ["2330", "2317", "1101", "2454"]   # 故意不照代號排：輸出要照代號排
 KINDS = ["c2v2d", "c2", "rank_ensemble", "persist", "online_lr"]
 BASE = {"base_pred": [1, 1, 0, 0], "base_prob": [0.8, 0.6, 0.4, 0.2]}
+MEMBERS = {"ridge": [0.1, -0.2, 0.3, 0.0], "kridge": [0.2, 0.1, -0.1, 0.05], "lgbm": [-0.01, 0.02, 0.0, 0.03],
+           "beta_rank": [0.25, -0.25, 0.125, -0.125]}   # c2、c2v2d 的輸出本來就有；影子跑只存 c2v2d 的（給 n1）
 
 
 def frame(preds, stocks=STOCKS, **extra):
@@ -52,8 +54,8 @@ def models(monkeypatch, tmp_path):
             return make()
         return predict
 
-    monkeypatch.setattr(c2_tilt, "predict_c2v2d", fake("c2v2d", lambda: frame([1, 0, 1, 0], **BASE, p_up=0.7)))
-    monkeypatch.setattr(c2_tilt, "predict_c2", fake("c2", lambda: frame([0, 1, 1, 0], **BASE, p_up=0.4)))
+    monkeypatch.setattr(c2_tilt, "predict_c2v2d", fake("c2v2d", lambda: frame([1, 0, 1, 0], **BASE, **MEMBERS, p_up=0.7)))
+    monkeypatch.setattr(c2_tilt, "predict_c2", fake("c2", lambda: frame([0, 1, 1, 0], **BASE, **MEMBERS, p_up=0.4)))
     monkeypatch.setattr(rank_ensemble, "predict", fake("rank_ensemble", lambda: frame([0, 0, 1, 1])))
     monkeypatch.setattr(persist_rule, "predict", fake("persist", lambda: frame([1, 1, 0, 0])))
     monkeypatch.setattr(online_lr, "predict", fake("online_lr", lambda: frame([1, 1, 1, 0])))
@@ -70,9 +72,13 @@ def test_every_model_gets_its_columns_and_rank_ensemble_comes_from_c2v2d(models)
     assert path == tp.shadow_path(cfg, T) and path.name == f"shadow_{T}.csv"
     assert calls == ["c2v2d", "c2", "persist", "online_lr"]   # rank_ensemble 沒有重新訓練
     table = pd.read_csv(path, dtype={"stock_id": str, "date": str})
-    assert list(table.columns) == ["date", "stock_id", "pred_c2v2d", "prob_c2v2d", "p_up_c2v2d", "pred_c2", "prob_c2",
+    assert list(table.columns) == ["date", "stock_id", "pred_c2v2d", "prob_c2v2d", "p_up_c2v2d", "ridge_c2v2d",
+                                   "kridge_c2v2d", "lgbm_c2v2d", "beta_rank_c2v2d", "pred_c2", "prob_c2",
                                    "p_up_c2", "pred_rank_ensemble", "prob_rank_ensemble", "pred_persist",
                                    "prob_persist", "pred_online_lr", "prob_online_lr"]
+    members = table.set_index("stock_id").loc[STOCKS]
+    for name, values in MEMBERS.items():   # n1 影子跑讀這 4 欄（2026-11-23）
+        assert members[f"{name}_c2v2d"].tolist() == pytest.approx(values)
     assert list(table["stock_id"]) == sorted(STOCKS) and set(table["date"]) == {T}
     by = table.set_index("stock_id").loc[STOCKS]
     assert by["pred_c2v2d"].tolist() == [1, 0, 1, 0] and by["pred_c2"].tolist() == [0, 1, 1, 0]

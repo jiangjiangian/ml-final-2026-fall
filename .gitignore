@@ -13,6 +13,9 @@ __pycache__/
 data/raw/.*.new/
 data/raw/.*.old/
 data/raw/**/.*.tmp
+# data/submission/ 的暫存檔（write_atomic 的 .<檔名>.<亂碼>.tmp）：n1 子程序寫到一半被逾時砍掉時，
+# 同一次收尾的 commit_data（git add -- data/submission）不會把它推上去（使用者 2026-11-23 的 n1 影子跑）
+data/submission/**/.*.tmp
 
 # yfinance 的時區快取（config.yaml 的 yfinance.cache_dir）
 .cache/

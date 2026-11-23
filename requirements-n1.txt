@@ -1,0 +1,10 @@
+# n1 影子跑自己的環境 .venv-n1（使用者 2026-11-23，src/models/m7_n1_js_online.py）。Python 3.12。
+# 版本和 Kaggle KD 05、UB 04 一樣：JS_ONLINE 每天的更新要逐位元重現，套件版本不能動。
+# 正式的 .venv 用 requirements.txt，不裝 torch；兩個環境不混用。
+# torch 要 CPU 版的輪子，下載時加 --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+# （指令在 deploy/n1_setup.md）。這個檔不寫網址，oop 從 ~/wheels-n1 離線裝。
+torch==2.11.0+cpu
+numpy==2.1.3
+pandas==2.3.3
+scipy==1.16.3
+pytest==9.1.1    # 在 .venv-n1 跑 tests/test_n1_model.py

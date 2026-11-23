@@ -6,3 +6,5 @@ tests/fixtures/** -text
 data/submission/upload_log.jsonl merge=union
 # 每天的執行紀錄也只往後加（爬蟲、特徵、run_daily 都會寫），兩邊的行都留下
 data/submission/run_*.log merge=union
+# n1 影子跑的起始狀態（人 commit、只讀）：n1 照 sha256.json 核對，換行不能被改
+models/n1/** -text

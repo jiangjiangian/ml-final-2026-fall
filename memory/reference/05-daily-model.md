@@ -103,7 +103,7 @@
 
 ### 檔案
 
-- `data/submission/shadow_<t>.csv`：每檔一列。每個模型兩欄，`pred_<模型>`（0/1）和 `prob_<模型>`（當天名次換成 0～1；`online_lr` 是機率）。`c2`、`c2v2d` 另有 `p_up_<模型>`（大盤方向的機率）。`overnight_up` 另有四欄，見下面「隔夜大跌全猜漲」；`rank_inst` 另有兩欄，見下面「法人組」。算不出來的模型那幾欄空白，原因在 `run_<t>.log`。
+- `data/submission/shadow_<t>.csv`：每檔一列。每個模型兩欄，`pred_<模型>`（0/1）和 `prob_<模型>`（當天名次換成 0～1；`online_lr` 是機率）。`c2`、`c2v2d` 另有 `p_up_<模型>`（大盤方向的機率）。`c2v2d` 再多四欄（2026-11-23 起，N1 影子跑讀）：`ridge_c2v2d`、`kridge_c2v2d`、`lgbm_c2v2d`（三個成員的分數）、`beta_rank_c2v2d`（β 的當天名次 − 0.5）。`overnight_up` 另有四欄，見下面「隔夜大跌全猜漲」；`rank_inst` 另有兩欄，見下面「法人組」。算不出來的模型那幾欄空白，原因在 `run_<t>.log`。
 - `data/submission/shadow_scores.csv`：每天每個模型一列。`score` 是官方分數（每格 (2·pred − 1)·盤中報酬的平均），另有 `accuracy`（猜對的比例）、`pred_up`（猜漲的比例）、`cells`（格數）、`source`（答案從哪裡來）。t 當天 16:10 的傍晚打分用老師 Live 的 t 那列先算（`source` 是 `live`）；隔天早上用特徵表的答案再算一次（`features`），兩邊不一樣時 log 有 WARNING。早上算不到的日子留著傍晚的分數。
 - `data/submission/site_scores.csv`（2026-11-18 起）：網站上我們那份每天一列。`file`（排程的檔名 `submission_<t>.csv`；組員取的其他檔名一律寫 `other`，不存）、`same_as`（和影子跑哪個模型的 50 檔一樣）、`site_score`（網站給的分數）、`rescored`（用老師 Live 重算，應該和網站一樣；差超過 1e-6 時 log 有 WARNING）、`all_zero`（全猜 0 的分數）、`day_rank`／`day_teams`（當天名次／有分數的隊數）、`total_score`、`total_rank`（累計分數和網站的名次）、`teams`、`all_forced_teams`（每天都是網站強制繳交的隊數）、`self_rank`（扣掉那些隊以後的累計名次）、`read_at`。只存我們這隊，不存任何隊名。
 
@@ -152,6 +152,39 @@ s.pivot(index="date", columns="model", values="score").cumsum()   # 每個模型
 - 早上法人資料沒到的日子：老師 Live 還沒填前一個交易日，或要預測的 50 檔裡法人欄有值的不到 45 檔（`min_filled_share: 0.9`），早上先不算，傍晚打分前補算。用的還是前一個交易日的資料，只是比早上晚拿到。
 - `shadow_<t>.csv` 多的兩欄：`inst_filled_rank_inst`（50 檔裡前一個交易日的法人欄有值的檔數）、`late_rank_inst`（0 是早上算的，1 是傍晚補算的）。`late` 是 1 的日子代表資料到齊時模型會怎麼猜，不代表早上交得出來，評估能不能上線時要分開看。
 - 和 notebook 33 對過：oop 重播 2026-08-03～2026-11-12 的 69 天，猜漲猜跌和 notebook 一樣的格子 Top50 98.9%、另外 50 檔 99.4%（同一段 `rank_ensemble` 對 notebook 是 98.7%、99.0%）。
+
+## N1 影子跑（2026-11-23 起）
+
+使用者 2026-11-23 同意，只記不交。N1 是 c2v2d 的排名集成多一個成員 JS_ONLINE（Kaggle KD 05 訓練好的小型神經網路，每天用前一個交易日的答案更新一步）。程式在 `src/models/m7_n1_js_online.py`，設定在 `configs/config.yaml` 的 `daily_model.n1`。研究的經過在 `memory/projects/13-unbound-count-model.md`。
+
+### 怎麼算
+
+- 分數：N1 = k_t·comb4 + 2(2p − 1)·β̃。comb4 是 ridge、kernel ridge、LightGBM、JS_ONLINE 四個當天名次 − 0.5 的平均；k_t = 三個成員平均的標準差 ÷ comb4 的標準差，把尺度拉回 c2v2d 的；p、β̃ 和 c2v2d 一樣。分數前一半猜漲，所以也是 25 漲 25 跌。
+- 三個成員、p、β̃ 讀 `shadow_<t>.csv` 的 `c2v2d` 欄。那天 c2v2d 沒算出來時 N1 空白，JS_ONLINE 自己的猜法照記。
+- JS_ONLINE 的 54 個輸入從老師個股檔和 4 個美股序列（`gspc`、`sox`、`tsm_adr`、`vix`）算，每天從 2020-01-02 整段重算，只用日期早於 t 的列。美股取日期早於 t 的最後一根K棒的漲跌（D06 規則）。`gspc` 是 Yahoo 的 ^GSPC，爬蟲另外抓（`yfinance.extra_tickers`），不進特徵表和合併表。
+- 每天早上先補更新：狀態最後更新日之後、t 之前的每個交易日各更新一步，同一天不會更新兩次。t 的前一天有「新缺」的股票（前前天還有資料）時，先不更新那天，`stale_n1` 記 1，下一個交易日再照有的列更新。
+
+### 什麼時候跑
+
+- `run_daily.py` 收尾時，合併原始資料之後、推資料之前。要全部成立：`enabled`、Phase 2、t 是今天、不是休市或傍晚、這次沒有停下、沒加 `--dry-run`、台北 08:45 前。
+- 用自己的環境 `.venv-n1`（有 torch，`requirements-n1.txt`）開子程序，最多 150 秒，最晚 08:58。主程序不 import torch。逾時、當掉、資料還不是 t 的，都只記一行 WARNING，交件、重交、推資料照常。
+- 下一個排程時段：n1 跑的時候 `run_daily` 的鎖還拿著，下一個時段拿不到鎖會整個跳過。所以逾時也不超過「到下一個時段的秒數減 210 秒」（`next_slots`、`slot_margin_seconds`，留給 commit、push：一次 git 呼叫卡到 180 秒的逾時、等 15 秒再推一次也夠），剩不到 30 秒就不叫，下一個時段再算。`next_slots` 要和 `deploy/crontab.txt` 一樣，測試會比。
+- 一天最多算 2 批：`shadow_<t>.csv` 變了（重交後重寫）才算第 2 批，第 1 批留著。
+- `gspc.csv` 還沒抓到過（上線第一天爬蟲抓 ^GSPC 失敗）：那天 n1 回傳碼 2、不算，隔天爬蟲再抓。不用空白的 gspc 照算，因為補更新會把空白寫進狀態，之後改不回來。抓到過一次以後，抓不到時沿用舊檔，照算並記 `stale_us_n1`。
+- 裝法、測試、第一次的重現檢查在 `deploy/n1_setup.md`。
+
+### 檔案
+
+- `data/submission/n1/n1_<t>.csv`：一批 50 列。`run`（第幾批）、`pred_n1`、`prob_n1`（N1 分數的當天名次）、`pred_js_n1`、`js_n1`（JS_ONLINE 自己的猜法和分數）、`k_t_n1`、`c2v2d_same_n1`（用讀到的成員分數重算的 c2v2d 和影子跑那欄一樣是 1）、`note_n1`（N1 空白的原因）、`state_n1`、`state_sha_n1`（用的狀態最後更新到哪天、內容雜湊）、`updated_n1`（這次補更新的日子）、`stale_n1`、`stale_us_n1`（美股K棒比 t 之前最後一個美股交易日舊、值是空白，或爬蟲這次沒抓成那幾個序列、沿用舊檔）、`gspc_n1`、`sox_n1`、`tsm_n1`、`vix_n1`（4 個美股輸入）、`us_bar_n1`（用到的K棒日期）、`shadow_sha_n1`、`inputs_sha_n1`、`files_sha_n1`、`code_commit`、`made_at`。
+- `data/submission/n1/inputs_<t>.npz`（第 2 批是 `inputs_<t>_run2.npz`）：這次每個更新日和 t 的 100 檔 54 個輸入、更新用的目標、K棒數、每次更新前後的狀態雜湊。Kaggle 核對和 `.cache/n1/` 不見時的重播都用它。
+- `models/n1/ub04_v5/`：起始狀態（Kaggle UB 04 第 5 版），只讀。每天更新的狀態在 oop 的 `.cache/n1/`，不進 Git。
+
+### 打分和停止規則
+
+- 傍晚打分把 `n1_<t>.csv` 也算進 `shadow_scores.csv`：模型 `n1`、`js_n1` 用最後一批；有第 2 批時第 1 批另記 `n1_run1`、`js_n1_run1`。
+- 停止規則（使用者 2026-11-23）：影子跑前 5 個交易日累計 n1 − c2v2d 少於 −0.0067 就停。log 每天寫目前的累計，第 5 天寫結論（低於停止線是 WARNING）。只記 log，要停時把 `daily_model.n1.enabled` 改成 `false`，同一個 commit 把 `tests/test_n1_shadow.py` 的 `test_the_n1_config_block` 裡 `conf["enabled"] is True` 改成 `is False`。
+- `n1_<t>.csv` 有問題（少欄、pred 不是 0／1）時只記 WARNING，其他影子模型和網站上那份照常打分。
+- 5 天後在 Kaggle 核對：讀 `shadow_<t>.csv` 要用 `pd.read_csv(..., float_precision="round_trip")`，和 n1 讀的方法一樣，N1 的分數才會逐位元一樣（預設讀法可能差最後一位）。
 
 ## 換模型
 

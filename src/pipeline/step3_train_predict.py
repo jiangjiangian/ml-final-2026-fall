@@ -166,9 +166,13 @@ def short_reason(e: BaseException) -> str:
 SHADOW_NAME = re.compile(r"shadow_(\d{4}-\d{2}-\d{2})\.csv")
 SHADOW_SCORES = "shadow_scores.csv"
 TILT_MODELS = ("c2v2d", "c2")   # 輸出帶 rank_ensemble 的猜法（base_pred、base_prob）和大盤方向（p_up）
-EXTRA_COLUMNS = {"c2v2d": ("p_up",), "c2": ("p_up",),                     # 影子跑多存的欄：shadow_<t>.csv 的 <欄>_<模型>
+EXTRA_COLUMNS = {"c2v2d": ("p_up", "ridge", "kridge", "lgbm", "beta_rank"),  # 影子跑多存的欄：shadow_<t>.csv 的 <欄>_<模型>；
+                 "c2": ("p_up",),                                             # c2v2d 的三個成員分數和 β̃ 給 n1 用（2026-11-23）
                  "overnight_up": ("o", "o_absq", "o_parts", "us_last_bar"),   # 隔夜訊號、分位、用了幾個成分、最後一根美股K棒
                  "rank_inst": ("inst_filled", "late")}                       # 法人欄有值的檔數、是不是傍晚補算的
+N1_DIR = "n1"   # n1 影子跑（src/models/m7_n1_js_online.py，使用者 2026-11-23）的核對檔在 data.submission_dir 的這個資料夾
+N1_NAME = re.compile(r"n1_(\d{4}-\d{2}-\d{2})\.csv")
+N1_MODELS = {"pred_n1": "n1", "pred_js_n1": "js_n1"}   # n1_<t>.csv 的欄 → shadow_scores.csv 的 model
 LATE_MODELS = ("rank_inst",)   # 早上算不出來時，傍晚可以用補齊的老師 Live 補算的影子模型（shadow_backfill，使用者 2026-11-20）
 
 
@@ -199,7 +203,8 @@ def shadow_predict(cfg: dict, data, t: str, stocks: list, log, known: dict | Non
     輸入：data 是 load_model_input 的表；stocks 是網站範本的股票代號；known 是這次已經算好的
           {模型名字: 預測表}（交件用的那個），直接拿、不重算，所以影子跑裡那一欄和交出去的一樣。
     輸出：每檔一列。欄是 date、stock_id，每個模型 pred_<模型>（0／1）和 prob_<模型>（當天名次換成 0～1；
-          online_lr 是機率），c2、c2v2d 另有 p_up_<模型>（大盤方向的機率），overnight_up 另有 o_、o_absq_、
+          online_lr 是機率），c2、c2v2d 另有 p_up_<模型>（大盤方向的機率），c2v2d 再多 ridge_、kridge_、lgbm_、
+          beta_rank_c2v2d（三個成員的分數和 β̃，n1 影子跑讀，2026-11-23），overnight_up 另有 o_、o_absq_、
           o_parts_、us_last_bar_<模型>（隔夜訊號、分位、用了幾個成分、用到的最後一根美股K棒），rank_inst 另有
           inst_filled_、late_<模型>（法人欄有值的檔數、是不是傍晚補算的；EXTRA_COLUMNS）。
     算不出來的模型那幾欄空白，原因記一行 WARNING，其他模型照算。LATE_MODELS 的模型傍晚會再補算（shadow_backfill）。
@@ -305,24 +310,35 @@ def shadow_scores(cfg: dict, data, log, source: str = "features") -> Path | None
     accuracy（猜對的比例）、pred_up（猜漲的比例）、source（答案從哪裡來）。那天那個模型有任何一格缺答案就不算。
     合併（使用者 2026-11-17）：這次算得到的蓋掉舊的同一列；這次算不到的日子留著舊的（例如隔天早上的爬蟲沒跑成，
     傍晚的分數不會不見）。同一列的分數和之前差超過 1e-9 時記 WARNING（傍晚和隔天早上的答案應該一樣）。
+    n1 影子跑（2026-11-23）的 data/submission/n1/n1_<日期>.csv 也一起打分（n1_parts），之後寫一行和 c2v2d 的累計比較。
+    n1 只記不交：它的檔讀不了、打分或比較出任何錯都只記 WARNING，其他模型照常打分、照常寫檔。
     """
     folder = utils.ROOT / cfg["data"]["submission_dir"]
     out = folder / SHADOW_SCORES
     fresh = {}
+
+    def score(day, model, part):
+        part = part.dropna()
+        if part.empty:
+            return
+        got = online_lr.official_score(part.astype({"pred": int}), data)
+        if "score" in got:
+            fresh[(day, model)] = {"date": day, "model": model, "cells": got["cells"], "score": got["score"],
+                                   "accuracy": got["accuracy"], "pred_up": got["pred_up"], "source": source}
+
     for path in sorted(folder.glob("shadow_*.csv")):
         match = SHADOW_NAME.fullmatch(path.name)
         if not match:
             continue
         table = pd.read_csv(path, dtype={"date": str, "stock_id": str})
         for column in [c for c in table.columns if c.startswith("pred_")]:
-            part = table[["date", "stock_id", column]].dropna().rename(columns={column: "pred"})
-            if part.empty:
-                continue
-            got = online_lr.official_score(part.astype({"pred": int}), data)
-            if "score" in got:
-                day, model = match.group(1), column[len("pred_"):]
-                fresh[(day, model)] = {"date": day, "model": model, "cells": got["cells"], "score": got["score"],
-                                       "accuracy": got["accuracy"], "pred_up": got["pred_up"], "source": source}
+            part = table[["date", "stock_id", column]].rename(columns={column: "pred"})
+            score(match.group(1), column[len("pred_"):], part)
+    for day, model, part in n1_parts(folder / N1_DIR, log):
+        try:
+            score(day, model, part)
+        except Exception as e:
+            log.warning("n1：%s 的 %s 打不了分（%s），其他模型照常", day, model, short_reason(e))
     old = read_ledger(out)
     for key, row in fresh.items():
         before = old.get(key)
@@ -341,7 +357,74 @@ def shadow_scores(cfg: dict, data, log, source: str = "features") -> Path | None
         last = ledger[ledger["date"] == days[-1]]
         log.info("影子跑 %s 的官方分數：%s（答案來自 %s；每天的分數在 %s）", days[-1],
                  "、".join(f"{r.model} {r.score:+.5f}" for r in last.itertuples()), source, shown(out))
+    if any(key[1] == "n1" for key in fresh):
+        try:
+            n1_compare(cfg, ledger, log)
+        except Exception as e:
+            log.warning("n1 和 c2v2d 的累計比較沒做完（%s），分數照存", short_reason(e))
     return out
+
+
+def n1_parts(folder: Path, log) -> list:
+    """data/submission/n1/n1_<日期>.csv → [(日期, model, date／stock_id／pred 的表)]，給 shadow_scores 打分。
+
+    一天可能有兩批（run 欄，重交後 shadow_<t>.csv 變了才算第 2 批）：n1、js_n1 用最後一批，和其他影子模型重交後用
+    補齊的資料一樣；有第 2 批時，第 1 批另外記成 n1_run1、js_n1_run1，看 07:10 的資料和補齊的差多少。
+    pred_n1 空白（那天 c2v2d 沒算出來）時只有 js_n1。一個檔有任何問題（讀不了、少了 run、date、stock_id 欄、
+    pred 有 0／1 以外的值）就整個檔記 WARNING 後跳過，不影響其他檔和其他模型。"""
+    out = []
+    for path in sorted(folder.glob("n1_*.csv")) if folder.exists() else []:
+        match = N1_NAME.fullmatch(path.name)
+        if not match:
+            continue
+        try:
+            out += n1_file_parts(path, match.group(1))
+        except Exception as e:
+            log.warning("n1：%s 讀不了（%s），不打分", shown(path), short_reason(e))
+    return out
+
+
+def n1_file_parts(path: Path, day: str) -> list:
+    """一個 n1_<日期>.csv 的 [(日期, model, date／stock_id／pred 的表)]（見 n1_parts）。檔有問題就丟 ValueError。"""
+    table = pd.read_csv(path, dtype={"date": str, "stock_id": str})
+    missing = [c for c in ("run", "date", "stock_id") if c not in table.columns]
+    if missing:
+        raise ValueError(f"少了 {missing[0]} 欄")
+    runs = sorted(table["run"].dropna().astype(int).unique())
+    out = []
+    for position, run in enumerate([runs[-1]] + runs[:1] if len(runs) > 1 else runs[-1:]):
+        batch = table[table["run"] == run]
+        for column, model in N1_MODELS.items():
+            if column in batch.columns:
+                pred = pd.to_numeric(batch[column], errors="raise")
+                if not pred.dropna().isin([0, 1]).all():
+                    raise ValueError(f"{column} 有 0／1 以外的值")
+                name = model if position == 0 else f"{model}_run{run}"
+                out.append((day, name, batch[["date", "stock_id"]].assign(pred=pred)))
+    return out
+
+
+def n1_compare(cfg: dict, ledger: pd.DataFrame, log) -> None:
+    """n1 和 c2v2d 的累計比較寫進 log（使用者 2026-11-23 的停止規則：前 stop_rule.days 個交易日累計 n1 − c2v2d 少於
+    stop_rule.diff 就停）。兩個都有分數的日子才算。天數夠了寫結論，不夠時寫目前的累計。只記 log，不停任何東西。"""
+    rule = ((cfg.get("daily_model") or {}).get("n1") or {}).get("stop_rule") or {}
+    need, line = int(rule.get("days", 5)), float(rule.get("diff", -0.0067))
+    table = ledger[ledger["model"].isin(["n1", "c2v2d"])].astype({"score": float}).pivot_table(
+        index="date", columns="model", values="score")
+    if not {"n1", "c2v2d"} <= set(table.columns):
+        return
+    both = table.dropna().sort_index()
+    if both.empty:
+        return
+    gap = (both["n1"] - both["c2v2d"]).cumsum()
+    if len(both) < need:
+        log.info("n1 影子跑 %d 天：累計 n1 − c2v2d = %+.5f（第 %d 天看停止線 %+.4f）", len(both), gap.iloc[-1], need, line)
+        return
+    first = gap.iloc[need - 1]
+    verdict = "低於停止線，照 Ian 的規則停" if first < line else "沒有低於停止線"
+    (log.warning if first < line else log.info)(
+        "n1 影子跑前 %d 天（%s～%s）累計 n1 − c2v2d = %+.5f，停止線 %+.4f：%s；到 %s 共 %d 天累計 %+.5f",
+        need, both.index[0], both.index[need - 1], first, line, verdict, both.index[-1], len(both), gap.iloc[-1])
 
 
 LEDGER_COLUMNS = ["date", "model", "cells", "score", "accuracy", "pred_up", "source"]

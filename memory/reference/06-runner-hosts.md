@@ -24,6 +24,8 @@
 
 `requirements.txt` 改了以後，要重做第 2、3 步重裝套件。
 
+N1 影子跑（2026-11-23）另外要一個環境 `.venv-n1`（torch CPU 版，`requirements-n1.txt`），裝在同一個 clone 裡，正式的 `.venv` 不動。下載、安裝、測試和上線的步驟在 `deploy/n1_setup.md`。沒有 `.venv-n1` 時排程照常交件，早上每個排程時段在 `run_<t>.log` 記一行 WARNING（一天最多 6 行）。
+
 ## Mac（備援）
 
 `bash deploy/mac/setup.sh`：另外 clone 到 `~/ml-final-runner`，launchd 每天 08:15、08:25、08:35 跑。網站上已經有今天的提交就直接結束。2026-11-09 還沒裝，現在只有 oop 在跑。

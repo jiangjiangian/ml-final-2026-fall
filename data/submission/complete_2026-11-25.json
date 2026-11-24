@@ -1,0 +1,14 @@
+{
+ "t": "2026-11-25",
+ "run_id": "54f62852",
+ "time": "2026-11-25T07:21:30+08:00",
+ "model": "c2v2d",
+ "missing_states": 1,
+ "complete": false,
+ "reasons": [
+  "方向模型的狀態缺 1 個"
+ ],
+ "site_id": "539d51f4-8052-456c-b527-166d42489799",
+ "sha256": "1e73ca63fa086bd6fedb4d3309de9a2789e22384b8b64bfc0759dfa85a68242a",
+ "redo": 0
+}

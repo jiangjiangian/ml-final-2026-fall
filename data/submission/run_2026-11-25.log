@@ -70,3 +70,15 @@
 2026-11-25 07:28:41,592 finpred.run_daily INFO 寫好 data/submission/submission_2026-11-25.csv：50 檔 × 1 天，模型 c2v2d，猜漲 0.500
 2026-11-25 07:28:41,592 finpred.run_daily INFO 補齊了，預測和交的那份不一樣：舊檔留在 data/submission/submission_2026-11-25_first.csv，取代網站上的 539d51f4-8052-456c-b527-166d42489799
 2026-11-25 07:28:41,874 finpred.run_daily INFO 網站上目前有效的那份（2026-11-24T23:21:30.583Z，分數 None）存到 data/submission/backup/phase2_2026-11-25_20261124T232130Z.csv
+2026-11-25 07:28:48,009 finpred.run_daily INFO 上傳送出，網站回 200
+2026-11-25 07:28:48,171 finpred.run_daily INFO 核對完成：網站上的版本 539d51f4-8052-456c-b527-166d42489799 和送出的逐格一樣（上傳時間 2026-11-24T23:28:47.992Z，分數 None）
+2026-11-25 07:28:48,178 finpred.run_daily INFO 另存 data/submission/scores_2026-11-25.csv（每檔的分數，只給研究用）
+2026-11-25 07:28:48,180 finpred.run_daily INFO 交件紀錄 data/submission/complete_2026-11-25.json：資料完整
+2026-11-25 07:29:33,961 finpred.run_daily INFO 影子跑寫好 data/submission/shadow_2026-11-25.csv：猜漲的檔數 c2v2d 25、c2 25、rank_ensemble 25、persist 25、online_lr 0、overnight_up 25、rank_inst 25；和 c2v2d 猜得不同的檔數 c2 4、rank_ensemble 14、persist 16、online_lr 25、overnight_up 14、rank_inst 14（不上傳）
+2026-11-25 07:29:33,962 finpred.run_daily INFO 影子跑 完成（46 秒）
+2026-11-25 07:29:38,319 finpred.run_daily INFO 影子跑 2026-11-24 的官方分數：c2v2d +0.00476、c2 +0.00476、rank_ensemble +0.00380、persist +0.00413、online_lr +0.00331、overnight_up +0.00380、rank_inst +0.00288、n1 +0.00760、js_n1 +0.00716（答案來自 features；每天的分數在 data/submission/shadow_scores.csv）
+2026-11-25 07:29:38,328 finpred.run_daily INFO n1 影子跑 1 天：累計 n1 − c2v2d = +0.00283（第 5 天看停止線 -0.0067）
+2026-11-25 07:29:38,335 finpred.run_daily INFO 結束：done
+2026-11-25 07:29:54,506 finpred.merge_raw INFO 合併表：個股 167967 列、市場 1799 列；寫了 2 個檔 ['market.csv.gz', 'manifest.json']
+2026-11-25 07:29:54,506 finpred.run_daily INFO 合併原始資料 完成（16 秒）
+2026-11-25 07:30:04,274 finpred.run_daily INFO n1 完成（10 秒）：n1 2026-11-25 第 1 批：補更新 2026-11-24，狀態 state_2026-11-24；JS 50 檔；N1 猜漲 25 檔、和 c2v2d 換 5 組；寫 data/submission/n1/n1_2026-11-25.csv

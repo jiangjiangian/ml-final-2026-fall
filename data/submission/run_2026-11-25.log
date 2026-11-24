@@ -89,3 +89,4 @@
 2026-11-25 07:40:05,707 finpred.run_daily INFO 結束：already_submitted
 2026-11-25 07:40:06,108 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-25 07:40:06,108 finpred.run_daily INFO 合併原始資料 完成（0 秒）
+2026-11-25 07:40:09,349 finpred.run_daily ERROR git pull --rebase 失敗（第 1 次）：git@github.com: Permission denied (publickey). fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.

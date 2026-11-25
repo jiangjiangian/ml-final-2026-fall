@@ -34,14 +34,19 @@
       "140.112.31.182:8444：/login：連線失敗（ConnectionError）"
     ],
     "error": null,
-    "zip_sha256": "7c20cd7ebc118ed5c5aa607c1d0c4f17320fc56a6b8d9093e9af4206a28567aa",
-    "files_sha256": "6c0882e14deda6b960fa700d1c86f9f7e65fb632693d008b6dfca506a03ca5c9",
+    "zip_sha256": "8e10db90718ff377cf82946b68a593282b92d46eac85edaa110d01398ba936b3",
+    "files_sha256": "4a6de682edef1ed53cb30d6563408c9f3e5c0189c21422dd4f8142a3f64aae7a",
     "date_max": "2026-11-25",
     "has_t_row": true,
     "prev_day": "2026-11-24",
     "prev_day_planned": "2026-11-24",
     "prev_day_never_filled": false,
-    "prev_day_missing_stocks": []
+    "prev_day_missing_stocks": [],
+    "evening_refresh": {
+      "t": "2026-11-25",
+      "time": "2026-11-25 16:10",
+      "source": "fin-pred-daily.jiangxuehaokeai.chatgpt.site/data.zip"
+    }
   },
   "yfinance": {
     "sox": {

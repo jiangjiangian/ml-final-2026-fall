@@ -123,3 +123,7 @@
 2026-11-25 16:10:07,402 finpred.run_daily INFO n1 影子跑 2 天：累計 n1 − c2v2d = +0.01384（第 5 天看停止線 -0.0067）
 2026-11-25 16:10:07,419 finpred.run_daily INFO 2026-11-25 傍晚打分：全猜 0 +0.01311；網站上我們 -0.00708（submission_2026-11-25.csv，和 c2v2d 一樣）；當天第 98／126 名；累計 -0.00671，第 111／126 名（全部強制繳交的 21 隊以外第 90 名）
 2026-11-25 16:10:07,421 finpred.run_daily INFO 結束：scored
+2026-11-25 20:01:06,138 finpred.run_daily INFO 開始傍晚打分：Phase 2，t = 2026-11-25，--sync（執行代號 a54eb5bb）
+2026-11-25 20:01:06,138 finpred.run_daily WARNING git pull 第 3 次才成功
+2026-11-25 20:01:06,577 finpred.run_daily INFO 傍晚已經打過 2026-11-25 的分數，不重做
+2026-11-25 20:01:06,579 finpred.run_daily INFO 結束：done_before

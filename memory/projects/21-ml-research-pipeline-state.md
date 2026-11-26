@@ -23,17 +23,18 @@
 - Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～33` 加上沒輸出的 RP 05 舊版共 34 本，都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認）。之後每本跑完就加。
 - Kaggle slug 和資料夾名不同的四本：`rp-05-inst-flow-and-state-calibration-c2v2d`、`rp-07-rich-online-adapter-and-bounce-soft-tail`、`rp-11-inst-reg-and-smooth-ov-stress`、`rp-22-trdl-asymmetric-weights-and-gap-ema`（Kaggle 用標題產生 slug）。另有一本沒有輸出的 `rp-05-institutional-flow-and-state-shrinkage-c2v2d`。
 
-`RP 33`（`modelnovice/rp-33-hmm-kalman-market-count`，HMM 和卡爾曼濾波決定檔數；登記在 `22` 最後一節）：
+`RP 34`（`modelnovice/rp-34-path-signature-features`，路徑簽名當選股特徵；登記在 `22` 最後一節）：
 
 | Stage | 角色 | 狀態 | 備註 |
 |---|---|---|---|
 | Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-26 照使用者選的路線圖；Kaggle CLI 照舊 |
-| Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 2026-11-26 登記寫進 `22`；Hamilton 1989、Rabiner 1989 已查證，Kalman 1960 附 DOI |
-| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | v1 `COMPLETE` 110.42 秒；產生器 `gen_rp33.py`，ast、pyflakes 通過 |
-| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PASS` | v2 `COMPLETE` 262.91 秒 |
-| Stage 5 Independent Verification | `independent-verifier` | `PASS` | 誤差 `1.4e-14`；檔數重算差 0；閘門 p 本機 0.091、notebook 0.0877；正式程式雜湊不變 |
-| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`；collection ｜17 已加入並確認；`daily_rp33.csv` sha256 `2a27a26cdbeed42f` |
+| Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 2026-11-26 登記寫進 `22`，跑 smoke 前單獨 commit；arXiv:1603.03788 已查證 |
+| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PENDING` | 產生器 `gen_rp34.py`；ast、pyflakes 通過 |
+| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PENDING` |  |
+| Stage 5 Independent Verification | `independent-verifier` | `PENDING` |  |
+| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PENDING` |  |
 
+`RP 33` 各 Stage 都 `PASS`（smoke 110.42 秒、full 262.91 秒；閘門 p = 0.0877，沒過；`daily_rp33.csv` sha256 `2a27a26cdbeed42f`）。
 `RP 32` 各 Stage 都 `PASS`（smoke 87.31 秒、full 122.39 秒；閘門 p = 0.0841，沒過；`daily_rp32.csv` sha256 `44c59f4cc3b408e9`）。
 `RP 31` 各 Stage 都 `PASS`（smoke 72.64 秒、full 216.16 秒；閘門 p = 0.0825，沒過）。
 `RP 30` 各 Stage 都 `PASS`（smoke v1 失敗後 v2 通過，full v3 8.47 秒）。

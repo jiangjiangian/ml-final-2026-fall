@@ -10,5 +10,9 @@
  ],
  "site_id": "a8febe4b-faff-4152-a1c2-296745f1e0c2",
  "sha256": "8c01729f5d9a584b2e160122c2b2fb75607294004a4b4e580ae4f56db20a694e",
- "redo": 0
+ "redo": 1,
+ "redo_time": "2026-11-27T07:25:06+08:00",
+ "last_reasons": [
+  "用了備援 c2（c2v2d 的備援）"
+ ]
 }

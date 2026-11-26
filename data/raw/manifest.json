@@ -1,6 +1,6 @@
 {
   "run": {
-    "started_at": "2026-11-27T07:11:06+08:00",
+    "started_at": "2026-11-27T07:25:06+08:00",
     "target_date": "2026-11-27",
     "mode": "daily",
     "status": "ok",
@@ -17,7 +17,7 @@
       "gold",
       "kospi"
     ],
-    "finished_at": "2026-11-27T07:13:54+08:00",
+    "finished_at": "2026-11-27T07:27:39+08:00",
     "yahoo_requests": 34,
     "yahoo_redirects": 0,
     "site_requests": 6,
@@ -81,7 +81,7 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "7942b42c7057f774c00a2748b7cdd4403e41ed1643127f064fc4ab23cffc3028",
+      "sha256": "408d8b8e780e9ad4cbe76dc249678b945fd29338421f52d494b22590c3206ccf",
       "has_bar_i": false
     },
     "nvda": {
@@ -97,7 +97,7 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "b4a995339d2e2576b26d45bf5b29417a70329e67ee7b56664ac3639d4a693101",
+      "sha256": "4a1d8cb19941ba0b5ff6766727f7a877f0ae7b3906d4adc6d6ffe0f792a8444f",
       "has_bar_i": false
     },
     "usd_twd": {
@@ -129,7 +129,7 @@
       },
       "rows": 1738,
       "date_max": "2026-11-26",
-      "sha256": "f16738e1e662afd981247e9281a35783e55a626a05da22d7a400e452160f2873",
+      "sha256": "45af1c3dff967c3996f340866d66a89ce87d8102a6082dec0d2ec4eee1fb322a",
       "has_bar_i": true
     },
     "us10y": {
@@ -177,7 +177,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "eec5f400b8ebb78f8c425736c1e3d50f688632c4277148e95809b0b017005bda",
+      "sha256": "dc7d8d225a2d9840e9ad3885029080080b6bafa718b9c3e533eb3e67bd402ce3",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -193,7 +193,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "79164b6c6f254fce119974d1eee63ddf6a5629580b8887b48c134053bbcad4d4",
+      "sha256": "24a86e9934968faa7279638ca072dd136193c24649e7906fe664589830985f4b",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -209,7 +209,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "1bd8719129093b5c4ea7367b02c224ac818bedec0612eca95b256ef0c3f4c8a6",
+      "sha256": "d2830e74868b2506a5df019c52caa3c327dbd1923d57c69744aaeb184a5c2af8",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -225,7 +225,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "d6bb35e2d67501ee2e65d40c670c61573eaf4accdc00a4f8a77c3faa695d691f",
+      "sha256": "6501b8c2a0419b7c3c07d76deb83d9d67999c41340fd9f11c9061bf7729912f2",
       "has_bar_i": true
     },
     "dji": {
@@ -397,8 +397,8 @@
       "attempts": 1,
       "error": null,
       "status": "ok",
-      "fetched_rows": 139,
-      "start": "2026-11-19",
+      "fetched_rows": 115,
+      "start": "2026-11-20",
       "rows": 17014,
       "first": "2024-01-22T08:00:00+08:00",
       "last": "2026-11-27T05:00:00+08:00",
@@ -429,7 +429,7 @@
     "status": "ok",
     "requests": 1,
     "error": null,
-    "start": "2026-11-19",
+    "start": "2026-11-20",
     "dropped": {
       "day_on_or_after_t": 0,
       "night_after_t": 0,
@@ -452,9 +452,7 @@
     ],
     "missing_months": [],
     "failed_months": {},
-    "new_dates": [
-      "2026-11-26"
-    ],
+    "new_dates": [],
     "changed_dates": [],
     "vanished_dates": [],
     "rows": 79,
@@ -502,8 +500,8 @@
       "2026-11-13"
     ],
     "requests": {
-      "twse": 2,
-      "tpex": 2
+      "twse": 0,
+      "tpex": 0
     },
     "sources": {
       "twse_valuation": {
@@ -511,12 +509,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-26"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-26",
@@ -527,12 +523,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-26"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-26",
@@ -543,12 +537,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-26"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-26",
@@ -559,12 +551,10 @@
         "ran": true,
         "has_prev_day": true,
         "missing_dates": [],
-        "new_dates": [
-          "2026-11-26"
-        ],
+        "new_dates": [],
         "no_data": {},
         "failures": [],
-        "requests": 1,
+        "requests": 0,
         "blocked": false,
         "stopped": null,
         "last_date": "2026-11-26",

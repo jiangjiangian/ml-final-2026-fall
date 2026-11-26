@@ -1,6 +1,6 @@
 {
   "run": {
-    "started_at": "2026-11-27T07:25:06+08:00",
+    "started_at": "2026-11-27T07:40:05+08:00",
     "target_date": "2026-11-27",
     "mode": "daily",
     "status": "ok",
@@ -17,7 +17,7 @@
       "gold",
       "kospi"
     ],
-    "finished_at": "2026-11-27T07:27:39+08:00",
+    "finished_at": "2026-11-27T07:42:37+08:00",
     "yahoo_requests": 34,
     "yahoo_redirects": 0,
     "site_requests": 6,
@@ -81,7 +81,7 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "408d8b8e780e9ad4cbe76dc249678b945fd29338421f52d494b22590c3206ccf",
+      "sha256": "630c3ef9052da7105b4fcced335d0e904b25b079110abdf2b216cd2fc8481ae0",
       "has_bar_i": false
     },
     "nvda": {
@@ -97,7 +97,7 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "4a1d8cb19941ba0b5ff6766727f7a877f0ae7b3906d4adc6d6ffe0f792a8444f",
+      "sha256": "74abcd4a8f61c6d29a992a1251addcea2eb08694cdce5fc003dc1582f01b6c3b",
       "has_bar_i": false
     },
     "usd_twd": {
@@ -177,7 +177,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "dc7d8d225a2d9840e9ad3885029080080b6bafa718b9c3e533eb3e67bd402ce3",
+      "sha256": "fab7348a7eb3c9ac800baf49d2fb71bcc892ca062b239abd8b782a04216e4564",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -193,7 +193,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "24a86e9934968faa7279638ca072dd136193c24649e7906fe664589830985f4b",
+      "sha256": "e7368bc0b284795a15b5abe4cfc741ca9e762c4dd88427f4ef67eb275bcc29e1",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -209,7 +209,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "d2830e74868b2506a5df019c52caa3c327dbd1923d57c69744aaeb184a5c2af8",
+      "sha256": "72c2afd9acf1b2a6d3a843b28d00abf7f481a7d247d583bdab01cb4ae448abe9",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -225,7 +225,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "6501b8c2a0419b7c3c07d76deb83d9d67999c41340fd9f11c9061bf7729912f2",
+      "sha256": "cc6bdfa92c95007348af591991079e1f42832a6b33fb94f7ea4aaef8d0e39860",
       "has_bar_i": true
     },
     "dji": {
@@ -464,19 +464,42 @@
     "sha256": "0b35c807c2518ec527763f42563e71388c3f34a9e6b4d33b3cb820785f061dde"
   },
   "cnn": {
-    "status": "failed",
-    "error": "/index/fearandgreed/graphdata/2026-10-28：連線失敗（ConnectionError）",
+    "status": "ok",
+    "error": null,
     "file": "cnn/fear_greed.csv",
     "requests": 1,
     "start": "2026-10-28",
-    "cache": null,
-    "rows": 1459,
-    "last_dates": [
-      "2026-11-19",
+    "cache": {
+      "Age": "3907",
+      "X-Cache": "HIT, HIT"
+    },
+    "now": {
+      "score": 14.9967450271248,
+      "previous_close": 15.2253164556962,
+      "timestamp": "2026-11-26T01:59:59+00:00"
+    },
+    "dropped": {
+      "not_daily": 1,
+      "on_or_after_t": 0,
+      "before_start": 0
+    },
+    "new_dates": [
+      "2026-11-23",
+      "2026-11-24",
+      "2026-11-25",
+      "2026-11-26"
+    ],
+    "changed_dates": [
       "2026-11-20"
     ],
+    "vanished_dates": [],
+    "rows": 1463,
+    "last_dates": [
+      "2026-11-25",
+      "2026-11-26"
+    ],
     "has_prev_day": null,
-    "sha256": "4cbd39b4b954257281e60757b245299e5dcc8ce6b3abd79a0a16f1c7721dcaa8"
+    "sha256": "b3ea065115ab1087cc80eeadf3c7b0c299b0e1dc046fb57f53b85309b7d58772"
   },
   "exchange": {
     "status": "ok",

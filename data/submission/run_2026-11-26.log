@@ -68,3 +68,14 @@
 2026-11-26 08:05:06,311 finpred.run_daily INFO 結束：already_submitted
 2026-11-26 08:05:06,713 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-26 08:05:06,713 finpred.run_daily INFO 合併原始資料 完成（0 秒）
+2026-11-26 08:25:05,979 finpred.run_daily INFO 開始：Phase 2，t = 2026-11-26，--sync（執行代號 c1f42d74）
+2026-11-26 08:25:06,269 finpred.run_daily INFO 網站上已經有這次的提交（submission_2026-11-26.csv，2026-11-25T23:21:10.901Z 交），不上傳
+2026-11-26 08:25:06,270 finpred.run_daily INFO 2026-11-26 的資料之前已經爬過，不重爬
+2026-11-26 08:25:06,271 finpred.run_daily INFO 影子跑：data/submission/shadow_2026-11-26.csv 已經有了，不重算
+2026-11-26 08:25:06,272 finpred.run_daily INFO 結束：already_submitted
+2026-11-26 08:25:12,502 finpred.run_daily INFO 當天開盤：{'kospi': 'ok', 'n225': 'ok'}
+2026-11-26 08:25:24,056 finpred.features WARNING t 那列的 ['fear_greed_lag1', 'fear_greed_chg_lag1'] 空白（只進長表的欄，原因見 fear_greed_values、vixtwn_values）
+2026-11-26 08:25:25,769 finpred.features INFO 特徵表：167600 列、1676 天，最後一天 2026-11-26；寫了 ['2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 26, 'empty_close': 7, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-26 08:25:26,043 finpred.run_daily INFO 特徵（補上當天開盤） 完成（14 秒）
+2026-11-26 08:25:26,389 finpred.merge_raw INFO 合併表：來源沒變，不重算
+2026-11-26 08:25:26,389 finpred.run_daily INFO 合併原始資料 完成（0 秒）

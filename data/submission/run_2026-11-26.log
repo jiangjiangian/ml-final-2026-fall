@@ -79,3 +79,8 @@
 2026-11-26 08:25:26,043 finpred.run_daily INFO 特徵（補上當天開盤） 完成（14 秒）
 2026-11-26 08:25:26,389 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-26 08:25:26,389 finpred.run_daily INFO 合併原始資料 完成（0 秒）
+2026-11-26 16:11:06,060 finpred.run_daily INFO 開始傍晚打分：Phase 2，t = 2026-11-26，--sync（執行代號 95521eaa）
+2026-11-26 16:11:06,061 finpred.run_daily WARNING git pull 第 3 次才成功
+2026-11-26 16:11:06,642 finpred.run_daily WARNING Live 140.112.31.182:8444 出錯（/login：連線失敗（ConnectionError）），改用 fin-pred-daily.jiangxuehaokeai.chatgpt.site
+2026-11-26 16:11:06,855 finpred.run_daily WARNING 老師 Live 下載失敗（140.112.31.182:8444：/login：連線失敗（ConnectionError）；fin-pred-daily.jiangxuehaokeai.chatgpt.site：/login：連線失敗（ConnectionError））：這次不打分，下一次排程再試
+2026-11-26 16:11:06,857 finpred.run_daily INFO 結束：no_answer_yet

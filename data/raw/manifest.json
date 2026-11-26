@@ -1,18 +1,26 @@
 {
   "run": {
-    "started_at": "2026-11-26T07:11:06+08:00",
-    "target_date": "2026-11-26",
+    "started_at": "2026-11-27T07:11:06+08:00",
+    "target_date": "2026-11-27",
     "mode": "daily",
     "status": "ok",
-    "prev_day": "2026-11-25",
+    "prev_day": "2026-11-26",
     "no_bar_i": [
+      "sox",
+      "tsm_adr",
+      "nvda",
+      "us10y",
+      "us13w",
+      "dji",
       "stoxx50e",
+      "wti",
+      "gold",
       "kospi"
     ],
-    "finished_at": "2026-11-26T07:19:35+08:00",
-    "yahoo_requests": 26,
+    "finished_at": "2026-11-27T07:13:54+08:00",
+    "yahoo_requests": 34,
     "yahoo_redirects": 0,
-    "site_requests": 10,
+    "site_requests": 6,
     "taifex_requests": 1
   },
   "teacher": {
@@ -24,36 +32,31 @@
   "phase2_days": {
     "status": "ok",
     "file": "phase2_days.json",
-    "days": 32
+    "days": 33
   },
   "teacher_live": {
     "status": "ok",
     "source": "fin-pred-daily.jiangxuehaokeai.chatgpt.site/data.zip",
-    "attempts": 3,
-    "error": null,
+    "attempts": 1,
     "fallback_from": [
       "140.112.31.182:8444：/login：連線失敗（ConnectionError）"
     ],
-    "zip_sha256": "b41e088a5d3c6b9a63085a2184c6a634e7752e310fe36db9dfe3c3f880024236",
-    "files_sha256": "63565309f35bd3ea2638ec72b28104b4d3e2a6f7ef17dd34e222dec1a151d567",
-    "date_max": "2026-11-26",
+    "error": null,
+    "zip_sha256": "6f70ed218d458219c203764fa41899414b22ad0818980bd231b04c98c095dca5",
+    "files_sha256": "542c2c8e33c046f5e552ddfbea495709c3dffb3447303bdd79ce643f5cbb2d9a",
+    "date_max": "2026-11-27",
     "has_t_row": true,
-    "prev_day": "2026-11-25",
-    "prev_day_planned": "2026-11-25",
+    "prev_day": "2026-11-26",
+    "prev_day_planned": "2026-11-26",
     "prev_day_never_filled": false,
-    "prev_day_missing_stocks": [],
-    "evening_refresh": {
-      "t": "2026-11-26",
-      "time": "2026-11-26 20:01",
-      "source": "fin-pred-daily.jiangxuehaokeai.chatgpt.site/data.zip"
-    }
+    "prev_day_missing_stocks": []
   },
   "yfinance": {
     "sox": {
       "ticker": "^SOX",
       "status": "ok",
       "file": "yfinance/sox.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
@@ -62,14 +65,14 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "e88d69ac6998c54d92bf48020cbf684c64cf2f084686e64568de65235a564d19",
-      "has_bar_i": true
+      "sha256": "8aa44d461c89775d23d9213a7dcd189cfb28d0562b2bf766bdf203454dcc6870",
+      "has_bar_i": false
     },
     "tsm_adr": {
       "ticker": "TSM",
       "status": "ok",
       "file": "yfinance/tsm_adr.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
@@ -78,14 +81,14 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "54239f1ddb693b6467b3bacecf4ea85289a16e0777e9dd640da67e98574b1aca",
-      "has_bar_i": true
+      "sha256": "7942b42c7057f774c00a2748b7cdd4403e41ed1643127f064fc4ab23cffc3028",
+      "has_bar_i": false
     },
     "nvda": {
       "ticker": "NVDA",
       "status": "ok",
       "file": "yfinance/nvda.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
@@ -94,8 +97,8 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "08deca42549ba3690f467d93da737e54ba693ecbc0e23d2ff7947e636f5c51d9",
-      "has_bar_i": true
+      "sha256": "b4a995339d2e2576b26d45bf5b29417a70329e67ee7b56664ac3639d4a693101",
+      "has_bar_i": false
     },
     "usd_twd": {
       "ticker": "TWD=X",
@@ -108,9 +111,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1796,
-      "date_max": "2026-11-25",
-      "sha256": "e9741f6a5c9f87f2499904adf16b762afacd44bf6549a7ae2301c38795886e2a",
+      "rows": 1797,
+      "date_max": "2026-11-26",
+      "sha256": "c3a4e6ca52634e1408a24cf167115bfd3e3889ed26481d68fa8de47ec84c9725",
       "has_bar_i": true
     },
     "dxy": {
@@ -124,16 +127,16 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1737,
-      "date_max": "2026-11-25",
-      "sha256": "9a0b3b13782ea732230fb5eea70b44a2e08b222702a497983f8470d3d6fae87e",
+      "rows": 1738,
+      "date_max": "2026-11-26",
+      "sha256": "f16738e1e662afd981247e9281a35783e55a626a05da22d7a400e452160f2873",
       "has_bar_i": true
     },
     "us10y": {
       "ticker": "^TNX",
       "status": "ok",
       "file": "yfinance/us10y.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
@@ -142,14 +145,14 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "1f6b666f3a65f2d45f982d5eea7fd2a77ecde1f4f13d06d63f3c0258c51ae058",
-      "has_bar_i": true
+      "sha256": "5aab0be5a62b0350470f1eda8cd39172a3f2e5b2632a42e09a80b5dbfb64cff1",
+      "has_bar_i": false
     },
     "us13w": {
       "ticker": "^IRX",
       "status": "ok",
       "file": "yfinance/us13w.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
@@ -158,8 +161,8 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "75853ba9260fd1fc133480846e3f7434133110ce5b3dab46e03357eb18076503",
-      "has_bar_i": true
+      "sha256": "04073abf54c6c6853cb0184ede48ed792650e2b149dee3f4e1f4c9bd334758ad",
+      "has_bar_i": false
     },
     "etf_0050": {
       "ticker": "0050.TW",
@@ -172,9 +175,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1675,
-      "date_max": "2026-11-25",
-      "sha256": "2e1323e86aa2398141162124c02988e01ede047b226c4c13b9ce9f93fc114e83",
+      "rows": 1676,
+      "date_max": "2026-11-26",
+      "sha256": "eec5f400b8ebb78f8c425736c1e3d50f688632c4277148e95809b0b017005bda",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -188,9 +191,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1675,
-      "date_max": "2026-11-25",
-      "sha256": "61a6902ae05a9dd2843fa6c177f433b33dff6ee54d694644728fecb000b7765c",
+      "rows": 1676,
+      "date_max": "2026-11-26",
+      "sha256": "79164b6c6f254fce119974d1eee63ddf6a5629580b8887b48c134053bbcad4d4",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -204,9 +207,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1675,
-      "date_max": "2026-11-25",
-      "sha256": "79323a04ec3d51f659f313f82f54de7deffed63708c06ab290e062e0d7712393",
+      "rows": 1676,
+      "date_max": "2026-11-26",
+      "sha256": "1bd8719129093b5c4ea7367b02c224ac818bedec0612eca95b256ef0c3f4c8a6",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -220,16 +223,16 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1675,
-      "date_max": "2026-11-25",
-      "sha256": "dcaa46918c44c4cc655089cba3106564b4a897f987f916b93efca0952a81c031",
+      "rows": 1676,
+      "date_max": "2026-11-26",
+      "sha256": "d6bb35e2d67501ee2e65d40c670c61573eaf4accdc00a4f8a77c3faa695d691f",
       "has_bar_i": true
     },
     "dji": {
       "ticker": "^DJI",
       "status": "ok",
       "file": "yfinance/dji.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
@@ -238,8 +241,8 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "15f921d5ca6eea4bd991d8e6891299bb39ed300de87c1d6c4a97e56963603623",
-      "has_bar_i": true
+      "sha256": "aa35f5bba90bdb5f1e27aaffec5efd5443338998bc9624ec8a381ce048b46e5d",
+      "has_bar_i": false
     },
     "n225": {
       "ticker": "^N225",
@@ -252,9 +255,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1682,
-      "date_max": "2026-11-25",
-      "sha256": "d4c79d00f8200e8368fa0530fe308054ff24f9e950dac7e6458626bcfcbb1438",
+      "rows": 1683,
+      "date_max": "2026-11-26",
+      "sha256": "02b5bc6cc60482093c68bb89b474922c207260c2b01bfce3e732ea535dc9cc3f",
       "has_bar_i": true
     },
     "hsi": {
@@ -268,9 +271,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1698,
-      "date_max": "2026-11-25",
-      "sha256": "97dcb7626fd8972bbf91b264bc4f1ae82082e2d31f1ae0e0e6e9117697b84b02",
+      "rows": 1699,
+      "date_max": "2026-11-26",
+      "sha256": "644b06f2f9b01a2a67b3ee1cdfd7d364ec88269bd89b78ab0254a2a7d21c7dfd",
       "has_bar_i": true
     },
     "sse": {
@@ -284,9 +287,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1671,
-      "date_max": "2026-11-25",
-      "sha256": "93610c0085173d546857ebc160e081eac4e865296b510d4db35ab5783dd40572",
+      "rows": 1672,
+      "date_max": "2026-11-26",
+      "sha256": "7e31e3c25ae91114381fa12034bb0a66eedfc286d4a5a9b2ae8063fd6347bc73",
       "has_bar_i": true
     },
     "stoxx50e": {
@@ -300,9 +303,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1737,
-      "date_max": "2026-11-24",
-      "sha256": "ea4fa5f7036764e35b04a576d6215d611a63e286da7775341b7a05a0dc1a7bb6",
+      "rows": 1738,
+      "date_max": "2026-11-25",
+      "sha256": "d666e4c209eaf7bf8d3376c46c52754424f71f7094fedca239035889a226ca33",
       "has_bar_i": false
     },
     "gdaxi": {
@@ -316,44 +319,44 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1759,
-      "date_max": "2026-11-25",
-      "sha256": "f5ecbe547293fe27c2a38865074dc01c5a48ceec30d5d3c42c45be04ce9cb013",
+      "rows": 1760,
+      "date_max": "2026-11-26",
+      "sha256": "2e72afa2b7d81b582bb118adfb195ad9e63cc2aed41d7bffaf89c30cf3abcbfc",
       "has_bar_i": true
     },
     "wti": {
       "ticker": "CL=F",
       "status": "ok",
       "file": "yfinance/wti.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
         "weekend": 0,
-        "low_volume_last_bar_kept": true
+        "low_volume_last_bar_kept": false
       },
       "rows": 1737,
       "date_max": "2026-11-25",
-      "sha256": "d62d257afc8de3fda0671920b098738823620f9e51de5205a5fbbcf8e608b66d",
-      "end": "2026-11-25T17:30:00-05:00",
-      "has_bar_i": true
+      "sha256": "b3e6065ef81115890c38a89085be74d206d673bddf73c2e92c2a997fe03f0a97",
+      "end": "2026-11-26T17:30:00-05:00",
+      "has_bar_i": false
     },
     "gold": {
       "ticker": "GC=F",
       "status": "ok",
       "file": "yfinance/gold.csv",
-      "attempts": 1,
+      "attempts": 2,
       "error": null,
       "dropped": {
         "on_or_after_t": 0,
         "weekend": 0,
-        "low_volume_last_bar_kept": true
+        "low_volume_last_bar_kept": false
       },
       "rows": 1738,
       "date_max": "2026-11-25",
-      "sha256": "ae8fe61eace2f28f535fa6fa1b8c2d7d70d74e7d4e6208c06244a91677b80006",
-      "end": "2026-11-25T17:30:00-05:00",
-      "has_bar_i": true
+      "sha256": "d05ea826bab7aac4c19fcf3623ac52bdaaebe48093d9e153aa2b5a31bb5eef8b",
+      "end": "2026-11-26T17:30:00-05:00",
+      "has_bar_i": false
     },
     "vix": {
       "ticker": "^VIX",
@@ -366,9 +369,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1737,
-      "date_max": "2026-11-25",
-      "sha256": "92ebbc17a7846a3f87065334b9230a4712c026dc019e6f385b5377545130194d",
+      "rows": 1738,
+      "date_max": "2026-11-26",
+      "sha256": "c6dc7a3fcccbe07068edd8c75670d71365838f886d3f44120ba2a2d3daab8736",
       "has_bar_i": true
     },
     "kospi": {
@@ -382,9 +385,9 @@
         "weekend": 0,
         "low_volume_last_bar_kept": false
       },
-      "rows": 1690,
-      "date_max": "2026-11-24",
-      "sha256": "28dd4cd874d50b7f2fe8b02741854bd3ccab62296ddba0fc33a4f22f4e8b6687",
+      "rows": 1691,
+      "date_max": "2026-11-25",
+      "sha256": "0cc28ac14f427d5ae49ae3835a2ac5e0574cf3aa7abeb8f5c1dd353ed09d3c0f",
       "has_bar_i": false
     },
     "usd_twd_1h": {
@@ -395,11 +398,11 @@
       "error": null,
       "status": "ok",
       "fetched_rows": 139,
-      "start": "2026-11-18",
-      "rows": 16990,
+      "start": "2026-11-19",
+      "rows": 17014,
       "first": "2024-01-22T08:00:00+08:00",
-      "last": "2026-11-26T05:00:00+08:00",
-      "sha256": "15633ece8aa06d3aefdf5473fc7abe6027bded1c8c96a83b5ed5d04454399671",
+      "last": "2026-11-27T05:00:00+08:00",
+      "sha256": "65c29436eb714ee95e94730e6339767b866f8b5faae393861684145839e3014f",
       "has_value_t": true
     }
   },
@@ -417,7 +420,7 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "c586a99dd2448c47bfe23bbc57091cd14ec61ed2e571e02004e369d015602eab"
+      "sha256": "9ceb2ce9a8b0f64a37623a46757b27998074238014e02fdf98e235024af9e5de"
     }
   },
   "taifex": {
@@ -426,16 +429,16 @@
     "status": "ok",
     "requests": 1,
     "error": null,
-    "start": "2026-11-18",
+    "start": "2026-11-19",
     "dropped": {
       "day_on_or_after_t": 0,
       "night_after_t": 0,
       "night_t_not_ready": 0
     },
     "kept_previous_file": false,
-    "rows": 20023,
-    "date_max": "2026-11-26",
-    "sha256": "4344b0911b579609b3e8b151c30444ac0512b5992558f85ce4152f3687bc71bf",
+    "rows": 20035,
+    "date_max": "2026-11-27",
+    "sha256": "0b998b7d34cefaf52006281733e6c26d286cde762d7097b5b4bdc0781306213f",
     "has_day_i": true,
     "has_night_t": true
   },
@@ -450,24 +453,24 @@
     "missing_months": [],
     "failed_months": {},
     "new_dates": [
-      "2026-11-25"
+      "2026-11-26"
     ],
     "changed_dates": [],
     "vanished_dates": [],
-    "rows": 78,
+    "rows": 79,
     "last_dates": [
-      "2026-11-24",
-      "2026-11-25"
+      "2026-11-25",
+      "2026-11-26"
     ],
     "has_prev_day": true,
-    "sha256": "787027cb862263b2a493de3496c4ef4b23ff1466d3aabbf3e16cde9bf8cb0a5d"
+    "sha256": "0b35c807c2518ec527763f42563e71388c3f34a9e6b4d33b3cb820785f061dde"
   },
   "cnn": {
     "status": "failed",
-    "error": "/index/fearandgreed/graphdata/2026-10-27：連線失敗（ConnectionError）",
+    "error": "/index/fearandgreed/graphdata/2026-10-28：連線失敗（ConnectionError）",
     "file": "cnn/fear_greed.csv",
     "requests": 1,
-    "start": "2026-10-27",
+    "start": "2026-10-28",
     "cache": null,
     "rows": 1459,
     "last_dates": [
@@ -480,13 +483,14 @@
   "exchange": {
     "status": "ok",
     "error": null,
-    "prev_day": "2026-11-25",
+    "prev_day": "2026-11-26",
     "markets": [
       "twse",
       "tpex"
     ],
     "locked": [],
     "dates": [
+      "2026-11-26",
       "2026-11-25",
       "2026-11-24",
       "2026-11-23",
@@ -495,8 +499,7 @@
       "2026-11-18",
       "2026-11-17",
       "2026-11-16",
-      "2026-11-13",
-      "2026-11-12"
+      "2026-11-13"
     ],
     "requests": {
       "twse": 2,
@@ -509,15 +512,15 @@
         "has_prev_day": true,
         "missing_dates": [],
         "new_dates": [
-          "2026-11-25"
+          "2026-11-26"
         ],
         "no_data": {},
         "failures": [],
         "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-25",
-        "sha256": "9364f642faffa2381b18f37a2d49633aeb0126a5c8ff3b3338bfdc00a816fba5"
+        "last_date": "2026-11-26",
+        "sha256": "f849c1cacb8519ad25d95b6628b7522876088a8fe1e29f73b5bee0e676dafc56"
       },
       "twse_quotes": {
         "file": "twse/quotes.csv",
@@ -525,15 +528,15 @@
         "has_prev_day": true,
         "missing_dates": [],
         "new_dates": [
-          "2026-11-25"
+          "2026-11-26"
         ],
         "no_data": {},
         "failures": [],
         "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-25",
-        "sha256": "b5cb3cabe386439cf9e9b66d65c282451023d996df50e5b4cc0dcd61f453c563"
+        "last_date": "2026-11-26",
+        "sha256": "b5aa874f14581dbf9e8e9dfca37e3303f3b0958bc063c6e0a399ef9a4d67137c"
       },
       "tpex_valuation": {
         "file": "tpex/valuation.csv",
@@ -541,15 +544,15 @@
         "has_prev_day": true,
         "missing_dates": [],
         "new_dates": [
-          "2026-11-25"
+          "2026-11-26"
         ],
         "no_data": {},
         "failures": [],
         "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-25",
-        "sha256": "7436ed0b91df7c9d8551bd4dfa233bddd3609c3ca10b36266878b2c8f64985c6"
+        "last_date": "2026-11-26",
+        "sha256": "c03555f021a3c8c2adb849b8a5b416b76051322fd2594a4f14d30b45cacfa2a0"
       },
       "tpex_quotes": {
         "file": "tpex/quotes.csv",
@@ -557,41 +560,16 @@
         "has_prev_day": true,
         "missing_dates": [],
         "new_dates": [
-          "2026-11-25"
+          "2026-11-26"
         ],
         "no_data": {},
         "failures": [],
         "requests": 1,
         "blocked": false,
         "stopped": null,
-        "last_date": "2026-11-25",
-        "sha256": "2cb42969b2b5880c665c11324a8743e0e8675350d5ed130b30acab9f93ae49a7"
+        "last_date": "2026-11-26",
+        "sha256": "cb67c59f8b4f7ad658b6915c48423ff0c10d91b27fa8b9b4f7683e099068b1f8"
       }
     }
-  },
-  "open_today": {
-    "status": "ok",
-    "started_at": "2026-11-26T08:25:06+08:00",
-    "written": [
-      "kospi",
-      "n225"
-    ],
-    "series": {
-      "kospi": {
-        "status": "ok",
-        "attempts": 1,
-        "first_bar": "2026-11-26T09:00+09:00",
-        "open": 4745.10009765625,
-        "prev_close": 4697.51
-      },
-      "n225": {
-        "status": "ok",
-        "attempts": 1,
-        "first_bar": "2026-11-26T09:00+09:00",
-        "open": 57429.5390625,
-        "prev_close": 57011.62
-      }
-    },
-    "finished_at": "2026-11-26T08:25:12+08:00"
   }
 }

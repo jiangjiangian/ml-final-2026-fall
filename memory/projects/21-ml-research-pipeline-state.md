@@ -20,17 +20,22 @@
 - N1 核對（2026-11-26）：遠端 `6feb1dd` 就是 N1 影子跑的 commit；`RP 01` 查到「本機沒有 N1」是因為本機 checkout 停在 `f02b89d`，落後遠端 40 個 commit。
 - Kaggle 途徑：claude.ai Kaggle 連接器回 `Unauthenticated`，`authorize` 300 秒沒回應。使用者 2026-11-26 決定這次接手改用 Kaggle 官方 CLI（`.venv/bin/kaggle`，帳號 `modelnovice`），走 repo 原本的 `notebooks/kaggle/push_all.sh --dir 2026-11-23_v1_research-pipeline --only <slug> [--smoke]`。這是交接規則「MCP 不能用就停」的例外，只限這次接手。
 - 下一輪：使用者 2026-11-26 決定 `RP 30` 先做資料窺探校正，Antigravity 的 `RP 30～35` 路線圖（PCA 殘差、低秩 VAR、HMM、路徑簽名、小型深度學習、決策導向學習）往後排，編號順延。
-- 目標 Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（還沒建立；`RP 01～RP 29` 都還沒收錄）。
+- Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～31` 加上沒輸出的 RP 05 舊版共 32 本，都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認）。之後每本跑完就加。
 - Kaggle slug 和資料夾名不同的四本：`rp-05-inst-flow-and-state-calibration-c2v2d`、`rp-07-rich-online-adapter-and-bounce-soft-tail`、`rp-11-inst-reg-and-smooth-ov-stress`、`rp-22-trdl-asymmetric-weights-and-gap-ema`（Kaggle 用標題產生 slug）。另有一本沒有輸出的 `rp-05-institutional-flow-and-state-shrinkage-c2v2d`。
+
+`RP 32`（`modelnovice/rp-32-reduced-rank-var-lead-lag`，低秩向量自迴歸；登記在 `22` 最後一節）：
 
 | Stage | 角色 | 狀態 | 備註 |
 |---|---|---|---|
-| Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-26 使用者同意用 Kaggle CLI |
-| Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 2026-11-26 登記寫進 `22`；五篇方法文獻的 DOI 已查證；29 個輸入檔 sha256 寫死在 notebook |
-| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | v1 失敗（基準逐位相同的檢查太嚴，pandas 差 1 ulp），v2 改成 `1e-12` 後 `COMPLETE` 5.14 秒 |
-| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PASS` | v3 `COMPLETE` 8.47 秒 |
-| Stage 5 Independent Verification | `independent-verifier` | `PASS` | 本機重建 93 個候選，誤差 `1.8e-15`；另一套 bootstrap 得 `SPA_c` 0.080（notebook 0.0796）；正式程式 diff 雜湊不變 |
-| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`，`output/` 已刪；Kaggle collection 還沒建 |
+| Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-26 照使用者選的路線圖；Kaggle CLI 照舊 |
+| Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 2026-11-26 登記寫進 `22`；Izenman 1975 DOI 已查證，Lo-MacKinlay 1990 附作者頁 |
+| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | v1 `COMPLETE` 87.31 秒 |
+| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PASS` | v2 `COMPLETE` 122.39 秒（CLI 送出後卡住，手動結束程序） |
+| Stage 5 Independent Verification | `independent-verifier` | `PASS` | 誤差 `1.9e-14`；閘門 p 本機 0.086、notebook 0.0841；正式程式雜湊不變 |
+| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`；collection ｜17 已加入並確認；`daily_rp32.csv` sha256 `44c59f4cc3b408e9` |
+
+`RP 31` 各 Stage 都 `PASS`（smoke 72.64 秒、full 216.16 秒；閘門 p = 0.0825，沒過）。
+`RP 30` 各 Stage 都 `PASS`（smoke v1 失敗後 v2 通過，full v3 8.47 秒）。
 
 `RP 30` 結論：`SPA_c` p = 0.0796，沒有候選確定勝過 `c2v2d`；照登記，`RP 01～29` 不提議影子跑，`c2v2d` 主幹上疊小修正的路線停止。下一輪（`RP 31`）要先定新的評估方式，等使用者選方向。
 

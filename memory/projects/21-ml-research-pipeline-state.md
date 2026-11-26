@@ -13,27 +13,28 @@
 ## 當前階段與檢查點
 
 - `RP 29` 全部 `PASS`（2026-11-26）：smoke v1 74.16 秒、full v2 81.01 秒 `COMPLETE`，獨立重算誤差 `< 3.5e-14`，結果記在 `22-ml-research-pipeline.md`，`output/` 已刪。
-- 目標實驗：`RP 31`（2026-11-26 開始登記）。`RP 30`（`modelnovice/rp-30-data-snooping-spa-stepm`）已全部 `PASS`，不要重跑。
+- 目標實驗：`RP 34`（路徑簽名，2026-11-26 開始登記）。`RP 30～33` 已全部 `PASS`，不要重跑。
 - 使用者 2026-11-26 對 `RP 31` 起的決定（選擇題）：照 Antigravity 的路線圖探索新架構（PCA 殘差、低秩 VAR、HMM／卡爾曼、路徑簽名、小型深度學習、決策導向學習），仍用看過的 `WF_Test`，結果只當探索。每個新候選加進 `RP 30` 的 93 個候選池，累計 `SPA_c`（區塊長 20）`< 0.05` 才算過。沒選的方案：用 FinMind 2005～2019 法人資料做法人層的樣本外確認（已查證可行：`TaiwanStockInstitutionalInvestorsBuySell` 2005-01-01 起、免費版每小時 300～600 次；自營商 2014-12-01 前是合併的 `Dealer`），以及停止 RP 寫總結。
 - Collection：使用者 2026-11-26 要 Claude 用 Safari 建 `ML 2026 Fall｜17 全新研究管線（RP）`，加入 `RP 01～30` 共 31 本（含沒有輸出的 `rp-05-institutional-flow-and-state-shrinkage-c2v2d`）。
 - Git：使用者 2026-11-26 同意 commit 並 push 研究檔。`notebooks/kaggle/` 照 `notebooks/README.md` 只在本機，不進 Git；只 commit `memory/projects/20～22`、`CLAUDE.md` 的索引列、`README.md` 檔案樹的兩處。本機落後遠端 40 個 commit，而且 `README.md`、`run_daily.py`、`data/submission/upload_log.jsonl`、`run_2026-11-24.log` 兩邊都有改，所以在暫存 worktree 從遠端最新版 commit 再 push，主工作樹不動。之後在主工作樹 pull 時，這三個 memory 檔會以「未追蹤檔會被覆蓋」擋下，內容和遠端一樣，先移開再 pull。
 - N1 核對（2026-11-26）：遠端 `6feb1dd` 就是 N1 影子跑的 commit；`RP 01` 查到「本機沒有 N1」是因為本機 checkout 停在 `f02b89d`，落後遠端 40 個 commit。
 - Kaggle 途徑：claude.ai Kaggle 連接器回 `Unauthenticated`，`authorize` 300 秒沒回應。使用者 2026-11-26 決定這次接手改用 Kaggle 官方 CLI（`.venv/bin/kaggle`，帳號 `modelnovice`），走 repo 原本的 `notebooks/kaggle/push_all.sh --dir 2026-11-23_v1_research-pipeline --only <slug> [--smoke]`。這是交接規則「MCP 不能用就停」的例外，只限這次接手。
 - 下一輪：使用者 2026-11-26 決定 `RP 30` 先做資料窺探校正，Antigravity 的 `RP 30～35` 路線圖（PCA 殘差、低秩 VAR、HMM、路徑簽名、小型深度學習、決策導向學習）往後排，編號順延。
-- Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～31` 加上沒輸出的 RP 05 舊版共 32 本，都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認）。之後每本跑完就加。
+- Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～33` 加上沒輸出的 RP 05 舊版共 34 本，都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認）。之後每本跑完就加。
 - Kaggle slug 和資料夾名不同的四本：`rp-05-inst-flow-and-state-calibration-c2v2d`、`rp-07-rich-online-adapter-and-bounce-soft-tail`、`rp-11-inst-reg-and-smooth-ov-stress`、`rp-22-trdl-asymmetric-weights-and-gap-ema`（Kaggle 用標題產生 slug）。另有一本沒有輸出的 `rp-05-institutional-flow-and-state-shrinkage-c2v2d`。
 
-`RP 32`（`modelnovice/rp-32-reduced-rank-var-lead-lag`，低秩向量自迴歸；登記在 `22` 最後一節）：
+`RP 33`（`modelnovice/rp-33-hmm-kalman-market-count`，HMM 和卡爾曼濾波決定檔數；登記在 `22` 最後一節）：
 
 | Stage | 角色 | 狀態 | 備註 |
 |---|---|---|---|
 | Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-26 照使用者選的路線圖；Kaggle CLI 照舊 |
-| Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 2026-11-26 登記寫進 `22`；Izenman 1975 DOI 已查證，Lo-MacKinlay 1990 附作者頁 |
-| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | v1 `COMPLETE` 87.31 秒 |
-| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PASS` | v2 `COMPLETE` 122.39 秒（CLI 送出後卡住，手動結束程序） |
-| Stage 5 Independent Verification | `independent-verifier` | `PASS` | 誤差 `1.9e-14`；閘門 p 本機 0.086、notebook 0.0841；正式程式雜湊不變 |
-| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`；collection ｜17 已加入並確認；`daily_rp32.csv` sha256 `44c59f4cc3b408e9` |
+| Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 2026-11-26 登記寫進 `22`；Hamilton 1989、Rabiner 1989 已查證，Kalman 1960 附 DOI |
+| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | v1 `COMPLETE` 110.42 秒；產生器 `gen_rp33.py`，ast、pyflakes 通過 |
+| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PASS` | v2 `COMPLETE` 262.91 秒 |
+| Stage 5 Independent Verification | `independent-verifier` | `PASS` | 誤差 `1.4e-14`；檔數重算差 0；閘門 p 本機 0.091、notebook 0.0877；正式程式雜湊不變 |
+| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`；collection ｜17 已加入並確認；`daily_rp33.csv` sha256 `2a27a26cdbeed42f` |
 
+`RP 32` 各 Stage 都 `PASS`（smoke 87.31 秒、full 122.39 秒；閘門 p = 0.0841，沒過；`daily_rp32.csv` sha256 `44c59f4cc3b408e9`）。
 `RP 31` 各 Stage 都 `PASS`（smoke 72.64 秒、full 216.16 秒；閘門 p = 0.0825，沒過）。
 `RP 30` 各 Stage 都 `PASS`（smoke v1 失敗後 v2 通過，full v3 8.47 秒）。
 

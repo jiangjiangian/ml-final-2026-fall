@@ -1,0 +1,14 @@
+{
+ "t": "2026-11-27",
+ "run_id": "77ecd79e",
+ "time": "2026-11-27T07:15:30+08:00",
+ "model": "c2（c2v2d 的備援）",
+ "missing_states": 0,
+ "complete": false,
+ "reasons": [
+  "用了備援 c2（c2v2d 的備援）"
+ ],
+ "site_id": "a8febe4b-faff-4152-a1c2-296745f1e0c2",
+ "sha256": "8c01729f5d9a584b2e160122c2b2fb75607294004a4b4e580ae4f56db20a694e",
+ "redo": 0
+}

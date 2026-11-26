@@ -1,6 +1,6 @@
 {
   "run": {
-    "started_at": "2026-11-27T07:40:05+08:00",
+    "started_at": "2026-11-27T07:55:06+08:00",
     "target_date": "2026-11-27",
     "mode": "daily",
     "status": "ok",
@@ -17,7 +17,7 @@
       "gold",
       "kospi"
     ],
-    "finished_at": "2026-11-27T07:42:37+08:00",
+    "finished_at": "2026-11-27T07:57:43+08:00",
     "yahoo_requests": 34,
     "yahoo_redirects": 0,
     "site_requests": 6,
@@ -81,7 +81,7 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "630c3ef9052da7105b4fcced335d0e904b25b079110abdf2b216cd2fc8481ae0",
+      "sha256": "474b9b69407599d69e3ad1cc74c2bc1c9644fc4ef7362a6f49f5aaf24e01b308",
       "has_bar_i": false
     },
     "nvda": {
@@ -97,7 +97,7 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "74abcd4a8f61c6d29a992a1251addcea2eb08694cdce5fc003dc1582f01b6c3b",
+      "sha256": "d9b40525e07024a2feed49d2ea95012f073a49e58bbad67c14ec58a10e324554",
       "has_bar_i": false
     },
     "usd_twd": {
@@ -113,7 +113,7 @@
       },
       "rows": 1797,
       "date_max": "2026-11-26",
-      "sha256": "c3a4e6ca52634e1408a24cf167115bfd3e3889ed26481d68fa8de47ec84c9725",
+      "sha256": "ac96a1eb31fcc1a059206741a64ed052c55332d9e4e7c7bcc54e68c7c3c6c70b",
       "has_bar_i": true
     },
     "dxy": {
@@ -177,7 +177,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "fab7348a7eb3c9ac800baf49d2fb71bcc892ca062b239abd8b782a04216e4564",
+      "sha256": "50e9818e23ed0007e10ba1a51763b614df09b923ae03542e7a3a46e9e5582fba",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -193,7 +193,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "e7368bc0b284795a15b5abe4cfc741ca9e762c4dd88427f4ef67eb275bcc29e1",
+      "sha256": "1b80740494f8816d2ec2116b1fe4450d337c9e72796bc9cca16b4a8ce8428009",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -209,7 +209,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "72c2afd9acf1b2a6d3a843b28d00abf7f481a7d247d583bdab01cb4ae448abe9",
+      "sha256": "c06d60703e120ea36f1889acc8afbc57a6d1891d05cd84ffa0c3a543f94cae60",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -225,7 +225,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "cc6bdfa92c95007348af591991079e1f42832a6b33fb94f7ea4aaef8d0e39860",
+      "sha256": "542bb4a3bd0b0ef330cb6ae2f5c6b4589599501c492c8ab741a3e5a1c06b2ef5",
       "has_bar_i": true
     },
     "dji": {
@@ -470,8 +470,8 @@
     "requests": 1,
     "start": "2026-10-28",
     "cache": {
-      "Age": "3907",
-      "X-Cache": "HIT, HIT"
+      "Age": "905",
+      "X-Cache": "MISS, HIT"
     },
     "now": {
       "score": 14.9967450271248,
@@ -483,15 +483,8 @@
       "on_or_after_t": 0,
       "before_start": 0
     },
-    "new_dates": [
-      "2026-11-23",
-      "2026-11-24",
-      "2026-11-25",
-      "2026-11-26"
-    ],
-    "changed_dates": [
-      "2026-11-20"
-    ],
+    "new_dates": [],
+    "changed_dates": [],
     "vanished_dates": [],
     "rows": 1463,
     "last_dates": [

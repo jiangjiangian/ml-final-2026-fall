@@ -26,17 +26,18 @@
 - Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～36` 加上沒輸出的 RP 05 舊版共 37 本，都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認；RP 36 在 2026-11-27 用新開的 Safari 視窗 84 加入）。之後每本跑完就加。
 - Kaggle slug 和資料夾名不同的四本：`rp-05-inst-flow-and-state-calibration-c2v2d`、`rp-07-rich-online-adapter-and-bounce-soft-tail`、`rp-11-inst-reg-and-smooth-ov-stress`、`rp-22-trdl-asymmetric-weights-and-gap-ema`（Kaggle 用標題產生 slug）。另有一本沒有輸出的 `rp-05-institutional-flow-and-state-shrinkage-c2v2d`。
 
-`RP 36`（`modelnovice/rp-36-decision-focused-signature`，決策導向學習；登記在 `22` 最後一節）：
+`RP 37`（`modelnovice/rp-37-c2v2d-style-attribution`，c2v2d 分數的風格歸因，只診斷；登記在 `22` 最後一節）：
 
 | Stage | 角色 | 狀態 | 備註 |
 |---|---|---|---|
-| Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-27 路線圖最後一項；Kaggle CLI 照舊 |
-| Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 登記在 smoke 前單獨 commit；兩篇文獻用 Crossref 查證 |
-| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | v1 146.91 秒全過；審查 1 個小問題（窗口不同），加同窗口診斷 |
-| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PASS` | v2 345.51 秒，354 次 L-BFGS 全部收斂 |
-| Stage 5 Independent Verification | `independent-verifier` | `PASS` | 誤差 `7.6e-14`；閘門 p 本機 0.10、notebook 0.0943；正式程式雜湊不變 |
-| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`；`daily_rp36.csv` sha256 `e2efb571653afbd7`；collection ｜17 已加（2026-11-27 視窗 25140 已關，改開新視窗 84 加入，抽屜檢查確認） |
+| Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-27 使用者看完網路研究（`23`）選的；Kaggle CLI 照舊；不加候選、不跑 `SPA_c` |
+| Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 三個設計者（計量歸因、決策規則、資料和時點）加一個評審；登記在 smoke 前單獨 commit；正式期讀 `116e5bd` 是評審決定的例外，使用者可以否決 |
+| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PENDING` | |
+| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PENDING` | |
+| Stage 5 Independent Verification | `independent-verifier` | `PENDING` | |
+| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PENDING` | |
 
+`RP 36` 各 Stage 都 `PASS`（smoke v1、full v2 345.51 秒；閘門 p = 0.0943，沒過；`daily_rp36.csv` sha256 `e2efb571653afbd7`；collection ｜17 已加）。
 `RP 35` 各 Stage 都 `PASS`（smoke v2、full v3 2,243.58 秒，3 個種子；閘門 p = 0.0931，沒過，小型深度學習淘汰；`daily_rp35.csv` sha256 `50579053bba4d5d6`）。
 `RP 34` 各 Stage 都 `PASS`（審查修正後 smoke v3、full v4 124.70 秒；閘門 p = 0.0931，沒過；`daily_rp34.csv` sha256 `8afa1b6295ee6caf`）。
 `RP 33` 各 Stage 都 `PASS`（smoke 110.42 秒、full 262.91 秒；閘門 p = 0.0877，沒過；`daily_rp33.csv` sha256 `2a27a26cdbeed42f`）。

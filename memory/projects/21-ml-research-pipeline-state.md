@@ -20,7 +20,7 @@
 - N1 核對（2026-11-26）：遠端 `6feb1dd` 就是 N1 影子跑的 commit；`RP 01` 查到「本機沒有 N1」是因為本機 checkout 停在 `f02b89d`，落後遠端 40 個 commit。
 - Kaggle 途徑：claude.ai Kaggle 連接器回 `Unauthenticated`，`authorize` 300 秒沒回應。使用者 2026-11-26 決定這次接手改用 Kaggle 官方 CLI（`.venv/bin/kaggle`，帳號 `modelnovice`），走 repo 原本的 `notebooks/kaggle/push_all.sh --dir 2026-11-23_v1_research-pipeline --only <slug> [--smoke]`。這是交接規則「MCP 不能用就停」的例外，只限這次接手。
 - 下一輪：使用者 2026-11-26 決定 `RP 30` 先做資料窺探校正，Antigravity 的 `RP 30～35` 路線圖（PCA 殘差、低秩 VAR、HMM、路徑簽名、小型深度學習、決策導向學習）往後排，編號順延。
-- Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～36` 加上沒輸出的 RP 05 舊版共 37 本，都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認）。之後每本跑完就加。
+- Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～35` 加上沒輸出的 RP 05 舊版共 36 本（`RP 36` 還沒加），都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認）。之後每本跑完就加。
 - Kaggle slug 和資料夾名不同的四本：`rp-05-inst-flow-and-state-calibration-c2v2d`、`rp-07-rich-online-adapter-and-bounce-soft-tail`、`rp-11-inst-reg-and-smooth-ov-stress`、`rp-22-trdl-asymmetric-weights-and-gap-ema`（Kaggle 用標題產生 slug）。另有一本沒有輸出的 `rp-05-institutional-flow-and-state-shrinkage-c2v2d`。
 
 `RP 36`（`modelnovice/rp-36-decision-focused-signature`，決策導向學習；登記在 `22` 最後一節）：
@@ -32,7 +32,7 @@
 | Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | v1 146.91 秒全過；審查 1 個小問題（窗口不同），加同窗口診斷 |
 | Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PASS` | v2 345.51 秒，354 次 L-BFGS 全部收斂 |
 | Stage 5 Independent Verification | `independent-verifier` | `PASS` | 誤差 `7.6e-14`；閘門 p 本機 0.10、notebook 0.0943；正式程式雜湊不變 |
-| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`；`daily_rp36.csv` sha256 `e2efb571653afbd7`；collection ｜17 已加入並確認 |
+| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`；`daily_rp36.csv` sha256 `e2efb571653afbd7`；collection ｜17 還沒加（2026-11-27 10:30 Safari 視窗 25140 已關，AppleScript 失敗），要使用者手動加或給新視窗 |
 
 `RP 35` 各 Stage 都 `PASS`（smoke v2、full v3 2,243.58 秒，3 個種子；閘門 p = 0.0931，沒過，小型深度學習淘汰；`daily_rp35.csv` sha256 `50579053bba4d5d6`）。
 `RP 34` 各 Stage 都 `PASS`（審查修正後 smoke v3、full v4 124.70 秒；閘門 p = 0.0931，沒過；`daily_rp34.csv` sha256 `8afa1b6295ee6caf`）。

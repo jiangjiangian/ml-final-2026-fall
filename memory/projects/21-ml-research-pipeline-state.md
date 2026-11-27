@@ -34,7 +34,7 @@
 |---|---|---|---|
 | Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-27 使用者選的；Kaggle CLI 照舊；不加候選、不跑 `SPA_c` |
 | Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 三個審查（草案過時、對手模型、剩餘天數和上線）加一個評審；Claude 重算起點；使用者回答三題後登記，smoke 前單獨 commit |
-| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `TODO` | 先建去名資料集 `ml-final-phase2-board-anon-1127`（私人） |
+| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `IN_PROGRESS` | 去名資料集 `ml-final-phase2-board-anon-1127`（私人）建好；第一次 smoke（version 1）40 秒跑完，檢查都過；日曆改成 12-25 休市（`22` 的「smoke 後的更正」），重跑 smoke |
 | Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `TODO` | |
 | Stage 5 Independent Verification | `independent-verifier` | `TODO` | `verify_rp38_claude.py`，round_trip 讀檔 |
 | Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `TODO` | 結果寫進 `22`；collection ｜17；前沿表給使用者挑代價上限 |

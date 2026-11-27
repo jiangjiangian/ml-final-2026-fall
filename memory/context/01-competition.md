@@ -17,7 +17,8 @@ Phase 2 用什麼模型還沒決定，見 `memory/context/03-open-questions.md`�
 ## Phase 2 的正式名次
 
 - 使用者 2026-11-15：正式名次從 2026-11-16 開始算。之前（2026-10-12～11-13）網站的榜是模擬競賽，`phase2Days` 22 天的 `isCompetition` 都是 0，`phase2CompetitionCumulative` 是空的。所以對進前 5 有用的是「從零開始」的情境（notebook 23 的 `fresh`），不是接著模擬榜的總分。
-- 正式期間到哪天、總共幾天，還沒查到。
+- 正式期間到哪天還是不知道（使用者同意，2026-11-27 17:34 Claude 從 Mac 用 `site_api` 登入讀一次 `/api/state`，只讀）：網站的 `phase2Days` 只列已經開放的日子，那時共 34 天，`isCompetition = 1` 的 11 天是 11-16～11-30（11-30 是正在開放的 `activePhase2Day`）。`config` 只有 Phase 1 的截止（`phase1Deadline` 2026-12-24 15:59 UTC），沒有 Phase 2 的結束日。
+- 2026-11-27 那次讀到的名次：正式期 10 個計分日（11-16～11-27）後，126 隊裡我們累計 −0.0147、第 109；第 1 名 +0.148、第 5 名 +0.118、第 10 名 +0.111、中位數 +0.038。去掉隊名的分數存在 session 的 scratchpad（`rank_policy/`），沒有進 repo。
 
 ## 課程網站的 API
 

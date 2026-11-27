@@ -36,6 +36,7 @@
 | 股市反彈訊號 RB（使用者 2026-11-21 用 `/goal` 交辦：找出開盤前看得到、在沒看過的時間也成立的反彈訊號，最後寫成 HTML 統整，放 `notebooks/teammate/exports/`；Kaggle RB 01 起，用期交所台指期 1998 起和 FinMind 個股 1998～2003 的資料）：定義、事先登記、每本的結果 | `memory/projects/18-rebound-signal.md` |
 | AI 操盤 agent 的可行性研究（使用者 2026-11-20 晚上用 `/goal` 交辦、以免費為前提，11-21 暫停，只差寫報告）：架構、嚴謹評估、免費模型、台股實務和法規的結論草稿，和查證的更正 | `memory/projects/19-ai-agent-feasibility.md` |
 | 全新 ML 研究 pipeline（使用者 2026-11-23 交辦）：從少量特徵和簡單模型開始，在 Kaggle 逐階比較新架構、反彈訊號與可變猜漲檔數；狀態檔為跨回合自動續跑檢查點，交接檔含 Antigravity／Google 模型執行規則，RP 01 實驗報告記於 `22-ml-research-pipeline.md` | `memory/projects/21-ml-research-pipeline-state.md`、`memory/projects/22-ml-research-pipeline.md`、`memory/projects/20-ml-research-pipeline-handoff.md` |
+| 近半年股票預測方法的網路研究（使用者 2026-11-27 交辦：正式期連續虧損後，查 2026-05～11 有實盤或真正樣本外證據的方法，和 c2v2d 的 8 天虧損對照，列出還沒試過和確定沒用的方向；14 條關鍵引用回原文核對過） | `memory/projects/23-recent-prediction-research.md` |
 
 `README.md` 給組員看，只放四樣（使用者 2026-11-12）：流程（爬蟲 → 特徵 → 模型 → 上傳）、組員怎麼拿資料、特徵表的摘要和連結、檔案樹。其他細節寫在 `memory/reference/`，用組員看得懂的寫法，README 只放連結；特徵欄有增減或定義改了，改 `memory/reference/02-feature-table.md`。新增、搬動或刪除檔案時，改 `README.md` 的檔案樹；`memory/` 多了或少了檔案時，也改上面的表。`memory/` 裡的路徑都從 repo 根目錄算。
 

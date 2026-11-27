@@ -13,7 +13,8 @@
 ## 當前階段與檢查點
 
 - `RP 29` 全部 `PASS`（2026-11-26）：smoke v1 74.16 秒、full v2 81.01 秒 `COMPLETE`，獨立重算誤差 `< 3.5e-14`，結果記在 `22-ml-research-pipeline.md`，`output/` 已刪。
-- 目標實驗：`RP 38`，依名次調整押法（2026-11-27 使用者選的；登記在 `22` 最後一節，smoke 前單獨 commit）。底稿是 `notebooks/kaggle/2026-11-22_v1_unbound/spec/ub03.md`（UB 03 草案，一直沒跑）和使用者 2026-11-22 對 UB 03 的決定，更新到 11-27 的名次和正式期資料。Kaggle slug `rp-38-rank-chasing-bet-layer`。`RP 37`（c2v2d 分數的風格歸因）2026-11-27 做完：β 佔 `WF_Test` 分數 55%、選股 18%，縮小 β 押注結案，12-06 規則落在「維持 c2v2d」。
+- `RP 38`（依名次調整押法）2026-11-27 做完：三個代價上限都判 `unreachable`，P00 進 OUT 前 10 0.0125%，上限 0.045 選中的列 0.287%；照登記維持 c2v2d 25/25。押法層這條（UB 03 到 RP 38）建議結案，等使用者確認。結果在 `22` 的「`RP 38` 實驗結果」。
+- 下一步：用選擇題問使用者（不要自己加 `RP 39`）。
 - 候選 `RP 39`（還沒登記）：FinMind 2006～2019 的法人層樣本外確認。`RP 37` 的登記原本把 `RP 38` 留給它，2026-11-27 改給依名次調整押法。設計草稿在本機 `notebooks/kaggle/2026-11-23_v1_research-pipeline/rp-39-inst-layer-oos-finmind-2006-2019/design_draft.md`（11-27 從 `rp-38-…` 改名）。
 - 使用者 2026-11-27 對 `RP 38` smoke 前的回答（選擇題）：同意把去名的名次快照上傳成私人 Kaggle 資料集；未來的波動照歷史慢慢變平靜（GJR-GARCH 回落）當主要情境，「一直維持現在的大小」只報告（第一次問時使用者說看不懂，Claude 用白話重講後才選）；前 10 照登記，只排除每天都被強制的 18 隊。問之前已告訴使用者預期最可能維持 25/25。
 - 使用者 2026-11-27 看完 `RP 37` 後的決定（選擇題，四題都選推薦）：12-06 照兩條觸發規則（正式期累計 `c2v2d − rank_ensemble` 或 `c2v2d − c2` 低於 −2.33·σ·√天數才用選擇題提議換，否則維持）；接受 `RP 37` 讀 `116e5bd` 的例外；下一步做依名次調整押法；正式期的結束日由 Claude 從 Mac 登入讀一次 `/api/state`（只讀）。
@@ -25,7 +26,7 @@
 - N1 核對（2026-11-26）：遠端 `6feb1dd` 就是 N1 影子跑的 commit；`RP 01` 查到「本機沒有 N1」是因為本機 checkout 停在 `f02b89d`，落後遠端 40 個 commit。
 - Kaggle 途徑：claude.ai Kaggle 連接器回 `Unauthenticated`，`authorize` 300 秒沒回應。使用者 2026-11-26 決定這次接手改用 Kaggle 官方 CLI（`.venv/bin/kaggle`，帳號 `modelnovice`），走 repo 原本的 `notebooks/kaggle/push_all.sh --dir 2026-11-23_v1_research-pipeline --only <slug> [--smoke]`。這是交接規則「MCP 不能用就停」的例外，只限這次接手。
 - 下一輪：使用者 2026-11-26 決定 `RP 30` 先做資料窺探校正，Antigravity 的 `RP 30～35` 路線圖（PCA 殘差、低秩 VAR、HMM、路徑簽名、小型深度學習、決策導向學習）往後排，編號順延。
-- Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～36` 加上沒輸出的 RP 05 舊版共 37 本，都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認；RP 36 在 2026-11-27 用新開的 Safari 視窗 84 加入）。之後每本跑完就加。
+- Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～38` 加上沒輸出的 RP 05 舊版共 39 本，都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認；RP 36～38 在 2026-11-27 用 Safari 視窗 84 加入）。之後每本跑完就加。
 - Kaggle slug 和資料夾名不同的四本：`rp-05-inst-flow-and-state-calibration-c2v2d`、`rp-07-rich-online-adapter-and-bounce-soft-tail`、`rp-11-inst-reg-and-smooth-ov-stress`、`rp-22-trdl-asymmetric-weights-and-gap-ema`（Kaggle 用標題產生 slug）。另有一本沒有輸出的 `rp-05-institutional-flow-and-state-shrinkage-c2v2d`。
 
 `RP 38`（`modelnovice/rp-38-rank-chasing-bet-layer`，依名次調整押法，只做決策模擬；登記在 `22` 最後一節）：
@@ -34,10 +35,10 @@
 |---|---|---|---|
 | Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-27 使用者選的；Kaggle CLI 照舊；不加候選、不跑 `SPA_c` |
 | Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 三個審查（草案過時、對手模型、剩餘天數和上線）加一個評審；Claude 重算起點；使用者回答三題後登記，smoke 前單獨 commit |
-| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `IN_PROGRESS` | 去名資料集 `ml-final-phase2-board-anon-1127`（私人）建好；第一次 smoke（version 1）40 秒跑完，檢查都過；日曆改成 12-25 休市（`22` 的「smoke 後的更正」），重跑 smoke |
-| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `TODO` | |
-| Stage 5 Independent Verification | `independent-verifier` | `TODO` | `verify_rp38_claude.py`，round_trip 讀檔 |
-| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `TODO` | 結果寫進 `22`；collection ｜17；前沿表給使用者挑代價上限 |
+| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | 去名資料集 `ml-final-phase2-board-anon-1127`（私人）建好；smoke v1 40 秒、檢查都過；日曆改成 12-25 休市（`22` 的「smoke 後的更正」，`b320028`）；smoke v2 26 秒 |
+| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PASS` | full v3 1,017.86 秒 `complete`；三個上限都 `unreachable` |
+| Stage 5 Independent Verification | `independent-verifier` | `PASS` | `verify_rp38_claude.py` 217 項 ALL PASS（REML 的容許值改過，notebook 沒動） |
+| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`（三個 agent 從數字、登記、寫作檢查過）；collection ｜17 已加（抽屜檢查確認）；三個上限判讀相同，不用使用者挑 |
 
 `RP 37`（`modelnovice/rp-37-c2v2d-style-attribution`，c2v2d 分數的風格歸因，只診斷；登記在 `22` 最後一節）：
 

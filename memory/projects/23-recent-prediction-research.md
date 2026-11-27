@@ -284,3 +284,11 @@ A 股 2026 是反例的警告：超額報酬和風格曝險重疊時，風格一
 | TimesFM-3 在 2026-08-31 發布（[pasqualepillitteri.it](https://pasqualepillitteri.it/en/news/26634/time-series-ai-compared-timesfm-chronos-timestral)） | 頁面未標日期；其他（新聞） | 搜尋摘要 | 基礎模型 | Google 的原始公告和授權 |
 | 11 月下旬夜盤大跌後收高（[BigGo](https://finance.biggo.com/news/87863ec0-43ce-44de-b3bf-9be9f24282c8)、[BigGo 夜盤](https://finance.biggo.com/news/9bcd7356-d4fb-4cc4-8199-dd8dea8b8ae3)） | 2026-11 下旬，頁面未標日期；新聞 | 新聞，點數不一致 | 11-23 的市場背景 | 日期是不是 11-23，點數 |
 | MSCI 11 月生效日（[TVBS](https://news.tvbs.com.tw/money/2885820) 寫 11-24，[Top1 Markets](https://www.top1markets.com/tw/insights/stocks/msci-semi-annual-adjustment-november-taiwan-stocks) 寫 11-30 收盤） | 2026，頁面未標日期；新聞 | 新聞，互相矛盾 | 背景 | 正確日期 |
+
+## 後續：`RP 37` 的多因子歸因（2026-11-27）
+
+優先 1 做完了（結果在 `memory/projects/22-ml-research-pipeline.md` 的 `RP 37` 結果）。和這份報告有關的三點：
+
+- 11-23 的讀法要更正。這份報告的 β 曝險 −0.0259 是單變量拆法。換成多因子（β、動能、反轉、波動、流動性、產業）後，11-23 的 β 是 −0.0118，反轉 −0.0063、動能 −0.0039、流動性 −0.0038；8 天合計的 β 是 +0.0077，虧損主要是反轉 −0.0117 和產業 −0.0096。
+- 低 β 傾向是 c2v2d 的主要收入：`WF_Test` 每天 +0.00130 裡 β 佔 55%、選股 18%，β 主要是結構性的溢酬，每年都是正的。
+- 依波動縮小低 β 押注這條結案：09:00 前的波動代理（rv20）預測不了大盤波動，高波動日 β 那塊平均也是賺的。

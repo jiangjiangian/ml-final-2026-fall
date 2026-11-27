@@ -13,7 +13,7 @@
 ## 當前階段與檢查點
 
 - `RP 29` 全部 `PASS`（2026-11-26）：smoke v1 74.16 秒、full v2 81.01 秒 `COMPLETE`，獨立重算誤差 `< 3.5e-14`，結果記在 `22-ml-research-pipeline.md`，`output/` 已刪。
-- 目標實驗：`RP 37`，c2v2d 分數的風格歸因（2026-11-27 使用者選的，設計中）：把 2022～2026 每天的分數拆成 β、動能、反轉、波動、流動性、產業和剩下的選股，再依 09:00 前的波動代理分組看 β 那塊。只做診斷、不改正式模型，結果用來決定 12-06 的檢討，和要不要在高波動日縮小基礎排名的低 β 押注。
+- 目標實驗：下一本還沒定，等使用者選。`RP 37`（c2v2d 分數的風格歸因）2026-11-27 做完：β 佔 `WF_Test` 分數 55%、選股 18%，β 主要是結構性的低 β 溢酬；縮小 β 押注照登記結案（結論 1）；12-06 規則落在「維持 c2v2d」。結果在 `22` 最後一節。
 - 候選 `RP 38`：FinMind 2006～2019 的法人層樣本外確認。設計草稿完成，還沒登記，放在本機 `notebooks/kaggle/2026-11-23_v1_research-pipeline/rp-38-inst-layer-oos-finmind-2006-2019/design_draft.md`（不進 Git）：H1 只有一個（`X_price` 加凍結的 `0.12·(on_tr + on_dl)`，Top50-H 2006-01-02～2019-12-31，3,460 天），兩本 kernel（只下載 FinMind 法人的那本 346 個請求約 1.5～2 小時；計分那本重用 UB 02 的預測），真實增量估計每天 +0.00003～+0.00006，通過機率約 43%～85%。要跑之前使用者要決定：最低效果門檻、m = 1 或加只看投信的 H2、要不要 FinMind token、外資在 2017-12-18 前後的定義、測試起點。
 - 使用者 2026-11-27 的決定（選擇題，看完網路研究 `memory/projects/23-recent-prediction-research.md` 之後）：下一步做「c2v2d 風格歸因」（沒選：照原計畫做法人層確認、依名次調整押法、Kronos-small 當第四個成員）。
 - 使用者 2026-11-27 的決定（選擇題）：路線圖做完後，下一步做「樣本外確認法人層」（沒選：停止 RP 寫總結、兩個都做）；`RP 36` 的 collection 由 Claude 開新的 Safari 視窗加；11-24 08:18 從 Mac 送出的全部猜漲上傳（蓋掉 oop 07:29 的 `c2v2d`）補進 repo：`upload_log.jsonl` 和 `run_2026-11-24.log` 照時間插入那幾行，加上 `submission_2026-11-24_all1.csv` 和網站原本那份的備份。路線圖到 `RP 36` 結束，之後用選擇題問使用者（沒選過的方案：FinMind 2005～2019 法人資料的樣本外確認，或停止 RP 寫總結），不要自己加 `RP 37`。
@@ -32,10 +32,10 @@
 |---|---|---|---|
 | Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-27 使用者看完網路研究（`23`）選的；Kaggle CLI 照舊；不加候選、不跑 `SPA_c` |
 | Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 三個設計者（計量歸因、決策規則、資料和時點）加一個評審；登記在 smoke 前單獨 commit；正式期讀 `116e5bd` 是評審決定的例外，使用者可以否決 |
-| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PENDING` | |
-| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PENDING` | |
-| Stage 5 Independent Verification | `independent-verifier` | `PENDING` | |
-| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PENDING` | |
+| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | v1 97.1 秒全過；審查確認 1 個小問題（核對腳本），smoke 前修好 |
+| Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PASS` | v2 111.92 秒；smoke 之後 notebook 沒改 |
+| Stage 5 Independent Verification | `independent-verifier` | `PASS` | ALL PASS（核對腳本改成 round_trip 讀檔後）；正式程式雜湊不變 |
+| Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PASS` | 結果寫進 `22`；`daily_rp37.csv` sha256 `94cb414444a71639`；collection ｜17 已加；`05-daily-model.md` 補分數來源 |
 
 `RP 36` 各 Stage 都 `PASS`（smoke v1、full v2 345.51 秒；閘門 p = 0.0943，沒過；`daily_rp36.csv` sha256 `e2efb571653afbd7`；collection ｜17 已加）。
 `RP 35` 各 Stage 都 `PASS`（smoke v2、full v3 2,243.58 秒，3 個種子；閘門 p = 0.0931，沒過，小型深度學習淘汰；`daily_rp35.csv` sha256 `50579053bba4d5d6`）。

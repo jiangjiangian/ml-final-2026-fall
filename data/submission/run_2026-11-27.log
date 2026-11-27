@@ -222,3 +222,7 @@
 2026-11-27 16:11:08,195 finpred.run_daily INFO 影子跑 2026-11-27 的官方分數：c2 +0.00066、rank_ensemble +0.00043、persist -0.00011、online_lr +0.00499、overnight_up +0.00043、rank_inst +0.00014、js_n1 -0.00019（答案來自 live；每天的分數在 data/submission/shadow_scores.csv）
 2026-11-27 16:11:08,213 finpred.run_daily INFO 2026-11-27 傍晚打分：全猜 0 +0.00518；網站上我們 （沒有）（submission_2026-11-27.csv，和 c2 一樣）；當天第 None／None 名；累計 -0.01533，第 109／126 名（全部強制繳交的 18 隊以外第 91 名）
 2026-11-27 16:11:08,215 finpred.run_daily INFO 結束：scored_waiting_site
+2026-11-27 20:00:06,782 finpred.run_daily INFO 開始傍晚打分：Phase 2，t = 2026-11-27，--sync（執行代號 52f9b957）
+2026-11-27 20:00:07,471 finpred.run_daily WARNING Live 140.112.31.182:8444 出錯（/login：連線失敗（ConnectionError）），改用 fin-pred-daily.jiangxuehaokeai.chatgpt.site
+2026-11-27 20:00:07,675 finpred.run_daily WARNING 老師 Live 下載失敗（140.112.31.182:8444：/login：連線失敗（ConnectionError）；fin-pred-daily.jiangxuehaokeai.chatgpt.site：/login：連線失敗（ConnectionError））：這次不打分，下一次排程再試
+2026-11-27 20:00:07,676 finpred.run_daily INFO 結束：no_answer_yet

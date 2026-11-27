@@ -30,6 +30,17 @@
 - Kaggle Collection：`ML 2026 Fall｜17 全新研究管線（RP）`（id 19687957，2026-11-26 Claude 用 Safari 視窗 25140 建立）。`RP 01～38` 加上沒輸出的 RP 05 舊版共 39 本，都用抽屜檢查確認在裡面（第一輪有 RP 01、12、13、17 沒加成功，重加後確認；RP 36～38 在 2026-11-27 用 Safari 視窗 84 加入）。之後每本跑完就加。
 - Kaggle slug 和資料夾名不同的四本：`rp-05-inst-flow-and-state-calibration-c2v2d`、`rp-07-rich-online-adapter-and-bounce-soft-tail`、`rp-11-inst-reg-and-smooth-ov-stress`、`rp-22-trdl-asymmetric-weights-and-gap-ema`（Kaggle 用標題產生 slug）。另有一本沒有輸出的 `rp-05-institutional-flow-and-state-shrinkage-c2v2d`。
 
+`RP 40`（微調 Kronos 當 c2v2d 的第四成員；研究結論和登記在 `22` 最後兩節，2026-11-28）：
+
+| Stage | 內容 | 狀態 | 備註 |
+|---|---|---|---|
+| 套件 | `src/twfm/`（commit `22b9abd`） | `PASS` | workflow 寫、11 個審查發現修 10 個（出場遇漲跌停的遮罩延後，README 有寫）；加 A100 用的 bf16 |
+| RP 40s smoke | `modelnovice/rp-40s-twfm-pipeline-smoke` | `PASS` | v1（smoke）100 秒：150 個測試全過，`patch`、`kronos` 端到端都 `done`；v2（full，速度實測）跑中 |
+| 登記 | `22` 的「`RP 40` 事先登記」 | `PASS` | 使用者 01:50 的四個回答加 Claude 定的資料和模型；真資料訓練前 commit |
+| RP 40a 下載 | `modelnovice/rp-40a-finmind-tpex-prices-and-chip` | 跑中 | smoke v1 推上去；上櫃價格約 3.3 小時，籌碼照進前 500 的年數抓到 11.3 小時 |
+| RP 40b 面板 | 合併、股票池、計數查核、錨點、美股 | 沒開始 | |
+| RP 40c～ | LP → `last_k`、`lora` → S1 → 重訓 → 對照 → 測試 | 沒開始 | Kaggle T4 上限 45 小時，Colab A100 上限 15 小時 |
+
 `RP 38`（`modelnovice/rp-38-rank-chasing-bet-layer`，依名次調整押法，只做決策模擬；登記在 `22` 最後一節）：
 
 | Stage | 角色 | 狀態 | 備註 |

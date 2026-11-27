@@ -341,12 +341,12 @@
     "wti": "2026-11-25",
     "gold": "2026-11-25",
     "vix": "2026-11-26",
-    "kospi": "2026-11-25",
+    "kospi": "2026-11-26",
     "tx_day": "2026-11-26",
     "tx_night": "2026-11-27",
     "vixtwn": "2026-11-26",
     "fear_greed": "2026-11-26",
     "stock": "2026-11-27"
   },
-  "source_digest": "60dfabcec03a77df9657bda0075163a5a895a7cc7fa9f9d7c6ad36735a712c4a"
+  "source_digest": "b509c0afd9ac5b0e19105f809be47a0f5c61368d3d71e43c1e1fd263e3d412f6"
 }

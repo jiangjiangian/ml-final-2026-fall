@@ -179,3 +179,39 @@
 2026-11-27 08:09:02,613 finpred.run_daily INFO 結束：already_submitted
 2026-11-27 08:09:18,924 finpred.merge_raw INFO 合併表：個股 168167 列、市場 1801 列；寫了 2 個檔 ['market.csv.gz', 'manifest.json']
 2026-11-27 08:09:18,924 finpred.run_daily INFO 合併原始資料 完成（16 秒）
+2026-11-27 08:25:06,274 finpred.run_daily INFO 開始：Phase 2，t = 2026-11-27，--sync（執行代號 0764c8cc）
+2026-11-27 08:25:06,688 finpred.run_daily INFO 網站上已經有這次的提交（submission_2026-11-27.csv，2026-11-26T23:15:30.593Z 交），不上傳
+2026-11-27 08:25:06,688 finpred.run_daily INFO 網站上那份是排程交的，資料不完整（用了備援 c2（c2v2d 的備援））：重爬、重算（第 5 次）
+2026-11-27 08:25:07,294 finpred.crawler INFO Training：本機的檔案和上次一樣，不下載
+2026-11-27 08:25:07,300 finpred.crawler WARNING Live 140.112.31.182:8444 出錯（/login：連線失敗（ConnectionError）），改用 fin-pred-daily.jiangxuehaokeai.chatgpt.site
+2026-11-27 08:26:06,151 finpred.crawler INFO ['sox', 'tsm_adr', 'nvda', 'us10y', 'us13w', 'dji', 'wti', 'gold', 'stoxx50e'] 沒有 2026-11-26 那根，60 秒後一起重抓一次
+2026-11-27 08:27:26,576 finpred.crawler WARNING sox 沒有 2026-11-26 那根K棒，這個特徵當天會是空白
+2026-11-27 08:27:26,576 finpred.crawler WARNING tsm_adr 沒有 2026-11-26 那根K棒，這個特徵當天會是空白
+2026-11-27 08:27:26,576 finpred.crawler WARNING nvda 沒有 2026-11-26 那根K棒，這個特徵當天會是空白
+2026-11-27 08:27:26,576 finpred.crawler WARNING us10y 沒有 2026-11-26 那根K棒，這個特徵當天會是空白
+2026-11-27 08:27:26,576 finpred.crawler WARNING us13w 沒有 2026-11-26 那根K棒，這個特徵當天會是空白
+2026-11-27 08:27:26,576 finpred.crawler WARNING dji 沒有 2026-11-26 那根K棒，這個特徵當天會是空白
+2026-11-27 08:27:26,576 finpred.crawler WARNING stoxx50e 沒有 2026-11-26 那根K棒，這個特徵當天會是空白
+2026-11-27 08:27:26,577 finpred.crawler WARNING wti 沒有 2026-11-26 那根K棒，這個特徵當天會是空白
+2026-11-27 08:27:26,577 finpred.crawler WARNING gold 沒有 2026-11-26 那根K棒，這個特徵當天會是空白
+2026-11-27 08:27:31,496 finpred.crawler WARNING CNN 這一步失敗（/index/fearandgreed/graphdata/2026-10-28：連線失敗（ConnectionError）），沿用舊檔；這些欄不在模型裡
+2026-11-27 08:27:35,064 finpred.crawler INFO twse_valuation：檔案裡 1676 天（2020-01-02～2026-11-26），這次新寫 0 天、no_data 0 天、失敗 0 天、請求 0 次
+2026-11-27 08:27:35,065 finpred.crawler INFO twse_quotes：檔案裡 1676 天（2020-01-02～2026-11-26），這次新寫 0 天、no_data 0 天、失敗 0 天、請求 0 次
+2026-11-27 08:27:35,065 finpred.crawler INFO tpex_valuation：檔案裡 1676 天（2020-01-02～2026-11-26），這次新寫 0 天、no_data 0 天、失敗 0 天、請求 0 次
+2026-11-27 08:27:35,066 finpred.crawler INFO tpex_quotes：檔案裡 1676 天（2020-01-02～2026-11-26），這次新寫 0 天、no_data 0 天、失敗 0 天、請求 0 次
+2026-11-27 08:27:35,416 finpred.crawler INFO 爬蟲完成：ok
+2026-11-27 08:27:35,418 finpred.run_daily INFO 爬蟲 完成（149 秒）
+2026-11-27 08:27:48,334 finpred.features INFO 特徵表：167700 列、1677 天，最後一天 2026-11-27；寫了 沒有月份變動；清理紀錄 {'bad_tick': 2, 'bond_holiday': 26, 'empty_close': 8, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-27 08:27:48,661 finpred.run_daily INFO 特徵 完成（13 秒）
+2026-11-27 08:28:08,368 finpred.run_daily INFO 讀特徵 完成（20 秒）
+2026-11-27 08:29:00,264 finpred.run_daily ERROR c2v2d 算不出來（TiltError: 2026-11-27 的狀態缺 6 個：sox_ret_lag1, tsm_adr_ret_lag1, dji_ret_lag1, us10y_ret_lag1, wti_ret_lag1, gold_ret_lag1），改用 c2
+2026-11-27 08:29:01,083 finpred.run_daily INFO 模型 完成（53 秒）
+2026-11-27 08:29:01,083 finpred.run_daily INFO 模型 c2（c2v2d 的備援）：大盤方向 p = 0.627，傾斜 +0.507，和 rank_ensemble 換了 3 組，狀態缺 0 個，重訓日 2026-11-02
+2026-11-27 08:29:01,086 finpred.run_daily INFO 還是不完整（用了備援 c2（c2v2d 的備援）），不重交，下一次排程再試
+2026-11-27 08:29:01,087 finpred.run_daily INFO 影子跑：data/submission/shadow_2026-11-27.csv 已經有了，不重算
+2026-11-27 08:29:01,095 finpred.run_daily INFO 結束：already_submitted
+2026-11-27 08:29:03,733 finpred.run_daily INFO 當天開盤：{'kospi': 'ok', 'n225': 'ok'}
+2026-11-27 08:29:16,160 finpred.features INFO 特徵表：167700 列、1677 天，最後一天 2026-11-27；寫了 ['2026-11']；清理紀錄 {'bad_tick': 2, 'bond_holiday': 26, 'empty_close': 8, 'placeholder': 29, 'split': 1, 'dividend': 6}
+2026-11-27 08:29:16,381 finpred.run_daily INFO 特徵（補上當天開盤） 完成（13 秒）
+2026-11-27 08:29:32,573 finpred.merge_raw INFO 合併表：個股 168167 列、市場 1801 列；寫了 2 個檔 ['market.csv.gz', 'manifest.json']
+2026-11-27 08:29:32,574 finpred.run_daily INFO 合併原始資料 完成（16 秒）

@@ -173,15 +173,16 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 │   │   ├── step6_evening_score.py  6. 傍晚打分：老師 Live 的 t 那列 → 影子跑和網站上那份的分數
 │   │   ├── site_api.py             課程網站的 API（登入、範本、上傳、下載）
 │   │   └── utils.py                共用：讀設定和帳密、台北時間、截止檢查、log
-│   └── models/                每天交件可以選的模型，照做出來的日期編號
-│       ├── __init__.py             config 的名字和檔案的對照（MODEL_KINDS），每個模型的輸入和輸出
-│       ├── m1_online_lr.py         組員的邏輯迴歸（2026-11-05）
-│       ├── m2_persist_rule.py      持續性規則（2026-11-12）
-│       ├── m3_rank_ensemble.py     排名集成（2026-11-12）
-│       ├── m4_c2_tilt.py           C2、C2v2d：排名集成加大盤方向的傾斜（2026-11-15，現在用 c2v2d）
-│       ├── m5_overnight_up.py      隔夜大跌全猜漲（2026-11-20，只影子跑，不能交件）
-│       ├── m6_rank_inst.py         法人組排名集成（2026-11-20，只影子跑，不能交件）
-│       └── m7_n1_js_online.py      N1 影子跑：JS_ONLINE 每天更新、加進 c2v2d（2026-11-23，.venv-n1 的子程序，只記不交）
+│   ├── models/                每天交件可以選的模型，照做出來的日期編號
+│   │   ├── __init__.py             config 的名字和檔案的對照（MODEL_KINDS），每個模型的輸入和輸出
+│   │   ├── m1_online_lr.py         組員的邏輯迴歸（2026-11-05）
+│   │   ├── m2_persist_rule.py      持續性規則（2026-11-12）
+│   │   ├── m3_rank_ensemble.py     排名集成（2026-11-12）
+│   │   ├── m4_c2_tilt.py           C2、C2v2d：排名集成加大盤方向的傾斜（2026-11-15，現在用 c2v2d）
+│   │   ├── m5_overnight_up.py      隔夜大跌全猜漲（2026-11-20，只影子跑，不能交件）
+│   │   ├── m6_rank_inst.py         法人組排名集成（2026-11-20，只影子跑，不能交件）
+│   │   └── m7_n1_js_online.py      N1 影子跑：JS_ONLINE 每天更新、加進 c2v2d（2026-11-23，.venv-n1 的子程序，只記不交）
+│   └── twfm/                  RP 40 研究用：Kronos 這類時序基礎模型在台股的微調套件（說明在 src/twfm/README.md），正式流程不 import
 ├── data/
 │   ├── raw/                   爬蟲寫的，和來源一模一樣
 │   │   ├── teacher/           training/ 是 Training ZIP 解開（不會再變）；live/ 是 Live ZIP 解開，每天換新

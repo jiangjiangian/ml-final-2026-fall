@@ -13,7 +13,8 @@
 ## 當前階段與檢查點
 
 - `RP 29` 全部 `PASS`（2026-11-26）：smoke v1 74.16 秒、full v2 81.01 秒 `COMPLETE`，獨立重算誤差 `< 3.5e-14`，結果記在 `22-ml-research-pipeline.md`，`output/` 已刪。
-- 目標實驗：路線圖做完（`RP 30～36` 全部 `PASS`，不要重跑），等使用者選下一步。路線圖到 `RP 36` 結束，之後用選擇題問使用者（沒選過的方案：FinMind 2005～2019 法人資料的樣本外確認，或停止 RP 寫總結），不要自己加 `RP 37`。
+- 目標實驗：`RP 37`，用 FinMind 2005～2019 的法人資料做法人層的樣本外確認（2026-11-27 規劃中）。`RP 30～36` 全部 `PASS`，不要重跑。
+- 使用者 2026-11-27 的決定（選擇題）：路線圖做完後，下一步做「樣本外確認法人層」（沒選：停止 RP 寫總結、兩個都做）；`RP 36` 的 collection 由 Claude 開新的 Safari 視窗加；11-24 08:18 從 Mac 送出的全部猜漲上傳（蓋掉 oop 07:29 的 `c2v2d`）補進 repo：`upload_log.jsonl` 和 `run_2026-11-24.log` 照時間插入那幾行，加上 `submission_2026-11-24_all1.csv` 和網站原本那份的備份。路線圖到 `RP 36` 結束，之後用選擇題問使用者（沒選過的方案：FinMind 2005～2019 法人資料的樣本外確認，或停止 RP 寫總結），不要自己加 `RP 37`。
 - 使用者 2026-11-26 對 `RP 31` 起的決定（選擇題）：照 Antigravity 的路線圖探索新架構（PCA 殘差、低秩 VAR、HMM／卡爾曼、路徑簽名、小型深度學習、決策導向學習），仍用看過的 `WF_Test`，結果只當探索。每個新候選加進 `RP 30` 的 93 個候選池，累計 `SPA_c`（區塊長 20）`< 0.05` 才算過。沒選的方案：用 FinMind 2005～2019 法人資料做法人層的樣本外確認（已查證可行：`TaiwanStockInstitutionalInvestorsBuySell` 2005-01-01 起、免費版每小時 300～600 次；自營商 2014-12-01 前是合併的 `Dealer`），以及停止 RP 寫總結。
 - Collection：使用者 2026-11-26 要 Claude 用 Safari 建 `ML 2026 Fall｜17 全新研究管線（RP）`，加入 `RP 01～30` 共 31 本（含沒有輸出的 `rp-05-institutional-flow-and-state-shrinkage-c2v2d`）。
 - Git：使用者 2026-11-26 同意 commit 並 push 研究檔。`notebooks/kaggle/` 照 `notebooks/README.md` 只在本機，不進 Git；只 commit `memory/projects/20～22`、`CLAUDE.md` 的索引列、`README.md` 檔案樹的兩處。本機落後遠端 40 個 commit，而且 `README.md`、`run_daily.py`、`data/submission/upload_log.jsonl`、`run_2026-11-24.log` 兩邊都有改，所以在暫存 worktree 從遠端最新版 commit 再 push，主工作樹不動。之後在主工作樹 pull 時，這三個 memory 檔會以「未追蹤檔會被覆蓋」擋下，內容和遠端一樣，先移開再 pull。

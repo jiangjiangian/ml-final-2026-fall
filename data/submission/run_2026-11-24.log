@@ -67,6 +67,10 @@
 2026-11-24 08:05:06,594 finpred.run_daily INFO 結束：already_submitted
 2026-11-24 08:05:06,995 finpred.merge_raw INFO 合併表：來源沒變，不重算
 2026-11-24 08:05:06,995 finpred.run_daily INFO 合併原始資料 完成（0 秒）
+2026-11-24 08:18:03,723 finpred.submit INFO 網站上目前有效的那份（2026-11-23T23:29:15.340Z，分數 None）存到 data/submission/backup/phase2_2026-11-24_20261123T232915Z.csv
+2026-11-24 08:18:04,009 finpred.submit INFO 上傳送出，網站回 200
+2026-11-24 08:18:04,289 finpred.submit INFO 核對完成：網站上的版本 347fcdeb-6d64-49ca-87f0-b50f4181e380 和送出的逐格一樣（上傳時間 2026-11-24T00:18:04.094Z，分數 None）
+2026-11-24 08:18:04,298 finpred.submit INFO 上傳：done
 2026-11-24 08:25:06,223 finpred.run_daily INFO 開始：Phase 2，t = 2026-11-24，--sync（執行代號 be08e17a）
 2026-11-24 08:25:06,515 finpred.run_daily INFO 網站上已經有這次的提交（submission_2026-11-24_all1.csv，2026-11-24T00:18:04.094Z 交），不上傳
 2026-11-24 08:25:06,516 finpred.run_daily INFO 2026-11-24 的資料之前已經爬過，不重爬

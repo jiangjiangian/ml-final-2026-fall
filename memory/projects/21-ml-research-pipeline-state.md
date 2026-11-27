@@ -29,7 +29,7 @@
 |---|---|---|---|
 | Stage 1 Scope & Tooling Gate | `ml-research-lead` | `PASS` | 2026-11-27 路線圖最後一項；Kaggle CLI 照舊 |
 | Stage 2 Audit & Preregistration | `literature-and-data-researcher` | `PASS` | 登記在 smoke 前單獨 commit；兩篇文獻用 Crossref 查證 |
-| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PENDING` | 產生器 `gen_rp36.py`；ast、pyflakes 通過 |
+| Stage 3 Kaggle Smoke Run | `kaggle-experiment-runner` | `PASS` | v1 146.91 秒全過；審查 1 個小問題（窗口不同），加同窗口診斷 |
 | Stage 4 Kaggle Full Run | `kaggle-experiment-runner` | `PENDING` |  |
 | Stage 5 Independent Verification | `independent-verifier` | `PENDING` |  |
 | Stage 6 Memory & Collection | `memory-and-docs-maintainer` | `PENDING` |  |

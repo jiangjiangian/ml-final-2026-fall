@@ -1,0 +1,4 @@
+2026-11-28 07:11:06,534 finpred.run_daily INFO 開始：Phase 2，t = 2026-11-28，--sync（執行代號 21ec95be）
+2026-11-28 07:11:06,535 finpred.run_daily WARNING git pull 第 3 次才成功
+2026-11-28 07:11:07,028 finpred.run_daily INFO 2026-11-28 不在網站的交易日清單，休市：不爬、不上傳，結束
+2026-11-28 07:11:07,030 finpred.run_daily INFO 結束：closed

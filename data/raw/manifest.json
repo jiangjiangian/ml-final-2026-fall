@@ -1,6 +1,6 @@
 {
   "run": {
-    "started_at": "2026-11-27T07:55:06+08:00",
+    "started_at": "2026-11-27T08:05:05+08:00",
     "target_date": "2026-11-27",
     "mode": "daily",
     "status": "ok",
@@ -17,7 +17,7 @@
       "gold",
       "kospi"
     ],
-    "finished_at": "2026-11-27T07:57:43+08:00",
+    "finished_at": "2026-11-27T08:07:36+08:00",
     "yahoo_requests": 34,
     "yahoo_redirects": 0,
     "site_requests": 6,
@@ -81,7 +81,7 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "474b9b69407599d69e3ad1cc74c2bc1c9644fc4ef7362a6f49f5aaf24e01b308",
+      "sha256": "2a1502ea8d920a86f66d8f4e936d4d6fae540fca6011d46d3744e7e707d9ecdf",
       "has_bar_i": false
     },
     "nvda": {
@@ -97,7 +97,7 @@
       },
       "rows": 1735,
       "date_max": "2026-11-25",
-      "sha256": "d9b40525e07024a2feed49d2ea95012f073a49e58bbad67c14ec58a10e324554",
+      "sha256": "2c86be52d0403394619cacbbdcea2e852ecc0c969479fb670b02b1eb253f73ba",
       "has_bar_i": false
     },
     "usd_twd": {
@@ -113,7 +113,7 @@
       },
       "rows": 1797,
       "date_max": "2026-11-26",
-      "sha256": "ac96a1eb31fcc1a059206741a64ed052c55332d9e4e7c7bcc54e68c7c3c6c70b",
+      "sha256": "30646dda2af9df5c70ae566e21c6539675fca21c4bd90f149eff06929e3d9254",
       "has_bar_i": true
     },
     "dxy": {
@@ -177,7 +177,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "50e9818e23ed0007e10ba1a51763b614df09b923ae03542e7a3a46e9e5582fba",
+      "sha256": "ac4ce16fefb0546c138fbcbaa6fc662f613d350a292872ca3f07cf32bb8adbab",
       "has_bar_i": true
     },
     "etf_0052": {
@@ -193,7 +193,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "1b80740494f8816d2ec2116b1fe4450d337c9e72796bc9cca16b4a8ce8428009",
+      "sha256": "fcf13e330b600b38ddf501369d7dce88376aad48c2066199653e2822cd3ec7b8",
       "has_bar_i": true
     },
     "etf_0055": {
@@ -209,7 +209,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "c06d60703e120ea36f1889acc8afbc57a6d1891d05cd84ffa0c3a543f94cae60",
+      "sha256": "a7682c2f2cc7bb87be1bf1b75f53d457ab1259b0995db061707553bcc2444c20",
       "has_bar_i": true
     },
     "etf_006201": {
@@ -225,7 +225,7 @@
       },
       "rows": 1676,
       "date_max": "2026-11-26",
-      "sha256": "542bb4a3bd0b0ef330cb6ae2f5c6b4589599501c492c8ab741a3e5a1c06b2ef5",
+      "sha256": "9cd97d9bb79408030d11fa191956a53f2c0ef354a7b62eb06eafd175e849b979",
       "has_bar_i": true
     },
     "dji": {
@@ -470,7 +470,7 @@
     "requests": 1,
     "start": "2026-10-28",
     "cache": {
-      "Age": "905",
+      "Age": "592",
       "X-Cache": "MISS, HIT"
     },
     "now": {

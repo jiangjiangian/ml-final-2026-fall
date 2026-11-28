@@ -42,10 +42,10 @@
 | RP 40c LP | `modelnovice/rp-40c-kronos-linear-probe-validation` | smoke `PASS`，full 等 40b | smoke v1 37 秒：`head` 1 epoch、IC 表、`best_L`、第四成員、S1 判讀都有輸出，重算的 c2v2d 和 UB 01 每格一樣。full 約 4.5～9 小時（L 64、128 各 2 個 epoch） |
 | RP 40d 變體 | `modelnovice/rp-40d-kronos-last2-and-lora-validation` | smoke `PASS`，full 等 40c | smoke v1 70 秒。產生時要給 40c 選的 L：`python3 bigft_tools/gen_rp40d.py <L>`。`find("report.json", "rp40c/report.json")` 修過（40c 的輸出有兩個 `report.json`） |
 | RP 40e 重訓 | `modelnovice/rp-40e-kronos-final-refit-hidden-test` | smoke `PASS`，S1 過才跑 full | twfm 加 `final_fit`、`score_test`、`stop_after`（`22` 的「`RP 40c`～`40e` smoke」）；smoke v1 203 秒：151 個測試全過，十個工作都 `done`，測試期檔只有分數欄。Kaggle 跑 `FT_s0,LP,FT_SMALL,PATCH_val,PATCH_final`，Colab 跑 `SC_val_2e-4,SC_val_1e-3,SC_final,FT_s1,FT_s2`（`bigft_tools/out/rp40e_colab.py`） |
-| RP 40f 測試期 | 還沒寫 | 沒開始 | H1、名次相關、機制家族、只報告的比較，只開一次。`X4_PLACEBO` 要另外算一個換種子的 `X_price` 成員 |
+| RP 40f 測試期 | `modelnovice/rp-40f-kronos-test-period-once`（CPU） | smoke `PASS`，40e 全部做完才跑 full | smoke v2 274 秒（讀 40e smoke 的預測）：錨點對 RP 36、UB 01 都 < 1e-15，N1 重算 100% 一樣，`X4_PLACEBO` 重播和 `s41` 每天名次相關 0.9999。full 前要先把 Colab 的輸出包成私人資料集，`python3 gen_rp40f.py --colab-dataset <owner/slug>` 重產（Colab 的 `report.json` 改名 `report_colab.json`，免得和 Kaggle 那份撞） |
 | 算力 | Kaggle 設定頁（Safari 視窗 84，2026-11-28 10:30） | | Kaggle GPU 這週用了 0.03 小時（上限 30）；40c、40d full 合計約 17 小時放 Kaggle，40e 的 `SC` 和種子 1、2 放 Colab A100（標準版，不開高 RAM） |
 
-產生器都在 scratchpad 的 `bigft_tools/`（`nbkit.py`、`gen_rp40a.py`～`gen_rp40e.py`）。40b～40d 的 twfm 釘在 `bigft_tools/twfm_frozen_40cd/`（sha `f2f7dca4a0af`，產生器裡有 assert），40e 用 wt-rp 的新版。
+產生器在 scratchpad 的 `bigft_tools/`（`nbkit.py`、`gen_rp40a.py`～`gen_rp40f.py`），本機備份在 `notebooks/kaggle/2026-11-23_v1_research-pipeline/rp-40-tools/`（不進 Git）。40b～40d 的 twfm 釘在 `bigft_tools/twfm_frozen_40cd/`（sha `f2f7dca4a0af`，產生器裡有 assert），40e 用 wt-rp 的新版。
 
 `RP 38`（`modelnovice/rp-38-rank-chasing-bet-layer`，依名次調整押法，只做決策模擬；登記在 `22` 最後一節）：
 

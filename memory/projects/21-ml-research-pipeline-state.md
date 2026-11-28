@@ -35,10 +35,10 @@
 | Stage | 內容 | 狀態 | 備註 |
 |---|---|---|---|
 | 套件 | `src/twfm/`（commit `22b9abd`） | `PASS` | workflow 寫、11 個審查發現修 10 個（出場遇漲跌停的遮罩延後，README 有寫）；加 A100 用的 bf16 |
-| RP 40s smoke | `modelnovice/rp-40s-twfm-pipeline-smoke` | `PASS` | v1（smoke）100 秒：150 個測試全過，`patch`、`kronos` 端到端都 `done`；v2（full，速度實測）跑中 |
+| RP 40s smoke | `modelnovice/rp-40s-twfm-pipeline-smoke` | `PASS` | v1（smoke）100 秒：150 個測試全過，端到端都 `done`；v2 速度實測 1,207 秒，T4 凍結主幹 678 視窗／秒（一個 epoch 1.0 小時），結果在 `22` 的「`RP 40s` 結果」 |
 | 登記 | `22` 的「`RP 40` 事先登記」 | `PASS` | 使用者 01:50 的四個回答加 Claude 定的資料和模型；真資料訓練前 commit |
 | RP 40a 下載 | `modelnovice/rp-40a-finmind-tpex-prices-and-chip` | 跑中 | smoke v1 推上去；上櫃價格約 3.3 小時，籌碼照進前 500 的年數抓到 11.3 小時 |
-| RP 40b 面板 | 合併、股票池、計數查核、錨點、美股 | 沒開始 | |
+| RP 40b 面板 | `modelnovice/rp-40b-twfm-panel-and-audit` | smoke 中 | 官方每季檔（上市 91 天、上櫃 77 天）2026-11-28 從 Mac 抓，放私人資料集 `rp40-official-quarter-files`（Kaggle 會把 `.gz` 自動解開）；full 要等 RP 40a 跑完 |
 | RP 40c～ | LP → `last_k`、`lora` → S1 → 重訓 → 對照 → 測試 | 沒開始 | Kaggle T4 上限 45 小時，Colab A100 上限 15 小時 |
 
 `RP 38`（`modelnovice/rp-38-rank-chasing-bet-layer`，依名次調整押法，只做決策模擬；登記在 `22` 最後一節）：

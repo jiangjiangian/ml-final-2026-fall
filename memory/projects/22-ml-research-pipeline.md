@@ -2639,3 +2639,30 @@ c2v2d 和答案：
 - 判讀：比設計草稿用 FLOPs 估的快。草稿估 250 萬個視窗一輪 1.7～3.5 小時，實測凍結主幹 1.0 小時。LoRA 比全部微調慢，因為打開了 gradient checkpointing，LoRA 的層要重算。訓練主幹時每天限 128 檔，記憶體還有 5 GB 的空間。
 - 換算 RP 40 的 T4 時數：LP 兩個 L 約 4.5 小時，`head → last_k → lora` 約 5 小時，最後重訓每個種子約 5 小時，`SC` 約 6 小時，合計約 22～32 小時，在登記的 45 小時以內。
 
+
+## `RP 40c`～`40e` smoke（2026-11-28）：流程通了，最後重訓的做法
+
+三本的 smoke 都在真資料訓練前跑完（smoke 用 RP 40b smoke 的面板：2022 起、前 100 檔、L 32、訓練期最後 30 天、每階 1 個 epoch），數字只證明程式能跑，不拿來挑任何設定。
+
+| notebook | smoke | 結果 |
+|---|---|---|
+| `rp-40c-kronos-linear-probe-validation` | v1，37 秒 | `head` 跑完；IC 表、`best_L`、第四成員增量、S1 三條都有輸出；重算的 c2v2d 和 UB 01 每格一樣 |
+| `rp-40d-kronos-last2-and-lora-validation` | v1，70 秒 | `last_k`、`lora` 跑完；只有 4 步，兩個變體都沒贏過 head 的 epoch 0，三個變體分數一樣；S1 判讀有輸出 |
+| `rp-40e-kronos-final-refit-hidden-test` | v1，203 秒 | twfm 151 個測試全過；十個工作都 `done`；測試期的檔只有 `date, stock_id, score` |
+
+### 登記沒寫細的地方，在訓練前定下的做法
+
+- 同樣的步數：twfm 每一階的學習率照「該階 epoch 數 × 每 epoch 步數」排 cosine，所以最後重訓照驗證期那次的設定排好、在驗證期最好的 (階段, epoch) 停（`run_pipeline(stop_after=…)`），權重走同一條路。驗證期併進訓練期，每個 epoch 多約 5% 的步數（多 241 天）。
+- 設定來源：最後重訓直接讀 RP 40c、40d 每次訓練存的 `config.json`（batch 上限已調整過的版本），只換 `out_dir`、切分、種子、Kronos 路徑。
+- `LP` 的最後重訓用 RP 40c 那個 L 的 `head` 設定和它最好的 epoch。`FT` 挑到 `head` 時 `LP` 就是 `FT` 的種子 0，`FT − LP` 記「同一個模型」。
+- `SC`：隨機初始化的 Kronos-small，`all` 一階，epoch 數上限是 `FT` 走到停點實際跑的 epoch 數的 2 倍；主幹學習率 2e-4、1e-3 各在驗證期跑一次，取驗證期 RankIC 最好的學習率和 epoch，再用同樣的停點做最後重訓。
+- `PATCH`：同樣的流程，只試學習率 1e-3（只報告的對照，登記沒定學習率）。
+- `FT_SMALL`：面板只留老師 `info.json` 的 `Top100@Y`、2020-01-02 起，其他和 `FT` 一樣。股票池變成這 100 檔，個股協變量在 100 檔裡排名，台股大盤的協變量也只用這 100 檔算。
+- 測試期只開一次：RP 40e 所有最後重訓都用 `score_test=False`，測試期的檔沒有標籤欄、報告不算分數。H1、名次相關、機制家族都在 RP 40f 一次算。
+- 種子：`FT` 種子 0 在 Kaggle，種子 1、2 在 Colab A100（bf16，batch 上限和 T4 一樣，所以設定相同、數值精度不同，照實記）。
+- 50 檔的覆蓋：RP 40b 第 11 節數驗證期、測試期每天 50 檔有幾格在股票池（smoke：上市的 48 檔幾乎每天都在，上櫃的 `8069`、`3293` 因為 smoke 只抓少數上櫃股是 0）。full 的比例低於 98% 時，在 RP 40c full 之前決定要不要處理，記成訓練前的更正。
+
+### twfm 的版本
+
+- RP 40b～40d 用同一份 twfm（sha `f2f7dca4a0af`，和 RP 40c smoke 一樣），產生器釘在 scratchpad 的凍結複本並 assert sha。
+- RP 40e 的 twfm 多三個參數：`final_fit`（驗證期併進訓練、不挑 epoch、不寫驗證期預測）、`score_test`（False 時測試期只寫分數）、`stop_after`（跑完指定的 (階段, epoch) 就停）。預設值下行為不變；新測試 `test_pipeline_final_fit_hides_test_labels` 在 RP 40e smoke 的 Kaggle T4 上過了。

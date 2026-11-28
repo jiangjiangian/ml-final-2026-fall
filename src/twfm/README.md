@@ -293,6 +293,16 @@ Kaggle 的 input 是唯讀的，`--resume-from` 會先把 `last.pt`、`best.pt` 
 
 訓練中途爆 GPU 記憶體（`torch.cuda.OutOfMemoryError`）時，程式會直接停下，沒有預測也沒有 `report.json`。用同樣的參數加 `--resume`（或 `--resume-from`）和比較小的 `--max-stocks-per-day`（例如 64）從最後一次存的 `last.pt` 接續。`--max-stocks-per-day` 不影響每個 epoch 的 batch 數，接續對得上；改 `--batch-days` 會讓 batch 數不同，只會警告。
 
+### 最後重訓和測試期只存分數
+
+在驗證期挑好設定之後，用 `run_pipeline` 的三個參數做最後重訓（2026-11-28 加，預設值下行為不變）：
+
+- `final_fit=True`（`--final-fit`）：驗證期併進訓練期，不拿驗證集挑 epoch，也不寫驗證期的預測。
+- `stop_after=(階段, epoch)`（只有 Python API）：跑完那一階的那個 epoch 就停。每一階的學習率照「該階 epoch 數 × 每 epoch 步數」排 cosine，所以要照驗證期的設定排好、在挑到的點停，權重才走同一條路。
+- `score_test=False`（`--hide-test-labels`）：測試期的 `predictions_test.csv` 只有 `date, stock_id, score`，報告的 `test` 是 `{"hidden": True, ...}`。給測試期只開一次的研究：分數先存好，之後另一本一次算。
+
+RP 40e 就是這樣用的：設定讀 RP 40c、40d 存的 `config.json`，停點讀它們 `report.json` 的 `best`。
+
 ### 輸出
 
 | 檔 | 內容 |

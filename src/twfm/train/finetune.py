@@ -1112,12 +1112,16 @@ class Trainer:
         val_loader: DataLoader | None,
         val_samples: SampleIndex | None,
         resume: bool = False,
+        stop_after: tuple[int, int] | None = None,
     ) -> list[dict[str, Any]]:
         """照 `ft.stages` 依序訓練，回傳每個 epoch 的紀錄。
 
         每筆紀錄有 `stage, stage_idx, trainable, epoch, train_loss, val_rank_ic, seconds`，
         另有 `val_seconds, steps, global_step, batches, skipped_batches, is_best, lr_max` 和 `loss_<名稱>`（各項損失的平均）。
         `resume=True` 時從 `last.pt` 接續；沒有 `last.pt` 就從頭開始。
+        `stop_after=(階段, epoch)`：跑完那一階的那個 epoch 就整個停下，後面的階段不跑。
+        學習率排程照那一階設定的 epoch 數排，所以停下時的權重和完整跑時同一個位置的一樣
+        （最後重訓用：照驗證期挑到的點停）。
         做完會載入 `best.pt`，模型就是驗證期最好的那組權重。
         """
         stages = list(self.ft.stages)
@@ -1126,6 +1130,9 @@ class Trainer:
             raise ValueError("train_loader 是空的")
         if val_loader is not None and val_samples is None:
             raise ValueError("給了 val_loader 也要給 val_samples")
+        stop_si, stop_ep = (-1, -1) if stop_after is None else (int(stop_after[0]), int(stop_after[1]))
+        if stop_after is not None and not (0 <= stop_si < len(stages) and 0 <= stop_ep < int(stages[stop_si].epochs)):
+            raise ValueError(f"stop_after {stop_after} 不在階段設定的範圍裡")
         self._n_train_batches = n_batches
         for st in stages:
             if st.trainable == "lora" and _count_lora_targets(self.model.backbone.blocks, self.ft.lora_targets) == 0:
@@ -1177,6 +1184,8 @@ class Trainer:
             )
 
         for si in range(start_stage, len(stages)):
+            if stop_after is not None and si > stop_si:
+                break
             stage = stages[si]
             mid_stage = ckpt is not None and si == start_stage and ckpt.get("optimizer") is not None
             acc: _EpochAcc | None = None
@@ -1244,16 +1253,21 @@ class Trainer:
                 )
                 acc = None
                 epoch += 1
+                reached = si == stop_si and epoch > stop_ep
                 stage_over = (
                     epoch >= stage.epochs
                     or run.step >= run.total_steps
                     or self._bad_epochs >= int(self.ft.early_stop_patience)
+                    or reached
                 )
                 if stage_over:
                     break
                 self._save_last(si, epoch, 0, run, None)
             self._bad_epochs = 0
             self._save_last(si + 1, 0, 0, None, None)
+            if si == stop_si:
+                self._log(f"照 stop_after 停在階段 {stop_si}、epoch {stop_ep}")
+                break
 
         if self.has_best:
             self.load_best()

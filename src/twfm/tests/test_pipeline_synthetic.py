@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 
@@ -110,6 +111,41 @@ def test_pipeline_synthetic_patch(tmp_path: Path) -> None:
     probe_pred = pd.read_csv(out / "probe_predictions_val.csv")
     assert np.isfinite(probe_pred["score"].to_numpy(dtype=np.float64)).all()
 
+
+
+def test_pipeline_final_fit_hides_test_labels(tmp_path: Path) -> None:
+    """最後重訓：驗證期併進訓練、不挑 epoch、沒有驗證期預測；測試期只有分數、報告不算分數。"""
+    market = make_synthetic_market(n_stocks=24, n_days=260, seed=7)
+    base = synthetic_pipeline_config(_small_cfg(tmp_path / "base"), market)
+    ref = run_pipeline(base, data=market, verbose=False)
+    two = dataclasses.replace(
+        _small_cfg(tmp_path / "final"),
+        finetune=dataclasses.replace(
+            _small_cfg(tmp_path).finetune,
+            stages=(StageConfig(name="head", trainable="head", epochs=2, warmup_steps=0),
+                    StageConfig(name="last_k", trainable="last_k", last_k=1, epochs=1, warmup_steps=0)),
+        ),
+    )
+    cfg = synthetic_pipeline_config(two, market)
+    report = run_pipeline(cfg, data=market, final_fit=True, score_test=False, stop_after=(0, 0), verbose=False)
+    out = Path(cfg.out_dir)
+    assert report["status"] == "done" and report["final_fit"] and not report["score_test"]
+    assert report["n_samples"]["train"] == ref["n_samples"]["train"] + ref["n_samples"]["val"]
+    assert report["val"] is None and not (out / "predictions_val.csv").exists()
+    assert report["test"]["hidden"] is True
+    pred = pd.read_csv(out / "predictions_test.csv", dtype={"stock_id": str})
+    assert len(pred) == report["test"]["n_rows"] == ref["n_samples"]["test"]
+    assert not {"label_r", "target_z", "exec_long_ok", "exec_short_ok"} & set(pred.columns)
+    assert np.isfinite(pred["score"].to_numpy(dtype=np.float64)).all()
+    history = pd.read_csv(out / "history.csv")
+    # 只跑了 head 的 epoch 0；head 的排程照 2 個 epoch 排，所以停下時的步數是總步數的一半，學習率還沒降到 0
+    assert len(history) == 1 and history["stage"].tolist() == ["head"] and history["val_rank_ic"].isna().all()
+    assert history["lr_max"].iloc[0] > 0
+    assert report["stop_after"] == [0, 0]
+    with pytest.raises(ValueError):
+        run_pipeline(cfg, data=market, final_fit=True, stop_after=(1, 1), verbose=False)
+    with pytest.raises(ValueError):
+        run_pipeline(cfg, data=market, final_fit=True, probe=True, verbose=False)
 
 def test_main_cli_synthetic(tmp_path: Path) -> None:
     out = tmp_path / "cli"

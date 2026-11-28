@@ -37,9 +37,15 @@
 | 套件 | `src/twfm/`（commit `22b9abd`） | `PASS` | workflow 寫、11 個審查發現修 10 個（出場遇漲跌停的遮罩延後，README 有寫）；加 A100 用的 bf16 |
 | RP 40s smoke | `modelnovice/rp-40s-twfm-pipeline-smoke` | `PASS` | v1（smoke）100 秒：150 個測試全過，端到端都 `done`；v2 速度實測 1,207 秒，T4 凍結主幹 678 視窗／秒（一個 epoch 1.0 小時），結果在 `22` 的「`RP 40s` 結果」 |
 | 登記 | `22` 的「`RP 40` 事先登記」 | `PASS` | 使用者 01:50 的四個回答加 Claude 定的資料和模型；真資料訓練前 commit |
-| RP 40a 下載 | `modelnovice/rp-40a-finmind-tpex-prices-and-chip` | 跑中 | smoke v1 推上去；上櫃價格約 3.3 小時，籌碼照進前 500 的年數抓到 11.3 小時 |
-| RP 40b 面板 | `modelnovice/rp-40b-twfm-panel-and-audit` | smoke 中 | 官方每季檔（上市 91 天、上櫃 77 天）2026-11-28 從 Mac 抓，放私人資料集 `rp40-official-quarter-files`（Kaggle 會把 `.gz` 自動解開）；full 要等 RP 40a 跑完 |
-| RP 40c～ | LP → `last_k`、`lora` → S1 → 重訓 → 對照 → 測試 | 沒開始 | Kaggle T4 上限 45 小時，Colab A100 上限 15 小時 |
+| RP 40a 下載 | `modelnovice/rp-40a-finmind-tpex-prices-and-chip` | full 跑中 | smoke v1 `PASS`；full v2（CPU）上櫃價格約 3.3 小時，籌碼照進前 500 的年數抓到 11.3 小時，預計台北 11-28 16:45 左右結束 |
+| RP 40b 面板 | `modelnovice/rp-40b-twfm-panel-and-audit` | smoke `PASS`，full 等 40a | 官方每季檔放私人資料集 `rp40-official-quarter-files`；smoke v3 錨點過（參考價改用交易所的除權息表）；v4（smoke）加第 11 節「50 檔在股票池的比例」，只記錄不擋。40a 跑完就推 full，先看這節再推 40c full |
+| RP 40c LP | `modelnovice/rp-40c-kronos-linear-probe-validation` | smoke `PASS`，full 等 40b | smoke v1 37 秒：`head` 1 epoch、IC 表、`best_L`、第四成員、S1 判讀都有輸出，重算的 c2v2d 和 UB 01 每格一樣。full 約 4.5～9 小時（L 64、128 各 2 個 epoch） |
+| RP 40d 變體 | `modelnovice/rp-40d-kronos-last2-and-lora-validation` | smoke `PASS`，full 等 40c | smoke v1 70 秒。產生時要給 40c 選的 L：`python3 bigft_tools/gen_rp40d.py <L>`。`find("report.json", "rp40c/report.json")` 修過（40c 的輸出有兩個 `report.json`） |
+| RP 40e 重訓 | `modelnovice/rp-40e-kronos-final-refit-hidden-test` | smoke `PASS`，S1 過才跑 full | twfm 加 `final_fit`、`score_test`、`stop_after`（`22` 的「`RP 40c`～`40e` smoke」）；smoke v1 203 秒：151 個測試全過，十個工作都 `done`，測試期檔只有分數欄。Kaggle 跑 `FT_s0,LP,FT_SMALL,PATCH_val,PATCH_final`，Colab 跑 `SC_val_2e-4,SC_val_1e-3,SC_final,FT_s1,FT_s2`（`bigft_tools/out/rp40e_colab.py`） |
+| RP 40f 測試期 | 還沒寫 | 沒開始 | H1、名次相關、機制家族、只報告的比較，只開一次。`X4_PLACEBO` 要另外算一個換種子的 `X_price` 成員 |
+| 算力 | Kaggle 設定頁（Safari 視窗 84，2026-11-28 10:30） | | Kaggle GPU 這週用了 0.03 小時（上限 30）；40c、40d full 合計約 17 小時放 Kaggle，40e 的 `SC` 和種子 1、2 放 Colab A100（標準版，不開高 RAM） |
+
+產生器都在 scratchpad 的 `bigft_tools/`（`nbkit.py`、`gen_rp40a.py`～`gen_rp40e.py`）。40b～40d 的 twfm 釘在 `bigft_tools/twfm_frozen_40cd/`（sha `f2f7dca4a0af`，產生器裡有 assert），40e 用 wt-rp 的新版。
 
 `RP 38`（`modelnovice/rp-38-rank-chasing-bet-layer`，依名次調整押法，只做決策模擬；登記在 `22` 最後一節）：
 

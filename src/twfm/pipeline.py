@@ -13,6 +13,7 @@
 - `config.json`：這次用的完整設定（`PipelineConfig.from_dict` 讀得回來）。
 - `history.csv`：每個 epoch 一列（`Trainer.fit` 的紀錄）。
 - `predictions_val.csv`、`predictions_test.csv`：`date, stock_id, score`（和 `q_*`），加上標籤欄。
+  `final_fit=True` 時沒有 `predictions_val.csv`；`score_test=False` 時測試期的檔沒有標籤欄。
 - `report.json`：驗證期、測試期的 `backtest_report`，股票池摘要，切分，樣本數。
 - `checkpoints/`：`last.pt`、`best.pt`，Kaggle 一次 12 小時跑不完時從這裡接續。
 """
@@ -508,6 +509,9 @@ def run_pipeline(
     probe: bool = False,
     gradient_checkpointing: bool | None = None,
     competition_stocks: Sequence[str] | None = None,
+    final_fit: bool = False,
+    score_test: bool = True,
+    stop_after: tuple[int, int] | None = None,
     verbose: bool = True,
 ) -> dict[str, Any]:
     """端到端跑一次，回傳報告（也寫進 `cfg.out_dir/report.json`）。
@@ -531,7 +535,15 @@ def run_pipeline(
     - `competition_stocks`：比賽的股票代號（例如 50 檔）。有給時報告的 `competition` 只用這些股票算，
       才能和 c2v2d 的每天分數直接比；沒給時是整個股票池。
     - `cfg.data.horizon` > 1 時，報告改用每 h 天調整一次的 `hold_h` 回測，沒有比賽分數（見 `backtest_report`）。
+    - `final_fit`：最後重訓。驗證期併進訓練期，`Trainer` 不拿驗證集挑 epoch（每階跑滿設定的 epoch 數，
+      最後一個 epoch 的權重就是結果），也不寫驗證期的預測（那是樣本內）。不能和 `probe` 一起用。
+    - `score_test`：False 時測試期只寫 `date, stock_id, score`（和 `q_*`），不接標籤、不算 `backtest_report`，
+      報告的 `test` 是 `{"hidden": True, ...}`。給「測試期只開一次」的研究：分數先存好，之後另一本一次算。
+    - `stop_after`：`(階段, epoch)`，跑完那個 epoch 就停（見 `Trainer.fit`）。最後重訓照驗證期挑到的點停，
+      學習率排程仍照設定的 epoch 數排，和驗證期那次走的路一樣（每個 epoch 的步數因為多了驗證期而變多）。
     """
+    if final_fit and probe:
+        raise ValueError("final_fit 不能和 probe 一起用（probe 要拿驗證集挑 ridge 的 alpha）")
     t_start = time.time()
     out_dir = Path(cfg.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -570,7 +582,8 @@ def run_pipeline(
 
     # 3. 切分
     split = fixed_split(cal, cfg.split, horizon=int(cfg.data.horizon))
-    train_s = _select(samples, split.train_dates)
+    train_dates = split.train_dates.union(split.val_dates) if final_fit else split.train_dates
+    train_s = _select(samples, train_dates)
     val_s = _select(samples, split.val_dates)
     test_s = _select(samples, split.test_dates)
     if max_train_days is not None:
@@ -657,6 +670,9 @@ def run_pipeline(
         "train_batch": train_batch,
         "horizon": int(cfg.data.horizon),
         "competition_stocks": comp_ids,
+        "final_fit": bool(final_fit),
+        "score_test": bool(score_test),
+        "stop_after": None if stop_after is None else [int(x) for x in stop_after],
         "probe": None,
         "best": None,
         "val": None,
@@ -699,7 +715,10 @@ def run_pipeline(
         verbose=verbose,
     )
     try:
-        history = trainer.fit(train_loader, val_loader, val_s, resume=resume)
+        if final_fit:
+            history = trainer.fit(train_loader, None, None, resume=resume, stop_after=stop_after)
+        else:
+            history = trainer.fit(train_loader, val_loader, val_s, resume=resume, stop_after=stop_after)
     except TrainingInterrupted as exc:
         _log(str(exc), verbose)
         history = list(trainer.history)
@@ -715,13 +734,19 @@ def run_pipeline(
 
     # 9. 預測和報告
     if report["status"] == STATUS_DONE:
-        pred_val = trainer.predict(val_loader, val_s)
-        _write_predictions(pred_val, val_s, out_dir / "predictions_val.csv")
-        report["val"] = backtest_report(pred_val, val_s.to_frame(), cost_model, **report_kwargs)
+        if not final_fit:
+            pred_val = trainer.predict(val_loader, val_s)
+            _write_predictions(pred_val, val_s, out_dir / "predictions_val.csv")
+            report["val"] = backtest_report(pred_val, val_s.to_frame(), cost_model, **report_kwargs)
         if test_loader is not None:
             pred_test = trainer.predict(test_loader, test_s)
-            _write_predictions(pred_test, test_s, out_dir / "predictions_test.csv")
-            report["test"] = backtest_report(pred_test, test_s.to_frame(), cost_model, **report_kwargs)
+            if score_test:
+                _write_predictions(pred_test, test_s, out_dir / "predictions_test.csv")
+                report["test"] = backtest_report(pred_test, test_s.to_frame(), cost_model, **report_kwargs)
+            else:
+                hidden = pred_test.drop(columns=[c for c in _LABEL_COLS if c in pred_test.columns])
+                hidden.to_csv(out_dir / "predictions_test.csv", index=False, date_format="%Y-%m-%d")
+                report["test"] = {"hidden": True, "n_rows": int(len(hidden)), "n_days": _n_days(test_s)}
     report["seconds"] = time.time() - t_start
     _write_json(report, out_dir / "report.json")
     _log(f"完成（{report['status']}），{report['seconds']:.0f} 秒，輸出在 {out_dir}", verbose)
@@ -755,6 +780,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--seed", type=int, help="亂數種子（FinetuneConfig.seed）")
     p.add_argument("--amp-dtype", choices=["auto", "fp16", "bf16"], help="CUDA 混合精度（auto：A100 用 bf16，T4 用 fp16）")
     p.add_argument("--probe", action="store_true", help="訓練前先做凍結主幹的 ridge linear probe")
+    p.add_argument("--final-fit", action="store_true", help="最後重訓：驗證期併進訓練期，不挑 epoch，不寫驗證期預測")
+    p.add_argument("--hide-test-labels", action="store_true", help="測試期只寫分數，不接標籤、不算報告")
     p.add_argument(
         "--competition-stocks",
         help="比賽的股票代號：逗號分隔（2330,2317,...）或檔案路徑（csv 用 stock_id 欄，其他一行一檔）；"
@@ -873,6 +900,8 @@ def main(argv: list[str] | None = None) -> int:
         probe=bool(args.probe),
         gradient_checkpointing=args.grad_ckpt,
         competition_stocks=competition_stocks,
+        final_fit=bool(args.final_fit),
+        score_test=not bool(args.hide_test_labels),
         verbose=not args.quiet,
     )
     _print_summary(report)

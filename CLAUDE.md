@@ -37,6 +37,7 @@
 | AI 操盤 agent 的可行性研究（使用者 2026-11-20 晚上用 `/goal` 交辦、以免費為前提，11-21 暫停，只差寫報告）：架構、嚴謹評估、免費模型、台股實務和法規的結論草稿，和查證的更正 | `memory/projects/19-ai-agent-feasibility.md` |
 | 全新 ML 研究 pipeline（使用者 2026-11-23 交辦）：從少量特徵和簡單模型開始，在 Kaggle 逐階比較新架構、反彈訊號與可變猜漲檔數；狀態檔為跨回合自動續跑檢查點，交接檔含 Antigravity／Google 模型執行規則，RP 01 實驗報告記於 `22-ml-research-pipeline.md` | `memory/projects/21-ml-research-pipeline-state.md`、`memory/projects/22-ml-research-pipeline.md`、`memory/projects/20-ml-research-pipeline-handoff.md` |
 | 近半年股票預測方法的網路研究（使用者 2026-11-27 交辦：正式期連續虧損後，查 2026-05～11 有實盤或真正樣本外證據的方法，和 c2v2d 的 8 天虧損對照，列出還沒試過和確定沒用的方向；14 條關鍵引用回原文核對過） | `memory/projects/23-recent-prediction-research.md` |
+| 時序大模型遷移學習和領域適應的研究（使用者 2026-11-28 用 `/deep-research` 交辦：微調 Kronos 這類大模型合不合理、要多少資料、input 樣式、符不符合題目、兩種 shift 怎麼處理、暴力美學的正反證據、李宏毅的遷移學習和領域適應課程、對抗式學習；關鍵數字回原文核對過，建議照已登記的 RP 40 走） | `memory/projects/24-tsfm-transfer-learning-research.md` |
 
 `README.md` 給組員看，只放四樣（使用者 2026-11-12）：流程（爬蟲 → 特徵 → 模型 → 上傳）、組員怎麼拿資料、特徵表的摘要和連結、檔案樹。其他細節寫在 `memory/reference/`，用組員看得懂的寫法，README 只放連結；特徵欄有增減或定義改了，改 `memory/reference/02-feature-table.md`。新增、搬動或刪除檔案時，改 `README.md` 的檔案樹；`memory/` 多了或少了檔案時，也改上面的表。`memory/` 裡的路徑都從 repo 根目錄算。
 

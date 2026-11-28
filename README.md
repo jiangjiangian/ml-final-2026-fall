@@ -216,7 +216,7 @@ ml-final-2026-fall/            （分支 claude/stock-market-challenger）
 ├── memory/                    專案的說明和紀錄，一個主題一個檔；整理原則在 memory/README.md
 │   ├── README.md              三個資料夾放什麼、檔名怎麼編號、增刪檔案時要改哪裡
 │   ├── context/               專案的規則和環境：01-competition、02-pipeline、03-open-questions、04-environment、05-data-rules
-│   ├── projects/              每條工作線的設計和進度：01-crawler 到 23-recent-prediction-research
+│   ├── projects/              每條工作線的設計和進度：01-crawler 到 24-tsfm-transfer-learning-research
 │   └── reference/             給組員查的說明（2026-11-12 從 README 移過來）
 │       ├── 01-glossary.md          名詞
 │       ├── 02-feature-table.md     特徵表每一欄：來源、定義、時間、模型用不用、空白的情況

@@ -35,13 +35,14 @@
 | Stage | 內容 | 狀態 | 備註 |
 |---|---|---|---|
 | 套件 | `src/twfm/`（commit `22b9abd`） | `PASS` | workflow 寫、11 個審查發現修 10 個（出場遇漲跌停的遮罩延後，README 有寫）；加 A100 用的 bf16 |
+| 全量前審查 | workflow（10 個 agent）和修正 workflow（11 個 agent） | 修完，重跑 smoke 中 | 2026-11-28：44 項 41 項成立（1 項 blocker：40f 在 FT 等於 LP 時會除以 0）。40b～40f 和 Colab 腳本都改了，每組另外核對；會影響判讀的寫在 `22` 的「全量前的審查和補登記」。40b～40f 的 smoke 要照順序重跑，Colab 先測 T4 閒置 130 分鐘會不會被收回 |
 | RP 40s smoke | `modelnovice/rp-40s-twfm-pipeline-smoke` | `PASS` | v1（smoke）100 秒：150 個測試全過，端到端都 `done`；v2 速度實測 1,207 秒，T4 凍結主幹 678 視窗／秒（一個 epoch 1.0 小時），結果在 `22` 的「`RP 40s` 結果」 |
 | 登記 | `22` 的「`RP 40` 事先登記」 | `PASS` | 使用者 01:50 的四個回答加 Claude 定的資料和模型；真資料訓練前 commit |
 | RP 40a 下載 | `modelnovice/rp-40a-finmind-tpex-prices-and-chip` | full 跑中 | smoke v1 `PASS`；full v2（CPU）上櫃價格約 3.3 小時，籌碼照進前 500 的年數抓到 11.3 小時，預計台北 11-28 16:45 左右結束 |
-| RP 40b 面板 | `modelnovice/rp-40b-twfm-panel-and-audit` | smoke `PASS`，full 等 40a | 官方每季檔放私人資料集 `rp40-official-quarter-files`；smoke v3 錨點過（參考價改用交易所的除權息表）；v4（smoke）加第 11 節「50 檔在股票池的比例」，只記錄不擋。40a 跑完就推 full，先看這節再推 40c full |
+| RP 40b 面板 | `modelnovice/rp-40b-twfm-panel-and-audit` | 修後 smoke v5 跑中，full 等 40a | 官方每季檔放私人資料集 `rp40-official-quarter-files`；smoke v3 錨點過（參考價改用交易所的除權息表）；v4（smoke）加第 11 節「50 檔在股票池的比例」，只記錄不擋。40a 跑完就推 full，先看這節再推 40c full |
 | RP 40c LP | `modelnovice/rp-40c-kronos-linear-probe-validation` | smoke `PASS`，full 等 40b | smoke v1 37 秒：`head` 1 epoch、IC 表、`best_L`、第四成員、S1 判讀都有輸出，重算的 c2v2d 和 UB 01 每格一樣。full 約 4.5～9 小時（L 64、128 各 2 個 epoch） |
 | RP 40d 變體 | `modelnovice/rp-40d-kronos-last2-and-lora-validation` | smoke `PASS`，full 等 40c | smoke v1 70 秒。產生時要給 40c 選的 L：`python3 bigft_tools/gen_rp40d.py <L>`。`find("report.json", "rp40c/report.json")` 修過（40c 的輸出有兩個 `report.json`） |
-| RP 40e 重訓 | `modelnovice/rp-40e-kronos-final-refit-hidden-test` | smoke `PASS`，S1 過才跑 full | twfm 加 `final_fit`、`score_test`、`stop_after`（`22` 的「`RP 40c`～`40e` smoke」）；smoke v1 203 秒：151 個測試全過，十個工作都 `done`，測試期檔只有分數欄。Kaggle 跑 `FT_s0,LP,FT_SMALL,PATCH_val,PATCH_final`，Colab 跑 `SC_val_2e-4,SC_val_1e-3,SC_final,FT_s1,FT_s2`（`bigft_tools/out/rp40e_colab.py`） |
+| RP 40e 重訓 | `modelnovice/rp-40e-kronos-final-refit-hidden-test` | 修後要重跑 smoke（Kaggle 和 Colab），S1 過才跑 full | twfm 加 `final_fit`、`score_test`、`stop_after`（`22` 的「`RP 40c`～`40e` smoke」）；smoke v1 203 秒：151 個測試全過，十個工作都 `done`，測試期檔只有分數欄。Kaggle 跑 `FT_s0,LP,FT_SMALL,PATCH_val,PATCH_final`，Colab 跑 `SC_val_2e-4,SC_val_1e-3,SC_final,FT_s1,FT_s2`（`bigft_tools/out/rp40e_colab.py`）。Colab 的步驟：`colab_rp40e.sh prep <40b twfm_data> <40c> <40d> <rp40b_report.json>`、`start <s> A100 full`、背景跑 `watch <s> <out> 20`（每做完一個工作就下載，全部驗過才 `colab stop`）。Kaggle 的 40e 有工作沒跑完時，補跑送 Colab，不在 Kaggle 推新版本（新版本的輸出會蓋掉 FT_s0） |
 | RP 40f 測試期 | `modelnovice/rp-40f-kronos-test-period-once`（CPU） | smoke `PASS`，40e 全部做完才跑 full | smoke v2 274 秒（讀 40e smoke 的預測）：錨點對 RP 36、UB 01 都 < 1e-15，N1 重算 100% 一樣，`X4_PLACEBO` 重播和 `s41` 每天名次相關 0.9999。full 前要先把 Colab 的輸出包成私人資料集，`python3 gen_rp40f.py --colab-dataset <owner/slug>` 重產（Colab 的 `report.json` 改名 `report_colab.json`，免得和 Kaggle 那份撞） |
 | 算力 | Kaggle 設定頁（Safari 視窗 84，2026-11-28 10:30） | | Kaggle GPU 這週用了 0.03 小時（上限 30）；40c、40d full 合計約 17 小時放 Kaggle，40e 的 `SC` 和種子 1、2 放 Colab A100（標準版，不開高 RAM） |
 

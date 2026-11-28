@@ -147,6 +147,47 @@ def test_pipeline_final_fit_hides_test_labels(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         run_pipeline(cfg, data=market, final_fit=True, probe=True, verbose=False)
 
+
+def test_pipeline_final_fit_stops_in_second_stage(tmp_path: Path) -> None:
+    """最後重訓停在第二階：head 跑滿 1 個 epoch，last_k 照 2 個 epoch 排程、跑完 epoch 0 就停。
+
+    RP 40e 的 FT 停點在 (1, e) 時走的就是這條路：沒有驗證集、跨階載入 best.pt、停在第二階中間。
+    """
+    market = make_synthetic_market(n_stocks=24, n_days=260, seed=7)
+    two = dataclasses.replace(
+        _small_cfg(tmp_path / "final2"),
+        finetune=dataclasses.replace(
+            _small_cfg(tmp_path).finetune,
+            stages=(StageConfig(name="head", trainable="head", epochs=1, warmup_steps=0),
+                    StageConfig(name="last_k", trainable="last_k", last_k=1, epochs=2, warmup_steps=0)),
+        ),
+    )
+    cfg = synthetic_pipeline_config(two, market)
+    report = run_pipeline(cfg, data=market, final_fit=True, score_test=False, stop_after=(1, 0), verbose=False)
+    out = Path(cfg.out_dir)
+    assert report["status"] == "done" and report["final_fit"] and not report["score_test"]
+    assert report["stop_after"] == [1, 0]
+    best = report["best"]
+    assert best["stage_idx"] == 1 and best["stage"] == "last_k" and best["epoch"] == 0
+    assert np.isnan(best["val_rank_ic"])
+    assert report["val"] is None and not (out / "predictions_val.csv").exists()
+    assert report["test"]["hidden"] is True
+    assert (out / "checkpoints" / "best.pt").exists()
+    pred = pd.read_csv(out / "predictions_test.csv", dtype={"stock_id": str})
+    assert len(pred) == report["test"]["n_rows"] > 0
+    assert not {"label_r", "target_z", "exec_long_ok", "exec_short_ok"} & set(pred.columns)
+    assert np.isfinite(pred["score"].to_numpy(dtype=np.float64)).all()
+    assert report["date_range"]["test"] == [pred["date"].min(), pred["date"].max()]
+    assert report["date_range"]["train"][1] < report["date_range"]["test"][0]
+    history = pd.read_csv(out / "history.csv")
+    assert history["stage"].tolist() == ["head", "last_k"]
+    assert history["epoch"].tolist() == [0, 0]
+    assert history["val_rank_ic"].isna().all()
+    # head 的 1 個 epoch 跑完自己的 cosine（學習率降到 0）；last_k 照 2 個 epoch 排，停在一半，學習率還沒降到 0
+    assert history["lr_max"].iloc[1] > 0
+    assert history["lr_max"].iloc[1] > history["lr_max"].iloc[0]
+
+
 def test_main_cli_synthetic(tmp_path: Path) -> None:
     out = tmp_path / "cli"
     code = main(

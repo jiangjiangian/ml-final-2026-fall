@@ -14,7 +14,7 @@
 - `history.csv`：每個 epoch 一列（`Trainer.fit` 的紀錄）。
 - `predictions_val.csv`、`predictions_test.csv`：`date, stock_id, score`（和 `q_*`），加上標籤欄。
   `final_fit=True` 時沒有 `predictions_val.csv`；`score_test=False` 時測試期的檔沒有標籤欄。
-- `report.json`：驗證期、測試期的 `backtest_report`，股票池摘要，切分，樣本數。
+- `report.json`：驗證期、測試期的 `backtest_report`，股票池摘要，切分，樣本數，每段樣本實際的起訖日（`date_range`）。
 - `checkpoints/`：`last.pt`、`best.pt`，Kaggle 一次 12 小時跑不完時從這裡接續。
 """
 
@@ -541,6 +541,10 @@ def run_pipeline(
       報告的 `test` 是 `{"hidden": True, ...}`。給「測試期只開一次」的研究：分數先存好，之後另一本一次算。
     - `stop_after`：`(階段, epoch)`，跑完那個 epoch 就停（見 `Trainer.fit`）。最後重訓照驗證期挑到的點停，
       學習率排程仍照設定的 epoch 數排，和驗證期那次走的路一樣（每個 epoch 的步數因為多了驗證期而變多）。
+      這要一個條件：驗證期那次，停點之前的每一階都跑滿設定的 epoch 數（沒有被 early stop 截掉），
+      而且那一階的最後一個 epoch 就是當時最好的（`history.csv` 的 `is_best`）。驗證期每一階從當時最好的權重開始；
+      最後重訓沒有驗證集，每一階從上一階的最後一個 epoch 開始。條件不成立時兩條路不同，呼叫的人要先檢查。
+    - 報告的 `date_range`：訓練、驗證、測試三段樣本實際的第一天和最後一天（股票池和 lookback 會讓它晚於切分的日期）。
     """
     if final_fit and probe:
         raise ValueError("final_fit 不能和 probe 一起用（probe 要拿驗證集挑 ridge 的 alpha）")
@@ -662,6 +666,7 @@ def run_pipeline(
         "split": split.summary(),
         "n_samples": {"train": len(train_s), "val": len(val_s), "test": len(test_s)},
         "n_days": {"train": _n_days(train_s), "val": _n_days(val_s), "test": _n_days(test_s)},
+        "date_range": {"train": _date_range(train_s), "val": _date_range(val_s), "test": _date_range(test_s)},
         "n_stock_cov": n_stock_cov,
         "n_market_cov": n_market_cov,
         "stock_cov_cols": list(ds_train.stock_cov_cols),

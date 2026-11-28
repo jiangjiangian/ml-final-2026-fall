@@ -301,7 +301,9 @@ Kaggle 的 input 是唯讀的，`--resume-from` 會先把 `last.pt`、`best.pt` 
 - `stop_after=(階段, epoch)`（只有 Python API）：跑完那一階的那個 epoch 就停。每一階的學習率照「該階 epoch 數 × 每 epoch 步數」排 cosine，所以要照驗證期的設定排好、在挑到的點停，權重才走同一條路。
 - `score_test=False`（`--hide-test-labels`）：測試期的 `predictions_test.csv` 只有 `date, stock_id, score`，報告的 `test` 是 `{"hidden": True, ...}`。給測試期只開一次的研究：分數先存好，之後另一本一次算。
 
-RP 40e 就是這樣用的：設定讀 RP 40c、40d 存的 `config.json`，停點讀它們 `report.json` 的 `best`。
+「同一條路」有一個條件：驗證期那次，停點之前的每一階都跑滿設定的 epoch 數（沒有被 early stop 截掉），而且那一階的最後一個 epoch 就是當時最好的（`history.csv` 的 `is_best`）。驗證期每一階從當時最好的權重開始；最後重訓沒有驗證集，每一階從上一階的最後一個 epoch 開始。條件不成立時兩條路不同，要先在驗證期的 `history.csv` 檢查。
+
+RP 40e 就是這樣用的：設定讀 RP 40c、40d 存的 `config.json`，停點讀它們 `report.json` 的 `best`，上面的條件在 RP 40e 裡 assert。報告的 `date_range` 是三段樣本實際的起訖日，用來確認訓練期從哪一天開始（股票池的錨點和 lookback 會讓它晚於切分的日期）。
 
 ### 輸出
 
@@ -311,7 +313,7 @@ RP 40e 就是這樣用的：設定讀 RP 40c、40d 存的 `config.json`，停點
 | `history.csv` | 每個 epoch 一列：階段、train_loss、val_rank_ic、秒數 |
 | `predictions_val.csv`、`predictions_test.csv` | `date, stock_id, score`（有分位數頭時加 `q_0.1` 這類欄），再加 `label_r, target_z, exec_long_ok, exec_short_ok` |
 | `probe_predictions_*.csv` | 有 `--probe` 時，ridge probe 的預測 |
-| `report.json` | `val`、`test`、`probe` 各一份 `backtest_report`，加切分、樣本數、協變量欄名、股票池每年摘要 |
+| `report.json` | `val`、`test`、`probe` 各一份 `backtest_report`，加切分、樣本數、每段樣本的起訖日（`date_range`）、協變量欄名、股票池每年摘要 |
 | `checkpoints/last.pt`、`checkpoints/best.pt` | 接續用的完整狀態、驗證期最好的權重 |
 
 `backtest_report` 的鍵：`horizon`、`holding`、`rank_ic`、`ic`（`mean, std, icir, t_iid, t_nw, n_days, hit_rate`）、`competition`（和 `competition_scope`、`competition_n_stocks`）、`cost`（含各折扣的來回成本）、`modes`（`half_half`、`top_bottom_k`、`long_top_k` 各自的毛、淨 `summarize_daily`、`break_even_cost`、各折扣的淨 Sharpe）。`report.json` 可能有 `NaN`，用 Python 的 `json.load` 讀。
